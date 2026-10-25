@@ -60,7 +60,7 @@ public final class TooltipListener {
 
     /** The badge part; also drawn by the J menu preview without a slot, and on the hotbar. */
     public record BadgeFacts(long until, int rules, int advice, Component word, int wordWidth, float wordScale,
-                              int colour, String where, Component price, int priceWidth) {}
+                              int colour, String where, Component price, int priceWidth, boolean priceTop) {}
 
     private static final java.util.WeakHashMap<net.minecraft.world.item.ItemStack, SlotFacts> SLOT_FACTS = new java.util.WeakHashMap<>();
     private static final java.util.WeakHashMap<net.minecraft.world.item.ItemStack, BadgeFacts> BADGE_FACTS = new java.util.WeakHashMap<>();
@@ -238,7 +238,7 @@ public final class TooltipListener {
     }
 
     private static BadgeFacts buildBadge(net.minecraft.world.item.ItemStack stack, long until, int rules, int advice) {
-        BadgeFacts none = new BadgeFacts(until, rules, advice, null, 0, 0, 0, null, null, 0);
+        BadgeFacts none = new BadgeFacts(until, rules, advice, null, 0, 0, 0, null, null, 0, false);
         if (!Settings.on("itemAdvice")) {           // verdictBadges is the menus' own switch: drawBadge
             return none;
         }
@@ -255,7 +255,18 @@ public final class TooltipListener {
                 Double typical = pr == null ? null : pr.typical();
                 if (typical != null) {
                     Component c = styled(Prices.fmt(typical).replace(" ", ""));
-                    return new BadgeFacts(until, rules, advice, null, 0, 0, 0, null, c, font.width(c));
+                    return new BadgeFacts(until, rules, advice, null, 0, 0, 0, null, c, font.width(c), false);
+                }
+            }
+            // an ingredient: its price each, top-left (the stack count has the bottom-right, the tier stars the top-right)
+            if (view.get().kind() == ItemView.Kind.INGREDIENT && view.get().name() != null && Settings.on("tooltipPrice")) {
+                String name = view.get().name();
+                Prices.Price pr = GameState.current().price(name);
+                if (pr == null) {
+                    GameState.current().requestPrices(List.of(name));
+                } else if (pr.typical() != null) {
+                    Component c = styled(Prices.fmt(pr.typical()).replace(" ", ""));
+                    return new BadgeFacts(until, rules, advice, null, 0, 0, 0, null, c, font.width(c), true);
                 }
             }
             return none;
@@ -281,7 +292,7 @@ public final class TooltipListener {
         int tw = font.width(word);
         Component c = styled(word);
         return new BadgeFacts(until, rules, advice, c, font.width(c), tw * 2f / 3f <= 18 ? 2f / 3f : 16f / tw, colour, where,
-                null, 0);
+                null, 0, false);
     }
 
     private static Component styled(String text) {
@@ -297,7 +308,12 @@ public final class TooltipListener {
         var font = Minecraft.getInstance().font;
         if (f.price() != null) {
             g.nextStratum();
-            outlined(g, font, f.price(), f.priceWidth(), x + 17, y + 16, 0.42f, 0xFF55FF55, true);
+            if (f.priceTop()) {
+                outlined(g, font, f.price(), f.priceWidth(), x - 1, y - 1, Math.min(0.42f, 17f / Math.max(1, f.priceWidth())),
+                        0xFF55FF55, false);
+            } else {
+                outlined(g, font, f.price(), f.priceWidth(), x + 17, y + 16, 0.42f, 0xFF55FF55, true);
+            }
             return;
         }
         if (f.word() == null) {
@@ -529,23 +545,29 @@ public final class TooltipListener {
         if (parsed.isEmpty()) {
             return false;
         }
-        if (parsed.get().isGear()) {
+        boolean ingredient = parsed.get().kind() == ItemView.Kind.INGREDIENT && parsed.get().name() != null;
+        if (parsed.get().isGear() || ingredient) {
             ItemView g = parsed.get();
             if (!Settings.on("tooltipPrice")) {
                 return false;
             }
-            String p = Prices.text(g.data().name(), g.unidentified());
+            String name = ingredient ? g.name() : g.data().name();
+            String p = Prices.text(name, g.unidentified());
             if (p == null) {
                 return false;
             }
             p = p.contains(" (") ? p.substring(0, p.indexOf(" (")) : p;   // just the price, short
-            Prices.Price known = GameState.current().price(g.data().name());
+            Prices.Price known = GameState.current().price(name);
+            if (ingredient && stack.getCount() > 1 && known != null && known.typical() != null) {
+                // a stack of ingredients: what the whole stack is worth too
+                p += " ×" + stack.getCount() + " ≈ " + Prices.fmt(known.typical() * stack.getCount());
+            }
             if (known != null && known.uncertain()) {
                 p = Prices.past(p);                 // nothing listed now, or only old listings
             }
             // Line 0 is a hidden copy of the name; the visible header ("Dusk Painter [57.9%]",
             // with the emblem) is the next line holding it. The price goes at its end.
-            int header = headerLine(out, g.data().name());
+            int header = headerLine(out, name);
             // the header is in Wynncraft's own font, which has no "◇": the price says its font, the default one
             Component price = Component.literal("  " + PRICE_TAG + p).withStyle(net.minecraft.ChatFormatting.GOLD)
                     .withStyle(s -> s.withFont(net.minecraft.network.chat.FontDescription.DEFAULT));
