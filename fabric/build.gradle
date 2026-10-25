@@ -181,11 +181,15 @@ processResources {
     inputs.properties props
     def dev = rootProject.devTools
     inputs.property 'devTools', dev
+    // a developer's own tools may bring mixins too (git-ignored common/src/local, dev builds only)
+    def local = dev && rootProject.file('common/src/local/resources/wynnlabs.local.mixins.json').isFile()
+    inputs.property 'localMixins', local
     filesMatching('fabric.mod.json') {
         expand props
         // a dev build also loads the developer tools' mixins (common/src/dev); a release never names them
         if (dev) {
-            filter { String line -> line.replace('"wynnlabs.mixins.json"', '"wynnlabs.mixins.json",\n    "wynnlabs.dev.mixins.json"') }
+            def extra = '"wynnlabs.dev.mixins.json"' + (local ? ',\n    "wynnlabs.local.mixins.json"' : '')
+            filter { String line -> line.replace('"wynnlabs.mixins.json"', '"wynnlabs.mixins.json",\n    ' + extra) }
         }
     }
 }

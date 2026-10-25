@@ -14,6 +14,9 @@ libs/
 release-blocklist.txt
 tools/art/node_modules/
 
+# a developer's own dev-build tools, never shared (common/build.gradle, DevTools)
+/common/src/local/
+
 # OpenSpec planning and its Claude Code commands/skills (kept locally)
 openspec/
 .claude/

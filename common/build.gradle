@@ -32,6 +32,13 @@ dependencies {
 if (rootProject.devTools) {
     sourceSets.main.java.srcDir 'src/dev/java'
     sourceSets.main.resources.srcDir 'src/dev/resources'
+    // a developer's own tools, in the git-ignored src/local (DevTools starts them when present)
+    if (file('src/local/java').isDirectory()) {
+        sourceSets.main.java.srcDir 'src/local/java'
+    }
+    if (file('src/local/resources').isDirectory()) {
+        sourceSets.main.resources.srcDir 'src/local/resources'
+    }
 }
 
 processResources {

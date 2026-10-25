@@ -13,7 +13,10 @@ import org.joml.Matrix3x2f;
  * Dev builds only: the developer tools behind {@link DevHooks}. A release jar has neither this nor
  * anything it uses (common/src/dev; checkDevTools proves it).
  */
-final class DevTools implements DevHooks.Hooks {
+public final class DevTools implements DevHooks.Hooks {
+
+    /** Public: DevHooks (core) makes it by reflection from another package. */
+    public DevTools() {}
 
     private static final Identifier WINDOW = Identifier.fromNamespaceAndPath("wynnlabs", "kit/window");
 
@@ -22,6 +25,15 @@ final class DevTools implements DevHooks.Hooks {
         // /wynnlabs shots: pictures of the mod's own menu for its pages (Debug on only)
         platform.registerClientCommand(Shots::command);
         platform.onEndTick(Perf.tick("tick.Shots", Shots::onTick));
+        // a developer's own tools in the git-ignored common/src/local, when there are any
+        try {
+            Class.forName("io.github.anilken.wynnlabs.local.LocalTools").getMethod("register", Platform.class)
+                    .invoke(null, platform);
+        } catch (ClassNotFoundException e) {
+            // none here
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            System.out.println("[WynnLabs] local tools failed to start: " + e);
+        }
     }
 
     @Override
