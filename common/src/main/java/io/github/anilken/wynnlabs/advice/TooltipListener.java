@@ -546,7 +546,9 @@ public final class TooltipListener {
             // Line 0 is a hidden copy of the name; the visible header ("Dusk Painter [57.9%]",
             // with the emblem) is the next line holding it. The price goes at its end.
             int header = headerLine(out, g.data().name());
-            Component price = Component.literal("  " + PRICE_TAG + p).withStyle(net.minecraft.ChatFormatting.GOLD);
+            // the header is in Wynncraft's own font, which has no "◇": the price says its font, the default one
+            Component price = Component.literal("  " + PRICE_TAG + p).withStyle(net.minecraft.ChatFormatting.GOLD)
+                    .withStyle(s -> s.withFont(net.minecraft.network.chat.FontDescription.DEFAULT));
             if (header >= 0) {
                 out.set(header, out.get(header).copy().append(price));
             } else {
