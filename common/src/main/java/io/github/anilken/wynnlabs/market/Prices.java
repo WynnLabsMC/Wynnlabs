@@ -87,7 +87,7 @@ public final class Prices {
          */
         public Double typical() {
             // boxed on purpose: a ?: mixing double and Double unboxes a null and throws
-            if (lowest != null) {
+            if (lowest != null && lowest > 0) {          // a 0 E listing is a broken upload
                 return Double.valueOf(lowest);
             }
             return avg80 != null ? avg80 : median;
@@ -95,7 +95,7 @@ public final class Prices {
 
         /** The same for an unidentified item: its lowest listing, else its average. */
         public Double unidTypical() {
-            if (unidLowest != null) {
+            if (unidLowest != null && unidLowest > 0) {
                 return Double.valueOf(unidLowest);
             }
             return unidAvg80;
@@ -691,8 +691,9 @@ public final class Prices {
         java.util.List<Integer> prices = new java.util.ArrayList<>();
         for (var el : list) {
             JsonObject l = el.getAsJsonObject();
-            if (!name.equalsIgnoreCase(l.get("name").getAsString()) || l.has("shiny") && l.get("shiny").getAsBoolean()) {
-                continue;                       // exact item, no shinies (they sell for far more)
+            if (!name.equalsIgnoreCase(l.get("name").getAsString()) || l.has("shiny") && l.get("shiny").getAsBoolean()
+                    || l.get("listing_price").getAsInt() < 1) {
+                continue;                       // exact item, no shinies (they sell for far more), no 0 E uploads
             }
             count++;
             long at = seenAt(l);

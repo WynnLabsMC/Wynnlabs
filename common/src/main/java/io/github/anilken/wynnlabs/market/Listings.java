@@ -140,8 +140,8 @@ public final class Listings {
                 continue;                       // exact item, no shinies (they sell for far more)
             }
             Double price = num(l, "listing_price");
-            if (price == null) {
-                continue;
+            if (price == null || price < 1) {
+                continue;                       // a 0 E listing is a broken upload, nothing anyone can buy
             }
             Double overall = num(l, "overall_roll");
             List<BoxMarket.StatRoll> rolls = stats(l.get("stat_rolls"));
