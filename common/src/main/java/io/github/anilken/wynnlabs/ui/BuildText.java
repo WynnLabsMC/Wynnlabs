@@ -67,7 +67,10 @@ final class BuildText {
                 break;
             }
             String unit = "PERCENT".equals(st.unit()) ? "%" : "";
-            String range = st.fixed() ? signed(st.min()) + unit : signed(st.min()) + unit + " to " + signed(st.max()) + unit;
+            // spell costs: the item data keeps a cut as a positive number, the game shows it as "−20%"
+            int flip = st.key().toLowerCase(Locale.ROOT).contains("spellcost") ? -1 : 1;
+            String range = st.fixed() ? signed(flip * st.min()) + unit
+                    : signed(flip * st.min()) + unit + " to " + signed(flip * st.max()) + unit;
             boolean good = st.inverted() ? st.max() <= 0 : st.min() >= 0;
             out.add(Component.literal(range + " " + st.name()).withStyle(good ? ChatFormatting.GREEN : ChatFormatting.RED));
         }

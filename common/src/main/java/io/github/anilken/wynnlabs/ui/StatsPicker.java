@@ -65,7 +65,9 @@ final class StatsPicker extends HomePart {
         String label = none ? L.t("wynnlabs.stats.src_none")
                 : shown.flipped() ? L.t("wynnlabs.stats.view_new", shown.name()) : L.t("wynnlabs.stats.vs", shown.name());
         int room = tx - 3 - left;
-        String shownLabel = fit(label, Math.max(16, room - 22));
+        // a narrow card: the build's name alone, the whole line stays in the tooltip
+        String shownLabel = !none && width(label, false) > room - 22 ? shown.name() : label;
+        shownLabel = fit(shownLabel, Math.max(16, room - 22));
         int bw = Math.min(room, width(shownLabel, false) + 20);
         int bx = tx - 3 - bw;
         boolean bh = mx >= bx && mx < bx + bw && my >= y && my < y + H;

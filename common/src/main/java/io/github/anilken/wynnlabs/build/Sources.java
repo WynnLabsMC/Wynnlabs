@@ -149,9 +149,10 @@ public final class Sources {
         for (Damage.SpellPart sp : parts.spells()) {
             JsonObject e = entries.get(sp.name());
             double perCast = sp.perCast();
-            double rate = sp.lasting() ? 1 / sp.duration() : shareSum > 0 ? sp.share() / shareSum * in.casts() / 5.0 : 0;
-            castRate.put(sp.name(), rate);
             double count = num(e, "perCount", 1);
+            // a lasting spell is cast once per Totem every time it runs out
+            double rate = sp.lasting() ? count / sp.duration() : shareSum > 0 ? sp.share() / shareSum * in.casts() / 5.0 : 0;
+            castRate.put(sp.name(), rate);
             double waves = num(e, "waves", 1);
             // every hit of the cast: all ticks of every Totem, every wave from every Totem
             double hits = num(e, "hits", 0);

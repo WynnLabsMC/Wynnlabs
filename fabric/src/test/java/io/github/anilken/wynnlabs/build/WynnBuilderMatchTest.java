@@ -133,6 +133,10 @@ class WynnBuilderMatchTest {
         near(25085 * 1.15, source(d, "Crimson Effigy").dps(), 0.05, "Total Effigy DPS (at 115 %)");
         near(16483 * 35 / 30.0, source(d, "Hummingbird's Song").dps(), 0.05, "Total Hummingbird DPS (at 35 %)");
         assertEquals(3, source(d, "Crimson Effigy").count(), 1e-9, "one Effigy per Totem");
+        Sources.Source totem = source(d, "Totem");
+        // three Totems: each one cast again every time it runs out
+        assertEquals(3, totem.count(), 1e-9, "three Totems");
+        assertEquals(3 * totem.dps() / totem.perCast(), totem.castsPerSecond(), 1e-9, "a cast per Totem");
         assertEquals(8, source(d, "Puppet Master").count(), 1e-9);
         assertEquals(2, source(d, "Hummingbird's Song").count(), 1e-9);
         near(3356, source(d, "Totem").dps(), 0.05, "Totem Tick DPS");
@@ -159,6 +163,9 @@ class WynnBuilderMatchTest {
         near(1152.00, s.defenceTotal("air"), 0.001, "Air defence");
         near(35, 25 + s.stat("manaRegen"), 0.001, "Mana regen with base");
         near(-119, s.stat("lifeSteal"), 0.001, "Life steal");
-        System.out.println("[wb] mana " + s.mana());
+        // WynnBuilder's 181 is 100 + 52 + 29: the link's older item data has Omniverse at 40 max
+        // mana (52 at its best roll); today's data, the game's and WynnBuilder's own latest, has 28
+        near(36, s.stat("rawMaxMana"), 0.001, "Max mana (Omniverse at today's 28, best roll)");
+        near(100 + 36 + 29, s.mana(), 0.001, "Total mana");
     }
 }
