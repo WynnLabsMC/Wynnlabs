@@ -114,57 +114,42 @@ class SummonsCountedOnceTest {
         change.add("model", m2);
         Rules.update(change);
         Damage.Breakdown without = plan.currentDetail(null, null).breakdown();
-        double puppets = without.summonRaw()[0];
+        double puppets = without.summonTotal();
         assertTrue(puppets > 0, "the puppets are still there");
-        assertEquals(puppets + totem.perCast() / totem.duration(), with.summonRaw()[0], 1e-6 * with.summonRaw()[0],
+        assertEquals(puppets + totem.perCast() / totem.duration(), with.summonTotal(), 1e-6 * with.summonTotal(),
                 "summons = the tree's puppets + the Totem's ticks, each once");
     }
 
+    /** The plan's casts per 5 s as a Lv 44 Summoner without Double and Triple Totem, {@code extra} taken. */
+    private static double castsWith(List<AbilityNode> nodes, List<String> extra) throws IOException {
+        List<String> have = new java.util.ArrayList<>(TreeModelTest.summonerAt44(nodes));
+        have.removeAll(List.of("Double Totem", "Triple Totem"));     // the Lv 44 plan has Double Totem
+        have.addAll(extra);
+        FixtureState.load(shaman44()).withTree(nodes, have).install("en");
+        JsonObject tree = new JsonObject();
+        tree.addProperty("archetype", "Summoner");
+        JsonObject pick = new JsonObject();
+        pick.add("tree", tree);
+        Rules.update(pick);
+        Rules.update(ClassProfiles.rulesFor("Summoner", false));
+        Build.Plan plan = Build.compute();
+        Build.use(plan);
+        double casts = plan.currentDetail(null, null).result().casts();
+        FixtureState.uninstall();
+        return casts;
+    }
+
     @Test
-    void theSummonCalibrationCorrectsTheTreesSummonsOnce() throws IOException {
-        Build.Plan plan = summoner();
-        // the plan's model is the one the road map scores today's level with
-        TreeModel.Overlay today = TreeModel.run().at(GameState.current().level());
-        assertEquals(today.key(), plan.tree().key());
-        // and what weighs a piece against the plan with no overlay of its own (a verdict, a shop
-        // or bank pick) takes the plan's, not the rules' whole-plan summons
-        assertTrue(TreeModel.active() == plan.tree(), "the plan's tree is in force by default");
-        Damage.Detail base = plan.currentDetail(null, null);
-        Damage.Detail scored = TreeModel.with(today, () -> plan.currentDetail(null, null));
-        assertEquals(scored.breakdown().summonRaw()[0], base.breakdown().summonRaw()[0], 1e-9);
-        // without the tree the rules' summons are the whole plan's (Lv 120 puppets): not what is measured against
-        double whole = TreeModel.with(null, () -> Damage.detail(armour(plan.working()), plan.working().get("WEAPON"),
-                plan.wornAllocation(), plan.level())).breakdown().summonRaw()[0];
-        assertTrue(Math.abs(whole - base.breakdown().summonRaw()[0]) > 1e-6,
-                "the tree of today changes the summons: " + whole + " vs " + base.breakdown().summonRaw()[0]);
-
-        double raw = base.breakdown().summonRaw()[0];
-        double weight = DamageReport.mainAttackWeight();
-        assertEquals(plan.model("mainAttackWeight", 0.5), weight, 1e-12);
-        // the meter hears every main attack hit, whatever the goal's weight on it
-        double main = base.breakdown().mainTotal();
-        // the summons really deal 1.6 times the model's: the background between casts says so
-        JsonObject measured = new JsonObject();
-        Coach.bookBackground(measured, (main + 1.6 * raw) * 400, 400);
-        JsonObject change = Coach.calibrationChanges(measured, Rules.get().getAsJsonObject("model"), base.breakdown());
-        assertNotNull(change);
-        assertEquals(1.6, change.getAsJsonObject("model").get("summonCalibration").getAsDouble(), 1e-9);
-        Rules.update(change);
-
-        Build.Plan again = Build.compute();
-        Build.use(again);
-        Damage.Breakdown after = again.currentDetail(null, null).breakdown();
-        assertEquals(raw, after.summonRaw()[0], 1e-6 * raw, "the uncalibrated summons stay the tree's");
-        assertEquals(1.6 * raw, after.summonTotal(), 1e-6 * raw, "the calibration applied once");
-        // what the model now puts between casts is what was heard, so measuring again changes nothing
-        assertEquals(main + 1.6 * raw, after.mainTotal() + after.summonTotal(),
-                1e-6 * (main + raw));
-        JsonObject twice = Coach.calibrationChanges(measured, Rules.get().getAsJsonObject("model"), after);
-        assertTrue(twice == null || !twice.has("model") || !twice.getAsJsonObject("model").has("summonCalibration"),
-                "no second correction on top of the first: " + twice);
-        // and the road map's scoring at today's level sees the same calibrated summons
-        Damage.Detail road = TreeModel.with(today, () -> Damage.detail(armour(again.working()),
-                again.working().get("WEAPON"), again.wornAllocation(), again.level()));
-        assertEquals(after.summonTotal(), road.breakdown().summonTotal(), 1e-9);
+    void everyTotemUpIsPaidFor() throws IOException {
+        // Double and Triple Totem change no mana cost, but two and three Totems stand: each one's
+        // mana comes back once per duration, so fewer casts are left for the rest
+        List<AbilityNode> nodes = TreeModelTest.tree("shaman");
+        double one = castsWith(nodes, List.of("Aura"));
+        double two = castsWith(nodes, List.of("Aura", "Double Totem"));
+        double three = castsWith(nodes, List.of("Aura", "Double Totem", "Triple Totem"));
+        assertTrue(one > 0, "casts at all");
+        assertTrue(two < one, "two Totems cost more than one: " + one + " → " + two);
+        assertTrue(three < two, "three Totems cost more than two: " + two + " → " + three);
+        assertEquals(one - two, two - three, (one - two) * 1e-6, "one Totem's upkeep each");
     }
 }

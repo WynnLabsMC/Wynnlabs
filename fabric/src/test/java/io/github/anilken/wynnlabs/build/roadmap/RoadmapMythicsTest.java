@@ -193,8 +193,9 @@ class RoadmapMythicsTest {
                 (t == Slot.RELIK ? relik : notes).add("Lv " + m + " " + line);
             }
         };
+        List<Roadmap.Step> steps;
         try {
-            Roadmap.build();
+            steps = Roadmap.build();
         } finally {
             Roadmap.trace = null;
         }
@@ -225,7 +226,12 @@ class RoadmapMythicsTest {
         String window = "Lv 120 Olympic Lv93: " + L.t("wynnlabs.road.trace_skip", L.t("wynnlabs.road.trace_window"));
         assertTrue(relik.stream().anyMatch(l -> l.startsWith("Lv 120 Olympic Lv93: ")) && !relik.contains(window),
                 "Olympic was dropped at Lv 120: " + relik.stream().filter(l -> l.contains("Olympic Lv93")).toList());
-        assertTrue(notes.stream().anyMatch(l -> l.startsWith("Lv 120 ") && l.contains(L.t("wynnlabs.road.trace_start_weapon", "Olympic"))),
+        // a start around it, unless the set already holds it (the search does not start around the
+        // weapon it is built on)
+        boolean holds = steps.stream().anyMatch(s -> s.level() == 120 && s.build() != null
+                && s.build().get("WEAPON") != null && s.build().get("WEAPON").name().equals("Olympic"));
+        assertTrue(holds || notes.stream().anyMatch(l -> l.startsWith("Lv 120 ")
+                        && l.contains(L.t("wynnlabs.road.trace_start_weapon", "Olympic"))),
                 "no start around Olympic at Lv 120");
         // Immolation scores: no NaN anywhere
         assertTrue(notes.stream().noneMatch(l -> l.contains("NaN")), notes.stream().filter(l -> l.contains("NaN")).toList().toString());

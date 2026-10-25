@@ -41,7 +41,7 @@ public final class SyntheticData {
                 new BaseStats(59, 0, Optional.of("NORMAL"), Optional.empty(),
                         List.of(new BaseStats.Damage("NEUTRAL", 20, 30), new BaseStats.Damage("WATER", 10, 14)), List.of()),
                 List.of(new StatRange("manaRegen", "Mana Regen", "PER_5_S", false, 1, 4),
-                        new StatRange("raw2ndSpellCost", "2nd Spell Cost", "RAW", true, -4, -1)),
+                        new StatRange("raw2ndSpellCost", "2nd Spell Cost", "RAW", false, 1, 4)),
                 set, "NONE");
     }
 
@@ -50,7 +50,7 @@ public final class SyntheticData {
         marks.put(SkillKind.INTELLIGENCE, true);
         return new ItemView(ItemView.Kind.GEAR, "GearItem", false, null, null, null, d,
                 new ItemView.Rolled(List.of(new Roll("manaRegen", "Mana Regen", "PER_5_S", mana, d.stats().get(0)),
-                        new Roll("raw2ndSpellCost", "2nd Spell Cost", "RAW", -3, d.stats().get(1))),
+                        new Roll("raw2ndSpellCost", "2nd Spell Cost", "RAW", 3, d.stats().get(1))),
                         List.of("WATER"), 1, 71.5f, false, new ItemView.Marks(true, true, marks, false)),
                 null, null, null, null, null, null, null, null, null);
     }

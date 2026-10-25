@@ -25,9 +25,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The home tab's tiles: this week's raid pool, the aspects and the professions on the left;
- * the next quest, where to level, the bank and the nearest secret discovery on the right; and
- * the compact page's rows. They read {@link HomeData}, refreshed twice a second.
+ * The tiles of the Today tab's "Next" section ({@link TodayNext}): the next quest, where to level,
+ * the bank, the nearest secret discovery, this week's raid pool, the aspects and the professions;
+ * and the compact Home's first-steps row. They read {@link HomeData}, refreshed twice a second.
  */
 final class HomeTiles extends HomePart {
 
@@ -406,54 +406,20 @@ final class HomeTiles extends HomePart {
     // ---- compact: the tiles as rows ----
 
     /**
-     * The compact page's tiles as rows beside the stand, in order of use (the first steps while
-     * any is open, quest, where to level, this week, aspects, bank (not beside the first steps),
-     * professions, discovery); the ones that do not fit are left out. A row
-     * is a label over its answer when tall enough, else one line.
+     * The compact page's rows beside the stand, over the stats: the first steps while any is
+     * open. A row is a label over its answer when tall enough, else one line. Returns the height
+     * used (0: none).
      */
-    void rows(GuiGraphics g, In in, Host host, int x, int y, int w, int h, int mx, int my, HomeSteps steps) {
+    int rows(GuiGraphics g, Host host, int x, int y, int w, int h, int mx, int my, HomeSteps steps) {
         List<String[]> rows = new ArrayList<>();       // {icon, label, value, action}
         List<List<Component>> tips = new ArrayList<>();
         if (steps != null) {
             rows.add(steps.row());                     // the menus still to open: first, in the bank's place
             tips.add(steps.tip(FirstSteps.done()).subList(1, FirstSteps.STEPS.size() + 2));
         }
-        QuestAdvisor.Suggestion q = in.quest();
-        rows.add(new String[] {"map-2", L.t("wynnlabs.homev.quest"), q == null ? L.t("wynnlabs.home.no_quest")
-            : QuestGuides.title(q.quest().name()) + (q.distance() >= 0 ? " · " + RoadmapScreen.dist(q.distance()) : ""), q == null ? "#qopen:2" : null});
-        tips.add(q == null ? List.of() : List.of(Component.literal(QuestGuides.title(q.quest().name())).withStyle(ChatFormatting.AQUA),
-                L.c("wynnlabs.home.click_track").withStyle(ChatFormatting.GREEN)));
-        String raw = HomeNext.safest(in.places());
-        String place = raw == null ? null : RoadmapScreen.shortPlace(raw);
-        String cmd = raw == null ? null : RoadmapScreen.compassFor(raw);
-        rows.add(new String[] {"sword", L.t("wynnlabs.home.grind"), place == null ? L.t("wynnlabs.home.no_place") : place,
-            place == null ? null : cmd != null ? cmd : place});
-        tips.add(place == null ? List.of() : List.of(Component.literal(place).withStyle(ChatFormatting.WHITE),
-                Component.literal(L.t(cmd != null ? "wynnlabs.screen.click_compass" : "wynnlabs.screen.click_copy_name"))
-                        .withStyle(ChatFormatting.DARK_GRAY)));
-        rows.add(new String[] {"trophy", L.t("wynnlabs.homev.week"), d.pool().isEmpty() ? L.t("wynnlabs.homev.week_none")
-            : L.n("wynnlabs.homev.week_count", d.pool().size()) + (d.raidsUp() && d.dryPulls() >= 0 ? " · " + L.n("wynnlabs.homev.week_dry", d.dryPulls()) : ""),
-            "#qopen:" + RoadmapScreen.TAB_ENDGAME});
-        tips.add(List.of(opens("wynnlabs.screen.tab_endgame")));
-        RankedAspect a = d.next();
-        rows.add(new String[] {"sparkles", L.t("wynnlabs.homev.aspects"), !d.aspectsUp() || d.total() == 0 ? L.t("wynnlabs.endgame.aspects_no_data")
-            : (d.owned() < 0 ? "?" : String.valueOf(d.owned())) + "/" + d.total() + (a != null && d.owned() >= 0 ? " · " + shortAspect(a.aspect().name()) : ""),
-            "#qopen:" + RoadmapScreen.TAB_ENDGAME});
-        tips.add(List.of(opens("wynnlabs.screen.tab_endgame")));
-        int[] b = d.bank();
-        if (steps == null) {
-            rows.add(new String[] {"building-bank", L.t("wynnlabs.homev.bank"), b == null ? L.t("wynnlabs.homev.bank_none")
-                : L.t("wynnlabs.homev.bank_sell", b[0]) + (d.sellWorth() > 0 ? " · ≈" + Prices.fmt(d.sellWorth()) : ""), "#qopen:" + RoadmapScreen.TAB_BANK});
-            tips.add(List.of(opens("wynnlabs.screen.tab_bank")));
+        if (rows.isEmpty()) {
+            return 0;
         }
-        String top = d.profs().isEmpty() ? null : d.profs().get(0);
-        rows.add(new String[] {"hammer", L.t("wynnlabs.homev.profs"), top == null ? L.t("wynnlabs.homev.profs_none")
-            : Professions.name(top) + " " + d.levels().get(top), "#qopen:" + RoadmapScreen.TAB_CRAFT});
-        tips.add(List.of(opens("wynnlabs.screen.tab_craft")));
-        Discoveries.Entry e = d.near();
-        rows.add(new String[] {"compass", L.t("wynnlabs.homev.discovery"), e == null ? L.t("wynnlabs.homev.discovery_none")
-            : e.name() + " · " + RoadmapScreen.dist(d.nearDist()), e == null ? "#qopen:" + RoadmapScreen.TAB_DISCOVERIES : "#qdisc:" + e.id()});
-        tips.add(List.of(opens("wynnlabs.screen.tab_discoveries")));
 
         int gap = 3;
         int n = Math.min(rows.size(), Math.max(1, (h + gap) / (14 + gap)));
@@ -476,11 +442,8 @@ final class HomeTiles extends HomePart {
             List<Component> tip = new ArrayList<>();
             tip.add(Component.literal(r[1] + ": " + r[2]).withStyle(ChatFormatting.WHITE));
             tip.addAll(tips.get(i));
-            if (r[0].equals("map-2") && q != null) {
-                host.quest(x, ry, w, rh, tip, q.quest());
-            } else {
-                host.area(x, ry, w, rh, null, tip, r[3]);
-            }
+            host.area(x, ry, w, rh, null, tip, r[3]);
         }
+        return n * (rh + gap) - gap;
     }
 }

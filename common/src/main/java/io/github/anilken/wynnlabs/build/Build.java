@@ -3,9 +3,7 @@ package io.github.anilken.wynnlabs.build;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.advice.AutoAdvice;
-import io.github.anilken.wynnlabs.coach.Feedback;
 import io.github.anilken.wynnlabs.core.L;
-import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
@@ -68,8 +66,7 @@ public final class Build {
                 armour.add(extra);
             }
             // with the ability tree the plan was scored with ({@code tree}): the damage meter
-            // (Coach) measures summons and spells against these numbers, so its calibration
-            // corrects the very model that scores your gear, once
+            // (Coach) shows what it measures beside these very numbers
             return TreeModel.with(tree, () -> Damage.detail(armour, working.get("WEAPON"),
                     points == null ? wornAllocation : points, level));
         }
@@ -96,9 +93,6 @@ public final class Build {
     private static volatile Plan plan;
     private static volatile String planKey = "";
     private static int tick;
-    private static String planProfile = "";
-    /** When the plan (re)started for this character; changes right after a join are not choices. */
-    static volatile long startedAt;
 
     private Build() {}
 
@@ -191,13 +185,6 @@ public final class Build {
             if (key.equals(planKey)) {
                 return;
             }
-            Plan before0 = plan;
-            boolean fresh = !Profile.id().equals(planProfile) || before0 == null;
-            if (fresh) {
-                planProfile = Profile.id();
-                startedAt = System.currentTimeMillis();
-            }
-            Plan before = fresh ? null : before0;
             Inputs in = prepare();
             computing = true;
             WORKER.execute(() -> {
@@ -218,9 +205,6 @@ public final class Build {
                     }
                     plan = done;
                     planKey = key;
-                    if (System.currentTimeMillis() - startedAt > 30_000) {
-                        Feedback.check(before, done);
-                    }
                 });
             });
         } catch (Throwable t) {

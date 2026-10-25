@@ -181,16 +181,17 @@ public final class Setup {
      * floor, XP curve and XP factor again ({@link #upgrade}); 3 brought the fighting goals' XP factor
      * (from 2 only that, and the summon calibration starts over); 4 takes back an XP weight that
      * feedback raised on a fighting goal before it stopped doing so, and the Damage goal's XP
-     * factor 0.3 from 3 becomes its 0 (from 3 only these).
+     * factor 0.3 from 3 becomes its 0 (from 3 only these); 5 turns the spell cost weight round (a cut
+     * is kept positive in the item data); 6 drops the mana steal discount (mana steal counts whole)
+     * and the weights your own picks used to raise.
      */
-    static final int SURVIVAL_MODEL = 4;
+    static final int SURVIVAL_MODEL = 6;
 
     /**
      * A preset's model weights: survival, regen, mana, heal, damage, survival power, then the
-     * goal's factors on the XP and walk speed weights (feedback nudges those, so the goal
-     * multiplies them instead of overwriting), the room above the speed ceiling, burst, loot, the
-     * health floor's scale (Damage.ehpFloor) and whether XP counts with diminishing returns (1)
-     * or in a straight line (0). Health counts twice, as a log that flattens (survival) and a
+     * goal's factors on the XP and walk speed weights (the goal multiplies them), the room above
+     * the speed ceiling, burst, loot, the health floor's scale (Damage.ehpFloor) and whether XP
+     * counts with diminishing returns (1) or in a straight line (0). Health counts twice, as a log that flattens (survival) and a
      * power that keeps paying (survival power), so each is about half what it was alone.
      */
     static double[] weights(String preset) {
@@ -232,19 +233,11 @@ public final class Setup {
         if (model.has("byHand") && model.get("byHand").isJsonArray()) {
             model.getAsJsonArray("byHand").forEach(e -> byHand.add(e.getAsString()));
         }
-        if (model.has("survivalWeightBase") && model.has("survivalWeight")) {
-            double base = model.get("survivalWeightBase").getAsDouble();
-            double now = model.get("survivalWeight").getAsDouble();
-            if (base > 0 && now > base * 1.01) {
-                model.addProperty("survivalLearned", Math.round(Math.min(2, now / base) * 1000) / 1000.0);
-                model.addProperty("survivalLearnedAt", System.currentTimeMillis());
-            }
-            model.remove("survivalWeightBase");
-        }
+        model.remove("survivalWeightBase");
         List<String> keys = List.of(keys());
         int from = model.has("survivalModel") ? model.get("survivalModel").getAsInt() : 0;
-        // rules at 3 have all of it; at 2 this survival model already (and what feedback taught
-        // on top of it): 3 only brings the goal's XP factor; below 2 the whole list comes again
+        // rules at 3 have all of it; at 2 this survival model already: 3 only brings the goal's
+        // XP factor; below 2 the whole list comes again
         String[] reset = from >= 3 ? new String[0]
                 : from >= 2 ? new String[] {"goalXp"}
                 : new String[] {"survivalWeight", "survivalPower", "ehpFloorScale", "xpLog", "goalXp"};
@@ -253,21 +246,37 @@ public final class Setup {
                 model.addProperty(k, w[keys.indexOf(k)]);
             }
         }
-        // 3: summons hit only while alive and the whole main attack comes off the background, so
-        // a summon calibration fitted before means something else now: it starts over
-        if (from < 3 && model.has("summonCalibration") && !byHand.contains("summonCalibration")) {
-            model.addProperty("summonCalibration", 1.0);
+        // 5: the item data keeps a spell cost cut as a positive number, so the weight that took
+        // it for a rise (-1.5, a cut scored as a loss) turns round
+        if (from < 5 && rules.has("statWeights") && rules.get("statWeights").isJsonObject()) {
+            JsonObject sw = rules.getAsJsonObject("statWeights");
+            if (sw.has("SpellCost") && sw.get("SpellCost").getAsDouble() < 0) {
+                sw.addProperty("SpellCost", -sw.get("SpellCost").getAsDouble());
+            }
         }
-        // 4: feedback no longer raises the XP weight on the fighting goals, but one it raised
-        // before (up to its cap of 1.5) stayed and kept pulling XP gear over damage: it goes;
-        // and the Damage goal leaves XP out, so its 0.3 from 3 becomes the goal's 0
-        if (from < 4 && (g.equals("DAMAGE") || g.equals("BOSS") || g.equals("SAFE"))
-                && model.has("xpWeight") && !byHand.contains("xpWeight")) {
-            model.addProperty("xpWeight", 1.0);
-        }
+        // 4: the Damage goal leaves XP out, so its 0.3 from 3 becomes the goal's 0 (the XP weight
+        // feedback raised on the fighting goals goes with 6)
         if (from == 3 && g.equals("DAMAGE") && model.has("goalXp") && !byHand.contains("goalXp")
                 && Math.abs(model.get("goalXp").getAsDouble() - 0.3) < 1e-9) {
             model.addProperty("goalXp", w[keys.indexOf("goalXp")]);
+        }
+        // 6: mana steal counts whole, as WynnBuilder does, so the per-archetype discount goes; and
+        // the advice no longer learns from your swaps, so the weights they raised (XP, walk speed,
+        // survival) come from the goal again, one set by hand staying. The main attack's needs the
+        // tree: ClassProfiles.mainAttackUpgrade sets it at login.
+        if (from < 6) {
+            model.remove("manaStealFactor");
+            model.remove("nudgeCap");
+            model.remove("capsApplied");
+            if (!byHand.contains("xpWeight")) {
+                model.addProperty("xpWeight", 1.0);
+            }
+            if (!byHand.contains("speedWeight")) {
+                model.addProperty("speedWeight", 0.3);
+            }
+            if (!byHand.contains("survivalWeight")) {
+                model.addProperty("survivalWeight", w[keys.indexOf("survivalWeight")]);
+            }
         }
         model.addProperty("survivalModel", SURVIVAL_MODEL);
     }

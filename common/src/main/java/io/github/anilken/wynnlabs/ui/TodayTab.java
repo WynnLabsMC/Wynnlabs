@@ -5,7 +5,6 @@ import io.github.anilken.wynnlabs.coach.Coach;
 import io.github.anilken.wynnlabs.coach.Today;
 import io.github.anilken.wynnlabs.coach.XpMeter;
 import io.github.anilken.wynnlabs.core.L;
-import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -41,10 +40,20 @@ final class TodayTab extends MenuTab {
 
     // ---- today tab (Bugün) ----
 
+    /** The "Next" row's tiles, made on first use (a field without an initializer: safe to hot swap in). */
+    private TodayNext next;
+
+    private TodayNext next() {
+        if (next == null) {
+            next = new TodayNext(menu);
+        }
+        return next;
+    }
+
     /**
      * Today: the reset countdown and this session's XP in the header, a card per character
-     * (level, when played, the daily tasks, the daily reward), a framed to-do list with item icons
-     * and one-click actions, and the last session in four tiles.
+     * (level, when played, the daily tasks, the daily reward), the "Next" tiles ({@link TodayNext}),
+     * a framed to-do list with item icons and one-click actions, and the last session in four tiles.
      */
     private void drawToday(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         // header chips, on the title line
@@ -233,6 +242,13 @@ final class TodayTab extends MenuTab {
         }
         ry += listH + 8;
 
+        // next: the tiles that were on the Home, the rows that fit under the to-do list
+        int tileRoom = y + h - ry - 11;
+        if (tileRoom >= TodayNext.tileH(small, menu.layout.large())) {
+            section(g, L.t("wynnlabs.today.next_head"), x, ry, w);
+            ry = next().draw(g, x, ry + 11, w, tileRoom, small, menu.layout.large(), mx, my) + 8;
+        }
+
         // the professions: gathering ones with a bar (quests ask for those), crafting as numbers
         // the professions while their card fits under the rest (a short window drops them)
         int profRows = (Professions.ALL.size() + (menu.layout.compact() ? 3 : menu.layout.large() ? 6 : 4) - 1)
@@ -262,8 +278,7 @@ final class TodayTab extends MenuTab {
                 if (meas.has("casts") && meas.get("casts").getAsInt() >= 5 && meas.has("modelPerCast")) {
                     bigTile(g, x + 3 * (tw + gap), ry, tw, th, L.t("wynnlabs.today.tile_damage", meas.get("casts").getAsInt()),
                             "~" + Math.round(meas.get("avgPerCast").getAsDouble()),
-                            L.t("wynnlabs.today.tile_damage_sub", Math.round(meas.get("modelPerCast").getAsDouble()),
-                                    String.format(Locale.ROOT, "%.2f", Rules.sub("model", "spellCalibration", 1.0))), 0xFFFFFFFF);
+                            L.t("wynnlabs.today.tile_damage_sub", Math.round(meas.get("modelPerCast").getAsDouble())), 0xFFFFFFFF);
                 } else {
                     bigTile(g, x + 3 * (tw + gap), ry, tw, th, L.t("wynnlabs.today.tile_damage", 0), "—", null, 0xFF6E6C78);
                 }

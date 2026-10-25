@@ -117,7 +117,7 @@ public final class DamageReport {
         // −10 % on every spell's cost, as the game's "% Nth Spell Cost" IDs do it
         Map<String, Double> cost = new HashMap<>();
         for (String nth : new String[] {"1st", "2nd", "3rd", "4th"}) {
-            cost.put(nth + "SpellCost", -10.0);
+            cost.put(nth + "SpellCost", 10.0);          // a cut is kept positive (Wynntils)
         }
         out.add(whatIf("-10% spell cost", "wynnlabs.damage.if_cost", p.currentDetail(null, extra(cost)), now));
         out.sort(Comparator.comparingDouble(WhatIf::gain).reversed());
@@ -141,14 +141,10 @@ public final class DamageReport {
 
     // ---- computed vs measured ----
 
-    /** The model's damage per cast for what you wear, with the calibration applied. */
+    /** The model's damage per cast for what you wear. */
     public static double modelPerCast() {
         Build.Plan p = Build.plan();
         return p == null || p.current() == null ? 0 : p.current().dmgPerCast();
-    }
-
-    public static double calibration() {
-        return Rules.sub("model", "spellCalibration", 1.0);
     }
 
     public static int measuredCasts() {
@@ -173,8 +169,8 @@ public final class DamageReport {
 
     /**
      * Per spell, measured against the model: the casts seen, damage per cast after the background,
-     * hits per cast, the model's cast before and after calibration, and the measured ratio (each
-     * cast against the model at that cast). A lasting spell (Totem) is measured with the summons.
+     * hits per cast, the model's cast and the measured ratio (each cast against the model at that
+     * cast). A lasting spell (Totem) is measured with the summons.
      */
     static JsonArray spellTable(Damage.Breakdown b, JsonObject measured) {
         JsonObject all = measured != null && measured.has("spells") ? measured.getAsJsonObject("spells") : new JsonObject();
@@ -184,9 +180,7 @@ public final class DamageReport {
             j.addProperty("spell", sp.name());
             j.addProperty("number", sp.index());
             j.addProperty("lasting", sp.lasting());
-            j.addProperty("modelPerCastUncalibrated", Math.round(sp.perCast()));
-            j.addProperty("calibration", sp.cal());
-            j.addProperty("modelPerCast", Math.round(sp.perCast() * sp.cal()));
+            j.addProperty("modelPerCast", Math.round(sp.perCast()));
             JsonObject m = all.has(sp.name()) ? all.getAsJsonObject(sp.name()) : null;
             j.addProperty("measuredCasts", m == null ? 0 : m.get("casts").getAsInt());
             if (m != null) {
@@ -214,8 +208,6 @@ public final class DamageReport {
         j.addProperty("measuredPerSecond", bg == null ? 0 : r1(bg.get("perSecond").getAsDouble()));
         j.addProperty("measuredSeconds", bg == null ? 0 : Math.round(bg.get("seconds").getAsDouble()));
         j.addProperty("modelMainAttackPerSecond", r1(b.mainTotal()));
-        j.addProperty("modelSummonsPerSecondUncalibrated", r1(b.summonRaw()[0]));
-        j.addProperty("summonCalibration", Rules.sub("model", "summonCalibration", 1.0));
         j.addProperty("modelSummonsPerSecond", r1(b.summonTotal()));
         return j;
     }
@@ -229,8 +221,6 @@ public final class DamageReport {
         double measured = measuredPerCast();
         Damage.Detail base = base();
         cmp.addProperty("modelPerCast", Math.round(model));
-        cmp.addProperty("spellCalibration", calibration());
-        cmp.addProperty("modelPerCastUncalibrated", base == null ? 0 : Math.round(Coach.modelPerCast(base.breakdown())));
         cmp.addProperty("measuredCasts", casts);
         cmp.addProperty("measuredPerCast", Math.round(measured));
         if (model > 0 && casts > 0) {
@@ -239,9 +229,8 @@ public final class DamageReport {
         cmp.addProperty("enoughCasts", casts >= ENOUGH_CASTS);
         cmp.addProperty("note", "measured = damage numbers within 1.5 s after each cast (running mean of the last ~200);"
                 + " per spell, the background between casts (summons, Totem, main attack) is taken off and each"
-                + " cast is compared with the model's value at that cast; after " + Coach.CAL_CASTS + " casts a spell"
-                + " gets its own calibration, within 0.7-1.4 until steady (" + Coach.STEADY_CASTS + " casts), then 0.5-10;"
-                + " the summons' calibration likewise, then 0.05-10, as summons that die or miss are heard far below the model");
+                + " cast is compared with the model's value at that cast. Shown side by side only: the model is"
+                + " the math of gear, skill points, tree and powders, and nothing measured changes it");
         if (base != null) {
             cmp.add("spells", spellTable(base.breakdown(), Coach.measured()));
             cmp.add("background", backgroundJson(base.breakdown(), Coach.measured()));
@@ -267,6 +256,8 @@ public final class DamageReport {
                 els.add(Damage.ELEMENTS[i], e);
             }
             bd.add("byElement", els);
+            // source by source: spells, main attack, each summon and area, heals, ultimates (not counted)
+            bd.add("sources", Sources.json(b.sources()));
             bd.addProperty("note", "DPS of what you wear by the model: spells + main attack + summons."
                     + " The build score counts the main attack times mainAttackWeight.");
             o.add("breakdown", bd);

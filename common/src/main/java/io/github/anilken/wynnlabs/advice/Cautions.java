@@ -66,9 +66,10 @@ public final class Cautions {
         });
         for (StatRange v : info.stats()) {
             double mid = (v.min() + v.max()) / 2.0;
-            // spell costs: lower is better, so −20 % is a plus, not a caution
-            boolean inverted = v.inverted()
-                    || v.key().toLowerCase(Locale.ROOT).contains("spellcost");
+            // spell costs: the item data keeps a cut as a positive number (the game's "−20 %" is
+            // 20), so a cut is a plus and only a cost raise is a caution, shown as the game does
+            boolean spellCost = v.key().toLowerCase(Locale.ROOT).contains("spellcost");
+            boolean inverted = v.inverted() && !spellCost;
             if (mid == 0 || (mid > 0) != inverted) {
                 continue;
             }
@@ -76,7 +77,7 @@ public final class Cautions {
             String nameKey = NAMES.get(api);
             String name = nameKey == null ? v.name() : L.t(nameKey);
             boolean percent = v.unit().equals("PERCENT");
-            long n = Math.round(mid);
+            long n = spellCost ? -Math.round(mid) : Math.round(mid);
             String sign = n > 0 ? "+" : "−";
             out.add(percent ? L.t("wynnlabs.caution.stat_percent", name, sign, Math.abs(n))
                     : name + " " + sign + Math.abs(n));

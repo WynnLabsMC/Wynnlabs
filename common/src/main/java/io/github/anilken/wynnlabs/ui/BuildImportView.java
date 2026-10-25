@@ -85,9 +85,14 @@ final class BuildImportView {
         }
         int bottom = y + h - 18;                       // the buttons' row
         Locks.Problem problem = r.kept().isEmpty() ? null : Locks.problem(r.kept(), BuildWindow.planLevel(r.kept()));
+        // a plan to look at needs a weapon (the link's or what you wear); a wear problem is only a warning
+        boolean planOk = asPlan(r, 0) != null;
         // the pieces first; the lines under them as many as fit (the problem kept longest)
         int rowsEnd = Math.min(bottom - 2, cy + Math.max(1, r.rows().size()) * ROW_H);
         List<String> info = info(r, problem, Math.max(0, (bottom - 2 - rowsEnd - 3) / 11));
+        if (!planOk && !r.kept().isEmpty()) {
+            info.add(0, L.t("wynnlabs.import.no_weapon"));
+        }
         int slotW = 0;
         for (String k : SLOTS) {
             slotW = Math.max(slotW, ui.font.width(L.t(k)));
@@ -105,8 +110,9 @@ final class BuildImportView {
         }
         int iy = rowsEnd + 3;
         for (String line : info) {
-            boolean bad = problem != null && line.equals(problemLine(problem));
-            Kit.text(g, ui.font, ui.fit(line, w - 12, false), x + 6, iy, bad ? Theme.BAD : Theme.INK_3);
+            boolean warn = problem != null && line.equals(problemLine(problem));
+            boolean bad = line.equals(L.t("wynnlabs.import.no_weapon"));
+            Kit.text(g, ui.font, ui.fit(line, w - 12, false), x + 6, iy, bad ? Theme.BAD : warn ? Theme.WARN : Theme.INK_3);
             iy += 11;
         }
         // the buttons, right: Build around these (purple) and Cancel
@@ -121,6 +127,16 @@ final class BuildImportView {
                 L.c("wynnlabs.import.note").withStyle(ChatFormatting.DARK_GRAY));
         ui.control(g, host, bx - 4 - ow, bottom, 14, "target", ok, can ? BuildControls.PRIMARY : BuildControls.WOOD, false, w / 2,
                 can ? "wbConfirm" : null, null, tip, mx, my);
+        // or the link as it is, as the plan: to look at its stats even before you can wear it
+        String plan = L.t("wynnlabs.import.as_plan");
+        int pw = ui.controlW("check", plan, w / 3);
+        ui.control(g, host, bx - 8 - ow - pw, bottom, 14, "check", plan, BuildControls.WOOD, false, w / 3, planOk ? "wbPlan" : null, null,
+                List.of(L.c(planOk ? "wynnlabs.import.as_plan_tip" : "wynnlabs.import.no_weapon").withStyle(ChatFormatting.GRAY)), mx, my);
+    }
+
+    /** The link on show as a plan at its own level with its skill points (null: no weapon). */
+    static io.github.anilken.wynnlabs.build.Plans.Build asPlan(LinkImport.Result r, long now) {
+        return r == null ? null : LinkImport.asPlan(r.kept(), r.build().level(), r.build().skills(), now);
     }
 
     /** One piece: its slot, the item's name in its tier's colour (else what it is), and why it is left out or its powders. */
@@ -181,6 +197,6 @@ final class BuildImportView {
     }
 
     private static String problemLine(Locks.Problem p) {
-        return L.t("wynnlabs.pick.problem", p.text());
+        return L.t("wynnlabs.pick.not_wearable", p.text());
     }
 }

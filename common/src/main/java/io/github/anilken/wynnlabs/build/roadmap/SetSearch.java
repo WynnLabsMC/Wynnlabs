@@ -191,8 +191,8 @@ final class SetSearch {
     /**
      * The weapons a set is built around: the first rules.roadmap.weaponStarts of the weapon pool
      * (6 from the endgame level on, 3 before), every weapon you have that the milestone allows,
-     * for each element none of those (nor the weapon held) is of its strongest weapon alone
-     * ({@link #elementBests}), then every Mythic, at most rules.roadmap.weaponStartsMax (16) in
+     * each element's strongest weapon alone ({@link #elementBests}) when not among those nor held,
+     * then every Mythic, at most rules.roadmap.weaponStartsMax (16) in
      * all. A weapon judged as a swap into armour made for another element mostly loses, Mythics
      * most of all.
      */
@@ -234,14 +234,10 @@ final class SetSearch {
                 out.add(info);
             }
         }
-        boolean[] covered = new boolean[Damage.ELEMENTS.length];
-        for (ItemData w : all) {
-            if (names.contains(w.name().toLowerCase(java.util.Locale.ROOT))) {
-                covered[element(w)] = true;                 // held, or a start already
-            }
-        }
-        covered[0] = true;
-        for (ItemData info : elementBests(c, all, covered)) {
+        long t = Perf.start();
+        List<ItemData> bests = elementBests(c, all, names);
+        Perf.end("roadmap.elementBests", t);
+        for (ItemData info : bests) {
             if (out.size() < max && names.add(info.name().toLowerCase(java.util.Locale.ROOT))) {
                 out.add(info);
             }
@@ -259,21 +255,26 @@ final class SetSearch {
     }
 
     /**
-     * For each element not {@code covered}, the weapon that does most on its own: each of its
-     * weapons the milestone allows, with no armour and the skill points spread for it alone, by
-     * its plain score (the first name on a tie), in the elements' order. The weapon pool is
-     * ranked by a swap into the last milestone's set, where a weapon that wants other skills
-     * cannot be worn at all, so an element can drop out of it whole: the chained map at Lv 90
-     * held only Fire, Water and Earth weapons and never tried Loaded Question (the Thunder set
-     * around it judged 3.4 % over the one it kept, against the same points).
+     * For each element, the weapon that does most on its own: each of its weapons the milestone
+     * allows, with no armour and the skill points spread for it alone, by its plain score (the
+     * first name on a tie), in the elements' order (one already held or a start is not added
+     * twice). The weapon pool is ranked by a swap into the last milestone's set, where a weapon
+     * that wants other skills cannot be worn at all, so an element can drop out of it whole: the
+     * chained map at Lv 90 held only Fire, Water and Earth weapons and never tried Loaded
+     * Question. Every element, not only those no start has: a weaker weapon of an element hid its
+     * strongest (Lv 70: an Earth start kept Rusted Root, 4 % over the chained set, out). So an
+     * element's best is added only when it beats that element's strongest start ({@code starts},
+     * lower case names), each weapon judged alone once (Build's memo keeps it for the milestone).
      */
-    private static List<ItemData> elementBests(Ctx c, List<ItemData> weapons, boolean[] covered) {
+    private static List<ItemData> elementBests(Ctx c, List<ItemData> weapons, java.util.Set<String> starts) {
         String[] els = Damage.ELEMENTS;
         ItemData[] best = new ItemData[els.length];
         double[] score = new double[els.length];
+        double[] startScore = new double[els.length];
+        java.util.Arrays.fill(startScore, Double.NEGATIVE_INFINITY);
         for (ItemData info : weapons) {
             int el = element(info);
-            if (covered[el] || info.requirements().level() > c.m()) {
+            if (el == 0 || info.requirements().level() > c.m()) {
                 continue;
             }
             Map<String, Damage.Piece> alone = new LinkedHashMap<>();
@@ -284,15 +285,18 @@ final class SetSearch {
                 continue;
             }
             double o = e.result().objective();
+            if (starts.contains(info.name().toLowerCase(java.util.Locale.ROOT))) {
+                startScore[el] = Math.max(startScore[el], o);
+            }
             if (best[el] == null || o > score[el] || o == score[el] && info.name().compareTo(best[el].name()) < 0) {
                 best[el] = info;
                 score[el] = o;
             }
         }
         List<ItemData> out = new ArrayList<>();
-        for (ItemData info : best) {
-            if (info != null) {
-                out.add(info);
+        for (int i = 0; i < best.length; i++) {
+            if (best[i] != null && score[i] > startScore[i]) {
+                out.add(best[i]);
             }
         }
         return out;

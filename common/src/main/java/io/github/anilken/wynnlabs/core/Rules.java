@@ -43,7 +43,7 @@ public final class Rules {
                 "fireDamage": 0.3, "airDamage": 0.3, "earthSpellDamage": 0.3, "fireSpellDamage": 0.3,
                 "airSpellDamage": 0.3, "earthMainAttackDamage": 0.3, "fireMainAttackDamage": 0.3, "airMainAttackDamage": 0.3,
                 "mainAttackFireDamage": 0.3, "criticalDamageBonus": 1.0, "attackSpeed": 0.2, "mainAttackRange": 0.3,
-                "SpellCost": -1.5, "manaRegen": 2.0, "manaSteal": 0.5, "maxMana": 0.5,
+                "SpellCost": 1.5, "manaRegen": 2.0, "manaSteal": 0.5, "maxMana": 0.5,
                 "intelligence": 1.0, "dexterity": 1.0, "strength": 0.2, "defence": 0.2,
                 "agility": 0.3, "walkSpeed": 1.0, "sprint": 0.3, "jumpHeight": 0.2,
                 "combatExperience": 1.5, "xpBonus": 1.5, "lootBonus": 0.3, "lootQuality": 0.3,
@@ -73,8 +73,8 @@ public final class Rules {
                   {"name": "Uproot", "index": 4, "cost": 30, "share": 0.25, "conv": {"neutral": 0.8, "earth": 0.3, "thunder": 0.2}},
                   {"name": "Totem", "index": 1, "cost": 30, "share": 0.2, "conv": {"neutral": 1.2, "fire": 0.3}}
                 ],
-                "mainAttackWeight": 0.5, "baseManaPer5s": 25, "baseMana": 100, "fightSeconds": 30, "manaStealFactor": 0.3, "maxCastsPer5s": 4,
-                "xpWeight": 1.0, "speedWeight": 0.3, "speedCeiling": 1.35, "nudgeCap": 1.5, "survivalWeight": 0.2, "survivalPower": 0.25, "ehpFloorScale": 1.0, "xpLog": 1, "regenWeight": 0.2, "negativeRegenWeight": 2.0, "manaWeight": 0.3, "skillPriority": ["INTELLIGENCE", "DEFENCE"], "skillPriorityShare": 0.6, "baseHealth": 100, "healthPerLevel": 5, "summonAlive": 0.6,
+                "mainAttackWeight": 0.5, "baseManaPer5s": 25, "baseMana": 100, "fightSeconds": 30, "maxCastsPer5s": 4,
+                "xpWeight": 1.0, "speedWeight": 0.3, "speedCeiling": 1.35, "survivalWeight": 0.2, "survivalPower": 0.25, "ehpFloorScale": 1.0, "xpLog": 1, "regenWeight": 0.2, "negativeRegenWeight": 2.0, "manaWeight": 0.3, "skillPriority": ["INTELLIGENCE", "DEFENCE"], "skillPriorityShare": 0.6, "baseHealth": 100, "healthPerLevel": 5, "summonAlive": 0.6,
                 "incomingElements": {"neutral": 0.5, "earth": 0.1, "thunder": 0.1, "water": 0.1, "fire": 0.1, "air": 0.1}
               },
               "grind": {"levelsBelow": 3, "levelsAbove": 3},
@@ -113,7 +113,6 @@ public final class Rules {
             System.out.println("[WynnLabs] could not read rules.json: " + e);
         }
         Setup.upgrade(base);                    // survival weights from before the health floor
-        clampNudged(base);
         rules = base;
         version++;
         if (!Profile.id().isEmpty()) {
@@ -121,47 +120,11 @@ public final class Rules {
         }
     }
 
-    /** Model weights that player feedback may nudge, with their defaults (Feedback.nudge). */
-    static final Map<String, Double> NUDGED = Map.of("xpWeight", 1.0, "speedWeight", 0.3,
-            "survivalWeight", 0.4, "mainAttackWeight", 0.5);
-
-    /** Weights clamped at the last load, for one chat line (WynnLabs prints and clears it). */
-    public static volatile java.util.List<String> clamped = java.util.List.of();
-
-    /**
-     * Once per character: feedback nudges used to reach 3× a weight's default (speed at 1.0 made
-     * walk speed outweigh damage), now they stop at rules.model.nudgeCap × default. A weight above
-     * that which the player did not set by hand (rules.model.byHand) is brought down to it once.
-     */
-    private static void clampNudged(JsonObject base) {
-        JsonObject model = base.getAsJsonObject("model");
-        if (model == null || model.has("capsApplied") && model.get("capsApplied").getAsBoolean()) {
-            return;
-        }
-        java.util.Set<String> byHand = new java.util.HashSet<>();
-        if (model.has("byHand") && model.get("byHand").isJsonArray()) {
-            model.getAsJsonArray("byHand").forEach(e -> byHand.add(e.getAsString()));
-        }
-        double cap = model.has("nudgeCap") ? model.get("nudgeCap").getAsDouble() : 1.5;
-        java.util.List<String> done = new java.util.ArrayList<>();
-        for (var e : NUDGED.entrySet()) {
-            String k = e.getKey();
-            double max = e.getValue() * cap;
-            if (!byHand.contains(k) && model.has(k) && model.get(k).getAsDouble() > max + 1e-9) {
-                model.addProperty(k, Math.round(max * 1000) / 1000.0);
-                done.add(k);
-            }
-        }
-        model.addProperty("capsApplied", true);
-        clamped = java.util.List.copyOf(done);
-    }
-
     /** Tests only: a character's saved rules over the defaults, as load() reads them; never saved. */
     public static synchronized void use(JsonObject saved) {
         JsonObject base = GSON.fromJson(DEFAULTS, JsonObject.class);
         merge(base, saved.deepCopy());
         Setup.upgrade(base);                    // survival weights from before the health floor
-        clampNudged(base);
         rules = base;
         version++;
     }

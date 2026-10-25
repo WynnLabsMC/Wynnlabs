@@ -59,6 +59,9 @@ public final class BuildWindow {
 
         /** A plan was applied (or changed): the panel selects its pill. */
         void applied();
+
+        /** "Detailed" on a found build: the Home's stats view with it as the plan ({@code rank} from 1). */
+        void detailed(Roadmap.Candidate c, int level, int rank);
     }
 
     public enum View { PICK, RESULTS, SAVED }
@@ -491,6 +494,20 @@ public final class BuildWindow {
                 imports().read(lastHost);
             }
             case "wbCancel" -> imports().shown = null;
+            case "wbPlan", "pickPlan" -> {
+                // the items as the plan even when they cannot be worn yet: for its stats on the Home
+                Plans.Build b = hit.act().equals("wbPlan") ? BuildImportView.asPlan(imports().shown, now)
+                        : io.github.anilken.wynnlabs.build.LinkImport.asPlan(chosen, planLevel(chosen), null, now);
+                if (b == null) {
+                    if (lastHost != null) {
+                        lastHost.flash(L.t("wynnlabs.import.no_weapon"));
+                    }
+                } else {
+                    imports().shown = null;
+                    Plans.apply(b.named(Plans.defaultName(b)));
+                    hostApplied();
+                }
+            }
             case "wbConfirm" -> {
                 chosen = new ArrayList<>(imports().take());
                 changed();
@@ -516,6 +533,15 @@ public final class BuildWindow {
             }
             case "card" -> card = (int) hit.arg();
             case "apply" -> apply(state, now);
+            case "detailed" -> {
+                // the build's every stat on the Home beside what you wear; the list stays for next time
+                Around.Result r = result;
+                if (r != null && !r.builds().isEmpty() && lastHost != null) {
+                    int i = Math.min(card, r.builds().size() - 1);
+                    lastHost.detailed(r.builds().get(i), r.level(), i + 1);
+                    close();
+                }
+            }
             case "applySaved" -> {
                 Plans.Build b = Plans.byId((String) hit.arg());
                 if (b != null) {

@@ -55,6 +55,37 @@ public final class LinkImport {
         return new Result(build, List.copyOf(rows), Locks.resolve(state, names));
     }
 
+    /**
+     * The chosen items as a plan to look at, even when you cannot wear them yet: each in its build
+     * slot (rings in both hands), the slots they leave open with what you wear, made for
+     * {@code level} with {@code points} (a link's, or null for the mod's spread). Null when there
+     * is no weapon, the one piece nothing can stand in for.
+     */
+    public static Plans.Build asPlan(List<ItemData> items, int level, List<Integer> points, long now) {
+        Map<String, String> slots = new java.util.LinkedHashMap<>();
+        int rings = 0;
+        for (ItemData i : items) {
+            Slot k = Locks.kind(i);
+            String slot = k == null ? null : k.isWeapon() ? "WEAPON" : Build.slotOf(k, k == Slot.RING ? rings++ : 0);
+            if (slot != null) {
+                slots.putIfAbsent(slot, i.name());
+            }
+        }
+        BuildSources.worn().forEach(slots::putIfAbsent);
+        if (!slots.containsKey("WEAPON") || items.isEmpty()) {
+            return null;
+        }
+        Map<String, String> ordered = new java.util.LinkedHashMap<>();
+        for (String s : Plans.SLOTS) {
+            if (slots.containsKey(s)) {
+                ordered.put(s, slots.get(s));
+            }
+        }
+        List<String> locks = items.stream().map(ItemData::name).toList();
+        List<Integer> pts = points == null ? null : points.stream().map(v -> v == null ? 0 : v).toList();
+        return new Plans.Build("p" + now, "", locks, Tuning.Choice.PLAIN, ordered, 0, level, now, now, pts);
+    }
+
     /** Whether the item is the kind the link's place holds (a check that the ids were read right). */
     static boolean fits(ItemData info, int slot) {
         Slot k = Locks.kind(info);

@@ -103,10 +103,7 @@ public final class Around {
 
     /** A plan's score at {@code level} with its pieces and the tuning it was found with (NaN when it cannot be worn there). */
     static double scoreAt(Plans.Build plan, int level, Tuning.Choice tuning) {
-        java.util.Map<String, Damage.Piece> set = new java.util.LinkedHashMap<>();
-        GameState state = GameState.current();
-        plan.items().forEach((slot, name) -> state.allGear().filter(i -> i.name().equals(name)).findFirst()
-                .ifPresent(i -> set.put(slot, Damage.piece(i))));
+        java.util.Map<String, Damage.Piece> set = BuildStats.piecesOf(plan);
         int earned = Math.max(0, (Math.min(level, 101) - 1) * 2);
         // with the ability tree you will have at that level, as the road map scores it
         TreeModel.Run tree = TreeModel.run();

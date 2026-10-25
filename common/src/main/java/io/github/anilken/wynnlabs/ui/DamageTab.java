@@ -165,12 +165,11 @@ final class DamageTab extends MenuTab {
         ink(g, share, vx + valW - font().width(share), y, valColour);
     }
 
-    /** Computed against measured: damage per cast by the model and by the meter, the ratio, the calibration. */
+    /** Computed against measured: damage per cast by the model and by the meter, and their ratio. */
     private void drawMeasured(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         Kit.card(g, x, y, w, h, 0);
         ink(g, Component.literal(L.t("wynnlabs.damage.vs_title")).withStyle(UiFont::bold), x + 8, y + 7, 0xFFFFFFFF);
         double model = DamageReport.modelPerCast();
-        double cal = DamageReport.calibration();
         int casts = DamageReport.measuredCasts();
         double measured = DamageReport.measuredPerCast();
         String na = "—";
@@ -178,8 +177,7 @@ final class DamageTab extends MenuTab {
             {L.t("wynnlabs.damage.model_per_cast"), model > 0 ? QuestAdvisor.fmt(Math.round(model)) : na},
             {L.t("wynnlabs.damage.measured_per_cast"), casts > 0
                     ? L.n("wynnlabs.damage.measured_value", casts, QuestAdvisor.fmt(Math.round(measured)), casts) : na},
-            {L.t("wynnlabs.damage.ratio"), (casts > 0 && model > 0 ? RoadmapScreen.pct(Math.round(measured / model * 100)) : na)
-                    + " · " + L.t("wynnlabs.damage.calibration", dec(cal, 2))}};
+            {L.t("wynnlabs.damage.ratio"), casts > 0 && model > 0 ? RoadmapScreen.pct(Math.round(measured / model * 100)) : na}};
         int ry = y + 20;
         // a large card keeps each value near its label
         int kvW = menu.layout.large() ? Math.min(w - 16, 225) : w - 16;

@@ -121,7 +121,8 @@ class TreeBonusesTest {
         with.addStats(stats);
         assertEquals(5.0, stats.get("mainAttackDamage"));
         assertEquals(20.0, stats.get("earthDamage"));
-        assertEquals(2, stats.size());
+        assertTrue(stats.get(Damage.flatKey("earth")) > 0, "Earth Mastery's flat damage on every earth hit");
+        assertEquals(3, stats.size());
         assertNotEquals(with.key(), without.key());
 
         // no bonus node taken yet: the spells and the key as without bonuses
@@ -173,8 +174,8 @@ class TreeBonusesTest {
         assertTrue(run.bonuses.isEmpty());
         int level = GameState.current().level();
         TreeModel.Overlay o = run.at(level);
-        TreeModel.Overlay before = TreeModel.overlay(level, run.reads, run.spellNames, run.taken(level),
-                o.mainAttack, run.passiveCap);
+        TreeModel.Overlay before = TreeReading.overlay(level, run.reads, run.spellNames, run.taken(level),
+                o.mainAttack, run.passiveCap, java.util.Map.of(), run.text);
         assertEquals(before.key(), o.key(), "the same overlay as without bonuses");
         assertTrue(o.bonus.isEmpty());
         JsonArray rules = new JsonArray();

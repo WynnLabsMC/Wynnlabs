@@ -66,9 +66,7 @@ class SpellCalibrationTest {
             String combo = ls.stream().filter(l -> l.startsWith("Click Combo")).findFirst().orElse("");
             out.add(ClassProfiles.spell(n.get("name").getAsString(), comboIndex(combo), ls));
         }
-        JsonObject model = new JsonObject();
-        model.add("spells", out);
-        return ClassProfiles.keepCalibration(out, model);
+        return out;
     }
 
     private static int comboIndex(String combo) {
@@ -133,27 +131,6 @@ class SpellCalibrationTest {
         assertFalse(ClassProfiles.lasting(smoke), "5 s: cast in turn, its window held open");
     }
 
-    @Test
-    void readingAgainKeepsEachSpellsCalibration() {
-        JsonArray fresh = new JsonArray();
-        fresh.add(ClassProfiles.spell("Aura", 3, List.of("Mana Cost: 40", "Total Damage: 180% (of your DPS)",
-                "( Damage: 150%)", "( Water: 30%)")));
-        JsonObject old = new JsonObject();
-        JsonArray oldSpells = new JsonArray();
-        JsonObject aura = new JsonObject();
-        aura.addProperty("name", "Aura");
-        aura.addProperty("index", 3);
-        aura.addProperty("cal", 2.4);
-        oldSpells.add(aura);
-        old.add("spells", oldSpells);
-        old.addProperty("spellsParsed", 1);
-        assertEquals(2.4, ClassProfiles.keepCalibration(fresh, old).get(0).getAsJsonObject().get("cal").getAsDouble());
-        old.addProperty("spellsParsed", ClassProfiles.SPELLS_PARSED);
-        JsonObject rules = new JsonObject();
-        rules.add("model", old);
-        assertNull(ClassProfiles.spellsUpgrade(rules), "current rules are left alone");
-    }
-
     // ---- the measuring ----
 
     @Test
@@ -200,55 +177,6 @@ class SpellCalibrationTest {
             Coach.book(m, "Meteor", 3000, 1, 50, 1.5, 1500, 0, false);
         }
         assertEquals(2.0, m.getAsJsonObject("spells").getAsJsonObject("Meteor").get("ratio").getAsDouble(), 1e-9);
-    }
-
-    @Test
-    void theWideBoundsWaitForSteadyCasts() {
-        assertEquals(1.4, Coach.bounded(3.2, false));
-        assertEquals(3.2, Coach.bounded(3.2, true));
-        assertEquals(10, Coach.bounded(40, true));
-        assertEquals(0.5, Coach.bounded(0.1, true));
-        JsonObject m = new JsonObject();
-        Random r = new Random(7);
-        for (int i = 0; i < 49; i++) {
-            Coach.book(m, "Bash", 3000 * (0.8 + 0.4 * r.nextDouble()), 1, 40, 1.5, 1000, 0, false);
-        }
-        JsonObject bash = m.getAsJsonObject("spells").getAsJsonObject("Bash");
-        assertFalse(bash.get("steady").getAsBoolean(), "49 casts");
-        Coach.book(m, "Bash", 3000, 1, 40, 1.5, 1000, 0, false);
-        assertTrue(bash.get("steady").getAsBoolean(), "50 casts close together");
-        // a few huge casts among nothing: never steady, however many
-        JsonObject wild = new JsonObject();
-        for (int i = 0; i < 300; i++) {
-            Coach.book(wild, "Bash", i % 4 == 0 ? 40000 : 100, 1, 40, 1.5, 1000, 0, false);
-        }
-        assertFalse(wild.getAsJsonObject("spells").getAsJsonObject("Bash").get("steady").getAsBoolean());
-    }
-
-    @Test
-    void aSmallMoveIsNotWritten() {
-        JsonObject m = new JsonObject();
-        for (int i = 0; i < 40; i++) {
-            Coach.book(m, "Bash", 1050, 1, 40, 1.5, 1000, 0, false);
-        }
-        JsonObject model = new JsonObject();
-        JsonArray spells = new JsonArray();
-        JsonObject bash = new JsonObject();
-        bash.addProperty("name", "Bash");
-        bash.addProperty("index", 1);
-        bash.addProperty("share", 1.0);
-        spells.add(bash);
-        model.add("spells", spells);
-        model.addProperty("spellCalibration", 1.0);
-        assertNull(Coach.calibrationChanges(m, model, new Damage.Breakdown()), "5 % off: no rules write");
-        for (int i = 0; i < 200; i++) {
-            Coach.book(m, "Bash", 1300, 1, 40, 1.5, 1000, 0, false);
-        }
-        JsonObject change = Coach.calibrationChanges(m, model, new Damage.Breakdown());
-        assertNotNull(change);
-        // the last ~200 casts: most of them at 1.3
-        assertEquals(1.26, change.getAsJsonObject("model").getAsJsonArray("spells").get(0).getAsJsonObject()
-                .get("cal").getAsDouble(), 0.02);
     }
 
     // ---- the recorded characters ----
@@ -304,98 +232,6 @@ class SpellCalibrationTest {
         try (Stream<Path> s = Files.list(refs())) {
             return s.filter(p -> p.toString().endsWith(".json")).sorted().toList();
         }
-    }
-
-    @Test
-    void theCalibratedModelLandsNearEachSpell() throws Exception {
-        assumeTrue(Files.isDirectory(refs()), "no recorded characters");
-        FixtureState.load(Fixtures.root().resolve("shaman-44")).install("en");
-        List<String> off = new ArrayList<>();
-        for (Path f : characters()) {
-            JsonObject fix = JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
-            String who = fix.get("name").getAsString();
-            Worn w = worn(fix);
-            JsonObject rec = fix.getAsJsonObject("recorded");
-            double gap = rec.get("avgPerCast").getAsDouble() / rec.get("modelPerCast").getAsDouble();
-
-            // before: the spells as the old rules had them, one calibration for all
-            useRules(fix, fix.getAsJsonObject("rules").getAsJsonArray("spells"));
-            Damage.Breakdown before = w.detail().breakdown();
-            double oldModel = Coach.modelPerCast(before);
-            double window = gap * oldModel;             // what a cast window heard, in this build's terms
-            JsonObject assumed = fix.getAsJsonObject("assumed");
-            double bgShare = assumed.get("backgroundShare").getAsDouble();
-            double bgRate = bgShare * window / 1.5;
-
-            // after: the spells read again, then measured and calibrated
-            JsonArray spells = parsed(fix);
-            useRules(fix, spells);
-            Damage.Breakdown fresh = w.detail().breakdown();
-            Map<String, Double> truth = new LinkedHashMap<>();
-            JsonObject targets = assumed.getAsJsonObject("targets");
-            double sum = 0;
-            int n = 0;
-            for (Damage.SpellPart sp : fresh.spells()) {
-                if (!sp.lasting()) {
-                    double t = sp.perCast() * (targets.has(sp.name()) ? targets.get(sp.name()).getAsDouble() : 1);
-                    truth.put(sp.name(), t);
-                    sum += t;
-                    n++;
-                }
-            }
-            double k = (1 - bgShare) * window / (sum / n);    // the spells' part of the window, split as assumed
-            truth.replaceAll((s, t) -> t * k);
-
-            Random r = new Random(who.hashCode());
-            JsonObject m = new JsonObject();
-            boolean summons = fresh.summonRaw()[0] > 0;
-            List<Damage.SpellPart> cast = fresh.spells().stream().filter(sp -> !sp.lasting()).toList();
-            for (int c = 1; c <= 400; c++) {
-                // between casts: one to three seconds of the background alone
-                double gapSeconds = 1 + 2 * r.nextDouble();
-                Coach.bookBackground(m, bgRate * gapSeconds * noise(r, 0.3), gapSeconds);
-                Damage.SpellPart sp = cast.get(c % cast.size());
-                double raw = truth.get(sp.name()) * noise(r, 0.5) + bgRate * 1.5 * noise(r, 0.3);
-                Coach.book(m, sp.name(), raw, 3, 40, 1.5, sp.perCast(), sp.duration(), summons);
-                if (c >= Coach.CAL_CASTS && c % 10 == 0) {
-                    JsonObject change = Coach.calibrationChanges(m, Rules.get().getAsJsonObject("model"),
-                            w.detail().breakdown());
-                    if (change != null) {
-                        Rules.update(change);
-                    }
-                }
-            }
-            Damage.Breakdown after = w.detail().breakdown();
-            for (Damage.SpellPart sp : after.spells()) {
-                if (sp.lasting()) {
-                    continue;
-                }
-                double t = truth.get(sp.name());
-                double old = before.spells().stream().filter(o -> o.index() == sp.index()).findFirst()
-                        .map(o -> o.perCast() * o.cal()).orElse(0.0);
-                double cal = sp.perCast() * sp.cal();
-                String line = String.format("%s %s: measured %.0f, model before %.0f (%.2fx), read again %.0f (%.2fx),"
-                        + " calibrated %.0f (%.2fx, cal %.2f)", who, sp.name(), t, old, t / old, sp.perCast(),
-                        t / sp.perCast(), cal, t / cal, sp.cal());
-                Fixtures.note(line);
-                if (Math.abs(cal / t - 1) > 0.25) {
-                    off.add(line);
-                }
-            }
-            if (summons) {
-                // the meter hears every main attack hit, not the goal's weight on it
-                double main = after.mainTotal();
-                double modelBg = main + after.summonTotal();
-                String line = String.format("%s between casts: measured %.0f/s, model %.0f/s (main %.0f + summons %.0f,"
-                        + " summonCalibration %.2f)", who, bgRate, modelBg, main, after.summonTotal(),
-                        Rules.sub("model", "summonCalibration", 1.0));
-                Fixtures.note(line);
-                if (Math.abs(modelBg / bgRate - 1) > 0.25) {
-                    off.add(line);
-                }
-            }
-        }
-        assertTrue(off.isEmpty(), "off by more than 25 %:\n  " + String.join("\n  ", off));
     }
 
     /** A factor around 1 (mean 1): how many mobs a cast caught, how many puppets were swinging. */

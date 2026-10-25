@@ -2,19 +2,19 @@ package io.github.anilken.wynnlabs.build;
 
 import com.google.gson.JsonObject;
 
-import io.github.anilken.wynnlabs.coach.Feedback;
 import io.github.anilken.wynnlabs.core.Rules;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The model's limits: walk speed levels off, feedback stops at its cap, old nudges are clamped once. */
+/**
+ * The model's limits: walk speed levels off; rules from before 6 lose the mana steal discount
+ * and what your swaps taught, a weight set by hand staying.
+ */
 class ModelLimitsTest {
 
     @AfterEach
@@ -39,31 +39,21 @@ class ModelLimitsTest {
     }
 
     @Test
-    void feedbackStopsAtItsCap() {
-        Rules.use(model("{\"speedWeight\": 0.3}"));
-        for (int i = 0; i < 10; i++) {
-            JsonObject change = new JsonObject();
-            Feedback.nudge(change, "speedWeight", 0.3, new ArrayList<>(), "speed");
-            if (change.has("speedWeight")) {
-                JsonObject m = new JsonObject();
-                m.add("model", change);
-                Rules.update(m);
-            }
-        }
-        assertEquals(0.45, Rules.sub("model", "speedWeight", 0), 1e-6);
-    }
+    void manaStealDiscountAndTaughtWeightsGo() {
+        Rules.use(model("{\"survivalModel\": 5, \"manaStealFactor\": 0.33, \"nudgeCap\": 1.5, \"capsApplied\": true,"
+                + " \"speedWeight\": 0.45, \"xpWeight\": 1.15, \"survivalWeight\": 0.3}"));
+        JsonObject m = Rules.get().getAsJsonObject("model");
+        assertFalse(m.has("manaStealFactor"), "mana steal counts whole");
+        assertFalse(m.has("nudgeCap"));
+        assertFalse(m.has("capsApplied"));
+        assertEquals(0.3, Rules.sub("model", "speedWeight", 0), 1e-9);
+        assertEquals(1.0, Rules.sub("model", "xpWeight", 0), 1e-9);
+        assertEquals(Setup.weights("DAMAGE")[0], Rules.sub("model", "survivalWeight", 0), 1e-9);
+        assertEquals(Setup.SURVIVAL_MODEL, Rules.sub("model", "survivalModel", 0), 1e-9);
 
-    @Test
-    void oldNudgesAreClampedOnceButHandValuesStay() {
-        // rules of the current goal model: its step to 4 would take a fighting goal's XP nudge back
-        Rules.use(model("{\"speedWeight\": 1.0, \"xpWeight\": 1.15, \"survivalModel\": " + Setup.SURVIVAL_MODEL + "}"));
-        assertEquals(0.45, Rules.sub("model", "speedWeight", 0), 1e-6);
-        assertEquals(1.15, Rules.sub("model", "xpWeight", 0), 1e-6);
-        assertTrue(Rules.clamped.contains("speedWeight"));
-        Rules.use(model("{\"speedWeight\": 1.0, \"byHand\": [\"speedWeight\"]}"));
-        assertEquals(1.0, Rules.sub("model", "speedWeight", 0), 1e-6);
-        Rules.use(model("{\"speedWeight\": 1.0, \"capsApplied\": true}"));
-        assertEquals(1.0, Rules.sub("model", "speedWeight", 0), 1e-6, "clamped only once");
-        Rules.clamped = List.of();
+        Rules.use(model("{\"survivalModel\": 5, \"speedWeight\": 1.0, \"byHand\": [\"speedWeight\"]}"));
+        assertEquals(1.0, Rules.sub("model", "speedWeight", 0), 1e-9, "set by hand: stays");
+        Rules.use(model("{\"survivalModel\": " + Setup.SURVIVAL_MODEL + ", \"speedWeight\": 0.45}"));
+        assertEquals(0.45, Rules.sub("model", "speedWeight", 0), 1e-9, "only once");
     }
 }

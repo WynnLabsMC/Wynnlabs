@@ -124,6 +124,12 @@ public final class HomePage extends MenuTab {
             }
             return false;
         }
+        if (stats != null) {
+            stats.picker.press();              // an open compare list closes; its row's own click still picks
+        }
+        if (stats != null && stats.barClicked(ex, ey)) {
+            return true;                       // the stats list's scrollbar: a drag or a page
+        }
         for (Object[] sh : slotHits) {
             if (in(ex, ey, (int[]) sh[0])) {
                 detail = (Roadmap.Gear) sh[1];
@@ -163,6 +169,10 @@ public final class HomePage extends MenuTab {
         if (detail != null) {
             // the comparison panel's cards scroll; the milestone stays
             detailScroll = Math.max(0, Math.min(detailScrollMax, detailScroll - (int) Math.signum(v) * CARD_H / 2));
+            return;
+        }
+        if (stats != null && stats.over(x, y)) {
+            stats.scroll(x, y, v);             // the stats list or the spell panel scrolls under the mouse
             return;
         }
         if (menu.steps.isEmpty()) {
@@ -214,6 +224,14 @@ public final class HomePage extends MenuTab {
             } else {
                 BuildWindow.INSTANCE.openResults(Around.checkResult());
             }
+        } else if (c.startsWith("#qstatsclear:")) {
+            stats().clearPick();               // the stats list's ✕: the applied plan again
+        } else if (c.startsWith("#qstatssrc:")) {
+            stats().picker.toggle();           // the compare button: its list
+        } else if (c.startsWith("#qstatsset:")) {
+            stats().source.choose(c.substring(11));
+        } else if (c.startsWith("#qstatsflip:")) {
+            stats().source.flip();             // your numbers, or the other build's
         } else if (c.startsWith("#qgoal:")) {
             goalOpen = true;                    // the list opens; a row picks the goal
         } else if (c.startsWith("#qrefresh:") || c.startsWith("#qbuild:")) {
@@ -280,6 +298,7 @@ public final class HomePage extends MenuTab {
 
     /** The goal list under the goal button, open after a click on it. */
     private boolean goalOpen;
+    private HomeStats stats;
     private int[] goalAnchor;
     private final List<int[]> goalRows = new ArrayList<>();     // x, y, w, h, index in Setup.GOALS
 
@@ -463,10 +482,15 @@ public final class HomePage extends MenuTab {
         }
         // with no road map yet the gear panel offers to calculate one: nothing is built on its own
         drawHomeHeader(g, x, y, w);
-        // the visual home (HomeTab): the gear on a stand between two columns of tiles
+        // the visual home (HomeTab): the gear on a stand between the tiles and the stats list
         int by = y + HUD_H + 13;                            // 4px under the experience bar and its "%100 XP"
         // 4px short of the page's foot: the parchment's corner curls sit there
-        HomeTab.INSTANCE.draw(g, homeIn(), homeHost, x, by, w, y + h - by - 4, menu.layout.compact(), menu.layout.large(), mx, my);
+        // a level pill other than "now": the stats compare with the road map's build for that level
+        Plans.Build current = Plans.current();
+        boolean levelPill = !planPills.planSelected(current) && menu.selected > 0 && menu.selected < menu.steps.size();
+        stats().source.level(levelPill ? menu.steps.get(menu.selected) : null);
+        stats().source.planPill(planPills.planSelected(current));
+        HomeTab.INSTANCE.draw(g, homeIn(), homeHost, stats(), x, by, w, y + h - by - 4, menu.layout.compact(), menu.layout.large(), mx, my);
     }
 
     /** This frame's slots for the home's stand: every gear slot with what you wear and the selected level's upgrade. */
@@ -668,6 +692,11 @@ public final class HomePage extends MenuTab {
         public void applied() {
             planPills.pickPlan();
             menu.flash(L.t("wynnlabs.homev.plan_applied"));
+        }
+
+        @Override
+        public void detailed(Roadmap.Candidate c, int level, int rank) {
+            stats().pick(c, level, rank);
         }
     };
 
@@ -900,6 +929,25 @@ public final class HomePage extends MenuTab {
         Kit.notches(g, x, ey, xw, 4);
         // level with the bar, 1px in from the page's edge
         ink(g, pct, x + w - font().width(pct) - 1, ey - 2, FAINT);
+    }
+
+    /** The stats list's scrollbar thumb follows the mouse while dragged; true while it is. */
+    boolean statsDragged(double y) {
+        return stats != null && stats.barDragged(y);
+    }
+
+    void statsReleased() {
+        if (stats != null) {
+            stats.barReleased();
+        }
+    }
+
+    /** The stats list, made on first use (a field without an initializer: safe to hot swap in). */
+    private HomeStats stats() {
+        if (stats == null) {
+            stats = new HomeStats();
+        }
+        return stats;
     }
 
     /** A bar's or the gauge's tooltip: the value, and how it compares with the next milestone's build. */

@@ -50,9 +50,9 @@
               "key": "2ndSpellCost",
               "name": "2nd Spell Cost",
               "unit": "PERCENT",
-              "inverted": true,
-              "min": -18,
-              "max": -4
+              "inverted": false,
+              "min": 4,
+              "max": 18
             },
             {
               "key": "manaRegen",
@@ -96,14 +96,14 @@
               "key": "2ndSpellCost",
               "name": "2nd Spell Cost",
               "unit": "PERCENT",
-              "value": -11,
+              "value": 11,
               "range": {
                 "key": "2ndSpellCost",
                 "name": "2nd Spell Cost",
                 "unit": "PERCENT",
-                "inverted": true,
-                "min": -18,
-                "max": -4
+                "inverted": false,
+                "min": 4,
+                "max": 18
               }
             },
             {
@@ -1412,9 +1412,9 @@
               "key": "1stSpellCost",
               "name": "1st Spell Cost",
               "unit": "PERCENT",
-              "inverted": true,
-              "min": 40,
-              "max": 40
+              "inverted": false,
+              "min": -40,
+              "max": -40
             },
             {
               "key": "poison",
@@ -2249,9 +2249,9 @@
               "key": "3rdSpellCost",
               "name": "3rd Spell Cost",
               "unit": "PERCENT",
-              "inverted": true,
-              "min": -16,
-              "max": -4
+              "inverted": false,
+              "min": 4,
+              "max": 16
             },
             {
               "key": "earthDamage",
@@ -2303,14 +2303,14 @@
               "key": "3rdSpellCost",
               "name": "3rd Spell Cost",
               "unit": "PERCENT",
-              "value": -8,
+              "value": 8,
               "range": {
                 "key": "3rdSpellCost",
                 "name": "3rd Spell Cost",
                 "unit": "PERCENT",
-                "inverted": true,
-                "min": -16,
-                "max": -4
+                "inverted": false,
+                "min": 4,
+                "max": 16
               }
             },
             {

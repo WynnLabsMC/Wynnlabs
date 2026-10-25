@@ -78,11 +78,15 @@ class TuningTest {
     void aBudgetLeavesOutWhatCostsMore() throws Exception {
         FixtureState.load(RoadmapLocksTest.shaman()).install("en");
         GameState state = GameState.current();
-        // the dearest priced pick of the plain map
+        // the dearest priced pick of the plain map; a powder row is the weapon you have, and only
+        // its powders are bought (its piece costs nothing under a budget)
         String dear = null;
         double price = 0;
         for (Roadmap.Step s : run(Tuning.Choice.PLAIN).steps()) {
             for (Roadmap.Gear g : s.gear()) {
+                if (g.slot().startsWith("POWDER:")) {
+                    continue;
+                }
                 double c = Roadmap.cost(state, g.info());
                 if (c > price) {
                     price = c;
@@ -95,6 +99,9 @@ class TuningTest {
         Roadmap.Computed c = run(new Tuning.Choice(Tuning.BALANCED, false, false, budget));
         for (Roadmap.Step s : c.steps()) {
             for (Roadmap.Gear g : s.gear()) {
+                if (g.slot().startsWith("POWDER:")) {
+                    continue;
+                }
                 assertNotEquals(dear, g.info().name(), "Lv " + s.level() + ": " + dear + " costs " + price + ", over " + budget);
                 double cost = Roadmap.cost(state, g.info());
                 assertTrue(cost >= 0 && cost <= budget, g.info().name() + " costs " + cost);

@@ -231,10 +231,8 @@ public final class Coach {
     private static double bgDamage;
     private static double bgMillis;
 
-    /** Casts and fight seconds the per-spell and summon calibrations wait for, and widen after. */
-    public static final int CAL_CASTS = 30;
+    /** Casts before a spell's measured-to-model ratio counts as steady (shown, never fed back). */
     public static final int STEADY_CASTS = 50;
-    static final double STEADY_SECONDS = 300;
 
     /**
      * A spell was cast (Wynntils' event, through {@link WynntilsEvents}): its number (1-4, 0
@@ -253,7 +251,7 @@ public final class Coach {
         castLasting = false;
         castMana = mana;
         castOpen = true;
-        // what the model expects of this spell now, before the calibration we apply ourselves
+        // what the model expects of this spell now
         try {
             Damage.Detail d = DamageReport.base();
             Damage.SpellPart sp = d == null ? null : spellPart(d.breakdown(), spell);
@@ -335,19 +333,12 @@ public final class Coach {
         }
         double window = Math.max(0.05, (Math.min(now, castUntil) - castAt) / 1000.0);
         book(m, castName, castDamage, castHits, castMana, window, castLasting ? 0 : castExpected, castDuration,
-                d != null && d.breakdown().summonRaw()[0] > 0);
-        if (d != null && n + 1 >= CAL_CASTS && (n + 1) % 10 == 0) {
-            // the whole modelled main attack comes off the background (the meter hears every hit),
-            // so what is left is compared with the model's summons
-            JsonObject change = calibrationChanges(m, Rules.get().getAsJsonObject("model"), d.breakdown());
-            if (change != null) {
-                Rules.update(change);           // only a real change: every write rebuilds all advice
-            }
-        }
+                d != null && d.breakdown().summonTotal() > 0);
+        // measured only, shown beside the model: never fed back into it (the model is the math alone)
         saveMeasured(m);
     }
 
-    /** The model's average cast before calibration: the spells cast in turn, by their shares. */
+    /** The model's average cast: the spells cast in turn, by their shares. */
     public static double modelPerCast(Damage.Breakdown b) {
         double sum = 0;
         double shares = 0;
@@ -453,124 +444,8 @@ public final class Coach {
         return s.has(key) ? s.get(key).getAsDouble() + (x - s.get(key).getAsDouble()) / k : x;
     }
 
-    /**
-     * The rules change the measurements call for, or null: each spell's own calibration
-     * (rules.model.spells[i].cal), the summons' (summonCalibration: the background less the whole
-     * modelled main attack, over the summons and lasting spells the model has) and the overall
-     * spellCalibration the spells without their own fall back to. Kept within 0.7-1.4 until steady
-     * (50 casts, or 5 minutes of fighting for summons), then 0.5-10 (summons 0.05-10); a value is
-     * written only when it moves by a tenth or more, as each write rebuilds all advice.
-     */
-    public static JsonObject calibrationChanges(JsonObject m, JsonObject model, Damage.Breakdown b) {
-        JsonObject all = m.has("spells") ? m.getAsJsonObject("spells") : new JsonObject();
-        JsonObject out = new JsonObject();
-        double globalCal = model != null && model.has("spellCalibration") ? model.get("spellCalibration").getAsDouble() : 1.0;
-        // each spell on its own
-        if (model != null && model.has("spells") && model.get("spells").isJsonArray()) {
-            JsonArray spells = model.getAsJsonArray("spells").deepCopy();
-            boolean changed = false;
-            for (var e : spells) {
-                JsonObject sp = e.getAsJsonObject();
-                JsonObject meas = sp.has("name") && all.has(sp.get("name").getAsString())
-                        ? all.getAsJsonObject(sp.get("name").getAsString()) : null;
-                if (meas == null || ClassProfiles.lasting(sp) || !meas.has("ratioCasts")
-                        || meas.get("ratioCasts").getAsInt() < CAL_CASTS) {
-                    continue;
-                }
-                boolean steady = meas.has("steady") && meas.get("steady").getAsBoolean();
-                double target = bounded(meas.get("ratio").getAsDouble(), steady);
-                double current = sp.has("cal") ? sp.get("cal").getAsDouble() : globalCal;
-                if (moved(current, target)) {
-                    sp.addProperty("cal", target);
-                    changed = true;
-                }
-            }
-            if (changed) {
-                JsonObject m2 = new JsonObject();
-                m2.add("spells", spells);
-                out.add("model", m2);
-            }
-        }
-        // the overall fallback: the spells' ratios by their casts
-        double sum = 0;
-        int casts = 0;
-        for (var e : all.entrySet()) {
-            JsonObject s = e.getValue().getAsJsonObject();
-            if (s.has("ratioCasts")) {
-                int c = Math.min(200, s.get("ratioCasts").getAsInt());
-                sum += s.get("ratio").getAsDouble() * c;
-                casts += c;
-            }
-        }
-        if (casts >= CAL_CASTS) {
-            JsonObject g = calibrationChange(globalCal, sum / casts, 1.0);
-            if (g != null) {
-                model2(out).add("spellCalibration", g.getAsJsonObject("model").get("spellCalibration"));
-            }
-        }
-        // the summons, from the background between casts
-        JsonObject bg = m.has("background") ? m.getAsJsonObject("background") : null;
-        double summons = b == null ? 0 : b.summonRaw()[0];
-        if (bg != null && summons > 0 && bg.get("seconds").getAsDouble() >= 60) {
-            // the meter hears every main attack hit: it comes off at its full modelled rate, not
-            // at the goal's weight (a score preference)
-            double main = b.mainTotal();
-            double target = boundedSummon(Math.max(0, bg.get("perSecond").getAsDouble() - main) / summons,
-                    bg.get("seconds").getAsDouble() >= STEADY_SECONDS);
-            double current = model != null && model.has("summonCalibration") ? model.get("summonCalibration").getAsDouble() : 1.0;
-            if (moved(current, target)) {
-                model2(out).addProperty("summonCalibration", target);
-            }
-        }
-        return out.isEmpty() ? null : out;
-    }
-
-    private static JsonObject model2(JsonObject change) {
-        if (!change.has("model")) {
-            change.add("model", new JsonObject());
-        }
-        return change.getAsJsonObject("model");
-    }
-
-    /** A ratio rounded and kept within bounds: 0.7-1.4 until it is steady, then 0.5-10. */
-    public static double bounded(double ratio, boolean steady) {
-        double r = steady ? Math.max(0.5, Math.min(10, ratio)) : Math.max(0.7, Math.min(1.4, ratio));
-        return Math.round(r * 100) / 100.0;
-    }
-
-    /**
-     * The summons' calibration rounded and kept within bounds: 0.7-1.4 until it is steady, then
-     * 0.05-10, as summons that die or miss can be heard far below what the model gives them.
-     */
-    public static double boundedSummon(double ratio, boolean steady) {
-        double r = steady ? Math.max(0.05, Math.min(10, ratio)) : Math.max(0.7, Math.min(1.4, ratio));
-        return Math.round(r * 100) / 100.0;
-    }
-
-    /** Worth writing: a tenth or more away from the stored value. */
-    private static boolean moved(double current, double target) {
-        return Math.abs(target - current) >= 0.1 * Math.max(0.1, current) - 1e-9;
-    }
-
     private static JsonObject measuredCache;
     private static String measuredFor = "";
-
-    /**
-     * The rules change that moves the overall spell calibration to what was measured, or null
-     * when the rounded value is not a tenth away from the one already stored. Kept within
-     * 0.7-1.4: it is the fallback for spells without a calibration of their own.
-     */
-    public static JsonObject calibrationChange(double current, double avgPerCast, double modelPerCast) {
-        double rounded = bounded(avgPerCast / modelPerCast, false);
-        if (!moved(current, rounded)) {
-            return null;
-        }
-        JsonObject change = new JsonObject();
-        JsonObject model2 = new JsonObject();
-        model2.addProperty("spellCalibration", rounded);
-        change.add("model", model2);
-        return change;
-    }
 
     public static JsonObject measured() {
         if (!Profile.id().equals(measuredFor) || measuredCache == null) {

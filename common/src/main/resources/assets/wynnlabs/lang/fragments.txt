@@ -40,9 +40,6 @@ wynnlabs.bank.page_empty                " (empty)" after a page's stack count
 wynnlabs.craft.old                      inside "( )" after a price
 wynnlabs.daily.alt_slot_empty           inside "( )" after a character's level
 wynnlabs.daily.alt_worn                 inside "( )" after a character's level
-wynnlabs.feedback.main_attack           listed after "priority ↑: "
-wynnlabs.feedback.speed                 listed after "priority ↑: "
-wynnlabs.feedback.survival              listed after "priority ↑: "
 wynnlabs.grind.altar_short              " (boss)" after a place's name
 wynnlabs.home.chip_respec               " (respec)" inside a pill
 wynnlabs.pick.budget_none               after "Budget: " and inside "( )"

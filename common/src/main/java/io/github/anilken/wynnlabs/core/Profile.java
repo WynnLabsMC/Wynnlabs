@@ -8,7 +8,6 @@ import io.github.anilken.wynnlabs.advice.Advice;
 import io.github.anilken.wynnlabs.build.ClassProfiles;
 import io.github.anilken.wynnlabs.build.Setup;
 import io.github.anilken.wynnlabs.build.TreeModel;
-import io.github.anilken.wynnlabs.coach.ManaMeter;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.MenuWatcher;
 import io.github.anilken.wynnlabs.game.Wyn;
@@ -89,7 +88,6 @@ public final class Profile {
             Rules.load();
             Advice.load();
             MenuWatcher.reset();
-            ManaMeter.reset();
             // A character seen for the first time gets its class profile from the tree data
             if (Rules.fresh || Rules.get().has("goal") && Rules.get().get("goal").getAsString().startsWith("unset")) {
                 Setup.newCharacter();
@@ -103,6 +101,11 @@ public final class Profile {
                 JsonObject spells = ClassProfiles.spellsUpgrade(Rules.get());
                 if (spells != null) {
                     Rules.update(spells);
+                }
+                // a main attack weight your swaps raised once comes from the archetype again
+                JsonObject main = ClassProfiles.mainAttackUpgrade(Rules.get());
+                if (main != null) {
+                    Rules.update(main);
                 }
             }
             lastLevel = -1;

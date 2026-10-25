@@ -180,12 +180,12 @@ final class BuildPickView {
         }
         host.tip(x + w - rw, cy - 2, rw, 13, rtip);
         int noteW = w - rw - 6;
-        String note = problem != null ? L.t("wynnlabs.pick.problem", problem.text())
+        String note = problem != null ? L.t("wynnlabs.pick.not_wearable", problem.text())
                 : L.t("wynnlabs.pick.note", wpn == null ? "?" : BuildText.nice(wpn.name()));
         if (problem == null && ui.font.width(note) > noteW) {
             note = L.t("wynnlabs.pick.note_short", wpn == null ? "?" : BuildText.nice(wpn.name()));
         }
-        Kit.text(g, ui.font, ui.fit(note, noteW, false), x, cy, problem != null ? Theme.BAD : Theme.INK_3);
+        Kit.text(g, ui.font, ui.fit(note, noteW, false), x, cy, problem != null ? Theme.WARN : Theme.INK_3);
         cy += 13;
         // the bottom: the chips row with Suggest, the strip over it
         int chipsY = bottom - 14;
@@ -405,11 +405,16 @@ final class BuildPickView {
         String sug = L.t("wynnlabs.pick.suggest");
         int sw = ui.controlW("sparkles", sug, w / 3);
         int sx = x + w - sw;
-        List<Component> sugTip = List.of(L.c(can ? "wynnlabs.pick.suggest_tip" : "wynnlabs.pick.suggest_off").withStyle(ChatFormatting.GRAY));
         if (can) {
+            List<Component> sugTip = List.of(L.c("wynnlabs.pick.suggest_tip").withStyle(ChatFormatting.GRAY));
             ui.control(g, host, sx, y, 14, "sparkles", sug, BuildControls.PRIMARY, false, w / 3, "suggest", null, sugTip, mx, my);
         } else {
-            ui.control(g, host, sx, y, 14, "sparkles", sug, BuildControls.WOOD, false, w / 3, null, null, sugTip, mx, my);
+            // not wearable together yet: no search around them, but they can be the plan to look at
+            sug = L.t("wynnlabs.pick.as_plan");
+            sw = ui.controlW("check", sug, w / 3);
+            sx = x + w - sw;
+            ui.control(g, host, sx, y, 14, "check", sug, BuildControls.PRIMARY, false, w / 3, "pickPlan", null,
+                    List.of(L.c("wynnlabs.pick.as_plan_tip").withStyle(ChatFormatting.GRAY)), mx, my);
         }
         int cx = x;
         int room = sx - 6;

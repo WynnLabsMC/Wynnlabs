@@ -747,6 +747,9 @@ public final class RoadmapScreen extends Screen {
         if (tab == 0 && BuildWindow.INSTANCE.mouseDragged(e.x(), e.y())) {
             return true;                                // a build window scrollbar's thumb follows the mouse
         }
+        if (tab == 0 && home.statsDragged(e.y())) {
+            return true;                                // the stats list's scrollbar thumb
+        }
         if (tab == TAB_SEARCH && search.mouseDragged(e.x(), e.y())) {
             return true;
         }
@@ -760,6 +763,7 @@ public final class RoadmapScreen extends Screen {
     public boolean mouseReleased(MouseButtonEvent event) {
         CraftingTab.INSTANCE.mouseReleased();
         BuildWindow.INSTANCE.mouseReleased();
+        home.statsReleased();
         search.mouseReleased();
         return super.mouseReleased(MenuScale.event(event));
     }

@@ -92,7 +92,7 @@ final class BuildResultsView {
             for (int i = 0; i < n; i++) {
                 cardBox(g, host, r.builds().get(i), i, x, top + i * (ch + 3), lw, ch, mx, my, false);
             }
-            details(g, host, r.builds().get(win.card), x + lw + 8, top, w - lw - 8, bodyH, 16);
+            details(g, host, r.builds().get(win.card), x + lw + 8, top, w - lw - 8, bodyH, 16, mx, my);
         } else {
             // narrow: the cards two by two on top, the details under them
             int cols = Math.min(2, n);
@@ -103,7 +103,7 @@ final class BuildResultsView {
                 cardBox(g, host, r.builds().get(i), i, x + (i % cols) * (cw + 3), top + (i / cols) * (ch + 3), cw, ch, mx, my, true);
             }
             int used = rowsN * (ch + 3) + 2;
-            details(g, host, r.builds().get(win.card), x, top + used, w, bodyH - used, 12);
+            details(g, host, r.builds().get(win.card), x, top + used, w, bodyH - used, 12, mx, my);
         }
         footer(g, host, x, footY, w, mx, my, true);
     }
@@ -260,7 +260,7 @@ final class BuildResultsView {
      * points, the equip order, and what to get (each with its icon and where it comes from, a
      * price after the coin). {@code s}: the icon size.
      */
-    private void details(GuiGraphics g, BuildWindow.Host host, Roadmap.Candidate c, int x, int y, int w, int h, int s) {
+    private void details(GuiGraphics g, BuildWindow.Host host, Roadmap.Candidate c, int x, int y, int w, int h, int s, int mx, int my) {
         Kit.outline(g, x, y, w, h, Theme.LINE);
         int ix = x + 5;
         int iw = w - 10;
@@ -289,7 +289,16 @@ final class BuildResultsView {
             deltas.add(new Object[] {L.t("wynnlabs.results.d_speed"), (to.speed() - now.speed() >= 0 ? "+" : "−")
                 + Math.round(Math.abs(to.speed() - now.speed())) + "%"});
         }
-        // the changes are against what you wear now
+        // the changes are against what you wear now; "Detailed" at the line's end opens every stat on the Home
+        String more = L.t("wynnlabs.results.detailed");
+        int mw = ui.font.width(more);
+        int mx0 = ix + iw - mw;
+        boolean mh = BuildControls.in(mx, my, mx0, ly - 1, mw, 10);
+        Kit.text(g, ui.font, more, mx0, ly, mh ? Theme.ACCENT : Theme.LINK);
+        g.fill(mx0, ly + 9, mx0 + mw, ly + 10, mh ? Theme.ACCENT : Theme.LINK);
+        ui.btn(mx0, ly - 1, mw, 11, "detailed", null);
+        host.tip(mx0, ly - 1, mw, 11, List.of(L.c("wynnlabs.results.detailed_tip").withStyle(ChatFormatting.GRAY)));
+        int right = mx0 - 6;
         String vs = L.t("wynnlabs.results.vs_now");
         int dx = ix + ui.font.width(vs) + 6;
         Kit.text(g, ui.font, vs, ix, ly, Theme.INK_3);
@@ -297,7 +306,7 @@ final class BuildResultsView {
             String v = (String) d[1];
             String part = d[0] + " " + v;
             int pw = ui.font.width(part) + 8;
-            if (dx + pw > ix + iw && dx > ix) {
+            if (dx + pw > right && dx > ix) {
                 dx = ix;
                 ly += 10;
             }

@@ -346,7 +346,7 @@ final class SettingsTab extends MenuTab {
             "quests", List.<String[]>of(
                     new String[] {"wynnlabs.settings.sec_quests", "glowQuest", "miniQuests"}),
             "build", List.<String[]>of(
-                    new String[] {"wynnlabs.settings.sec_tree", "menuAdvice", "autoTree", "learning", "manaMeter",
+                    new String[] {"wynnlabs.settings.sec_tree", "menuAdvice", "autoTree",
                             "treeBonuses"}),
             "data", List.of(
                     new String[] {"wynnlabs.settings.sec_online", "priceApi", "questGuides", "updateCheck", "autoUpdate"},

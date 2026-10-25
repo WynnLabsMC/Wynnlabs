@@ -107,363 +107,59 @@ public final class Damage {
     public static final String SET = "_set:";
     static final Map<String, SetData> SETS = new java.util.concurrent.ConcurrentHashMap<>();
 
-    /** Powders (WynnBuilder powders.js): per element e/t/w/f/a and tier I–VII: {min, max, convert %}. */
-    private static final double[][][] POWDER = {
-        {{4, 5, 17}, {6, 7, 21}, {7, 9, 25}, {8, 9, 31}, {9, 11, 38}, {11, 12, 46}, {12, 14, 52}},
-        {{1, 8, 9}, {1, 12, 11}, {2, 14, 13}, {2, 15, 17}, {3, 17, 22}, {4, 19, 28}, {5, 21, 32}},
-        {{3, 4, 13}, {5, 6, 15}, {6, 8, 17}, {7, 8, 21}, {8, 10, 26}, {10, 13, 32}, {11, 15, 38}},
-        {{2, 5, 14}, {4, 7, 16}, {5, 9, 19}, {6, 9, 24}, {7, 11, 30}, {9, 14, 37}, {10, 16, 44}},
-        {{2, 6, 11}, {3, 9, 14}, {4, 11, 17}, {5, 11, 22}, {7, 12, 28}, {8, 15, 35}, {9, 17, 42}}};
-    private static final double[] POWDER_HP = {5, 10, 20, 30, 45, 60, 75};
-    private static final int[] POWDER_LEVEL = {1, 5, 15, 25, 40, 55, 70};
+    // ---- pieces (Pieces) ------------------------------------------------------------------------
 
-    private static int elementIndex(String el) {
-        return switch (el) {
-            case "earth" -> 0;
-            case "thunder" -> 1;
-            case "water" -> 2;
-            case "fire" -> 3;
-            default -> 4;
-        };
-    }
-
-    /**
-     * Powder tiers are not shown on the item: assume the best tier the item's level allows,
-     * capped by rules.model.powderTier (default VI, what most players use).
-     */
     public static int powderTier(int itemLevel) {
-        int t = 1;
-        for (int i = 0; i < POWDER_LEVEL.length; i++) {
-            if (itemLevel >= POWDER_LEVEL[i]) {
-                t = i + 1;
-            }
-        }
-        return Math.max(1, Math.min(t, (int) Rules.sub("model", "powderTier", 6)));
+        return Pieces.powderTier(itemLevel);
     }
 
     static double tierOf(String speed) {
-        return switch (speed) {
-            case "SUPER_SLOW" -> 0;
-            case "VERY_SLOW" -> 1;
-            case "SLOW" -> 2;
-            case "NORMAL" -> 3;
-            case "FAST" -> 4;
-            case "VERY_FAST" -> 5;
-            default -> 6;
-        };
+        return Pieces.tierOf(speed);
     }
 
-    /**
-     * Very slow weapons hit hard on paper but feel sluggish and leave gaps while levelling;
-     * rules.model.attackSpeedFeel holds the factor per speed (SUPER_SLOW, VERY_SLOW, SLOW...).
-     */
     static double feel(String speed) {
-        double fallback = switch (speed) {
-            case "SUPER_SLOW" -> 0.7;
-            case "VERY_SLOW" -> 0.8;
-            case "SLOW" -> 0.95;
-            default -> 1.0;
-        };
-        var m = Rules.get().getAsJsonObject("model");
-        var f = m == null ? null : m.getAsJsonObject("attackSpeedFeel");
-        return f != null && f.has(speed) ? f.get(speed).getAsDouble() : fallback;
+        return Pieces.feel(speed);
     }
 
+    /** A piece you do not own yet, from Wynntils' item data, every roll at the middle of its range. */
     public static Piece piece(ItemData info) {
-        Map<String, Double> stats = new HashMap<>();
-        for (StatRange v : info.stats()) {
-            stats.merge(v.key(), (v.min() + v.max()) / 2.0, Double::sum);
-        }
-        Map<SkillKind, Integer> reqs = new java.util.EnumMap<>(SkillKind.class);
-        info.requirements().skills().forEach(r -> reqs.put(r.skill(), r.points()));
-        Map<String, Double> shares = new HashMap<>();
-        info.base().damages().forEach(d -> {
-            String el = d.type().toLowerCase(Locale.ROOT);
-            if (List.of(ELEMENTS).contains(el)) {
-                shares.merge(el, (d.low() + d.high()) / 2.0, Double::sum);
-            }
-        });
-        info.base().attackSpeed().ifPresent(a -> {
-            stats.put(FEEL, feel(a));
-            stats.put(TIER, tierOf(a));
-        });
-        info.set().ifPresent(si -> {
-            SETS.put(si.name(), si);
-            stats.put(SET + si.name(), 1.0);
-        });
-        double dps = info.base().averageDps();
-        Map<String, Double> sh = normalise(shares);
-        double health = info.base().health();
-        // a piece you would buy gets its slots filled, as the one you wear has them: weapons with
-        // their own strongest element (players powder a weapon in its element), armour for health
-        List<String> powders = assumedPowders(info, sh);
-        if (!powders.isEmpty()) {
-            int ptier = powderTier(info.requirements().level());
-            if (info.slot() != null && info.slot().isWeapon()) {
-                Powdered out = powdered(powders, ptier, dps, sh, stats);
-                dps = out.dps();
-                sh = out.shares();
-            } else {
-                health += powders.size() * POWDER_HP[ptier - 1];
-            }
-        }
-        return new Piece(null, "info:" + info.name(), info.name(), info.slot(), info.requirements().level(), stats,
-                reqs, dps, sh, health);
+        return Pieces.piece(info);
     }
 
-    /**
-     * The powders a piece from the item data is judged with: every slot, the weapon's strongest
-     * element (none for a neutral-only weapon), any element for armour (only health counts).
-     * rules.model.assumePowders 0 turns it off.
-     */
     static List<String> assumedPowders(ItemData info, Map<String, Double> shares) {
-        return assumedPowders(info, shares, info.powderSlots(), null);
+        return Pieces.assumedPowders(info, shares);
     }
 
-    /**
-     * {@code n} assumed powders for a piece of {@code info}: a weapon's in {@code keep} (the
-     * element its own powders have) or else its strongest element; armour's in any element. Empty
-     * when powders are turned off or a weapon has no element to take.
-     */
-    private static List<String> assumedPowders(ItemData info, Map<String, Double> shares, int n, String keep) {
-        if (n <= 0 || Rules.sub("model", "assumePowders", 1) <= 0) {
-            return List.of();
-        }
-        String el = "earth";
-        if (info.slot() != null && info.slot().isWeapon()) {
-            el = keep == null ? null : keep.toLowerCase(Locale.ROOT);
-            double best = 0;
-            for (var e : shares.entrySet()) {
-                if (keep == null && !e.getKey().equals("neutral") && e.getValue() > best) {
-                    best = e.getValue();
-                    el = e.getKey();
-                }
-            }
-            if (el == null) {
-                return List.of();
-            }
-        }
-        return java.util.Collections.nCopies(n, el);
-    }
-
-    /**
-     * A piece you have with its empty powder slots filled the way {@link #piece(ItemData)} fills
-     * a piece you would buy (a weapon in the element its powders already have, else its own
-     * strongest; armour for health), so the road map weighs what you have and what you would buy
-     * alike. Its own powders stay. A piece from the item data, a crafted one or one with every
-     * slot taken comes back as it is. The /build "now" keeps the real state.
-     */
     public static Piece withAssumedPowders(Piece p) {
-        ItemView g = ownGear(p);
-        if (g == null || g.data().powderSlots() <= g.rolled().powders().size()) {
-            return p;
-        }
-        // a key of its own: Build's memo knows a set by its keys, and the piece scores otherwise now
-        Piece out = piece(g, p.key() + "|powdered", p.stack(), true);
-        return out == null ? p : out;
+        return Pieces.withAssumedPowders(p);
     }
 
-    /**
-     * What {@link #withAssumedPowders} adds to a piece you have: {element, count, tier}, the
-     * element null for armour (its powders count for health in any element); null for none.
-     */
     public static Object[] addedPowders(Piece p) {
-        ItemView g = ownGear(p);
-        if (g == null) {
-            return null;
-        }
-        ItemData info = g.data();
-        List<String> real = g.rolled().powders();
-        List<String> add = assumedPowders(info, normalise(sharesOf(info)), info.powderSlots() - real.size(),
-                real.isEmpty() ? null : real.get(0));
-        if (add.isEmpty()) {
-            return null;
-        }
-        boolean weapon = info.slot() != null && info.slot().isWeapon();
-        return new Object[] {weapon ? add.get(0) : null, add.size(), powderTier(info.level())};
+        return Pieces.addedPowders(p);
     }
 
-    /**
-     * The powders the road map assumes in a piece on top of its own, as {count, tier}: a piece
-     * from the item data ({@code info}) has every slot filled, one you have its empty ones.
-     */
     public static int[] assumedCount(Piece p, ItemData info) {
-        if (p == null || p.crafted()) {
-            return new int[2];
-        }
-        if (p.stack() == null || p.stack().isEmpty()) {
-            int n = info == null ? 0 : assumedPowders(info, normalise(sharesOf(info))).size();
-            return new int[] {n, n == 0 ? 0 : powderTier(info.requirements().level())};
-        }
-        Object[] a = addedPowders(p);
-        return a == null ? new int[2] : new int[] {(int) a[1], (int) a[2]};
+        return Pieces.assumedCount(p, info);
     }
 
-    /** The identified gear behind a piece you have (its stack), or null. */
-    private static ItemView ownGear(Piece p) {
-        if (p == null || p.crafted() || p.stack() == null || p.stack().isEmpty()) {
-            return null;
-        }
-        Optional<ItemView> v = GameState.current().view(p.stack());
-        return v.isEmpty() || !v.get().isGear() || v.get().unidentified() || v.get().rolled() == null ? null : v.get();
-    }
-
-    /** A weapon's base damage by element, not normalised. */
-    private static Map<String, Double> sharesOf(ItemData info) {
-        Map<String, Double> shares = new HashMap<>();
-        info.base().damages().forEach(d -> {
-            String el = d.type().toLowerCase(Locale.ROOT);
-            if (List.of(ELEMENTS).contains(el)) {
-                shares.merge(el, (d.low() + d.high()) / 2.0, Double::sum);
-            }
-        });
-        return shares;
-    }
-
-    /**
-     * The powders a weapon pick is judged with, for its tooltip: {element, count, tier}; null when
-     * it gets none (no slots, neutral only, powders turned off) and for armour, whose powders only
-     * count for health in any element.
-     */
     public static Object[] powderHint(ItemData info) {
-        if (info.slot() == null || !info.slot().isWeapon()) {
-            return null;
-        }
-        List<String> p = assumedPowders(info, normalise(sharesOf(info)));
-        return p.isEmpty() ? null : new Object[] {p.get(0), p.size(), powderTier(info.requirements().level())};
+        return Pieces.powderHint(info);
     }
 
-    /** A weapon's DPS and element shares with its powders in. */
-    private record Powdered(double dps, Map<String, Double> shares) {}
-
-    /** Weapon powders: each converts part of the neutral damage to its element and adds flat damage. */
-    private static Powdered powdered(List<String> powders, int ptier, double dps, Map<String, Double> sh,
-            Map<String, Double> stats) {
-        int t = (int) Math.round(stats.getOrDefault(TIER, 3.0));
-        double perHit = dps / HITS[Math.max(0, Math.min(6, t))];
-        Map<String, Double> parts = new HashMap<>();
-        sh.forEach((k, v) -> parts.put(k, v * perHit));
-        Map<String, double[]> byEl = new java.util.LinkedHashMap<>();   // el -> {conv, flat}
-        for (String pw : powders) {
-            String el = pw.toLowerCase(Locale.ROOT);
-            double[] row = POWDER[elementIndex(el)][ptier - 1];
-            double[] acc = byEl.computeIfAbsent(el, k -> new double[2]);
-            acc[0] += row[2] / 100.0;
-            acc[1] += (row[0] + row[1]) / 2.0;
-        }
-        for (var e : byEl.entrySet()) {
-            double neutral = parts.getOrDefault("neutral", 0.0);
-            double moved = Math.min(neutral, e.getValue()[0] * neutral);
-            parts.put("neutral", neutral - moved);
-            parts.merge(e.getKey(), moved + e.getValue()[1], Double::sum);
-        }
-        double sum = parts.values().stream().mapToDouble(Double::doubleValue).sum();
-        return new Powdered(sum * HITS[Math.max(0, Math.min(6, t))], normalise(parts));
-    }
-
+    /** The model's view of a stack, or null for anything it cannot read (unidentified, not gear). */
     public static Piece piece(ItemStack stack) {
-        if (stack == null || stack.isEmpty()) {
-            return null;
-        }
-        Optional<ItemView> p = GameState.current().view(stack);
-        if (p.isEmpty()) {
-            return null;
-        }
-        return piece(p.get(), ItemJson.keyOf(stack), stack);
+        return Pieces.piece(stack);
     }
 
-    /** The same from the mod's reading of an item; {@code stack} may be null (not one you carry). */
     public static Piece piece(ItemView item, String key, ItemStack stack) {
-        return piece(item, key, stack, false);
+        return Pieces.piece(item, key, stack);
     }
 
-    /** {@code fill}: its empty powder slots filled too ({@link #withAssumedPowders}). */
-    private static Piece piece(ItemView item, String key, ItemStack stack, boolean fill) {
-        Map<String, Double> stats = new HashMap<>();
-        Map<SkillKind, Integer> reqs = new java.util.EnumMap<>(SkillKind.class);
-        Map<String, Double> shares = new HashMap<>();
-        if (item.isGear()) {
-            ItemView g = item;
-            if (g.unidentified()) {
-                return null;
-            }
-            ItemData info = g.data();
-            for (Roll v : g.rolled().rolls()) {
-                stats.merge(v.key(), (double) v.value(), Double::sum);
-            }
-            info.requirements().skills().forEach(r -> reqs.put(r.skill(), r.points()));
-            var fixed = info.base();
-            fixed.damages().forEach(d -> {
-                String el = d.type().toLowerCase(Locale.ROOT);
-                if (List.of(ELEMENTS).contains(el)) {
-                    shares.merge(el, (d.low() + d.high()) / 2.0, Double::sum);
-                }
-            });
-            fixed.attackSpeed().ifPresent(a -> {
-                stats.put(FEEL, feel(a));
-                stats.put(TIER, tierOf(a));
-            });
-            info.set().ifPresent(si -> {
-                SETS.put(si.name(), si);
-                stats.put(SET + si.name(), 1.0);
-            });
-            double dps = fixed.averageDps();
-            Map<String, Double> sh = normalise(shares);
-            double health = fixed.health();
-            List<String> powders = g.rolled().powders();
-            if (fill) {
-                List<String> add = assumedPowders(info, sh, info.powderSlots() - powders.size(),
-                        powders.isEmpty() ? null : powders.get(0));
-                if (!add.isEmpty()) {
-                    List<String> all = new java.util.ArrayList<>(powders);
-                    all.addAll(add);
-                    powders = all;
-                }
-            }
-            if (!powders.isEmpty()) {
-                int ptier = powderTier(info.level());
-                if (info.slot() != null && info.slot().isWeapon()) {
-                    // weapon powders: convert part of the neutral damage and add flat damage
-                    Powdered out = powdered(powders, ptier, dps, sh, stats);
-                    dps = out.dps();
-                    sh = out.shares();
-                } else {
-                    // armour powders: health by tier (same for every element)
-                    health += powders.size() * POWDER_HP[ptier - 1];
-                }
-            }
-            return new Piece(stack, key, info.name(), info.slot(), info.level(), stats, reqs,
-                    dps, sh, health);
-        }
-        if (item.isCrafted()) {
-            ItemView.Crafted c = item.crafted();
-            for (Roll v : c.rolls()) {
-                stats.merge(v.key(), (double) v.value(), Double::sum);
-            }
-            c.requirements().skills().forEach(r -> reqs.put(r.skill(), r.points()));
-            c.damages().forEach(d -> {
-                String el = d.type().toLowerCase(Locale.ROOT);
-                if (List.of(ELEMENTS).contains(el)) {
-                    shares.merge(el, (d.low() + d.high()) / 2.0, Double::sum);
-                }
-            });
-            return new Piece(stack, key, c.name(), c.slot(), c.level(), stats, reqs,
-                    c.dps(),
-                    normalise(shares), c.health(), true);
-        }
-        return null;
+    /** The stat key of a piece's own (base) defence in element {@code el}, before the % IDs. */
+    static String defKey(String el) {
+        return "_def:" + el;
     }
 
-    private static Map<String, Double> normalise(Map<String, Double> m) {
-        double sum = m.values().stream().mapToDouble(Double::doubleValue).sum();
-        Map<String, Double> out = new HashMap<>();
-        if (sum <= 0) {
-            out.put("neutral", 1.0);
-            return out;
-        }
-        m.forEach((k, v) -> out.put(k, v / sum));
-        return out;
-    }
 
     // ---- skill point curve -----------------------------------------------------------------
 
@@ -479,6 +175,14 @@ public final class Damage {
     /** % more damage the class takes (base resistances): Shaman 1.4, Archer 1.3, Mage 1.2. */
     /** The class, taken on the game thread, while a build plan is worked out in the background. */
     static final ThreadLocal<io.github.anilken.wynnlabs.model.Klass> CLASS_FOR_THREAD = new ThreadLocal<>();
+
+    /**
+     * How much of a hit you take (WynnBuilder's defMult): the class's share, times what the
+     * tree's base resistance nodes leave ("+5% Base Resistance").
+     */
+    static double damageTaken() {
+        return classDamageTaken() * TreeModel.taken();
+    }
 
     static double classDamageTaken() {
         try {
@@ -501,8 +205,31 @@ public final class Damage {
      * over the hit times the total conversion, element raw counts times the total conversion when
      * that element is present (WynnBuilder damage_calc). Before Strength and crit.
      */
-    private static double hit(Map<String, Double> s, double[] c, double baseDps, double[] skillBonus,
+    static double hit(Map<String, Double> s, double[] c, double baseDps, double[] skillBonus,
             boolean spell, double[] byElement) {
+        return hit(s, c, baseDps, skillBonus, spell, byElement, 1);
+    }
+
+    /** The stat key of the tree's flat damage on every hit in element {@code el} (the masteries' "+2-4"). */
+    static String flatKey(String el) {
+        // constants, not built on every hit: the model asks for these on every evaluation
+        return switch (el) {
+            case "neutral" -> "_flat:neutral";
+            case "earth" -> "_flat:earth";
+            case "thunder" -> "_flat:thunder";
+            case "water" -> "_flat:water";
+            case "fire" -> "_flat:fire";
+            case "air" -> "_flat:air";
+            default -> "_flat:" + el;
+        };
+    }
+
+    /**
+     * {@link #hit} for a source of {@code hits} hits (a Totem cast is all its ticks): the tree's
+     * flat damage per element (the masteries' "+2-4") lands on each hit, raised by the hit's %.
+     */
+    static double hit(Map<String, Double> s, double[] c, double baseDps, double[] skillBonus,
+            boolean spell, double[] byElement, double hits) {
         double convTotal = 0;
         for (double v : c) {
             convTotal += Math.max(0, v);
@@ -521,7 +248,8 @@ public final class Damage {
             if (i > 0) {
                 pct += stat(s, "elemental" + kind + "Damage") + stat(s, "elementalDamage");
             }
-            dmg += baseDps * c[i] * (1 + pct / 100.0);
+            double flat = i > 0 ? stat(s, flatKey(el)) * hits : 0;
+            dmg += (baseDps * c[i] + flat) * (1 + pct / 100.0);
             String cap = Character.toUpperCase(el.charAt(0)) + el.substring(1);
             double elementRaw = 0;
             if (i > 0) {
@@ -530,7 +258,7 @@ public final class Damage {
             }
             if (byElement != null) {
                 // the generic raw goes to each element by its share of the conversion
-                byElement[i] += baseDps * c[i] * (1 + pct / 100.0) + elementRaw + raw * c[i]
+                byElement[i] += (baseDps * c[i] + flat) * (1 + pct / 100.0) + elementRaw + raw * c[i]
                         + (i > 0 ? rawElemental * c[i] : 0);
             }
         }
@@ -540,7 +268,7 @@ public final class Damage {
     }
 
     /** Spreads a neutral conversion over the weapon's own elements (2.x). */
-    private static double[] split(double[] conv, Map<String, Double> shares) {
+    static double[] split(double[] conv, Map<String, Double> shares) {
         double[] c = conv.clone();
         double neutral = c[0];
         c[0] = neutral * shares.getOrDefault("neutral", 0.0);
@@ -556,42 +284,26 @@ public final class Damage {
         return s.getOrDefault(key, 0.0);
     }
 
-    private static double model(String key, double fallback) {
+    static double model(String key, double fallback) {
         // the road map's tuning strip (Tuning) leans a few weights; 1 everywhere else. The ability
         // tree you have at the level worked out for (TreeModel) sets summons, mana and the main attack
-        double v = TreeModel.adjust(key, Rules.sub("model", key, fallback)) * Tuning.weight(key);
-        // what deaths taught (DeathCoach, rules.model.survivalLearned, 1 to 2) is kept apart from
-        // the goal's weights, so choosing a goal again does not wipe it; read capped by the goal
-        // (deathCap), the stored lesson stays whole
-        if (key.equals("survivalWeight") || key.equals("survivalPower")) {
-            v *= Math.max(1, Math.min(deathCap(), Rules.sub("model", "survivalLearned", 1)));
-        }
-        return v;
-    }
-
-    /**
-     * How far what deaths taught may raise survival and the health floor: 1.2× on the Damage
-     * goal (a few deaths should not turn a damage build into a tank), 2× on the others. Applied
-     * when read, so switching goal brings the full lesson back.
-     */
-    static double deathCap() {
-        return "DAMAGE".equals(Setup.goal()) ? 1.2 : 2;
+        // nothing measured or learned in game (the damage meter, deaths) changes these: the model
+        // is the math of gear, skill points, tree and powders, and the goal's weights
+        return TreeModel.adjust(key, Rules.sub("model", key, fallback)) * Tuning.weight(key);
     }
 
     /**
      * The elemental effective health a build should keep at this level before damage counts in
      * full: the table below (about what dies in the open world at that level, a Lv 69-72 Shaman
      * died again and again at 5.5-7k), times the goal's rules.model.ehpFloorScale (Damage 1,
-     * Tank 1.6), raised by what recent deaths say (rules.model.deathFloorRatio, at most
-     * {@link #deathCap()}× the table) and scaled by rules.roadmap.ehpFloorScale (0 turns it off).
+     * Tank 1.6) and scaled by rules.roadmap.ehpFloorScale (0 turns it off).
      */
     static double ehpFloor(int level) {
         double scale = Rules.sub("roadmap", "ehpFloorScale", 1.0);
         if (scale <= 0) {
             return 0;
         }
-        double deaths = Math.min(deathCap(), Rules.sub("model", "deathFloorRatio", 0));
-        return scale * ehpTable(level) * Math.max(model("ehpFloorScale", 1.0), deaths);
+        return scale * ehpTable(level) * model("ehpFloorScale", 1.0);
     }
 
     /**
@@ -637,14 +349,16 @@ public final class Damage {
      * attack and summons. Filled by the same pass as the Result, so {@code spell} adds up to its
      * spellDps and {@code main} to its mainDps (before mainAttackWeight and the attack speed feel).
      * {@code spells}: each spell of rules.model.spells as the model sees one cast of it, for the
-     * damage meter to compare a cast with; {@code summonRaw}[0] the summon DPS before
-     * rules.model.summonCalibration (puppets and lasting spells such as Totem).
+     * damage meter to compare a cast with; {@code sources} the same DPS source by source, with
+     * the heals and ultimates ({@link Sources}).
+     * The summons here are whole: the score alone weighs them by {@link Sources#fightShare}.
      */
-    public record Breakdown(double[] spell, double[] main, double[] summon, List<SpellPart> spells, double[] summonRaw) {
+    public record Breakdown(double[] spell, double[] main, double[] summon, List<SpellPart> spells,
+            List<Sources.Source> sources) {
 
         Breakdown() {
             this(new double[ELEMENTS.length], new double[ELEMENTS.length], new double[ELEMENTS.length],
-                    new java.util.ArrayList<>(), new double[1]);
+                    new java.util.ArrayList<>(), new java.util.ArrayList<>());
         }
 
         public double spellTotal() {
@@ -680,12 +394,11 @@ public final class Damage {
 
     /**
      * One spell as the model sees it: {@code perCast} the whole cast (all its hits and ticks, with
-     * Strength and crit) before calibration, {@code cal} the calibration it gets (its own
-     * rules.model.spells[i].cal, else spellCalibration). A lasting spell (Totem) counts with the
-     * summons; {@code duration} is how long its ticks run (0: one go).
+     * Strength and crit). A lasting spell (Totem) counts with the summons; {@code duration} is how long its ticks run (0: one go); {@code cost} its mana per
+     * cast after Intelligence and the cost IDs.
      */
-    public record SpellPart(String name, int index, double share, double perCast, double cal, boolean lasting,
-            double duration) {}
+    public record SpellPart(String name, int index, double share, double perCast, boolean lasting,
+            double duration, double cost) {}
 
     public record Detail(Result result, Breakdown breakdown) {}
 
@@ -695,21 +408,19 @@ public final class Damage {
         return new Detail(evaluate(pieces, weapon, assigned, level, b), b);
     }
 
-    private static Result evaluate(List<Piece> pieces, Piece weapon, int[] assigned, int level, Breakdown parts) {
-        double[] spellEl = parts == null ? null : new double[ELEMENTS.length];
-        double[] mainEl = parts == null ? null : new double[ELEMENTS.length];
-        double[] summonEl = parts == null ? null : new double[ELEMENTS.length];
+    /**
+     * Every stat the pieces and the weapon add up to, with the set bonuses and the ability tree's
+     * passive bonuses in force (TreeModel): what {@link #evaluate} works from.
+     */
+    static Map<String, Double> totals(List<Piece> pieces, Piece weapon) {
         Map<String, Double> s = new HashMap<>();
-        double health = 0;
         for (Piece p : pieces) {
             if (p != null) {
                 p.stats().forEach((k, v) -> s.merge(k, v, Double::sum));
-                health += p.health();
             }
         }
         if (weapon != null) {
             weapon.stats().forEach((k, v) -> s.merge(k, v, Double::sum));
-            health += weapon.health();
         }
         // Set bonuses: n pieces of one set add that set's bonus for n (Morph, Adventurer's, …);
         // a ring in both hands is two, and some sets pay from one piece (Goblin, Black Catalyst)
@@ -726,15 +437,55 @@ public final class Damage {
         }
         // the tree's passive bonuses at this level (TreeModel): Main Attack Damage, the masteries' element %
         TreeModel.addStats(s);
+        return s;
+    }
+
+    /** A skill's points: what you assigned plus what the gear in {@code s} gives. */
+    static double skillPoints(Map<String, Double> s, int[] assigned, SkillKind sk) {
+        String api = "raw" + sk.name().charAt(0) + sk.name().substring(1).toLowerCase(Locale.ROOT);
+        return assigned[sk.ordinal()] + stat(s, api);
+    }
+
+    /** Defence's damage cut in % for this many points (70 % cap). */
+    static double defence(double points) {
+        return curve(points) * 0.867;
+    }
+
+    /**
+     * The mana pool as WynnBuilder has it: 100, the gear's max mana and Intelligence's
+     * {@code intel} % rounded down. A fixed base: nothing measured in game changes it.
+     */
+    static double manaPool(Map<String, Double> s, double intel) {
+        return 100 + stat(s, "rawMaxMana") + stat(s, "maxMana") + Math.floor(intel);
+    }
+
+    /** Mana back every 5 s before the gear: the game's 25, and what the tree's nodes add (TreeModel). */
+    static double baseManaPer5() {
+        return TreeModel.adjust("baseManaPer5s", 25);
+    }
+
+    private static Result evaluate(List<Piece> pieces, Piece weapon, int[] assigned, int level, Breakdown parts) {
+        double[] spellEl = parts == null ? null : new double[ELEMENTS.length];
+        double[] mainEl = parts == null ? null : new double[ELEMENTS.length];
+        double[] summonEl = parts == null ? null : new double[ELEMENTS.length];
+        Map<String, Double> s = totals(pieces, weapon);
+        double health = 0;
+        for (Piece p : pieces) {
+            if (p != null) {
+                health += p.health();
+            }
+        }
+        if (weapon != null) {
+            health += weapon.health();
+        }
         double[] skill = new double[SkillKind.values().length];
         for (SkillKind sk : SkillKind.values()) {
-            String api = "raw" + sk.name().charAt(0) + sk.name().substring(1).toLowerCase(Locale.ROOT);
-            skill[sk.ordinal()] = assigned[sk.ordinal()] + stat(s, api);
+            skill[sk.ordinal()] = skillPoints(s, assigned, sk);
         }
         double str = curve(skill[SkillKind.STRENGTH.ordinal()]);
         double dex = curve(skill[SkillKind.DEXTERITY.ordinal()]);
         double intel = curve(skill[SkillKind.INTELLIGENCE.ordinal()]);
-        double def = curve(skill[SkillKind.DEFENCE.ordinal()]) * 0.867;     // 70 % cap
+        double def = defence(skill[SkillKind.DEFENCE.ordinal()]);
         double agi = curve(skill[SkillKind.AGILITY.ordinal()]) * 0.951;     // 76.8 % cap
         // element bonuses: Def and Agi scaled the same way (WynnBuilder skillpoint_damage_mult)
         double[] skillBonus = {0, str, dex, intel, def, agi};
@@ -743,14 +494,13 @@ public final class Damage {
         Map<String, Double> shares = weapon == null ? Map.of("neutral", 1.0) : weapon.weaponShares();
         // Strength adds, a crit adds +100 % plus Crit Damage % (additive with Strength, not ×)
         double multiplier = 1 + str / 100.0 + dex / 100.0 * (1 + stat(s, "criticalDamageBonus") / 100.0);
-        double intReduction = 0.5 * intel / 80.8;
+        double intReduction = 0.5 * intel / curve(150);      // half off at 150 points
 
-        // Spells: each takes its own calibration (rules.model.spells[i].cal, measured per spell by
-        // the damage meter, Coach), else the overall rules.model.spellCalibration
+        // Spells: the cast's conversion through the damage pipeline (the tree's cuts, waves and
+        // one cast per Totem are in the conversion, TreeModel); nothing measured in game scales it
         double dmgSum = 0;
         double costSum = 0;
         double shareSum = 0;
-        double globalCal = model("spellCalibration", 1.0);
         // lasting spells (Totem: a hit every 0.4 s for 30 s) deal alongside the casts, as summons
         // do, and cost their mana once per duration
         double lastingDps = 0;
@@ -771,24 +521,31 @@ public final class Damage {
                 c[i] = conv.has(ELEMENTS[i]) ? conv.get(ELEMENTS[i]).getAsDouble() : 0;
             }
             double[] el = spellEl == null ? null : new double[ELEMENTS.length];
-            double dmg = hit(s, split(c, shares), baseDps, skillBonus, true, el);
+            double dmg = hit(s, split(c, shares), baseDps, skillBonus, true, el,
+                    sp.has("hits") ? sp.get("hits").getAsDouble() : 1);
             int idx = sp.has("index") ? sp.get("index").getAsInt() : 0;
             String nth = idx == 1 ? "1st" : idx == 2 ? "2nd" : idx == 3 ? "3rd" : "4th";
             double cost = sp.has("cost") ? sp.get("cost").getAsDouble() : 30;
-            // Intelligence cuts the base cost; raw and % cost IDs apply after (display.js getSpellCost)
-            cost = (cost * (1 - intReduction) + stat(s, "raw" + nth + "SpellCost"))
-                    * (1 + stat(s, nth + "SpellCost") / 100.0);
+            // Intelligence cuts the base cost, then the raw cost IDs, then the % ones, at least 1
+            // (WynnBuilder getSpellCost). The item data keeps a cut as a positive number (Wynntils
+            // has "-15% 3rd Spell Cost" as 15), so a cost ID takes off what it says
+            cost = (cost * (1 - intReduction) - stat(s, "raw" + nth + "SpellCost"))
+                    * (1 - stat(s, nth + "SpellCost") / 100.0);
             cost = Math.max(1, cost);
             double duration = sp.has("duration") ? sp.get("duration").getAsDouble() : 0;
             boolean lasting = ClassProfiles.lasting(sp) && duration > 0;
-            double cal = sp.has("cal") ? sp.get("cal").getAsDouble() : globalCal;
             if (parts != null) {
+                // shown as the game takes it, whole mana rounded down: a Totem at 15 with 39
+                // Intelligence comes to 11.97 and costs 11. The mana math keeps the decimals, as
+                // WynnBuilder's does (a score in steps would stall the road map's search)
                 parts.spells().add(new SpellPart(sp.has("name") ? sp.get("name").getAsString() : nth, idx, share,
-                        dmg * multiplier, lasting ? 1 : cal, lasting, duration));
+                        dmg * multiplier, lasting, duration, Math.max(1, Math.floor(cost + 1e-9))));
             }
             if (lasting) {
                 lastingDps += dmg * multiplier / duration;
-                upkeepPer5 += cost * 5.0 / duration;
+                // one cast per Totem (Double Totem: two up, two paid for), as its damage counts each
+                double per = sp.has("perCount") ? Math.max(1, sp.get("perCount").getAsDouble()) : 1;
+                upkeepPer5 += cost * per * 5.0 / duration;
                 if (el != null) {
                     for (int i = 0; i < el.length; i++) {
                         lastingEl[i] += el[i] * multiplier / duration;
@@ -798,21 +555,20 @@ public final class Damage {
             }
             if (el != null) {
                 for (int i = 0; i < el.length; i++) {
-                    spellEl[i] += share * el[i] * multiplier * cal;
+                    spellEl[i] += share * el[i] * multiplier;
                 }
             }
-            dmgSum += share * dmg * multiplier * cal;
+            dmgSum += share * dmg * multiplier;
             costSum += share * cost;
             shareSum += share;
         }
-        // measured in game by the damage meter (Coach): what your casts really deal against the model
         double dmgPerCast = shareSum > 0 ? dmgSum / shareSum : 0;
         double avgCost = shareSum > 0 ? costSum / shareSum : 30;
-        double manaPer5 = model("baseManaPer5s", 25) + stat(s, "manaRegen")
-                + stat(s, "manaSteal") * 5.0 / 3.0 * model("manaStealFactor", 0.3) - upkeepPer5;
+        // mana steal counts whole, as WynnBuilder does: its value comes back every 3 seconds
+        double manaPer5 = baseManaPer5() + stat(s, "manaRegen") + stat(s, "manaSteal") * 5.0 / 3.0 - upkeepPer5;
         // Over a fight of fightSeconds you spend your mana pool plus what comes back
         double fight = model("fightSeconds", 30);
-        double pool = model("baseMana", 100) + stat(s, "rawMaxMana") + stat(s, "maxMana") + Math.floor(intel);
+        double pool = manaPool(s, intel);
         double casts = Math.max(0, Math.min(model("maxCastsPer5s", 4),
                 (pool + manaPer5 * fight / 5.0) / avgCost / (fight / 5.0)));
         double spellDps = dmgPerCast * casts / 5.0;
@@ -825,35 +581,22 @@ public final class Damage {
         double mainHit = hit(s, mc, perHitBase, skillBonus, false, mainEl) * model("mainAttackClassMult", 1.0);
         double mainDps = mainHit * HITS[tierNow] * multiplier;
 
-        // Summons (Summoner's puppets and the like): spell hits on their own clock, no mana;
-        // they take spell %, raw spell and element % like spells (Puppet Master: 16 % neutral,
-        // 2 % earth, 2 % air per hit, up to 3 puppets × 2 hits/s). With the lasting spells they are
-        // what the damage meter hears between casts, and rules.model.summonCalibration scales them to it.
-        // They hit only while alive (rules.model.summonAlive, 0.6): the tree's numbers have it in
-        // already (its overlay gives 1 here), the class profile's get it here, once either way
-        double passive = 0;
-        double summons = model("passiveDpsFactor", 0);
-        double alive = summons > 0 ? Math.max(0.05, Math.min(1, model("summonAlive", 0.6))) : 0;
-        if (summons > 0) {
-            double[] pc = {model("summonNeutral", 0.16), model("summonEarth", 0.02), model("summonThunder", 0),
-                model("summonWater", 0), model("summonFire", 0), model("summonAir", 0.02)};
-            passive = hit(s, split(pc, shares), baseDps, skillBonus, true, summonEl) * model("summonHitsPerSecond", 6)
-                    * summons * multiplier * alive;
-        }
-        double summonCal = model("summonCalibration", 1.0);
-        double passiveRaw = passive + lastingDps;
-        passive = passiveRaw * summonCal;
+        // Summons and areas (Puppet Master, Crimson Effigy, a trap): spell hits on their own clock,
+        // no mana, each from its own conversion times its hits a second and how many (Sources);
+        // the score weighs them by the share of a fight they are out (Sources.fightShare), the
+        // numbers shown and the totals have them whole
+        List<Sources.Source> summonList = parts == null ? null : new java.util.ArrayList<>();
+        Sources.Summons summons = Sources.summons(TreeModel.active(), s, shares, baseDps, skillBonus, multiplier,
+                summonEl, summonList);
+        double passive = summons.scored() + lastingDps;
         if (parts != null) {
-            // the per-hit parts scaled the way the totals above are (the spells' calibration is in spellEl)
             double perSpell = shareSum > 0 ? 1 / shareSum * casts / 5.0 : 0;
             double perMain = model("mainAttackClassMult", 1.0) * HITS[tierNow] * multiplier;
-            double perSummon = summons > 0 ? model("summonHitsPerSecond", 6) * summons * multiplier * alive : 0;
             for (int i = 0; i < ELEMENTS.length; i++) {
                 parts.spell()[i] = spellEl[i] * perSpell;
                 parts.main()[i] = mainEl[i] * perMain;
-                parts.summon()[i] = (summonEl[i] * perSummon + lastingEl[i]) * summonCal;
+                parts.summon()[i] = summonEl[i] + lastingEl[i];
             }
-            parts.summonRaw()[0] = passiveRaw;
         }
         // Slow weapons feel sluggish on the main attack only: spells and summons do not care
         double feel = weapon == null ? 1.0 : weapon.stats().getOrDefault(FEEL, 1.0);
@@ -867,7 +610,7 @@ public final class Damage {
         health += model("hpBase", 5) + model("hpPerLevel", 5) * level + stat(s, "rawHealth");
         double d = def / 100.0;
         double a = agi / 100.0;
-        double ehp = Math.max(1, health) / (0.1 * a + (1 - a) * (1 - d)) / classDamageTaken();
+        double ehp = Math.max(1, health) / (0.1 * a + (1 - a) * (1 - d)) / damageTaken();
         // Elemental defences: the damage you take splits by element (rules.model.incomingElements,
         // half neutral and a tenth each by default); each element's share shrinks by the build's
         // defence % for it, a negative one grows it. WynnBuilder's EHP leaves this out, so ehp
@@ -926,6 +669,11 @@ public final class Damage {
         double fLoot = 1 + model("lootWeight", 0) * Math.max(0, stat(s, "lootBonus") + stat(s, "lootQuality")) / 100.0;
         double objective = Math.pow(Math.max(0, total), model("damageWeight", 1.0)) * fXp * fSpeed * fLife * fMana * fHeal
                 * fBurst * fLoot;
+        if (parts != null) {
+            // the same numbers source by source: each spell, summon, area and heal (Sources)
+            Sources.fill(parts, new Sources.Inputs(s, shares, baseDps, skillBonus, multiplier, casts, HITS[tierNow],
+                    Math.max(1, health), summonList));
+        }
         return new Result(objective, spellDps, mainDps, casts, ehp, xp, speed, dmgPerCast,
                 new double[] {totalNoFeel, fLife, fMana, fSpeed, fXp, feelFactor}, ehpElemental, Math.max(1, health),
                 pieces, weapon);

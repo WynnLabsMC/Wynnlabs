@@ -21,7 +21,6 @@ import io.github.anilken.wynnlabs.coach.Coach;
 import io.github.anilken.wynnlabs.coach.Danger;
 import io.github.anilken.wynnlabs.coach.DeathCoach;
 import io.github.anilken.wynnlabs.coach.DpsMeter;
-import io.github.anilken.wynnlabs.coach.ManaMeter;
 import io.github.anilken.wynnlabs.coach.Today;
 import io.github.anilken.wynnlabs.coach.XpMeter;
 import io.github.anilken.wynnlabs.core.DevHooks;
@@ -163,16 +162,7 @@ public final class WynnLabs {
             if (client.player != null && client.player.tickCount % 40 == 0) {
                 Around.watch();                     // only with a plan: the better-build check after a level-up
             }
-            // model weights brought back under their cap at load: say so once
-            java.util.List<String> clamped = Rules.clamped;
-            if (client.player != null && !clamped.isEmpty()) {
-                Rules.clamped = java.util.List.of();
-                client.player.displayClientMessage(L.c("wynnlabs.feedback.assistant").withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE)
-                        .append(L.c("wynnlabs.feedback.clamped", String.join(", ", clamped))
-                                .withStyle(net.minecraft.ChatFormatting.GRAY)), false);
-            }
         }));
-        platform.onEndTick(Perf.tick("tick.ManaMeter", ManaMeter::onTick));
         platform.onEndTick(Perf.tick("tick.TreePlanner", TreePlanner::onTick));
         platform.onEndTick(Perf.tick("tick.GroundMarkers", GroundMarkers::onTick));
         platform.onEndTick(Perf.tick("tick.MobTracker", MobTracker::onTick));

@@ -42,8 +42,6 @@ public final class Settings {
         LABELS.put("mobTrack", "wynnlabs.setting.mobTrack");
         LABELS.put("mobTrackSound", "wynnlabs.setting.mobTrackSound");
         LABELS.put("autoTree", "wynnlabs.setting.autoTree");
-        LABELS.put("learning", "wynnlabs.setting.learning");
-        LABELS.put("manaMeter", "wynnlabs.setting.manaMeter");
         LABELS.put("treeBonuses", "wynnlabs.setting.treeBonuses");
         LABELS.put("glowQuest", "wynnlabs.setting.glowQuest");
         LABELS.put("priceApi", "wynnlabs.setting.priceApi");
@@ -141,10 +139,6 @@ public final class Settings {
         DESC.put("menuAdvice", "wynnlabs.setting_desc.menuAdvice");
         CATEGORY.put("autoTree", "build");
         DESC.put("autoTree", "wynnlabs.setting_desc.autoTree");
-        CATEGORY.put("learning", "build");
-        DESC.put("learning", "wynnlabs.setting_desc.learning");
-        CATEGORY.put("manaMeter", "build");
-        DESC.put("manaMeter", "wynnlabs.setting_desc.manaMeter");
         CATEGORY.put("treeBonuses", "build");
         DESC.put("treeBonuses", "wynnlabs.setting_desc.treeBonuses");
         CATEGORY.put("priceApi", "data");
@@ -315,7 +309,7 @@ public final class Settings {
      */
     private static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "groundGlowNormal", "priceApi",
             "localApi", "apiWrite", "debug", "dpsHud", "autoUpdate",
-            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "groundGlowOther", "hotbarBadges", "learning",
+            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "groundGlowOther", "hotbarBadges",
             "powderHint");
 
     public static boolean on(String key) {

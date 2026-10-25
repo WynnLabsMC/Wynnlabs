@@ -41,24 +41,31 @@ public final class Plans {
     /**
      * One build: its id, name, the chosen items it was built around, the tuning strip it was
      * found with, its nine pieces by build slot (an empty slot is left out), its score and the
-     * level it was found at, and when it was made and last changed.
+     * level it was found at, and when it was made and last changed; {@code points}: the skill
+     * points it was made with (a WynnBuilder link's, by SkillKind order), null for the mod's spread.
      */
     public record Build(String id, String name, List<String> locks, Tuning.Choice tuning, Map<String, String> items,
-            double score, int level, long created, long updated) {
+            double score, int level, long created, long updated, List<Integer> points) {
 
         public Build {
             locks = List.copyOf(locks);
             items = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(items));
             tuning = tuning == null ? Tuning.Choice.PLAIN : tuning;
             name = name == null ? "" : name;
+            points = points == null ? null : java.util.Collections.unmodifiableList(new ArrayList<>(points));
+        }
+
+        public Build(String id, String name, List<String> locks, Tuning.Choice tuning, Map<String, String> items,
+                double score, int level, long created, long updated) {
+            this(id, name, locks, tuning, items, score, level, created, updated, null);
         }
 
         public Build named(String n) {
-            return new Build(id, n, locks, tuning, items, score, level, created, updated);
+            return new Build(id, n, locks, tuning, items, score, level, created, updated, points);
         }
 
         public Build withId(String i) {
-            return new Build(i, name, locks, tuning, items, score, level, created, updated);
+            return new Build(i, name, locks, tuning, items, score, level, created, updated, points);
         }
 
         /** Whether this holds {@code name} as one of its chosen items. */
@@ -191,7 +198,7 @@ public final class Plans {
         String id = "b" + now + "-" + book.next;
         String name = b.name().isBlank() ? defaultName(b) : clip(b.name());
         book.next++;
-        Build kept = new Build(id, name, b.locks(), b.tuning(), b.items(), b.score(), b.level(), now, now);
+        Build kept = new Build(id, name, b.locks(), b.tuning(), b.items(), b.score(), b.level(), now, now, b.points());
         book.saved.add(kept);
         save();
         return kept;
@@ -212,7 +219,7 @@ public final class Plans {
         for (int i = 0; i < book.saved.size(); i++) {
             Build b = book.saved.get(i);
             if (b.id().equals(id)) {
-                Build r = new Build(b.id(), n, b.locks(), b.tuning(), b.items(), b.score(), b.level(), b.created(), now);
+                Build r = new Build(b.id(), n, b.locks(), b.tuning(), b.items(), b.score(), b.level(), b.created(), now, b.points());
                 book.saved.set(i, r);
                 if (book.current != null && book.current.id().equals(id)) {
                     book.current = book.current.named(n);
@@ -267,7 +274,7 @@ public final class Plans {
             Build b = book.saved.get(i);
             if (b.id().equals(id)) {
                 Build r = new Build(b.id(), b.name(), fresh.locks(), fresh.tuning(), fresh.items(), fresh.score(), fresh.level(),
-                        b.created(), now);
+                        b.created(), now, fresh.points());
                 book.saved.set(i, r);
                 if (book.current != null && book.current.id().equals(id)) {
                     book.current = r;
@@ -505,9 +512,16 @@ public final class Plans {
                         tj.has("mana") && tj.get("mana").getAsBoolean(), tj.has("speed") && tj.get("speed").getAsBoolean(),
                         tj.has("budget") ? Math.max(0, tj.get("budget").getAsLong()) : 0);
             }
+            List<Integer> points = null;
+            if (o.has("points") && o.get("points").isJsonArray()) {
+                points = new ArrayList<>();
+                for (var e : o.getAsJsonArray("points")) {
+                    points.add(e.getAsInt());
+                }
+            }
             return new Build(o.get("id").getAsString(), o.has("name") ? o.get("name").getAsString() : "", locks, t, items,
                     o.has("score") ? o.get("score").getAsDouble() : 0, o.has("level") ? o.get("level").getAsInt() : 0,
-                    o.has("created") ? o.get("created").getAsLong() : 0, o.has("updated") ? o.get("updated").getAsLong() : 0);
+                    o.has("created") ? o.get("created").getAsLong() : 0, o.has("updated") ? o.get("updated").getAsLong() : 0, points);
         } catch (Throwable t) {
             return null;                                // one broken entry: the rest still read
         }
@@ -533,6 +547,11 @@ public final class Plans {
         o.addProperty("level", b.level());
         o.addProperty("created", b.created());
         o.addProperty("updated", b.updated());
+        if (b.points() != null) {
+            JsonArray pts = new JsonArray();
+            b.points().forEach(pts::add);
+            o.add("points", pts);
+        }
         return o;
     }
 

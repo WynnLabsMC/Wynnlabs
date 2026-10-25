@@ -189,6 +189,26 @@ public final class ClassProfiles {
         return spell.has("lasting") && spell.get("lasting").getAsBoolean();
     }
 
+    /**
+     * The main attack's weight from the archetype again, for rules from when your swaps could
+     * raise it (no rules.model.mainAttackFromArchetype yet); one set by hand stays. Null when it
+     * is current or the tree is not there yet.
+     */
+    public static JsonObject mainAttackUpgrade(JsonObject rules) {
+        JsonObject model = rules == null ? null : rules.getAsJsonObject("model");
+        if (model == null || model.has("mainAttackFromArchetype") || TreeModel.tree() == null) {
+            return null;
+        }
+        JsonObject m = new JsonObject();
+        if (!Rules.list("model", "byHand").contains("MAINATTACKWEIGHT")) {
+            m.addProperty("mainAttackWeight", mainAttackWeight(Wyn.classType().name(), TreeModel.archetype()));
+        }
+        m.addProperty("mainAttackFromArchetype", true);
+        JsonObject change = new JsonObject();
+        change.add("model", m);
+        return change;
+    }
+
     /** Bumped when {@link #spell} reads the text differently: older rules get their spells read again. */
     static final int SPELLS_PARSED = 2;
 
@@ -207,31 +227,11 @@ public final class ClassProfiles {
             return null;
         }
         JsonObject m = new JsonObject();
-        m.add("spells", keepCalibration(fresh, model));
+        m.add("spells", fresh);
         m.addProperty("spellsParsed", SPELLS_PARSED);
         JsonObject change = new JsonObject();
         change.add("model", m);
         return change;
-    }
-
-    /** Each fresh spell keeps the "cal" the old rules measured for the spell of that number. */
-    static JsonArray keepCalibration(JsonArray fresh, JsonObject oldModel) {
-        if (oldModel == null || !oldModel.has("spells") || !oldModel.get("spells").isJsonArray()) {
-            return fresh;
-        }
-        for (var o : oldModel.getAsJsonArray("spells")) {
-            JsonObject old = o.getAsJsonObject();
-            if (!old.has("cal") || !old.has("index")) {
-                continue;
-            }
-            for (var f : fresh) {
-                JsonObject s = f.getAsJsonObject();
-                if (s.get("index").getAsInt() == old.get("index").getAsInt()) {
-                    s.add("cal", old.get("cal"));
-                }
-            }
-        }
-        return fresh;
     }
 
     /**
@@ -272,13 +272,12 @@ public final class ClassProfiles {
         return score;
     }
 
-    /** Archetypes that fight up close: attack speed feels no slower than it hits, mana steal works in full. */
+    /** Archetypes that fight up close: attack speed feels no slower than it hits. */
     private static final List<String> MELEE = List.of("fallen", "battle monk", "shadestepper", "acrobat", "boltslinger");
 
     /**
      * How much the main attack counts against spells and summons for a class and archetype: a
-     * melee archetype 1, a Summoner 0.2 (its puppets and spells carry it), and so on. Feedback may
-     * raise it at most to rules.model.nudgeCap times this.
+     * melee archetype 1, a Summoner 0.2 (its puppets and spells carry it), and so on.
      */
     public static double mainAttackWeight(String cls, String archetype) {
         return mainAttackWeight(cls, archetype, TreeModel.tree());
@@ -344,9 +343,8 @@ public final class ClassProfiles {
         List<String> main = top.subList(0, Math.min(2, top.size()));
 
         JsonObject model = new JsonObject();
-        // the spells written whole for the archetype, each keeping the calibration the damage meter
-        // measured for it (rules.model.spells[i].cal), and which parser read them
-        model.add("spells", keepCalibration(spells.deepCopy(), Rules.get().getAsJsonObject("model")));
+        // the spells written whole for the archetype, and which parser read them
+        model.add("spells", spells.deepCopy());
         model.addProperty("spellsParsed", SPELLS_PARSED);
         // summons and traps the plan takes, as conversions per second (the tree's own numbers)
         boolean passive = plan != null && plan.passiveTotal() > 0;
@@ -364,18 +362,18 @@ public final class ClassProfiles {
         } else {
             model.add("summonHitsPerSecond", JsonNull.INSTANCE);
         }
-        // How much the main attack matters, how hard it hits per click, and how well mana steal
-        // works (it needs main-attack hits): per class and archetype, not one Shaman number
+        // How much the main attack matters and how hard it hits per click: per class and
+        // archetype, not one Shaman number
         String cls = Wyn.classType().name();
         String arch = archetype == null ? "" : archetype.toLowerCase(Locale.ROOT);
         boolean melee = MELEE.contains(arch);
         model.addProperty("mainAttackWeight", mainAttackWeight(cls, archetype));
+        model.addProperty("mainAttackFromArchetype", true);
         model.addProperty("mainAttackClassMult", switch (cls) {
             case "SHAMAN" -> 1.05;                  // relik: 3 beams × 35 %
             case "ASSASSIN" -> arch.equals("acrobat") ? 1.2 : 1.0;
             default -> 1.0;
         });
-        model.addProperty("manaStealFactor", cls.equals("SHAMAN") ? 0.33 : melee ? 1.0 : 0.6);
         if (melee) {
             JsonObject feel = new JsonObject();     // hits per second are modelled; no extra penalty
             for (String sp : List.of("SUPER_SLOW", "VERY_SLOW", "SLOW")) {

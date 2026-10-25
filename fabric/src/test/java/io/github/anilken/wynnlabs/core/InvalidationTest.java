@@ -37,19 +37,4 @@ class InvalidationTest {
         assertEquals(Rules.get().toString().hashCode(), Rules.hash());
     }
 
-    @Test
-    void anEqualCalibrationIsNoChange() {
-        // measured 1100 per cast, the model said 1000: 1.10, already stored
-        assertNull(Coach.calibrationChange(1.10, 1100, 1000));
-        assertNull(Coach.calibrationChange(1.10, 1102, 1000), "rounds to the stored value");
-    }
-
-    @Test
-    void aDifferentCalibrationIsWrittenWithinBounds() {
-        var change = Coach.calibrationChange(1.0, 1200, 1000);
-        assertNotNull(change);
-        assertEquals(1.2, change.getAsJsonObject("model").get("spellCalibration").getAsDouble(), 1e-9);
-        var capped = Coach.calibrationChange(1.0, 5000, 1000);
-        assertEquals(1.4, capped.getAsJsonObject("model").get("spellCalibration").getAsDouble(), 1e-9);
-    }
 }

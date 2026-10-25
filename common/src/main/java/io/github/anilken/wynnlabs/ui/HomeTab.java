@@ -18,18 +18,20 @@ import java.util.List;
  * The home tab under the character band, drawn as pictures: the gear on an armour stand in the
  * middle (the armour slots on its left, the accessories on its right, the weapon in its hand),
  * every slot the selected milestone changes framed green with its gain and its body part tinted,
- * the build bar under it; this week's raid pool, the aspects and the professions on the left; the
- * next quest, where to level, the bank and the nearest secret discovery on the right. A tile
- * opens its tab. Compact: the stand on the left and the tiles as rows beside it, as many as fit.
- * Above it all the "Next" line ({@link HomeNext}); while a menu the mod reads is unopened, the
- * "First steps" card ({@link HomeSteps}) stands in for the bank and discovery tiles.
+ * the build bar under it; the spells' damage on the left ({@link HomeSpells}) and the build's
+ * stats as a list on the right ({@link HomeStats}). Compact: the stand on the left, the stats over
+ * the spells beside it (the first steps' row on top while any is open). Above it all the "Next"
+ * line ({@link HomeNext}); while a menu the mod reads is unopened, the "First steps" card
+ * ({@link HomeSteps}) sits under the stats. The tiles that were here are on the Today tab
+ * ({@link TodayNext}).
  *
  * <p>{@link RoadmapScreen} keeps the band, the level buttons, the clicks and the tooltips: it
  * hands this frame's slots in ({@link In}) and takes the areas back through {@link Host}. Only
  * reads; nothing here acts in the game.
  *
  * <p>This class lays the page out; {@link HomeGearPanel} (with {@link HomeSlots} and
- * {@link HomeGearBars}) draws the gear panel and {@link HomeTiles} the tiles from {@link HomeData}.
+ * {@link HomeGearBars}) draws the gear panel, {@link HomeTiles} the tiles from {@link HomeData}
+ * and {@link HomeStats} the stats list.
  */
 public final class HomeTab {
 
@@ -154,8 +156,10 @@ public final class HomeTab {
      * @param h       the height left
      * @param compact the compact menu (an icon rail, a short page)
      * @param large   the large menu
+     * @param stats   the stats list of the right column, with the spell panel of the left
      */
-    void draw(GuiGraphics g, In in, Host host, int x, int y, int w, int h, boolean compact, boolean large, int mx, int my) {
+    void draw(GuiGraphics g, In in, Host host, HomeStats stats, int x, int y, int w, int h, boolean compact, boolean large,
+            int mx, int my) {
         Font font = UiFont.get();
         gear.frame(font, large);
         gear.slots.frame(font, large);
@@ -180,28 +184,30 @@ public final class HomeTab {
             int lw = Math.max(118, Math.min(160, w * 36 / 100));
             int pw = w - lw - 6;
             gear.panel(g, in, host, x, y, pw, h, true, false, mx, my);
-            tiles.rows(g, in, host, x + pw + 6, y, lw, h, mx, my, firstSteps ? steps : null);
+            int used = firstSteps ? tiles.rows(g, host, x + pw + 6, y, lw, h / 3, mx, my, steps) + 4 : 0;
+            // the stats over the spells, in the column beside the stand
+            int sh = (h - used) * 3 / 5;
+            stats.draw(g, host, x + pw + 6, y + used, lw, sh, false, mx, my);
+            stats.spells.draw(g, host, x + pw + 6, y + used + sh + 4, lw, h - used - sh - 4, false, mx, my);
             return;
         }
-        // the sides give the gear panel room for its slots' names
+        // the sides give the gear panel room for its slots' names; the stats' side a little more
         int side = large ? Math.max(170, Math.min(220, w * 24 / 100)) : Math.max(112, Math.min(140, (w - 2 * gap) * 24 / 100));
-        int cw = w - 2 * side - 2 * gap;
-        int lh = (h - 2 * gap) / 3;
-        tiles.weekTile(g, host, x, y, side, lh, mx, my);
-        tiles.aspectTile(g, host, x, y + lh + gap, side, lh, mx, my);
-        tiles.professionTile(g, host, x, y + 2 * (lh + gap), side, h - 2 * (lh + gap), mx, my);
+        // the small menu keeps the sides equal: the gear panel needs that room for its build bar
+        int rside = large ? Math.max(190, Math.min(250, w * 27 / 100))
+                : w < 520 ? side : Math.max(140, Math.min(175, (w - 2 * gap) * 28 / 100));
+        int cw = w - side - rside - 2 * gap;
+        stats.spells.draw(g, host, x, y, side, h, large, mx, my);
         gear.panel(g, in, host, x + side + gap, y, cw, h, false, large, mx, my);
         int rx = x + side + gap + cw + gap;
-        int rh = (h - 3 * gap) / 4;
-        tiles.questTile(g, in, host, rx, y, side, rh, mx, my);
-        tiles.grindTile(g, in, host, rx, y + rh + gap, side, rh, mx, my);
         if (firstSteps) {
-            // the menus still to open, in the bank's and discovery's place until all are done
-            steps.draw(g, host, rx, y + 2 * (rh + gap), side, h - 2 * (rh + gap), mx, my);
+            // the menus still to open, under the stats until all are done
+            int sh = (h - gap) * 2 / 5;
+            stats.draw(g, host, rx, y, rside, h - sh - gap, large, mx, my);
+            steps.draw(g, host, rx, y + h - sh, rside, sh, mx, my);
             return;
         }
-        tiles.bankTile(g, host, rx, y + 2 * (rh + gap), side, rh, mx, my);
-        tiles.discoveryTile(g, host, rx, y + 3 * (rh + gap), side, h - 3 * (rh + gap), mx, my);
+        stats.draw(g, host, rx, y, rside, h, large, mx, my);
     }
 
     /**

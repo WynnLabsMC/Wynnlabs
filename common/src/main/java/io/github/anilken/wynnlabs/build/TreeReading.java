@@ -23,17 +23,38 @@ final class TreeReading {
     private static final Pattern COST_CHANGE = Pattern.compile("mana cost: ([+-]\\d+)");
     private static final Pattern DAMAGE = Pattern.compile("total damage: (\\d+)% \\(of your dps");
     private static final Pattern EVERY = Pattern.compile("every (\\d+(?:\\.\\d+)?)s");
-    private static final Pattern MAX = Pattern.compile("\\(max (\\d+)");
+    /** "(Max 3)", "(Max 5 Blooms)": how many; not a cap of a slow or a bleed ("(Max 60%)", "(Max 6s)"). */
+    private static final Pattern MAX = Pattern.compile("\\(max (\\d+)(?![\\d.%s])");
     private static final Pattern SUMMON = Pattern.compile("summons? (a|an|\\d+) (\\w+)");
     private static final Pattern MORE = Pattern.compile("maximum (\\w+) by \\+(\\d+)");
     private static final Pattern MANA = Pattern.compile("(\\d+(?:\\.\\d+)?) mana per second");
 
     /** Hits per second a summon is counted with at most (a Hound's 0.25 s). */
     private static final double MAX_RATE = 4;
-    /** Share of the time an area or a bleed that is not a summon is counted as hitting. */
-    private static final double AREA_UPTIME = 0.5;
 
     private TreeReading() {}
+
+    /** The spells rules.model.spells names (the class profile's), or the tree's spell nodes when it has none. */
+    static List<String> spellNames(List<AbilityNode> tree, String cls) {
+        List<String> out = new ArrayList<>();
+        com.google.gson.JsonObject m = io.github.anilken.wynnlabs.core.Rules.get().getAsJsonObject("model");
+        com.google.gson.JsonElement sp = m == null ? null : m.get("spells");
+        if (sp != null && sp.isJsonArray()) {
+            sp.getAsJsonArray().forEach(e -> {
+                if (e.isJsonObject() && e.getAsJsonObject().has("name")) {
+                    out.add(e.getAsJsonObject().get("name").getAsString());
+                }
+            });
+        }
+        if (out.isEmpty()) {
+            for (AbilityNode n : tree) {
+                if (TreeModel.spellNode(n, cls)) {
+                    out.add(n.name());
+                }
+            }
+        }
+        return out;
+    }
 
     /** Singular, lower case: "Puppets" → "puppet". */
     private static String noun(String w) {
@@ -88,18 +109,7 @@ final class TreeReading {
                     interval = Math.min(interval, Double.parseDouble(every.group(1)));
                 }
                 if (interval < Double.MAX_VALUE && interval > 0) {
-                    // the first damage block only (a second one is another part, an explosion)
-                    int second = low.indexOf("total damage", dm.end());
-                    String block = t.substring(dm.start(), second < 0 ? t.length() : second);
-                    conv = new double[Damage.ELEMENTS.length];
-                    Matcher p = ClassProfiles.PART.matcher(block);
-                    while (p.find()) {
-                        String el = p.group(1).equals("Damage") ? "neutral" : p.group(1).toLowerCase(Locale.ROOT);
-                        int i = List.of(Damage.ELEMENTS).indexOf(el);
-                        if (i >= 0) {
-                            conv[i] += Integer.parseInt(p.group(2)) / 100.0;
-                        }
-                    }
+                    conv = firstBlock(t, low);
                     rate = Math.min(MAX_RATE, 1 / interval);
                     // how many: "(Max 3)", else "summon 2 …", else one
                     Matcher sm = SUMMON.matcher(low);
@@ -126,8 +136,32 @@ final class TreeReading {
         return out;
     }
 
+    /**
+     * The conversions per hit of a node's first damage block ("Total Damage: 20% (of your DPS)
+     * ( Damage: 16%) ( Air: 2%)"), in {@link Damage#ELEMENTS} order; null when it has none. A
+     * second block is another part (an explosion) and is left out.
+     */
+    static double[] firstBlock(String t, String low) {
+        Matcher dm = DAMAGE.matcher(low);
+        if (!dm.find()) {
+            return null;
+        }
+        int second = low.indexOf("total damage", dm.end());
+        String block = t.substring(dm.start(), second < 0 ? t.length() : second);
+        double[] conv = new double[Damage.ELEMENTS.length];
+        Matcher p = ClassProfiles.PART.matcher(block);
+        while (p.find()) {
+            String el = p.group(1).equals("Damage") ? "neutral" : p.group(1).toLowerCase(Locale.ROOT);
+            int i = List.of(Damage.ELEMENTS).indexOf(el);
+            if (i >= 0) {
+                conv[i] += Integer.parseInt(p.group(2)) / 100.0;
+            }
+        }
+        return conv;
+    }
+
     /** The spell named first in {@code low} (or named through another node's last word); null when none. */
-    private static String firstSpell(String low, List<String> spells, Map<String, String> viaNode) {
+    static String firstSpell(String low, List<String> spells, Map<String, String> viaNode) {
         String best = null;
         int at = Integer.MAX_VALUE;
         for (String s : spells) {
@@ -152,6 +186,19 @@ final class TreeReading {
     /** The overlay for the nodes in {@code taken} ({@link TreeModel#overlay}), with the tree's passive damage bonuses. */
     static TreeModel.Overlay overlay(int level, List<TreeModel.Read> reads, Collection<String> spellNames, Collection<String> taken,
             double mainAttack, double passiveCap, Map<String, TreeBonuses.Bonus> bonuses) {
+        return overlay(level, reads, spellNames, taken, mainAttack, passiveCap, bonuses, SourceText.Reading.none());
+    }
+
+    /**
+     * {@link #overlay} with what else the tree's text says ({@link SourceText#read}): each summon
+     * and area on its own, the spells' waves, per-Totem casts and damage cuts, the heals and the
+     * ultimates. {@code passive} stays the element mix of the summons and areas as the score
+     * weighs them (capped at {@code passiveCap}), for the class profile's element scores; the
+     * damage itself is worked out source by source ({@link Sources}), uncapped, and those sources
+     * are in the overlay's key.
+     */
+    static TreeModel.Overlay overlay(int level, List<TreeModel.Read> reads, Collection<String> spellNames, Collection<String> taken,
+            double mainAttack, double passiveCap, Map<String, TreeBonuses.Bonus> bonuses, SourceText.Reading text) {
         TreeBonuses.Sum bonus = TreeBonuses.Sum.of(bonuses, taken);
         Set<String> have = new HashSet<>(taken);
         Map<String, String> byLow = new TreeMap<>();
@@ -180,31 +227,76 @@ final class TreeReading {
             mana += r.manaPerSecond();
         }
         double[] passive = new double[Damage.ELEMENTS.length];
+        List<Sources.Passive> sources = new ArrayList<>();
         for (TreeModel.Read r : reads) {
             if (!have.contains(r.name()) || r.conv() == null) {
                 continue;
             }
             int count = r.count() + (r.noun() == null ? 0 : more.getOrDefault(r.noun(), 0));
-            double times = r.rate() * count * (r.summon() ? TreeModel.summonAlive() : AREA_UPTIME);
+            double mult = 1;
+            // "Each Totem will summon its own Effigy … 0.8x": one per Totem, weaker past the first
+            SourceText.Each each = text.each().get(r.name());
+            if (each != null) {
+                count = Math.max(1, count) * (1 + more.getOrDefault(each.per(), 0));
+                mult = Math.pow(each.decay(), count - 1);
+            }
+            double share = Sources.fightShare(r.summon());
+            double times = r.rate() * count * share;
             // a node that makes this summon's hits stronger ("Your Puppet's knives become stronger")
             double[] add = r.summon() && r.noun() != null ? bonus.summons().get(r.noun()) : null;
+            double[] perHit = new double[passive.length];
             for (int i = 0; i < passive.length; i++) {
-                passive[i] += (r.conv()[i] + (add == null ? 0 : add[i])) * times;
+                perHit[i] = r.conv()[i] + (add == null ? 0 : add[i]);
+                passive[i] += perHit[i] * times * mult;
             }
+            sources.add(new Sources.Passive(r.name(), r.noun(), r.summon(), text.spellOf().get(r.name()), perHit, r.rate(),
+                    count, mult, share));
         }
-        // a few dozen puppets and traps do not hit a pack all at once: past the cap they scale down
         double total = 0;
         for (double p : passive) {
             total += p;
         }
-        if (passiveCap > 0 && total > passiveCap) {
-            for (int i = 0; i < passive.length; i++) {
-                passive[i] *= passiveCap / total;
+        for (int i = 0; i < passive.length; i++) {
+            passive[i] = Math.round((passiveCap > 0 && total > passiveCap ? passive[i] * passiveCap / total : passive[i])
+                    * 10000) / 10000.0;
+        }
+        // the spells: damage cuts ("Totem and Aura will do 50% less damage"), more waves, once per Totem
+        Map<String, double[]> spellMods = new TreeMap<>();
+        for (String s : known) {
+            String low = s.toLowerCase(Locale.ROOT);
+            int[] waves = {0};
+            double f = SourceText.factor(text.scales(), have, low, false, waves);
+            String noun = more.containsKey(low) ? low : text.perNoun().get(s);
+            int per = noun == null ? 1 : 1 + more.getOrDefault(noun, 0);
+            if (f != 1 || waves[0] > 0 || per > 1) {
+                spellMods.put(s, new double[] {f, per, 1 + waves[0]});
             }
         }
-        for (int i = 0; i < passive.length; i++) {
-            passive[i] = Math.round(passive[i] * 10000) / 10000.0;
+        // the heals of the nodes taken (a heal of a spell not bought yet waits for it), cut by what
+        // cuts them and once per Totem when the spell goes off once per Totem
+        List<SourceText.Heal> heals = new ArrayList<>();
+        for (SourceText.Heal h : text.heals()) {
+            if (have.contains(h.name()) && (h.spell() == null || unlocked.contains(h.spell()) || !known.contains(h.spell()))) {
+                double f = SourceText.factor(text.scales(), have, h.name().toLowerCase(Locale.ROOT), true, null);
+                double[] mod = h.spell() == null ? null : spellMods.get(h.spell());
+                double per = mod == null ? 1 : mod[1];
+                heals.add(new SourceText.Heal(h.name(), h.spell(), h.fraction() * f * per, h.every()));
+            }
         }
-        return new TreeModel.Overlay(level, cost, known, unlocked, passive, mana * 5, mainAttack, bonus);
+        List<SourceText.Ultimate> ultimates = new ArrayList<>();
+        for (SourceText.Ultimate u : text.ultimates()) {
+            if (have.contains(u.name())) {
+                ultimates.add(u);
+            }
+        }
+        // "+5% Base Resistance": each node takes its share off every hit you take (WynnBuilder's defMult)
+        double hitTaken = 1;
+        for (var e : text.resist().entrySet()) {
+            if (have.contains(e.getKey())) {
+                hitTaken *= 1 - e.getValue();
+            }
+        }
+        return new TreeModel.Overlay(level, cost, known, unlocked, passive, mana * 5, mainAttack, bonus, sources, heals,
+                ultimates, spellMods, hitTaken);
     }
 }

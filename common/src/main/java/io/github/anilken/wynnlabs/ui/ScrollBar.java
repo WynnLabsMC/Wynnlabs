@@ -125,6 +125,21 @@ final class ScrollBar {
         Kit.button(g, x, ty, W, th, dragging ? Kit.ON : hover ? Kit.HOVER : Kit.REST);
     }
 
+    /**
+     * The slim look of the crafting page's bar: a faint 2px track and a wood thumb at the right of
+     * the bar's box, which still takes the clicks and drags.
+     */
+    void drawSlim(GuiGraphics g, int mx, int my) {
+        if (!shown()) {
+            return;
+        }
+        int sx = x + W - 3;
+        g.fill(sx, y, sx + 2, y + h, 0x30624E3C);
+        int ty = thumbTop();
+        boolean hover = mx >= x && mx < x + W && my >= ty && my < ty + thumbH();
+        g.fill(sx - (hover || dragging ? 1 : 0), ty, sx + 2, ty + thumbH(), dragging ? Theme.GOLD_DEEP : Theme.WOOD);
+    }
+
     /** A press: on the thumb it starts a drag, on the track it pages. True when the bar took it. */
     boolean mouseClicked(double mx, double my) {
         if (!shown() || mx < x || mx >= x + W || my < y || my >= y + h) {

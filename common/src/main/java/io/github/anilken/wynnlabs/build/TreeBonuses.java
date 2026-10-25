@@ -36,15 +36,18 @@ final class TreeBonuses {
     private static final Pattern TOTAL = Pattern.compile(
             "Total Damage: \\+(\\d+)% \\(of your DPS(?:, for ([A-Za-z' ]+?))?(?:, per [a-z]+)?\\)");
     private static final Pattern PART = Pattern.compile("\\(\\S*\\s*(Damage|Earth|Thunder|Water|Fire|Air): \\+(\\d+)%\\)");
+    /** "Earth Damage: +2-4" (the masteries): flat damage on every hit in that element. */
+    private static final Pattern FLAT = Pattern.compile("(Earth|Thunder|Water|Fire|Air) Damage: \\+(\\d+)-(\\d+)(?![\\d%])");
 
     private TreeBonuses() {}
 
     /**
      * What one node adds: {@code spell} the spell its {@code conv} (per hit, {@link Damage#ELEMENTS}
      * order) goes to, or {@code summon} the summon's noun it goes to (null: neither);
-     * {@code mainAttack} % on the main attack; {@code element} % per element (neutral unused).
+     * {@code mainAttack} % on the main attack; {@code element} % per element (neutral unused);
+     * {@code flat} the flat damage a hit in that element gets (the middle of "+2-4").
      */
-    record Bonus(String spell, String summon, double[] conv, double mainAttack, double[] element) {}
+    record Bonus(String spell, String summon, double[] conv, double mainAttack, double[] element, double[] flat) {}
 
     /**
      * The bonuses of the tree's nodes by node name, for the class's spells ({@code spellNames}, as
@@ -80,6 +83,12 @@ final class TreeBonuses {
         Matcher em = MASTERY.matcher(t);
         while (em.find()) {
             element[index(em.group(1))] += Integer.parseInt(em.group(2));
+            anyElement = true;
+        }
+        double[] flat = new double[Damage.ELEMENTS.length];
+        Matcher fm = FLAT.matcher(t);
+        while (fm.find()) {
+            flat[index(fm.group(1))] += (Integer.parseInt(fm.group(2)) + Integer.parseInt(fm.group(3))) / 2.0;
             anyElement = true;
         }
         String spell = null;
@@ -120,7 +129,7 @@ final class TreeBonuses {
         if (main <= 0 && !anyElement && conv == null) {
             return null;
         }
-        return new Bonus(spell, summon, conv, main, element);
+        return new Bonus(spell, summon, conv, main, element, flat);
     }
 
     /** The "( Earth: +20%)" parts of a damage block as fractions, neutral first. */
@@ -166,9 +175,11 @@ final class TreeBonuses {
      * The bonuses of the nodes in {@code have} added up: spell name → conversion per hit, summon
      * noun → conversion per hit, main attack %, element %.
      */
-    record Sum(Map<String, double[]> spells, Map<String, double[]> summons, double mainAttack, double[] element) {
+    record Sum(Map<String, double[]> spells, Map<String, double[]> summons, double mainAttack, double[] element,
+            double[] flat) {
 
-        static final Sum NONE = new Sum(Map.of(), Map.of(), 0, new double[Damage.ELEMENTS.length]);
+        static final Sum NONE = new Sum(Map.of(), Map.of(), 0, new double[Damage.ELEMENTS.length],
+                new double[Damage.ELEMENTS.length]);
 
         static Sum of(Map<String, Bonus> bonuses, Collection<String> have) {
             if (bonuses.isEmpty()) {
@@ -178,6 +189,7 @@ final class TreeBonuses {
             Map<String, double[]> summons = new TreeMap<>();
             double main = 0;
             double[] element = new double[Damage.ELEMENTS.length];
+            double[] flat = new double[Damage.ELEMENTS.length];
             for (String name : have) {
                 Bonus b = bonuses.get(name);
                 if (b == null) {
@@ -186,6 +198,7 @@ final class TreeBonuses {
                 main += b.mainAttack();
                 for (int i = 0; i < element.length; i++) {
                     element[i] += b.element()[i];
+                    flat[i] += b.flat()[i];
                 }
                 if (b.conv() != null) {
                     double[] into = b.spell() != null ? spells.computeIfAbsent(b.spell(), k -> new double[element.length])
@@ -195,7 +208,7 @@ final class TreeBonuses {
                     }
                 }
             }
-            return new Sum(spells, summons, main, element);
+            return new Sum(spells, summons, main, element, flat);
         }
 
         /**
@@ -227,6 +240,9 @@ final class TreeBonuses {
                 if (element[i] != 0) {
                     s.merge(Damage.ELEMENTS[i] + "Damage", element[i], Double::sum);
                 }
+                if (flat[i] != 0) {
+                    s.merge(Damage.flatKey(Damage.ELEMENTS[i]), flat[i], Double::sum);
+                }
             }
         }
 
@@ -248,6 +264,9 @@ final class TreeBonuses {
             k.append(Math.round(mainAttack * 100));
             for (double e : element) {
                 k.append(',').append(Math.round(e * 100));
+            }
+            for (double e : flat) {
+                k.append(';').append(Math.round(e * 10));
             }
             for (var m : List.of(spells, summons)) {
                 k.append('|');
