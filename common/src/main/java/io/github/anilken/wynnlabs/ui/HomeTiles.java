@@ -73,7 +73,8 @@ final class HomeTiles extends HomePart {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(L.t("wynnlabs.homev.week_tip")).withStyle(ChatFormatting.LIGHT_PURPLE));
         boolean dry = d.raidsUp() && d.dryPulls() >= 0;
-        int iy = y + 18;
+        int iy = y + 9 + font.lineHeight;
+        int dryH = dry ? font.lineHeight + 7 : 6;
         if (d.pool().isEmpty()) {
             ink(g, fit(L.t("wynnlabs.homev.week_none"), w - 12), x + 6, iy + 2, Theme.INK_3);
             tip.add(Component.literal(L.t("wynnlabs.endgame.pool_never_tip")).withStyle(ChatFormatting.GRAY));
@@ -81,7 +82,7 @@ final class HomeTiles extends HomePart {
             int is = large ? 24 : 16;
             int s = is + 4;
             int per = Math.max(1, (w - 12 + 2) / (s + 2));
-            int rows = Math.max(1, (y + h - (dry ? 16 : 6) - iy + 2) / (s + 2));
+            int rows = Math.max(1, (y + h - dryH - iy + 2) / (s + 2));
             int max = per * rows;
             int n = d.pool().size() > max ? max - 1 : d.pool().size();
             for (int i = 0; i < n; i++) {
@@ -110,7 +111,7 @@ final class HomeTiles extends HomePart {
             }
         }
         if (dry) {
-            ink(g, fit(L.n("wynnlabs.homev.week_dry", d.dryPulls()), w - 12), x + 6, y + h - 13, Theme.INK_3);
+            ink(g, fit(L.n("wynnlabs.homev.week_dry", d.dryPulls()), w - 12), x + 6, y + h - 4 - font.lineHeight, Theme.INK_3);
         }
         tip.add(opens("wynnlabs.screen.tab_endgame"));
         host.area(x, y, w, h, null, tip, "#qopen:" + RoadmapScreen.TAB_ENDGAME);
@@ -187,7 +188,7 @@ final class HomeTiles extends HomePart {
                                     .withColor(tierColour(a.aspect().rarity()) & 0xFFFFFF);
                         }
                         Kit.text(g, font, next, x + 6, y + 51, Theme.INK);
-                        by = y + 62;
+                        by = y + 53 + font.lineHeight;
                     }
                     tip.add(Component.literal(L.t("wynnlabs.homev.aspects_next") + ": " + a.aspect().name())
                             .withStyle(tierChat(a.aspect().rarity())));
@@ -198,7 +199,7 @@ final class HomeTiles extends HomePart {
                     List<String> abilities = new ArrayList<>();
                     a.matches().forEach(m -> abilities.add(m.ability()));
                     String boosts = abilities.isEmpty() ? a.reason() : L.t("wynnlabs.homev.aspects_boosts", String.join(", ", abilities));
-                    if (!boosts.isEmpty() && by + 9 <= y + h - 5) {
+                    if (!boosts.isEmpty() && by + font.lineHeight <= y + h - 4) {
                         ink(g, fit(boosts, w - 12), x + 6, by, Theme.INK_3);
                     }
                 }

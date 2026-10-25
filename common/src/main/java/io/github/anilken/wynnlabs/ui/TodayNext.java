@@ -61,7 +61,8 @@ final class TodayNext {
 
     /** The tile height for this menu. */
     static int tileH(boolean compact, boolean large) {
-        return compact ? 40 : large ? 58 : 52;
+        // tall enough for the aspect ring with the next aspect's name under it
+        return compact ? 40 : large ? 78 : 64;
     }
 
     /** How many tiles go in a row across {@code w}: none narrower than the Home's side column was (112). */
