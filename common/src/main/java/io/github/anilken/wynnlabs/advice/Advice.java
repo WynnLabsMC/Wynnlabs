@@ -657,6 +657,11 @@ public final class Advice {
                             && !parsed.get().isBox() ? parsed.get().name() : null;
             if (priced != null) {
                 Prices.refreshSoon(priced);           // hovered: ask for its listings if 10+ minutes old
+                int listed = Wyn.marketListingPrice(stack);
+                if (listed > 0) {
+                    // a listing on screen: it is on the market now, whatever the last lookup said
+                    Prices.seenListed(priced, gear != null && gear.unidentified(), listed);
+                }
                 String p = Prices.text(priced, gear != null && gear.unidentified());
                 if (p != null) {
                     if (out.isEmpty()) {

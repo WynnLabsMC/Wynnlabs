@@ -999,6 +999,18 @@ public final class Wyn {
     private static Object lastContainer;
     private static MenuKind lastKind;
 
+    /**
+     * The unit price of a Trade Market listing being looked at (its "Price" block), or 0 for
+     * anything else. Only in the Trade Market's buy screens: merchants use the same block.
+     */
+    public static int marketListingPrice(ItemStack stack) {
+        MenuKind kind = container();
+        if (kind == null || kind.marketSell() || !kind.type().startsWith("TradeMarket")) {
+            return 0;
+        }
+        return guard(Feature.CONTAINERS, () -> Math.max(0, Models.TradeMarket.calculateItemPriceInfo(stack).price()), 0);
+    }
+
     public static MenuKind container() {
         return guard(Feature.CONTAINERS, () -> {
             Container c = Models.Container.getCurrentContainer();

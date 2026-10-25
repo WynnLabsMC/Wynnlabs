@@ -303,10 +303,11 @@ public final class Prices {
         }
         Price p = PRICES.get(name);
         long now = System.currentTimeMillis();
-        if (p != null && p.listed() != null && now - p.seen() < 10 * 60_000L || p != null && p.count() != null
-                && p.count() == 0 && now - p.seen() < 10 * 60_000L) {
+        if (p != null && p.listed() != null && now - p.seen() < 10 * 60_000L) {
             return;
         }
+        // "nothing listed" waits through MISSES, set only by the API's own answer: Wynnventory's
+        // cache says it too, but trails the market, so it must not hold the lookup back
         Long missed = MISSES.get(name);
         if (missed != null && now - missed < 10 * 60_000L) {
             return;
@@ -712,10 +713,10 @@ public final class Prices {
         Price p;
         if (count == 0) {
             // nothing listed now: keep the last known price, say there is no listing
+            MISSES.put(name, now);
             p = old == null ? null : new Price(old.lowest(), old.median(), old.avg80(), old.unidLowest(), old.unidAvg80(),
                     now, null, 0);
             if (p == null) {
-                MISSES.put(name, now);
                 return true;
             }
         } else {
@@ -789,6 +790,37 @@ public final class Prices {
         int n = name.length();
         char d = n >= 3 ? name.charAt(n - 1) : 'x';
         return n >= 3 && name.charAt(n - 3) == ' ' && name.charAt(n - 2) == 'T' && d >= '0' && d <= '9';
+    }
+
+    /**
+     * A listing seen on the Trade Market screen at {@code price} each: the item is listed now.
+     * Wynnventory only learns of a listing when someone with it looks, so its "no listings" can
+     * trail the market by hours. A price that was history gets this listing as its lowest; a
+     * current one keeps the cheaper of the two.
+     */
+    public static void seenListed(String name, boolean unidentified, int price) {
+        if (!installed() || price <= 0) {
+            return;
+        }
+        Price old = of(name);
+        String key = old != null && !PRICES.containsKey(name) ? Names.english(name) : name;
+        boolean history = old == null || old.count() != null && old.count() == 0;
+        Integer low = history ? null : old.lowest();
+        Integer unidLow = history ? null : old.unidLowest();
+        if (unidentified) {
+            unidLow = unidLow == null ? price : Math.min(unidLow, price);
+        } else {
+            low = low == null ? price : Math.min(low, price);
+        }
+        long now = System.currentTimeMillis();
+        if (!history && java.util.Objects.equals(low, old.lowest()) && java.util.Objects.equals(unidLow, old.unidLowest())
+                && old.listed() != null && now - old.listed() < 60_000L) {
+            return;                             // hovered every frame: nothing new to say
+        }
+        int count = history || old.count() == null ? 1 : old.count();
+        PRICES.put(key, new Price(low, old == null ? null : old.median(), old == null ? null : old.avg80(), unidLow,
+                unidentified ? Double.valueOf(unidLow) : old == null ? null : old.unidAvg80(), now, now, count));
+        version++;                              // verdicts that weigh market prices rebuild
     }
 
     public static Price of(String name) {
