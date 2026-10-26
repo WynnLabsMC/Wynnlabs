@@ -53,6 +53,8 @@ final class SearchTab extends MenuTab {
     final SearchResultsPanel results = new SearchResultsPanel(this);
     final SearchCardPanel card = new SearchCardPanel(this);
     EditBox box;
+    /** The query the menu closed with last time, put in the box when it is made. */
+    String typedBefore;
     SearchQuery.Sort sort = SearchQuery.Sort.EASIEST;
     final Set<Kind> kinds = EnumSet.noneOf(Kind.class);
     /** 0: every level, 1: up to mine, 2: mine and the ten below. */
@@ -77,7 +79,8 @@ final class SearchTab extends MenuTab {
 
     @Override
     List<EditBox> init() {
-        String typed = box == null ? "" : box.getValue();
+        String typed = box == null ? (typedBefore == null ? "" : typedBefore) : box.getValue();
+        typedBefore = null;
         box = new EditBox(font(), 0, 0, 200, 12, L.c("wynnlabs.search.box"));
         box.setMaxLength(60);
         box.setValue(typed);

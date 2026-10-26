@@ -117,22 +117,68 @@ public final class RoadmapScreen extends Screen {
 
     /** The menu opened straight on tab {@code t} (previews and tests: nothing else is drawn first). */
     static RoadmapScreen on(int t) {
-        RoadmapScreen s = new RoadmapScreen();
+        RoadmapScreen s = new RoadmapScreen(false);
         s.tab = t;
         return s;
     }
 
     public RoadmapScreen() {
+        this(true);
+    }
+
+    /**
+     * The menu; {@code resume}: on the place it closed at (the setting on), unless a quest was
+     * tracked since, which the quests tab then shows. False (previews, tests): Home, nothing kept.
+     */
+    private RoadmapScreen(boolean resume) {
         super(L.c("wynnlabs.screen.title"));
-        // a quest being tracked: the menu opens on the quests tab with that quest chosen
-        try {
-            if (Wyn.tracking() && Wyn.trackedName() != null) {
-                tab = 2;
-                questsTab.questSelected = Wyn.trackedName();
-            }
-        } catch (Throwable ignored) {
-            // no Wynntils: the home tab
+        resumes = resume;
+        if (!resume) {
+            return;
         }
+        String tracked = null;
+        try {
+            tracked = Wyn.tracking() ? Wyn.trackedName() : null;
+        } catch (Throwable ignored) {
+            // no Wynntils: nothing tracked
+        }
+        MenuResume.State s = Settings.on("menuResume") ? MenuResume.load() : MenuResume.State.NONE;
+        if (s.tab() >= 0 && MenuResume.resumeOverTracked(s, tracked)) {
+            restore(s);
+        } else if (tracked != null) {
+            // a quest being tracked: the menu opens on the quests tab with that quest chosen
+            tab = 2;
+            questsTab.questSelected = tracked;
+        }
+    }
+
+    /** The place the menu closed at: its tab (Home when that page is gone) and the view inside it. */
+    private void restore(MenuResume.State s) {
+        tab = MenuResume.tab(s.tab(), t -> t == TAB_CRAFT || t == TAB_ENDGAME || page(t) != null);
+        if (s.questType() != null) {
+            questsTab.questType = io.github.anilken.wynnlabs.quests.ContentType.of(s.questType());
+        }
+        // a pick that is no longer listed (a finished quest) falls back to the list's first by itself
+        questsTab.questSelected = s.questSelected();
+        questsTab.pickedType = s.pickedType() == null ? null : io.github.anilken.wynnlabs.quests.ContentType.of(s.pickedType());
+        questsTab.questDetailTab = s.questView() == 3 ? 3 : 0;
+        settings.settingsCat = s.settingsCat();
+        search.typedBefore = s.search();
+    }
+    /** Whether this menu keeps where it closed (not the previews' fixed openings). */
+    private boolean resumes = true;
+
+    /** The place the menu is at now, for the next opening. */
+    private MenuResume.State state() {
+        String tracked = null;
+        try {
+            tracked = Wyn.tracking() ? Wyn.trackedName() : null;
+        } catch (Throwable ignored) {
+            // no Wynntils
+        }
+        return new MenuResume.State(tab, questsTab.questType.name(), questsTab.questSelected,
+                questsTab.pickedType == null ? null : questsTab.pickedType.name(), questsTab.questDetailTab, settings.settingsCat,
+                search.box == null ? null : search.box.getValue(), tracked);
     }
 
     /** The screen's font, for the tabs (it changes with the webFont setting). */
@@ -1004,6 +1050,9 @@ public final class RoadmapScreen extends Screen {
 
     @Override
     public void removed() {
+        if (resumes) {
+            MenuResume.save(state());           // written off the render thread, read on the next opening
+        }
         CraftingTab.INSTANCE.closed();          // a search running for the tab stops with the menu
         EndgameTab.INSTANCE.closed();
         search.closed();                        // its worker stops; its map marks go unless kept

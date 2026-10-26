@@ -929,6 +929,8 @@
   "wynnlabs.today.track_tip": "Tıkla: içerik kitabında takip et",
   "wynnlabs.today.nothing_todo": "Bugün için bir şey kalmadı",
   "wynnlabs.today.last_head": "Son oturum · %s",
+  "wynnlabs.setting.menuResume": "Menü kaldığın yerden açılsın",
+  "wynnlabs.setting_desc.menuResume": "Menü tuşu en son açık olan sekmeyi ve görevi ya da bölümü açar",
   "wynnlabs.setting.webFont": "Menülerde web yazı tipi (Noto Sans)",
   "wynnlabs.setting_desc.webFont": "Kapalıyken menüler Minecraft yazı tipiyle çizilir",
   "wynnlabs.settings.cat_look": "Görünüm",

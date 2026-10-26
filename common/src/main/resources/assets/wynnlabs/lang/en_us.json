@@ -929,6 +929,8 @@
   "wynnlabs.today.track_tip": "Click: track it in the content book",
   "wynnlabs.today.nothing_todo": "Nothing left for today",
   "wynnlabs.today.last_head": "Last session · %s",
+  "wynnlabs.setting.menuResume": "The menu opens where you left it",
+  "wynnlabs.setting_desc.menuResume": "The menu key opens the tab and the quest or section you had open last",
   "wynnlabs.setting.webFont": "Smooth font in menus (Noto Sans)",
   "wynnlabs.setting_desc.webFont": "Off: menus use Minecraft's pixel font",
   "wynnlabs.settings.cat_look": "Appearance",

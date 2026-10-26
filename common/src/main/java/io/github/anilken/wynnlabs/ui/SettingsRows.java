@@ -114,7 +114,7 @@ final class SettingsRows {
      */
     static final Map<String, List<String[]>> SETTING_SECTIONS = Map.of(
             "look", List.<String[]>of(
-                    new String[] {"wynnlabs.settings.sec_text", "webFont", "menu_scale", "menu_fill", "language"}),
+                    new String[] {"wynnlabs.settings.sec_text", "webFont", "menuResume", "menu_scale", "menu_fill", "language"}),
             "tips", List.of(
                     new String[] {"wynnlabs.settings.sec_advice", "itemAdvice", "altAdvice", "wornHint"},
                     new String[] {"wynnlabs.settings.sec_tooltip", "powderHint", "tooltipPrice", "boxPrices", "bankHint",

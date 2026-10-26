@@ -63,6 +63,7 @@ public final class Settings {
         LABELS.put("apiWrite", "wynnlabs.setting.apiWrite");
         LABELS.put("debug", "wynnlabs.setting.debug");
         LABELS.put("webFont", "wynnlabs.setting.webFont");
+        LABELS.put("menuResume", "wynnlabs.setting.menuResume");
     }
 
     /** Setting → its settings-tab category (tips, glow, coach, quests, build, data). */
@@ -73,6 +74,8 @@ public final class Settings {
     static {
         CATEGORY.put("webFont", "look");
         DESC.put("webFont", "wynnlabs.setting_desc.webFont");
+        CATEGORY.put("menuResume", "look");
+        DESC.put("menuResume", "wynnlabs.setting_desc.menuResume");
         CATEGORY.put("itemAdvice", "tips");
         DESC.put("itemAdvice", "wynnlabs.setting_desc.itemAdvice");
         CATEGORY.put("altAdvice", "tips");
