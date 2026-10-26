@@ -126,7 +126,7 @@ public final class UpdateScreen extends Screen {
         String sub = s.published() > 0 ? L.t("wynnlabs.about.newer_sub", mine, MenuPaint.ago(s.published()))
                 : L.t("wynnlabs.about.newer_sub_nodate", mine);
         ink(g, fit(sub, iw), in, y + 24, Theme.INK_2);
-        g.fill(in, y + 36, in + iw, y + 37, Theme.LINE);
+        Kit.hair(g, in, y + 36, iw, 1, Theme.LINE);
 
         // the buttons first (they may wrap), so the body knows how much room is left
         List<Object[]> acts = actions(s, newer);
@@ -280,7 +280,7 @@ public final class UpdateScreen extends Screen {
             boolean hover = enabled && mx >= bx && mx < bx + bw && my >= by && my < by + 14;
             int st = primary && enabled ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
             Kit.button(g, bx, by, bw, 14, st);
-            g.drawString(font, label, bx + 7, by + 3, enabled ? Kit.buttonText(st) : Theme.CREAM_DIM, enabled && st != Kit.ON);
+            g.drawString(font, label, bx + 7, by + 3, enabled ? Kit.buttonText(st) : Theme.CREAM_DIM, false);
             if (enabled) {
                 hits.add(new Hit(bx, by, bw, 14, (Runnable) a[1]));
             }

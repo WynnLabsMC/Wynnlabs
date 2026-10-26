@@ -215,7 +215,7 @@ final class SearchCardPanel extends MenuPaint {
             String text = L.t("wynnlabs.search.gain", dec(gain, 1));
             int pw = font().width(text) + 10;
             Kit.seal(g, x, cy, pw, 11, Theme.SEAL_2);
-            g.drawString(font(), text, x + 5, cy + 2, Theme.SEAL_TEXT, true);
+            g.drawString(font(), text, x + 5, cy + 2, Theme.SEAL_TEXT, false);
             cy += 14;
         }
         // the buttons: pin the easiest (a thing's nearest) place, Wynntils' map there, every place, the wiki

@@ -295,7 +295,7 @@ final class BuildResultsView {
         int mx0 = ix + iw - mw;
         boolean mh = BuildControls.in(mx, my, mx0, ly - 1, mw, 10);
         Kit.text(g, ui.font, more, mx0, ly, mh ? Theme.ACCENT : Theme.LINK);
-        g.fill(mx0, ly + 9, mx0 + mw, ly + 10, mh ? Theme.ACCENT : Theme.LINK);
+        Kit.hair(g, mx0, ly + 9, mw, 1, mh ? Theme.ACCENT : Theme.LINK);
         ui.btn(mx0, ly - 1, mw, 11, "detailed", null);
         host.tip(mx0, ly - 1, mw, 11, List.of(L.c("wynnlabs.results.detailed_tip").withStyle(ChatFormatting.GRAY)));
         int right = mx0 - 6;

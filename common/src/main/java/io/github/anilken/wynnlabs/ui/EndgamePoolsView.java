@@ -187,7 +187,7 @@ final class EndgamePoolsView extends EndgamePanel {
             boolean hover = mx >= cx && mx < cx + bw && my >= y && my < y + 14;
             int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
             Kit.button(g, cx, y, bw, 14, state);
-            g.drawString(tab.font, names[i], cx + Kit.Ui.BTN_PAD, y + 3, Kit.buttonText(state), state != Kit.ON);
+            g.drawString(tab.font, names[i], cx + Kit.Ui.BTN_PAD, y + 3, Kit.buttonText(state), false);
             int t = i;
             tab.acts.add(new Act(cx, y, bw, 14, () -> tab.poolTab = t, "endgame:pooltab" + i));
             cx += bw + 3;
@@ -384,7 +384,7 @@ final class EndgamePoolsView extends EndgamePanel {
         boolean hover = mx >= bx && mx < right && my >= y && my < y + 14;
         int state = tab.classOnly ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
         Kit.button(g, bx, y, bw, 14, state);
-        g.drawString(tab.font, s, bx + Kit.Ui.BTN_PAD, y + 3, Kit.buttonText(state), state != Kit.ON);
+        g.drawString(tab.font, s, bx + Kit.Ui.BTN_PAD, y + 3, Kit.buttonText(state), false);
         tab.acts.add(new Act(bx, y, bw, 14, () -> {
             tab.classOnly = !tab.classOnly;
             int[] sc = tab.poolScroll[EndgameTab.TAB_RAIDS];
@@ -442,7 +442,7 @@ final class EndgamePoolsView extends EndgamePanel {
     private void arrow(GuiGraphics g, int x, int y, String icon, PoolView.Region to, boolean raid, String what, int mx, int my) {
         boolean hover = mx >= x && mx < x + 14 && my >= y && my < y + 14;
         Kit.button(g, x, y, 14, 14, hover ? Kit.HOVER : Kit.REST);
-        Art.icon(g, icon, x + 3, y + 3, 8, Theme.CREAM);
+        Art.icon(g, icon, x + 3, y + 3, 8, Kit.buttonText(hover ? Kit.HOVER : Kit.REST));
         tab.acts.add(new Act(x, y, 14, 14, () -> tab.pick(raid, to.name()), what));
         tab.tips.add(new Tip(x, y, 14, 14, List.of(grey(regionName(to)))));
     }
@@ -545,10 +545,10 @@ final class EndgamePoolsView extends EndgamePanel {
         int sw = tab.font.width(s);
         int tx = x + (w - sw) / 2;
         for (int dx = x + 2; dx + 2 <= tx - 3; dx += 4) {
-            g.fill(dx, y + 6, dx + 2, y + 7, Theme.LINE);
+            Kit.hair(g, dx, y + 6, 2, 1, Theme.LINE);
         }
         for (int dx = tx + sw + 3; dx + 2 <= x + w; dx += 4) {
-            g.fill(dx, y + 6, dx + 2, y + 7, Theme.LINE);
+            Kit.hair(g, dx, y + 6, 2, 1, Theme.LINE);
         }
         ink(g, s, tx, y + 2, Theme.INK_3);
     }

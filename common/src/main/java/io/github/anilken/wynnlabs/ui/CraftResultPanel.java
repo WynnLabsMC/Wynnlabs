@@ -157,8 +157,8 @@ final class CraftResultPanel extends CraftPanel {
             int trackH = ID_ROWS * 10;
             int knobH = Math.max(6, trackH * ID_ROWS / ids);
             int knobY = idsTop + (trackH - knobH) * idScroll / (ids - ID_ROWS);
-            g.fill(x + w - 4, idsTop, x + w - 3, idsTop + trackH, 0x30624E3C);
-            g.fill(x + w - 4, knobY, x + w - 3, knobY + knobH, Theme.WOOD);
+            Kit.hair(g, x + w - 4, idsTop, 1, trackH, 0x30624E3C);
+            Kit.hair(g, x + w - 4, knobY, 1, knobH, Theme.WOOD);
         }
         yy = idsTop + ID_ROWS * 10;
         // powder and durability, or duration and charges

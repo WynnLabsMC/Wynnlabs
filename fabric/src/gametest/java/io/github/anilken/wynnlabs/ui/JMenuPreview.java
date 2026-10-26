@@ -30,19 +30,28 @@ import java.util.List;
  */
 public class JMenuPreview implements FabricClientGameTest {
 
+    /** The one screen to shoot (home, crafting, rail), or null for all of them. */
+    private static String part;
+
+    private static boolean on(String p) {
+        return part == null || part.equals(p);
+    }
+
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !only.equals("jmenu")) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail").contains(only)) {
             return;
         }
+        // jmenu (or none): every shot; home / crafting / rail: only that screen's
+        part = only == null || only.equals("jmenu") ? null : only;
         Path out = Path.of(System.getProperty("wynnlabs.preview", "preview"));
         Path fixture = Fixtures.root().resolve(System.getProperty("wynnlabs.previewFixture", "shaman-44"));
         try (TestSingleplayerContext world = ctx.worldBuilder().create()) {
             world.getClientWorld().waitForChunksRender();
             Files.createDirectories(out);
-            // a 1080p window at GUI scale 3
-            ctx.getInput().resizeWindow(1920, 1080);
+            // the user's window (PreviewSize: 3440x1440 unless -PpreviewSize says otherwise) at GUI scale 3
+            ctx.getInput().resizeWindow(PreviewSize.WIDTH, PreviewSize.HEIGHT);
             ctx.runOnClient(mc -> mc.options.guiScale().set(3));
             ctx.runOnClient(mc -> {
                 FixtureState.load(fixture).install(System.getProperty("wynnlabs.previewLang", "tr"));
@@ -55,10 +64,14 @@ public class JMenuPreview implements FabricClientGameTest {
             // nothing is built on its own: the gear panel offers to; the button builds it, with
             // its progress inside the panel
             ctx.waitTicks(2);
-            shot(ctx, out, "jmenu-none");
+            if (on("home")) {
+                shot(ctx, out, "jmenu-none");
+            }
             ctx.runOnClient(mc -> Roadmap.forceRefresh());
             ctx.waitTicks(2);
-            shot(ctx, out, "jmenu-loading");
+            if (on("home")) {
+                shot(ctx, out, "jmenu-loading");
+            }
             ctx.waitFor(mc -> !Roadmap.cached().isEmpty() && !Roadmap.isBuilding(), 20 * 60);
             ctx.waitTicks(20);
             // a setting changed by a click: the old map stays up while a fresh one is built
@@ -67,9 +80,15 @@ public class JMenuPreview implements FabricClientGameTest {
                 Roadmap.forceRefresh();
             });
             ctx.waitTicks(2);
-            shot(ctx, out, "jmenu-refreshing");
+            if (on("home")) {
+                shot(ctx, out, "jmenu-refreshing");
+            }
             ctx.waitFor(mc -> !Roadmap.isBuilding(), 20 * 60);
             ctx.waitTicks(20);
+            if (part != null && !part.equals("rail")) {
+                partShots(ctx, out);
+                return;
+            }
             // the goal list, open
             ctx.runOnClient(mc -> flag(((RoadmapScreen) mc.screen).home, "goalOpen", true));
             ctx.waitTicks(3);
@@ -77,12 +96,13 @@ public class JMenuPreview implements FabricClientGameTest {
             ctx.runOnClient(mc -> flag(((RoadmapScreen) mc.screen).home, "goalOpen", false));
             ArchetypePreview.shots(ctx, out);
             // every rail tab in the rail's order (jmenu-tab-<n>: the tab's number, not its place)
-            Field railField = RoadmapScreen.class.getDeclaredField("RAIL");
-            railField.setAccessible(true);
-            for (int t : java.util.Arrays.stream((int[][]) railField.get(null)).flatMapToInt(java.util.Arrays::stream).toArray()) {
+            for (int t : java.util.Arrays.stream(MenuRail.RAIL).flatMapToInt(java.util.Arrays::stream).toArray()) {
                 ctx.runOnClient(mc -> set(mc.screen, "tab", t));
                 ctx.waitTicks(10);
                 shot(ctx, out, "jmenu-tab-" + t);
+            }
+            if (part != null) {
+                return;                             // rail: the tabs' headers only
             }
             // the ability tree scrolled to its end: the last page and the ultimates
             ctx.runOnClient(mc -> set(mc.screen, "tab", 9));
@@ -119,8 +139,16 @@ public class JMenuPreview implements FabricClientGameTest {
                 ctx.waitTicks(3);
                 shot(ctx, out, scroll == 0 ? "jmenu-settings-glow" : "jmenu-settings-glow-end");
             }
-            craftShots(ctx, out);
-            CraftPreview.planShots(ctx, n -> shot(ctx, out, n));
+            questGuides(ctx, out);
+            ctx.setScreen(RoadmapScreen::new);
+            ctx.waitForScreen(RoadmapScreen.class);
+            try {
+                craftShots(ctx, out);
+                CraftPreview.planShots(ctx, n -> shot(ctx, out, n));
+            } catch (RuntimeException e) {
+                // the crafting tab without its ingredient sample has no grid to click: its shots are skipped, not the rest
+                System.out.println("[preview] crafting shots skipped: " + e);
+            }
             SearchPreview.shots(ctx, out);
             // the bag's advice words and where-to-sell icons, on the recorded inventory
             ctx.setScreen(BagPreview::new);
@@ -138,12 +166,42 @@ public class JMenuPreview implements FabricClientGameTest {
                 shot(ctx, out, "jmenu-" + (i == 0 ? "now" : "step" + i));
             }
             optionShots(ctx, out);
-            craftScales(ctx, out);
-            questGuides(ctx, out);
+            try {
+                craftScales(ctx, out);
+            } catch (RuntimeException e) {
+                System.out.println("[preview] crafting scale shots skipped: " + e);
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             FixtureState.uninstall();
+        }
+    }
+
+    /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
+    private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
+        if (part.equals("home")) {
+            ctx.runOnClient(mc -> set(mc.screen, "tab", 0));
+            ctx.waitTicks(3);
+            shot(ctx, out, "jmenu-now");
+            // the road map a day old after a level-up: the out-of-date notice over the gear
+            ctx.runOnClient(mc -> {
+                int lv = io.github.anilken.wynnlabs.game.GameState.current().level();
+                HomeTab.previewRoad = new HomeTab.Road(false, false, 1, new Roadmap.Stale(true, lv + 1, lv, 26 * 3_600_000L));
+            });
+            ctx.waitTicks(3);
+            shot(ctx, out, "jmenu-stale");
+            ctx.runOnClient(mc -> HomeTab.previewRoad = null);
+            optionShots(ctx, out);
+            return;
+        }
+        ctx.setScreen(RoadmapScreen::new);
+        ctx.waitForScreen(RoadmapScreen.class);
+        try {
+            craftShots(ctx, out);
+            CraftPreview.planShots(ctx, n -> shot(ctx, out, n));
+        } catch (RuntimeException e) {
+            System.out.println("[preview] crafting shots skipped: " + e);
         }
     }
 
@@ -448,6 +506,20 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.setScreen(() -> new GuideScreen("A Fighting Species", "Return to Darnes"));
         ctx.waitTicks(10);
         shot(ctx, out, "quests-full-guide-parts");
+        // the guide's kinds of stage: options that merge, parts as chips, a short stage, pictures
+        guideShot(ctx, out, "The Feathers Fly Part II", 4, "guide-options");
+        guideShot(ctx, out, "Recipe For Disaster", 5, "guide-parts");
+        guideShot(ctx, out, "Recipe For Disaster", 0, "guide-short");
+        guideShot(ctx, out, "Desperate Metal", 1, "guide-pictures");
+    }
+
+    /** The full guide of a quest on its stage {@code stage} (from 0), as if the game tracked that stage. */
+    private static void guideShot(ClientGameTestContext ctx, Path out, String quest, int stage, String name) {
+        String task = ctx.computeOnClient(mc -> QuestGuides.allEnglish().stream().filter(g -> g.id().equals(quest))
+                .findFirst().map(g -> g.english().get(stage).task()).orElse(""));
+        ctx.setScreen(() -> new GuideScreen(quest, task));
+        ctx.waitTicks(10);
+        shot(ctx, out, name);
     }
 
     private static void shot(ClientGameTestContext ctx, Path out, String name) {

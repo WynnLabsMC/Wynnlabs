@@ -334,9 +334,11 @@ public final class CraftingTab {
         if (!optimiserPanel.resultsFor.equals(key()) && !results.isEmpty()) {
             results = List.of();                    // the recipe or goal changed: old layouts no longer apply
         }
-        // the two pages: the calculator and our suggestions, as ledger tabs over the page
-        y += headerPanel.viewTabs(g, x, y, w, mx, my) + 4;
-        h -= 18;
+        // the pages (calculator, suggestions, planner) as a tab bar; then the page's own margin:
+        // SP_3 before the suggestions' filter row, SP_4 before content
+        int bar = headerPanel.viewTabs(g, x, y, w, mx, my) + (view == 1 ? Theme.SP_3 : Theme.SP_4);
+        y += bar;
+        h -= bar;
         if (view == 1) {
             suggestionsPanel.drawSuggestions(g, x, y, w, h, mx, my);
             savedPanel.drawSaved(g, frame, screenW, x, y, w, h, w >= TWO_COLUMNS_MIN, mx, my);
@@ -368,7 +370,7 @@ public final class CraftingTab {
             used = by - top;
         } else {
             int sy = top;
-            sy += headerPanel.subTabs(g, x, sy, cw, mx, my) + 6;
+            sy += headerPanel.subTabs(g, x, sy, cw, mx, my) + Theme.SP_4;
             switch (subTab) {
                 case 1 -> {
                     sy += resultPanel.drawResult(g, x, sy, cw, mx, my) + 6;

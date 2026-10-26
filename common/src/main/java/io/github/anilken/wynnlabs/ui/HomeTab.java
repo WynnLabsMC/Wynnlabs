@@ -170,25 +170,25 @@ public final class HomeTab {
         firstPill = null;
         long now = System.currentTimeMillis();
         tiles.refresh(now);
-        int gap = compact ? 6 : large ? 10 : 8;
+        // the columns have no frames: SP_7 between them (SP_5 compact) with a hairline in the middle
+        int gap = compact ? Theme.SP_5 : Theme.SP_7;
         // the one thing to do now, a slim line on top (none: the endgame with nothing left)
         HomeNext.Pick pick = next.pick(in);
         if (pick != null) {
             int nh = next.height(compact);
             next.draw(g, pick, host, x, y, w, nh, compact, mx, my);
-            y += nh + (compact ? 4 : gap - 2);
-            h -= nh + (compact ? 4 : gap - 2);
+            y += nh + (compact ? Theme.SP_3 : Theme.SP_5);
+            h -= nh + (compact ? Theme.SP_3 : Theme.SP_5);
         }
         boolean firstSteps = FirstSteps.show();
         if (compact) {
             int lw = Math.max(118, Math.min(160, w * 36 / 100));
-            int pw = w - lw - 6;
+            int pw = w - lw - gap;
             gear.panel(g, in, host, x, y, pw, h, true, false, mx, my);
-            int used = firstSteps ? tiles.rows(g, host, x + pw + 6, y, lw, h / 3, mx, my, steps) + 4 : 0;
-            // the stats over the spells, in the column beside the stand
-            int sh = (h - used) * 3 / 5;
-            stats.draw(g, host, x + pw + 6, y + used, lw, sh, false, mx, my);
-            stats.spells.draw(g, host, x + pw + 6, y + used + sh + 4, lw, h - used - sh - 4, false, mx, my);
+            Kit.hair(g, x + pw + gap / 2, y, 1, h, Theme.LINE);
+            int used = firstSteps ? tiles.rows(g, host, x + pw + gap, y, lw, h / 3, mx, my, steps) + 4 : 0;
+            // the stats and the spells as two tabs in the column beside the stand
+            stats.draw(g, host, x + pw + gap, y + used, lw, h - used, false, true, mx, my);
             return;
         }
         // the sides give the gear panel room for its slots' names; the stats' side a little more
@@ -198,8 +198,10 @@ public final class HomeTab {
                 : w < 520 ? side : Math.max(140, Math.min(175, (w - 2 * gap) * 28 / 100));
         int cw = w - side - rside - 2 * gap;
         stats.spells.draw(g, host, x, y, side, h, large, mx, my);
+        Kit.hair(g, x + side + gap / 2, y, 1, h, Theme.LINE);
         gear.panel(g, in, host, x + side + gap, y, cw, h, false, large, mx, my);
         int rx = x + side + gap + cw + gap;
+        Kit.hair(g, rx - gap / 2, y, 1, h, Theme.LINE);
         if (firstSteps) {
             // the menus still to open, under the stats until all are done
             int sh = (h - gap) * 2 / 5;

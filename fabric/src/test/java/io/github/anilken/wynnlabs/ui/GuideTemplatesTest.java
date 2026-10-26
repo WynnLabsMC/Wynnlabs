@@ -10,14 +10,14 @@ class GuideTemplatesTest {
     @Test
     void colouredTextKeepsItsText() {
         assertEquals("* You should head back to the mage with the wand.",
-                GuideScreen.templates("* {{c|#aaa|You should head back to the mage with the wand.}}"));
+                GuideWikiList.templates("* {{c|#aaa|You should head back to the mage with the wand.}}"));
     }
 
     @Test
     void nestedTemplatesComeApart() {
         assertEquals("One of the staves is on display in the Nesaak bank. Could you retrieve it?",
-                GuideScreen.templates("One of the staves is {{c|var(--color-wc-aqua)|on display in the Nesaak bank.}} "
+                GuideWikiList.templates("One of the staves is {{c|var(--color-wc-aqua)|on display in the Nesaak bank.}} "
                         + "Could you retrieve it?{{Clear}}"));
-        assertEquals("", GuideScreen.templates("{{Dialogue|green|Telvu|{{c|var(--color-wc-aqua)|Just step into the portal.}}}}"));
+        assertEquals("", GuideWikiList.templates("{{Dialogue|green|Telvu|{{c|var(--color-wc-aqua)|Just step into the portal.}}}}"));
     }
 }

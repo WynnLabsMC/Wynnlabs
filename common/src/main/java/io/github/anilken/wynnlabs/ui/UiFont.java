@@ -98,6 +98,17 @@ final class UiFont {
     }
 
     /**
+     * One of the font's sizes ("micro", "tiny", "small", "" for base, "large", "big"), plain or
+     * bold. Without the web font: the game's font, bold or not, at its one size.
+     */
+    static Style sizedTo(Style s, String size, boolean bold) {
+        if (!Settings.on("webFont")) {
+            return s.withBold(bold);
+        }
+        return s.withFont(desc(size, bold)).withBold(false);
+    }
+
+    /**
      * Text that would be drawn scaled by {@code factor}: the Noto Sans size closest to it instead, so
      * it stays sharp (micro < 0.65 ≤ tiny < 0.8 ≤ small < 1 ≤ large < 1.4 ≤ big).
      */

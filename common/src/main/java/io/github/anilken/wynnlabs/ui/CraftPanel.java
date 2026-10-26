@@ -159,7 +159,7 @@ abstract class CraftPanel {
         int dx = x + width(t) + 4;
         g.fill(dx, y + 3, dx + 3, y + 6, Theme.BRASS);
         if (dx + 7 < x + w) {
-            g.fill(dx + 7, y + 4, x + w, y + 5, Theme.LINE);
+            Kit.hair(g, dx + 7, y + 4, x + w - dx - 7, 1, Theme.LINE);
         }
     }
 
@@ -210,7 +210,8 @@ abstract class CraftPanel {
 
     /** Text on wood (buttons, segments): cream with the game's shadow, ink on gold. */
     void wood(GuiGraphics g, String s, int x, int y, int colour, boolean shadow) {
-        g.drawString(tab.font, sized(Component.literal(s), BODY), x, y, colour, shadow);
+        // buttons are light pills now: their labels go without the shadow wood needed
+        g.drawString(tab.font, sized(Component.literal(s), BODY), x, y, colour, false);
     }
 
     static boolean in(double mx, double my, int x, int y, int w, int h) {

@@ -53,7 +53,13 @@ final class ShotDriver {
 
     /** The tabs' numbers in rail order. */
     static int[] railOrder() {
-        return java.util.Arrays.stream((int[][]) Peek.get(RoadmapScreen.class, "RAIL")).flatMapToInt(java.util.Arrays::stream).toArray();
+        Class<?> rail;
+        try {
+            rail = Class.forName("io.github.anilken.wynnlabs.ui.MenuRail");     // package-private, as the screen's own
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
+        return java.util.Arrays.stream((int[][]) Peek.get(rail, "RAIL")).flatMapToInt(java.util.Arrays::stream).toArray();
     }
 
     static int tabCount() {

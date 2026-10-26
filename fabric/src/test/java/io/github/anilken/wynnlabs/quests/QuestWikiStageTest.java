@@ -184,4 +184,14 @@ class QuestWikiStageTest {
         assertEquals(List.of("Stage 1"), QuestWiki.parse("== Stage 1 ==\n» Go.\n== Segment 2 ==\n» Not a stage.\n").stages()
                 .stream().map(QuestWiki.Stage::title).toList());
     }
+
+    @Test
+    void branchHeadingsWithOnlyDialogueUnderThemAreHidden() {
+        // The Feathers Fly Part II, stage 5: the dialogue under each choice is dropped, so its heading goes too
+        QuestWiki.Stage st = new QuestWiki.Stage("Stage 5", "Ask around", List.of(
+                "Mechanic Outfit =", "If you talk to Ava first:", "Ava: Hi!", "If you pay the vendor:",
+                "[+1 Audience Invitation Letter]", "Azure Outfit =", "If you look around:", "Ava: Hm."),
+                null, List.of(), List.of());
+        assertEquals(List.of(0, 3, 4), QuestWiki.shownHints(st, null));
+    }
 }

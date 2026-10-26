@@ -219,6 +219,18 @@ final class SettingsTab extends MenuTab {
 
     private int settingsCat;
 
+    /** Opens the About page (the rail's Help). */
+    void showAbout() {
+        settingsCat = 0;                            // SETTING_CATS[0] is "about"
+    }
+
+    @Override
+    MenuRail.Badge badge() {
+        return io.github.anilken.wynnlabs.core.UpdateCheck.state().status() == io.github.anilken.wynnlabs.core.UpdateCheck.Status.NEWER
+                ? new MenuRail.Badge(MenuRail.Badge.Kind.GOOD_DOT, "", io.github.anilken.wynnlabs.core.L.t("wynnlabs.screen.rail_badge_update"))
+                : null;
+    }
+
     private static final String[] SETTING_CATS = {"about", "look", "tips", "glow", "coach", "quests", "build", "rules", "data"};
     private static final String[] SETTING_CAT_NAMES = {"wynnlabs.settings.cat_about", "wynnlabs.settings.cat_look",
         "wynnlabs.settings.cat_tips", "wynnlabs.settings.cat_glow", "wynnlabs.settings.cat_coach", "wynnlabs.settings.cat_quests",
@@ -1325,7 +1337,7 @@ final class SettingsTab extends MenuTab {
             int bw = font().width(b[0]) + 14;
             boolean bh = mx >= sx && mx < sx + bw && my >= by && my < by + 12;
             card(g, sx, by, bw, 12, bh, 0);
-            g.drawString(font(), b[0], sx + 7, by + 2, b[1].equals("#keydel") ? 0xFFFFB0A0 : 0xFFB8F0A0, true);
+            g.drawString(font(), b[0], sx + 7, by + 2, b[1].equals("#keydel") ? Theme.BAD : Theme.GOOD, false);
             menu.toggles.add(new Object[] {new int[] {sx, by, bw, 12}, b[1]});
             sx += bw + 4;
         }

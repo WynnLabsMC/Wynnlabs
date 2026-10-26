@@ -211,10 +211,10 @@ public final class TreeTab extends MenuTab {
         // the board's faint grid, then the pages: a line where each one starts, its number on it
         int rows = TreeLayout.rows(tree);
         for (int c = 0; c <= TreeLayout.COLS; c++) {
-            g.fill(ox + c * cell, oy, ox + c * cell + 1, oy + rows * cell, 0x10FFFFFF);
+            Kit.hair(g, ox + c * cell, oy, 1, rows * cell, 0x10FFFFFF);
         }
         for (int r = 0; r <= rows; r++) {
-            g.fill(ox, oy + r * cell, ox + TreeLayout.COLS * cell, oy + r * cell + 1, 0x10FFFFFF);
+            Kit.hair(g, ox, oy + r * cell, TreeLayout.COLS * cell, 1, 0x10FFFFFF);
         }
         for (int p = 0; p < pages; p++) {
             int ly = oy + p * TreeLayout.ROWS * cell;
@@ -522,5 +522,24 @@ public final class TreeTab extends MenuTab {
         } else if (action.startsWith("#tree:page:")) {
             treeScroll = Integer.parseInt(action.substring(11)) * TreeLayout.ROWS * treeCell;
         }
+    }
+
+    /** The rail: a dot while ability points wait to be spent (the tree read at least once). */
+    @Override
+    MenuRail.Badge badge() {
+        GameState gs = GameState.current();
+        List<AbilityNode> tree = gs.abilityTree();
+        java.util.Set<String> have = new java.util.HashSet<>(gs.unlockedAbilities());
+        if (tree == null || tree.isEmpty() || have.isEmpty()) {
+            return null;
+        }
+        int spent = 0;
+        for (AbilityNode n : tree) {
+            if (have.contains(n.name())) {
+                spent += n.cost();
+            }
+        }
+        int free = Math.max(Wyn.abilityPointsAt(gs.level()), TreePlanner.basePoints(gs.level())) - spent;
+        return free <= 0 ? null : new MenuRail.Badge(MenuRail.Badge.Kind.DOT, String.valueOf(free), L.t("wynnlabs.screen.rail_badge_tree", free));
     }
 }

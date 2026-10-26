@@ -164,13 +164,14 @@ final class HomeSlots extends HomePart {
      * upgrade the edge is green and 2px wide (1 outside the square, 1 on its edge).
      */
     private static void slotBox(GuiGraphics g, int x, int y, int s, int frame) {
-        if (frame != 0) {
-            g.fill(x - 1, y - 1, x + s + 1, y + s + 1, frame);
-            g.fill(x + 1, y + 1, x + s - 1, y + s - 1, SLOT_WELL);
-            return;
-        }
-        g.fill(x, y, x + s, y + s, SLOT_EDGE);
-        g.fill(x + 1, y + 1, x + s - 1, y + s - 1, SLOT_WELL);
+        // the well, and its edge one screen pixel thin inside the box: the state's colour (an upgrade,
+        // a chosen piece) or the plain edge; never outside the box, so it keeps clear of the name
+        int edge = frame != 0 ? frame : SLOT_EDGE;
+        g.fill(x, y, x + s, y + s, SLOT_WELL);
+        Kit.hair(g, x, y, s, 1, edge);
+        Kit.hair(g, x, y + s - 1, s, 1, edge);
+        Kit.hair(g, x, y, 1, s, edge);
+        Kit.hair(g, x + s - 1, y, 1, s, edge);
     }
 
     /** The item to show for a worn piece: without the Wynncraft pack its paper becomes the slot type's plain item. */
@@ -394,12 +395,69 @@ final class HomeSlots extends HomePart {
         if (text != null && icon != null) {
             // the icon, then the text
             Art.icon(g, icon, px + 4, y + (PILL_H - 8) / 2, 8, ink);
-            g.drawString(font, text, px + 14, y + 2, ink, true);
+            g.drawString(font, text, px + 14, y + 2, ink, false);
         } else if (text != null) {
-            g.drawString(font, text, px + (pw - font.width(text) + 1) / 2, y + 2, ink, true);
+            g.drawString(font, text, px + (pw - font.width(text) + 1) / 2, y + 2, ink, false);
         } else {
             Art.icon(g, icon, px + (pw - 8) / 2, y + (PILL_H - 8) / 2, 8, ink);
         }
+    }
+
+    /**
+     * A slot as a list row (the large Home): the square with its item, the name in its tier's colour
+     * with where it comes from under it as a small chip (its icon on the place's colour, then its
+     * name), and the gain pill or the tick in a fixed column at the row's end, {@code markW} wide.
+     */
+    void row(GuiGraphics g, Host host, SlotView v, int x, int y, int w, int s, int markW) {
+        ItemStack show = showOf(v);
+        int frame = v.mark() == Mark.CHOSEN ? CHOSEN : v.gear() != null || v.mark() == Mark.GET ? UP : 0;
+        slotBox(g, x, y, s, frame);
+        int o = (s - 16) / 2;
+        if (!show.isEmpty()) {
+            item(g, show, x + o, y + o, false);
+        } else if (v.type() != null) {
+            WynnTex.draw(g, "wynn/gui/slot/" + v.type().name().toLowerCase(Locale.ROOT), x + o, y + o, 16, 16);
+        }
+        int tx = x + s + Theme.SP_3;
+        int right = x + w - markW - Theme.SP_3;
+        int lineTop = y + (s - Type.BODY.lineHeight - Type.META.lineHeight) / 2;
+        Type.BODY.draw(g, font, Type.BODY.fit(font, nameOf(v), right - tx), tx, lineTop, Theme.paperRgb(colourOf(v)));
+        // where the shown piece comes from, as the corner badge said it
+        if (v.mark() == Mark.CHOSEN || v.mark() == Mark.DONE_CHOSEN) {
+            sourceChip(g, "lock", CHOSEN, L.t("wynnlabs.homev.chosen_pill"), tx, lineTop + Type.BODY.lineHeight, right - tx);
+        } else if (!show.isEmpty()) {
+            boolean worn = v.mark() == Mark.DONE || !v.showsPlanned() && v.gear() == null;
+            String name = v.showsPlanned() && v.planned() != null ? v.planned().name()
+                    : v.gear() != null ? v.gear().info().name()
+                    : ItemJson.clean(v.worn().getHoverName().getString()).trim();
+            boolean have = !worn && BuildSources.haveNames().contains(name);
+            String icon = have ? "building-bank" : BuildWindow.sourceIcon(name);
+            String text = have ? L.t("wynnlabs.homev.src_bank") : BuildWindow.sourceText(name);
+            sourceChip(g, icon, Theme.sourceFill(icon), text, tx, lineTop + Type.BODY.lineHeight, right - tx);
+        }
+        partOwner = "slot" + v.index();
+        // the pill centred on the name's capitals, ending at the row's right
+        int[] pillBefore = tab.firstPill;
+        mark(g, v, show, -1, x + w, Type.BODY.onCaps(lineTop, PILL_H), markW);
+        if (pillBefore == null && tab.firstPill != null) {
+            tab.firstPill[4] = 1;                   // the row's slot and name are left of its pill
+        }
+        areas(host, v, new int[] {x, y, w, s});
+    }
+
+    /** A source as a small chip on line {@code y}: its icon on the place's colour, then its name in small type. */
+    private void sourceChip(GuiGraphics g, String icon, int fill, String text, int x, int y, int room) {
+        int d = 9;
+        int dy = Type.META.onCaps(y, d);
+        Kit.seal(g, x, dy, d, d, fill);
+        Art.icon(g, icon, x + 1, dy + 1, d - 2, Theme.CREAM);
+        Type.META.draw(g, font, Type.META.fit(font, text, room - d - Theme.SP_1), x + d + Theme.SP_1, y);
+    }
+
+    /** A slot's name colour as a colour (its tier's, grey for what you wear). */
+    private static int colourOf(SlotView v) {
+        Integer c = nameColour(v).getColor();
+        return c == null ? Theme.INK : 0xFF000000 | c;
     }
 
     private void item(GuiGraphics g, ItemStack stack, int x, int y, boolean big) {

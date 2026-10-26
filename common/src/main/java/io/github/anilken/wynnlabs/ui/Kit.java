@@ -62,9 +62,9 @@ final class Kit {
         static final int SLOT_S = 20;
         static final int SLOT_L = 40;
 
-        /** Where text sits to be centred in a box {@code h} tall starting at {@code top}. */
+        /** Where body text sits to be centred in a box {@code h} tall starting at {@code top}: on its capitals. */
         static int textY(int top, int h) {
-            return top + (h - 8) / 2;
+            return Type.BODY.yIn(top, h);
         }
 
         /** A button's or chip's width for its text. */
@@ -220,32 +220,46 @@ final class Kit {
     static final int HOVER = 1;
     static final int ON = 2;
 
-    /** A wooden button, lighter on hover, gold when on (selected or primary). */
-    static void button(GuiGraphics g, int x, int y, int w, int h, int state) {
-        nine(g, state == ON ? "gold" : state == HOVER ? "wood_hover" : "wood", x, y, w, h);
-    }
-
     /**
-     * A purple button (the primary action, the items you chose): wood's bevel in the archetype's
-     * purple, lighter on hover; its text is {@link Theme#CREAM}.
+     * A button as the HD pill of {@link Ui}: gold when on (selected or primary), a thin outline
+     * otherwise, lighter on hover. Only a box taller than a button (a scroll thumb, a drawer's
+     * handle) keeps the wooden bevel.
      */
+    static void button(GuiGraphics g, int x, int y, int w, int h, int state) {
+        if (wooden(w, h)) {
+            nine(g, state == ON ? "gold" : state == HOVER ? "wood_hover" : "wood", x, y, w, h);
+            return;
+        }
+        pill(g, x, y, w, h, state == ON, state == HOVER);
+    }
+
+    /** Whether a box is no button but a thumb or a handle: those stay wood. */
+    private static boolean wooden(int w, int h) {
+        return h > 18 || w < 9;
+    }
+
+    /** A purple button (the primary action, the items you chose): the purple pill; its text is {@link Theme#CREAM}. */
     static void primary(GuiGraphics g, int x, int y, int w, int h, boolean hover) {
-        nine(g, hover ? "purple_hover" : "purple", x, y, w, h);
+        if (wooden(w, h)) {
+            nine(g, hover ? "purple_hover" : "purple", x, y, w, h);
+            return;
+        }
+        pillPrimary(g, x, y, w, h, hover);
     }
 
-    /** A purple ledger tab (the selected Plan pill). */
+    /** A purple tab (the selected Plan pill): the purple pill. */
     static void ledgerPrimary(GuiGraphics g, int x, int y, int w, int h) {
-        nine(g, "ledger_purple", x, y, w, h);
+        pillPrimary(g, x, y, w, h, false);
     }
 
-    /** A button's text colour for its state: cream on wood, ink on gold. */
+    /** A button's text colour for its state: ink on the gold pill, the second ink on the thin one. */
     static int buttonText(int state) {
-        return state == ON ? Theme.INK : Theme.CREAM;
+        return state == ON ? Theme.INK : state == HOVER ? Theme.INK : Theme.INK_2;
     }
 
-    /** A ledger tab above a list (open at the bottom): wood, or gold when on. */
+    /** A tab above a list: the gold pill when on, the thin one otherwise. */
     static void ledger(GuiGraphics g, int x, int y, int w, int h, boolean on) {
-        nine(g, on ? "ledger_gold" : "ledger_wood", x, y, w, h);
+        pill(g, x, y, w, h, on, false);
     }
 
     /** A parchment card with a small shadow, and an optional coloured strip along its top. */
@@ -331,12 +345,12 @@ final class Kit {
         }
     }
 
-    /** A 1px rectangle outline. */
+    /** A rectangle outline, one screen pixel thick (a hairline at every scale). */
     static void outline(GuiGraphics g, int x, int y, int w, int h, int colour) {
-        g.fill(x, y, x + w, y + 1, colour);
-        g.fill(x, y + h - 1, x + w, y + h, colour);
-        g.fill(x, y + 1, x + 1, y + h - 1, colour);
-        g.fill(x + w - 1, y + 1, x + w, y + h - 1, colour);
+        hair(g, x, y, w, 1, colour);
+        hair(g, x, y + h - 1, w, 1, colour);
+        hair(g, x, y + 1, 1, h - 2, colour);
+        hair(g, x + w - 1, y + 1, 1, h - 2, colour);
     }
 
     /** A rounded seal or pill in a colour (gain seals, the nearest bank / Trade Market). */
@@ -379,7 +393,7 @@ final class Kit {
     static void notches(GuiGraphics g, int x, int y, int w, int h) {
         for (int i = 1; i < 10; i++) {
             int nx = x + 1 + (w - 2) * i / 10;
-            g.fill(nx, y + 1, nx + 1, y + h - 1, 0x662E2E2E);
+            hair(g, nx, y + 1, 1, h - 2, 0x662E2E2E);
         }
     }
 
@@ -402,7 +416,7 @@ final class Kit {
         nine(g, "diamond", dx, y + 2, 5, 5);
         int lx = dx + 8;
         if (lx < x + w) {
-            g.fill(lx, y + 4, x + w, y + 5, Theme.LINE);
+            hair(g, lx, y + 4, x + w - lx, 1, Theme.LINE);
         }
     }
 
@@ -414,6 +428,66 @@ final class Kit {
         } else if (index % 2 == 1) {
             g.fill(x, y, x + w, y + h, Theme.STRIPE);
         }
+    }
+
+    // ---- soft shapes and hairlines (the HD look: baked 6x nine-slices, lines one screen pixel wide) ----
+
+    /**
+     * A hairline: a 1px-wide line (w or h is 1) drawn one screen pixel thick, centred in that
+     * logical pixel, whatever the GUI or menu scale.
+     */
+    static void hair(GuiGraphics g, int x, int y, int w, int h, int colour) {
+        // screen pixels per unit here: the window's GUI scale times the pose's own (MenuScale's, or none)
+        int s;
+        try {
+            s = Math.max(1, Math.round((float) net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScale() * g.pose().m00()));
+        } catch (Throwable t) {
+            s = 1;
+        }
+        if (s == 1 || w <= 0 || h <= 0) {
+            g.fill(x, y, x + w, y + h, colour);
+            return;
+        }
+        g.pose().pushMatrix();
+        g.pose().translate(x, y);
+        g.pose().scale(1f / s, 1f / s);
+        int mid = (s - 1) / 2;
+        if (h == 1) {
+            g.fill(0, mid, w * s, mid + 1, colour);
+        } else {
+            g.fill(mid, 0, mid + 1, h * s, colour);
+        }
+        g.pose().popMatrix();
+    }
+
+    /** A soft card (kit/card_soft): rounded, a light gradient, a faint edge and a 2px shadow under it. */
+    static void softCard(GuiGraphics g, int x, int y, int w, int h) {
+        nine(g, "card_soft", x, y, w, h + 2);
+    }
+
+    /** A pill: gold when {@code on} (a button, the picked chip), else a thin outline; lighter on hover. */
+    static void pill(GuiGraphics g, int x, int y, int w, int h, boolean on, boolean hover) {
+        nine(g, on ? (hover ? "pill_gold_hover" : "pill_gold") : (hover ? "pill_thin_hover" : "pill_thin"), x, y, w, h);
+    }
+
+    /** A primary pill (the items you chose, Save, the picked plan): the archetype's purple, lighter on hover. */
+    static void pillPrimary(GuiGraphics g, int x, int y, int w, int h, boolean hover) {
+        nine(g, hover ? "pill_purple_hover" : "pill_purple", x, y, w, h);
+    }
+
+    /** The picked row of a list: a soft gold wash. */
+    static void rowLit(GuiGraphics g, int x, int y, int w, int h) {
+        nine(g, "row_lit", x, y, w, h);
+    }
+
+    /** A soft shadow around a window drawn at x, y, w, h (call before {@link #window}). */
+    static void windowShadow(GuiGraphics g, int x, int y, int w, int h) {
+        nine(g, "window_shadow", x - 4, y - 4, w + 8, h + 8);
+    }
+
+    /** A small drawn icon (kit/icon_check, icon_up/down/left/right, icon_pin) in a colour. */
+    static void icon(GuiGraphics g, String name, int x, int y, int w, int h, int colour) {
+        g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite(name), x, y, w, h, colour);
     }
 
     // ---- text ----

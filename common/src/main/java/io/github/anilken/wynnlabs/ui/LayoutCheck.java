@@ -211,6 +211,9 @@ public final class LayoutCheck {
             return out;
         }
         for (Drawn d : drawn) {
+            if (d.what().equals("kit/window_shadow")) {
+                continue;                           // a window's shadow falls outside it by design
+            }
             boolean in = false;
             for (int[] f : frames) {
                 in |= d.x0() >= f[0] - 0.5f && d.y0() >= f[1] - 0.5f && d.x1() <= f[2] + 0.5f && d.y1() <= f[3] + 0.5f;

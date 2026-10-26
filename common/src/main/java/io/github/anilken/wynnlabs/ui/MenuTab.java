@@ -55,6 +55,14 @@ abstract class MenuTab extends MenuPaint {
     void mouseScrolled(double x, double y, double v) {
     }
 
+    /**
+     * What this tab has waiting, for its rail entry: a count, the tracked quest's pin or a dot;
+     * null for nothing. Asked every two seconds, not each frame (the rail caches it).
+     */
+    MenuRail.Badge badge() {
+        return null;
+    }
+
     /** A key press the menu did not take first; true when the tab took it. */
     boolean keyPressed(int key) {
         return false;

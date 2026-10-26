@@ -215,46 +215,92 @@ final class HomeStats extends HomePart {
         spells.barReleased();
     }
 
-    /**
-     * The list in a card: the title with what the values compare, the warning strip, then a line
-     * per stat ("label ···· now +diff") under small group headings; the wheel scrolls it.
-     */
+    /** The compact column's tab: the spells instead of the stats. */
+    boolean spellsTab;
+
     void draw(GuiGraphics g, HomeTab.Host host, int x, int y, int w, int h, boolean large, int mx, int my) {
+        draw(g, host, x, y, w, h, large, false, mx, my);
+    }
+
+    /**
+     * The list under its heading, no frame: the title (or, {@code tabs}, the Stats and Spells tabs of
+     * the compact column) with the compare controls right-aligned and a hairline under them, the
+     * warning on an amber card, then a row per stat under small group headings: the label on the
+     * left, the value right-aligned (red below zero) with its change; the wheel scrolls it.
+     */
+    void draw(GuiGraphics g, HomeTab.Host host, int x, int y, int w, int h, boolean large, boolean tabs, int mx, int my) {
         frame(UiFont.get(), large);
-        rowH = Math.max(10, font.lineHeight + 1);
-        card(g, x, y, w, h, 0, false);
+        rowH = Type.BODY.lineHeight - 1;
         Build.Plan plan = Build.plan();
         StatsSource.Shown shown = source.shown();
         BuildStats.Side now = shown.now();
-        int ix = x + 5;
-        int iw = w - 10;
-        Art.icon(g, "list-check", ix, y + 6, 8, Theme.INK_2);
-        ink(g, Component.literal(fit(L.t("wynnlabs.stats.title"), iw / 2, true)).withStyle(UiFont::bold), ix + 11, y + 6, Theme.INK_2);
         listRect = null;
-        if (now == null) {
-            lines(g, L.t("wynnlabs.stats.none"), ix, y + 20, iw, y + h - 4, Theme.INK_3);
+        // the heading row: the controls first (right-aligned), the heading fitted to what is left
+        int right = x + w;
+        int cy = y;
+        if (source.picked()) {
+            int bw = Ui.CHIP_H + 2;
+            Ui.iconButton(g, "x", right - bw, cy, false, mx, my);
+            host.area(right - bw, cy, bw, Ui.CHIP_H, null, List.of(L.c("wynnlabs.stats.clear_tip").withStyle(ChatFormatting.GRAY)),
+                    "#qstatsclear:");
+            right -= bw + Theme.SP_2;
+        }
+        int headLeft;
+        if (tabs) {
+            int sx = x;
+            String st = L.t("wynnlabs.stats.title");
+            String sp = L.t("wynnlabs.spells.title");
+            int w1 = Ui.chipWidth(font, st);
+            int w2 = Ui.chipWidth(font, sp);
+            // the picker needs two icon buttons at least: too narrow for the names, the tabs as icons
+            boolean named = sx + w1 + Theme.SP_2 + w2 + Theme.SP_4 <= right - 2 * (Ui.CHIP_H + 2) - Theme.SP_2;
+            if (named) {
+                Ui.chip(g, font, st, sx, cy, w1, !spellsTab, false, false, mx, my);
+                Ui.chip(g, font, sp, sx + w1 + Theme.SP_2, cy, w2, spellsTab, false, false, mx, my);
+            } else {
+                w1 = Ui.CHIP_H + 2;
+                w2 = Ui.CHIP_H + 2;
+                Ui.iconButton(g, "list-check", sx, cy, !spellsTab, mx, my);
+                Ui.iconButton(g, "wand", sx + w1 + Theme.SP_2, cy, spellsTab, mx, my);
+            }
+            host.area(sx, cy, w1, Ui.CHIP_H, null, List.of(Component.literal(st).withStyle(ChatFormatting.WHITE)), "#qstatstab:stats");
+            host.area(sx + w1 + Theme.SP_2, cy, w2, Ui.CHIP_H, null, List.of(Component.literal(sp).withStyle(ChatFormatting.WHITE)),
+                    "#qstatstab:spells");
+            headLeft = sx + w1 + Theme.SP_2 + w2 + Theme.SP_4;
+        } else {
+            String title = L.t("wynnlabs.stats.title");
+            int tw = Math.min(Type.LABEL.width(font, title), (right - x) / 3);
+            headLeft = x + 8 + Theme.SP_2 + tw + Theme.SP_4;
+        }
+        if (now != null) {
+            picker.frame(font, large);
+            picker.draw(g, host, shown, right, cy, headLeft, mx, my);
+        }
+        if (!tabs) {
+            int ty = Type.LABEL.yIn(cy, Ui.CHIP_H);
+            Art.icon(g, "list-check", x, Type.LABEL.onCaps(ty, 8), 8, Theme.INK_2);
+            int room = Math.min(right, now == null ? right : picker.left()) - Theme.SP_3 - (x + 8 + Theme.SP_2);
+            Type.LABEL.draw(g, font, Type.LABEL.fit(font, L.t("wynnlabs.stats.title"), room), x + 8 + Theme.SP_2, ty);
+        }
+        int ry = cy + Ui.CHIP_H + Theme.SP_2;
+        Kit.hair(g, x, ry, w, 1, Theme.LINE);
+        int top = ry + 1 + Theme.SP_4;
+        int bottom = y + h;
+        if (tabs && spellsTab) {
+            spells.draw(g, host, x, top, w, bottom - top, large, false, mx, my);
+            picker.drawList(g, host, mx, my);
             return;
         }
-        // what the values are compared with (StatsSource)
+        if (now == null) {
+            Type.MUTED.drawWrapped(g, font, L.t("wynnlabs.stats.none"), x, top, w, 3, Theme.INK_3);
+            return;
+        }
         BuildStats.Side other = shown.other();
         String otherName = shown.name();
-        // the title's right: what the differences are against, a ✕ back to the plan for a found build
-        int right = ix + iw;
-        if (source.picked()) {
-            boolean hov = mx >= right - 9 && mx < right + 1 && my >= y + 5 && my < y + 15;
-            Art.icon(g, "x", right - 8, y + 6, 8, hov ? Theme.BAD : Theme.INK_3);
-            host.area(right - 9, y + 5, 10, 10, null, List.of(L.c("wynnlabs.stats.clear_tip").withStyle(ChatFormatting.GRAY)),
-                    "#qstatsclear:");
-            right -= 12;
-        }
-        picker.frame(font, large);
-        picker.draw(g, host, shown, right, y + 4, ix + 11 + Math.min(width(L.t("wynnlabs.stats.title"), true), iw / 3) + 4, mx, my);
-        int top = y + 18;
         // your gear and the other build, whichever the main numbers are
         BuildStats.Side worn = shown.flipped() ? other : now;
         BuildStats.Side build = shown.flipped() ? now : other;
-        int bottom = y + h - 4;
-        // the warning strip: what could get you killed, on your gear first, then the plan's
+        // the warning: what could get you killed, on your gear first, then the plan's
         List<String> warns = new ArrayList<>();
         warn(warns, worn, null);
         if (build != null && build.notWearable() != null) {
@@ -267,21 +313,11 @@ final class HomeStats extends HomePart {
             warn(warns, build, otherName);
         }
         if (!warns.isEmpty()) {
-            int n = 0;
-            for (String s : warns) {
-                n += font.split(Component.literal(s), iw - 13).size();
-            }
-            int sh = Math.min(n * 10 + 5, (bottom - top) / 2);     // lines() steps 10 a line
-            g.fill(ix - 1, top, ix + iw + 1, top + sh, 0x40E8A040);
-            Kit.outline(g, ix - 1, top, iw + 2, sh, Theme.WARN);
-            int ly = top + 2;
-            for (String s : warns) {
-                Art.icon(g, "alert-triangle", ix + 1, ly, 8, Theme.WARN);
-                ly = lines(g, s, ix + 11, ly, iw - 13, top + sh - 1, Theme.WARN);
-            }
-            host.area(ix - 1, top, iw + 2, sh, null, warns.stream().map(s -> (Component) Component.literal(s)
+            // at most half the column; the notice keeps whole lines
+            int sh = Ui.notice(g, font, Ui.Level.WARNING, warns, null, x, top, w, (bottom - top) / 2, -1, -1, new int[1][]);
+            host.area(x, top, w, sh, null, warns.stream().map(s -> (Component) Component.literal(s)
                     .withStyle(ChatFormatting.GOLD)).toList(), null);
-            top += sh + 3;
+            top += sh + Theme.SP_4;
         }
         // the lines: a heading per group with any line, the lines with a value on either side
         List<Object[]> out = new ArrayList<>();        // {heading} or {row}
@@ -300,51 +336,51 @@ final class HomeStats extends HomePart {
                 out.add(new Object[] {r});
             }
         }
+        int headH = Type.LABEL.lineHeight + Theme.SP_1;
         int contentH = 0;
+        boolean first = true;
         for (Object[] o : out) {
-            contentH += o[0] instanceof String ? rowH + 3 : rowH;
+            contentH += o[0] instanceof String ? (first ? 0 : Theme.SP_4) + headH : rowH;
+            first = false;
         }
         scrollMax = Math.max(0, contentH - (bottom - top));
         scroll = Math.min(scroll, scrollMax);
         listRect = new int[] {x, top, w, bottom - top};
-        // the scrollbar on the right edge when the lines do not fit; the lines make room for it
-        bar.place(x + w - ScrollBar.W - 1, top, bottom - top, bottom - top, contentH, scroll);
-        int lw = bar.shown() ? iw - ScrollBar.W - 2 : iw;
-        g.enableScissor(x, top, x + w, bottom);
+        // the scrollbar just outside the column when the lines do not fit
+        bar.place(x + w + Theme.SP_1, top, bottom - top, bottom - top, contentH, scroll);
+        int lw = w;
+        g.enableScissor(x - 1, top, x + w + Theme.SP_1, bottom);
         int ly = top - scroll;
-        int stripe = 0;
+        first = true;
         for (Object[] o : out) {
             if (o[0] instanceof String title) {
-                ly += 3;
-                if (ly >= top && ly < bottom) {
-                    ink(g, Component.literal(fit(L.t(title), lw, true)).withStyle(UiFont::bold), ix, ly, Theme.INK_2);
-                    g.fill(ix + width(L.t(title), true) + 4, ly + 4, ix + lw, ly + 5, Theme.LINE);
+                ly += first ? 0 : Theme.SP_4;
+                if (ly >= top - headH && ly < bottom) {
+                    Type.LABEL.draw(g, font, Type.LABEL.fit(font, L.t(title), lw), x, ly, Theme.INK);
                 }
-                ly += rowH;
-                stripe = 0;
+                ly += headH;
+                first = false;
                 continue;
             }
+            first = false;
             Row r = (Row) o[0];
             if (ly >= top - 1 && ly < bottom) {
                 // never a line half under the heading: those above the list's top are left out
-                line(g, host, r, now, other, shown.flipped(), ix, ly, lw, stripe, top, bottom);
+                line(g, host, r, now, other, shown.flipped(), x, ly, lw, top, bottom);
             }
             ly += rowH;
-            stripe++;
         }
         g.disableScissor();
         bar.drawSlim(g, mx, my);
         picker.drawList(g, host, mx, my);
     }
 
-    /** One stat's line: its label, a dotted leader, Now's value and the difference to the other build, in green or red. */
+    /** One stat's row: its label (after its element's mark), Now's value right-aligned and the difference to the other build. */
     private void line(GuiGraphics g, HomeTab.Host host, Row r, BuildStats.Side now, BuildStats.Side other, boolean flipped,
-            int x, int y, int w, int stripe, int top, int bottom) {
-        Kit.row(g, x - 2, y - 1, w + 4, rowH, stripe, false);
+            int x, int y, int w, int top, int bottom) {
         double a = r.value().applyAsDouble(now);
         String av = format(a, r.kind(), true);
         int vx = x + w;
-        int colour = Theme.INK;
         long d = 0;
         double b = a;
         if (other != null) {
@@ -354,34 +390,24 @@ final class HomeStats extends HomePart {
         }
         if (d != 0) {
             boolean better = r.lessBetter() ? d < 0 : d > 0;
-            colour = better ? Theme.GOOD : Theme.BAD;
             String dv = (d > 0 ? "+" : "") + format(d, r.kind(), true);
-            vx -= width(dv, false);
-            ink(g, dv, vx, y, colour);
-            vx -= 4;
+            vx -= Type.META.width(font, dv);
+            Type.META.draw(g, font, dv, vx, y + 1, better ? Theme.GOOD : Theme.BAD);
+            vx -= Theme.SP_2;
         }
-        vx -= width(av, false);
+        vx -= Type.BODY.width(font, av);
         // an identification green above zero and red below (the other way round when less is
         // better), as WynnBuilder colours them; a worked-out total plain unless below zero
         long n = Math.round(a);
         int vc = n == 0 ? Theme.INK : r.signed() ? (n > 0) != r.lessBetter() ? Theme.GOOD : Theme.BAD : n < 0 ? Theme.BAD : Theme.INK;
-        ink(g, av, vx, y, vc);
-        // the label after its element's glyph (or health's heart), in that colour
+        Type.BODY.draw(g, font, av, vx, y, vc);
+        // the label after its element's glyph (or health's heart), the glyph in that colour
         int lx = x;
         if (r.mark() > 0) {
-            Art.icon(g, ICON[r.mark()], lx, y, 8, TINT[r.mark()]);
-            lx += 10;
+            Art.icon(g, ICON[r.mark()], lx, Type.BODY.onCaps(y, 8), 8, TINT[r.mark()]);
+            lx += 8 + Theme.SP_2;
         }
-        String label = fit(r.text(), vx - lx - 6);
-        if (r.mark() > 0) {
-            ink(g, label, lx, y, TINT[r.mark()]);
-        } else {
-            ink(g, label, lx, y, Theme.INK);
-        }
-        // the leader between them, a dot every 3px
-        for (int dx = lx + width(label, false) + 3; dx < vx - 3; dx += 3) {
-            g.fill(dx, y + 7, dx + 1, y + 8, Theme.LINE);
-        }
+        Type.BODY.draw(g, font, Type.BODY.fit(font, r.text(), vx - lx - Theme.SP_3), lx, y, Theme.INK);
         if (y >= top && y + rowH <= bottom && !picker.open()) {
             List<Component> tip = new ArrayList<>();
             tip.add(Component.literal(r.text()).withStyle(ChatFormatting.WHITE));
@@ -394,7 +420,7 @@ final class HomeStats extends HomePart {
                 tip.add(L.c("wynnlabs.stats.tip_diff", (d > 0 ? "+" : "") + format(d, r.kind(), false))
                         .withStyle(d == 0 ? ChatFormatting.GRAY : (r.lessBetter() ? d < 0 : d > 0) ? ChatFormatting.GREEN : ChatFormatting.RED));
             }
-            host.area(x, y - 1, w, rowH, null, tip, null);
+            host.area(x, y, w, rowH, null, tip, null);
         }
     }
 

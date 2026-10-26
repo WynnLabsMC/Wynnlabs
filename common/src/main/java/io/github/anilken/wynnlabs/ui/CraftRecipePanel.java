@@ -100,7 +100,7 @@ final class CraftRecipePanel extends CraftPanel {
                 starIcons(g, sx + 4, yy + 3, t, on ? 0xFF7A4A00 : STAR);
                 String c = String.valueOf(have);
                 boolean shortOf = have < mat.amount();
-                int col = on ? (shortOf ? Theme.BAD : Theme.INK) : (shortOf ? 0xFFFFB0A0 : Theme.CREAM);
+                int col = on ? (shortOf ? Theme.BAD : Theme.INK) : (shortOf ? Theme.BAD : Theme.INK_2);
                 text(g, c, sx + segW - 3 - width(c), yy + 2, col);
                 int tier = t;
                 clipped(sx, yy, segW, ROW_H, () -> {
@@ -363,12 +363,12 @@ final class CraftRecipePanel extends CraftPanel {
 
     private static void dashed(GuiGraphics g, int x, int y, int w, int h, int c) {
         for (int i = 0; i < w; i += 4) {
-            g.fill(x + i, y, x + Math.min(w, i + 2), y + 1, c);
-            g.fill(x + i, y + h - 1, x + Math.min(w, i + 2), y + h, c);
+            Kit.hair(g, x + i, y, Math.min(w, i + 2) - i, 1, c);
+            Kit.hair(g, x + i, y + h - 1, Math.min(w, i + 2) - i, 1, c);
         }
         for (int i = 0; i < h; i += 4) {
-            g.fill(x, y + i, x + 1, y + Math.min(h, i + 2), c);
-            g.fill(x + w - 1, y + i, x + w, y + Math.min(h, i + 2), c);
+            Kit.hair(g, x, y + i, 1, Math.min(h, i + 2) - i, c);
+            Kit.hair(g, x + w - 1, y + i, 1, Math.min(h, i + 2) - i, c);
         }
     }
 }

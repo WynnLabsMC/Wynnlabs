@@ -17,7 +17,7 @@ import java.util.List;
  * DPS, attack speed and one hit), each spell (its mana cost after Intelligence and the cost IDs,
  * and its damage per cast), the lasting spells, each summon and area of the tree (its DPS, one
  * hit times how many), the heals in green, and the ultimates last, greyed, as they are not in the
- * totals. Worded as WynnBuilder is, in English in every language. With a build
+ * totals. Worded as WynnBuilder is (in the mod's language). With a build
  * to compare ({@link StatsSource}), each number has its change beside it, green when better. Only
  * reads.
  */
@@ -39,9 +39,8 @@ final class HomeSpells extends HomePart {
     private static final int GOLD = 0xFF9A5A00;
     private static final int HEAL = Theme.GOOD;
 
-    /** The space between cards, and inside a card above its first line and below its last. */
-    private static final int GAP = 4;
-    private static final int PAD = 5;
+    /** The space between two sources' blocks. */
+    private static final int GAP = Theme.SP_4;
 
     private final StatsSource source;
     private final ScrollBar bar = new ScrollBar();
@@ -194,31 +193,43 @@ final class HomeSpells extends HomePart {
         return 0;
     }
 
+    /** The column's heading: the icon, the title, a hairline under them; returns the y under it. */
+    int heading(GuiGraphics g, int x, int y, int w) {
+        Art.icon(g, "wand", x, Type.LABEL.onCaps(y, 8), 8, Theme.INK_2);
+        Type.LABEL.draw(g, font, Type.LABEL.fit(font, L.t("wynnlabs.spells.title"), w - 8 - Theme.SP_2), x + 8 + Theme.SP_2, y);
+        int ry = y + Type.LABEL.lineHeight + Theme.SP_2;
+        Kit.hair(g, x, ry, w, 1, Theme.LINE);
+        return ry + 1 + Theme.SP_4;
+    }
+
     void draw(GuiGraphics g, HomeTab.Host host, int x, int y, int w, int h, boolean large, int mx, int my) {
+        draw(g, host, x, y, w, h, large, true, mx, my);
+    }
+
+    /**
+     * The spells under their heading, no frame: per source its name (the mana cost at the right),
+     * then its numbers as rows, the label on the left and the value right-aligned; {@code headed}
+     * false when a tab above already names the column.
+     */
+    void draw(GuiGraphics g, HomeTab.Host host, int x, int y, int w, int h, boolean large, boolean headed, int mx, int my) {
         frame(UiFont.get(), large);
-        card(g, x, y, w, h, 0, false);
-        int ix = x + 5;
-        int iw = w - 10;
-        Art.icon(g, "wand", ix, y + 6, 8, Theme.INK_2);
-        ink(g, Component.literal(fit(L.t("wynnlabs.spells.title"), iw - 11, true)).withStyle(UiFont::bold), ix + 11, y + 6, Theme.INK_2);
+        int top = headed ? heading(g, x, y, w) : y;
         listRect = null;
         StatsSource.Shown shown = source.shown();
         List<Entry> now = entries(shown.now());
         if (now.isEmpty()) {
-            lines(g, L.t("wynnlabs.spells.none"), ix, y + 20, iw, y + h - 4, Theme.INK_3);
+            Type.MUTED.drawWrapped(g, font, L.t("wynnlabs.spells.none"), x, top, w, 3, Theme.INK_3);
             return;
         }
         List<Entry> other = entries(shown.other());
-        int top = y + 18;
-        int bottom = y + h - 4;
-        lineH = font.lineHeight + 2;
+        int bottom = y + h;
         int contentH = 0;
         tops = new int[now.size()];
         for (int i = 0; i < now.size(); i++) {
             tops[i] = contentH;
             contentH += height(now.get(i)) + GAP;
         }
-        // the furthest scroll: the first card top from which the rest fits
+        // the furthest scroll: the first block top from which the rest fits
         int view = bottom - top;
         scrollMax = 0;
         for (int t : tops) {
@@ -232,14 +243,13 @@ final class HomeSpells extends HomePart {
         }
         scroll = snap(Math.min(scroll, scrollMax));
         listRect = new int[] {x, top, w, view};
-        bar.place(x + w - ScrollBar.W - 1, top, view, view, contentH - GAP, scroll);
-        int cw = bar.shown() ? iw - ScrollBar.W - 2 : iw;
-        g.enableScissor(x, top, x + w, bottom);
+        bar.place(x + w + Theme.SP_1, top, view, view, contentH - GAP, scroll);
+        g.enableScissor(x - 1, top, x + w + Theme.SP_1, bottom);
         int cy = top - scroll;
         for (Entry e : now) {
             int eh = height(e);
             if (cy >= top && cy < bottom) {
-                drawEntry(g, host, e, find(other, e), shown.flipped(), ix, cy, cw, top, bottom);
+                drawEntry(g, host, e, find(other, e), shown.flipped(), x, cy, w, top, bottom);
             }
             cy += eh + GAP;
         }
@@ -247,9 +257,9 @@ final class HomeSpells extends HomePart {
         bar.drawSlim(g, mx, my);
     }
 
-    /** A card's height from its lines (the title and each number), with the padding above and below. */
+    /** A source's height: its name, then a row per number. */
     private int height(Entry e) {
-        return 2 * PAD + (1 + e.lines().size()) * lineH - 1;
+        return Type.LABEL.lineHeight + e.lines().size() * Type.BODY.lineHeight;
     }
 
     private static Entry find(List<Entry> list, Entry e) {
@@ -262,7 +272,7 @@ final class HomeSpells extends HomePart {
     }
 
     /**
-     * The compared card's line for {@code l}: the one with its label, so a spell with parts on one
+     * The compared source's line for {@code l}: the one with its label, so a spell with parts on one
      * side and Per Cast on the other, or a heal per cast against one a second, compares nothing
      * rather than another line. Null when it has none.
      */
@@ -279,39 +289,35 @@ final class HomeSpells extends HomePart {
     }
 
     /**
-     * One card, as WynnBuilder lays its spells out, every line centred: the name in bold with the
-     * mana cost in brackets ("Totem (12 ◆)", the cost's change after it), then "Label: value" lines,
-     * the value in gold (heals green) with its change in green or red.
+     * One source: its name in bold with the mana cost at the row's end (a drop, the cost, its
+     * change), then its rows: the label on the left, the value right-aligned in gold (heals green)
+     * with its change after it in green or red.
      */
     private void drawEntry(GuiGraphics g, HomeTab.Host host, Entry e, Entry o, boolean flipped, int x, int y, int w, int top,
             int bottom) {
         int h = height(e);
-        Kit.card(g, x, y, w, h, 0);
-        int cx = x + w / 2;
-        int ly = y + PAD;
-        List<Object[]> title = new ArrayList<>();
-        title.add(new Object[] {e.title(), e.grey() ? Theme.INK_3 : Theme.INK, true});
+        int right = x + w;
         if (e.cost() > 0) {
-            title.add(new Object[] {" (" + HomeStats.format(e.cost(), 0, false), WATER, false});
-            title.add(new Object[] {"@droplet", WATER, false});
-            title.add(new Object[] {")", WATER, false});
+            String cost = HomeStats.format(e.cost(), 0, false);
             long d = o == null ? 0 : change(e.cost(), o.cost(), flipped);
-            if (d != 0) {
-                title.add(new Object[] {" (" + (d > 0 ? "+" : "") + HomeStats.format(d, 0, false) + ")", Theme.INK_3, false});
-            }
+            String dv = d == 0 ? "" : " (" + (d > 0 ? "+" : "") + HomeStats.format(d, 0, false) + ")";
+            int cw = Type.META.width(font, cost + dv);
+            Type.META.draw(g, font, cost + dv, right - cw, Type.META.yIn(y, Type.LABEL.lineHeight), WATER);
+            Art.icon(g, "droplet", right - cw - Theme.SP_1 - 7, Type.LABEL.onCaps(y, 7), 7, WATER);
+            right -= cw + Theme.SP_1 + 7 + Theme.SP_3;
         }
-        centre(g, title, cx, ly, w - 6);
-        for (int i = 0; i < e.lines().size(); i++) {
-            ly += lineH;
-            Line l = e.lines().get(i);
+        Type.LABEL.draw(g, font, Type.LABEL.fit(font, e.title(), right - x), x, y, e.grey() ? Theme.INK_3 : Theme.INK);
+        int ly = y + Type.LABEL.lineHeight;
+        for (Line l : e.lines()) {
             Line ol = counterpart(o, l);
-            numberLine(g, l, ol == null || l.text() != null ? Double.NaN : ol.value(), flipped, e.grey(), cx, ly, w - 6);
+            numberLine(g, l, ol == null || l.text() != null ? Double.NaN : ol.value(), flipped, e.grey(), x + Theme.SP_2, ly,
+                    w - Theme.SP_2);
+            ly += Type.BODY.lineHeight;
         }
         if (y >= top && y + h <= bottom) {
             List<Component> tip = new ArrayList<>();
             tip.add(Component.literal(e.title()).withStyle(ChatFormatting.WHITE));
-            for (int i = 0; i < e.lines().size(); i++) {
-                Line l = e.lines().get(i);
+            for (Line l : e.lines()) {
                 if (l.text() != null) {
                     tip.add(Component.literal(l.label() + ": " + l.text()).withStyle(ChatFormatting.GOLD));
                     continue;
@@ -343,66 +349,28 @@ final class HomeSpells extends HomePart {
         return flipped ? Math.round(v) - Math.round(other) : Math.round(other) - Math.round(v);
     }
 
-    /** "Label: value" centred, its change after it; shortened to "12.3k" only when it would not fit. */
-    private void numberLine(GuiGraphics g, Line l, double other, boolean flipped, boolean grey, int cx, int y, int room) {
+    /** A number's row: its label on the left, the value right-aligned with its change after it; "12.3k" only when it would not fit. */
+    private void numberLine(GuiGraphics g, Line l, double other, boolean flipped, boolean grey, int x, int y, int w) {
         if (l.text() == null && Double.isNaN(l.value())) {
             // a note line ("Ultimate · while active"): the label alone
-            List<Object[]> note = new ArrayList<>();
-            note.add(new Object[] {l.label(), l.colour(), false});
-            centre(g, note, cx, y, room);
+            Type.MUTED.draw(g, font, Type.MUTED.fit(font, l.label(), w), x, y, l.colour());
             return;
         }
         long d = change(l.value(), other, flipped);
         for (boolean shortBig : new boolean[] {false, true}) {
-            List<Object[]> segs = new ArrayList<>();
-            segs.add(new Object[] {l.label() + ": ", grey ? Theme.INK_3 : Theme.INK, false});
             String v = l.text() != null ? l.text() : HomeStats.format(l.value(), 0, shortBig) + l.suffix();
-            segs.add(new Object[] {v, l.colour(), false});
-            if (d != 0) {
-                // WynnBuilder's way: the change in brackets after the value
-                segs.add(new Object[] {" (" + (d > 0 ? "+" : "") + HomeStats.format(d, 0, shortBig) + ")", d > 0 ? Theme.GOOD : Theme.BAD, false});
+            String dv = d == 0 ? "" : " (" + (d > 0 ? "+" : "") + HomeStats.format(d, 0, shortBig) + ")";
+            int vw = Type.BODY.width(font, v) + (dv.isEmpty() ? 0 : Type.META.width(font, dv));
+            if (!shortBig && vw > w / 2) {
+                continue;
             }
-            if (shortBig || widthOf(segs) <= room) {
-                centre(g, segs, cx, y, room);
-                return;
+            int vx = x + w - vw;
+            Type.BODY.draw(g, font, v, vx, y, grey ? Theme.INK_3 : l.colour());
+            if (!dv.isEmpty()) {
+                Type.META.draw(g, font, dv, vx + Type.BODY.width(font, v), y + 1, d > 0 ? Theme.GOOD : Theme.BAD);
             }
-        }
-    }
-
-    /** The width of a line's parts: text (bold when asked) and "@icon" sprites, 8px and a space. */
-    private int widthOf(List<Object[]> segs) {
-        int w = 0;
-        for (Object[] s : segs) {
-            String t = (String) s[0];
-            w += t.startsWith("@") ? 9 : width(t, (Boolean) s[2]);
-        }
-        return w;
-    }
-
-    /** A line's parts centred on {@code cx}; the first part is cut with "…" when the line is too wide. */
-    private void centre(GuiGraphics g, List<Object[]> segs, int cx, int y, int room) {
-        int total = widthOf(segs);
-        if (total > room) {
-            Object[] first = segs.get(0);
-            int rest = total - width((String) first[0], (Boolean) first[2]);
-            segs.set(0, new Object[] {fit((String) first[0], Math.max(10, room - rest), (Boolean) first[2]), first[1], first[2]});
-            total = widthOf(segs);
-        }
-        int x = cx - total / 2;
-        for (Object[] s : segs) {
-            String t = (String) s[0];
-            int colour = (Integer) s[1];
-            if (t.startsWith("@")) {
-                // a pixel before it, none after, centred on the text's height
-                Art.icon(g, t.substring(1), x + 1, y + Math.max(0, (font.lineHeight - 9) / 2), 8, colour);
-                x += 9;
-            } else if ((Boolean) s[2]) {
-                ink(g, Component.literal(t).withStyle(UiFont::bold), x, y, colour);
-                x += width(t, true);
-            } else {
-                ink(g, t, x, y, colour);
-                x += width(t, false);
-            }
+            Type.MUTED.draw(g, font, Type.MUTED.fit(font, l.label(), vx - Theme.SP_3 - x), x, y, grey ? Theme.INK_3 : Theme.INK_2);
+            return;
         }
     }
 }

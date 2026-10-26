@@ -14,6 +14,15 @@ public final class Theme {
 
     private Theme() {}
 
+    // spacing, in logical px: every padding, gap and margin is one of these steps
+    static final int SP_1 = 2;                      // a mark and its text, a hairline's air
+    static final int SP_2 = 4;                      // within a row, the gap between chips
+    static final int SP_3 = 6;                      // between rows of a list
+    static final int SP_4 = 8;                      // a card's padding, a pane's gutter
+    static final int SP_5 = 12;                     // between blocks of one section
+    static final int SP_6 = 16;                     // between sections, a window's inset
+    static final int SP_7 = 24;                     // between columns of a page
+
     // parchment
     public static final int PAPER = 0xFFD8C595;
     static final int PAPER_DEEP = 0xFFC4AD78;       // the page's darkened rim

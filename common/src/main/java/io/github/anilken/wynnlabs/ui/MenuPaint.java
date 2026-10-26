@@ -122,7 +122,7 @@ class MenuPaint {
 
     /** Text on a wooden button or chip: cream with the game's shadow, ink on gold. */
     void onWood(GuiGraphics g, String s, int x, int y, int state) {
-        g.drawString(font(), s, x, y, Kit.buttonText(state), state != Kit.ON);
+        g.drawString(font(), s, x, y, Kit.buttonText(state), false);
     }
 
     void scaledText(GuiGraphics g, Component c, int x, int y, float s, int colour) {
@@ -157,25 +157,44 @@ class MenuPaint {
         badge(g, tab, x, y, size, 0);
     }
 
+    /** A tab's icon: the rail's, a section chip's. */
+    static String iconOf(int tab) {
+        return switch (tab) {
+            case 0 -> "home";
+            case 1 -> "sun";
+            case 2 -> "map-2";
+            case 3 -> "skull";
+            case RoadmapScreen.TAB_BANK -> "building-bank";
+            case RoadmapScreen.TAB_AI -> "sparkles";
+            case RoadmapScreen.TAB_DAMAGE -> "sword";
+            case RoadmapScreen.TAB_DISCOVERIES -> "compass";
+            case RoadmapScreen.TAB_TREE -> "hierarchy";
+            case RoadmapScreen.TAB_CRAFT -> "hammer";
+            case RoadmapScreen.TAB_ENDGAME -> "trophy";
+            case RoadmapScreen.TAB_SEARCH -> "search";
+            default -> "settings";
+        };
+    }
+
     /** {@code ink} not 0: no tile, the icon alone straight on paper in that one ink colour. */
     void badge(GuiGraphics g, int tab, int x, int y, int size, int ink) {
-        String icon;
+        String icon = iconOf(tab);
         int bg;
         int fg;
         switch (tab) {
-            case 0 -> { icon = "home"; bg = 0xFF26233A; fg = 0xFFAFA9EC; }
-            case 1 -> { icon = "sun"; bg = 0xFF3A2A12; fg = 0xFFFAC775; }
-            case 2 -> { icon = "map-2"; bg = 0xFF12273A; fg = 0xFF85B7EB; }
-            case 3 -> { icon = "skull"; bg = 0xFF3A1616; fg = 0xFFF09595; }
-            case RoadmapScreen.TAB_BANK -> { icon = "building-bank"; bg = 0xFF0F2A22; fg = 0xFF5DCAA5; }
-            case RoadmapScreen.TAB_AI -> { icon = "sparkles"; bg = 0xFF12303A; fg = 0xFF7FD4E8; }
-            case RoadmapScreen.TAB_DAMAGE -> { icon = "sword"; bg = 0xFF3A2414; fg = 0xFFF0B27A; }
-            case RoadmapScreen.TAB_DISCOVERIES -> { icon = "compass"; bg = 0xFF2A1F3A; fg = 0xFFC9A7F0; }
-            case RoadmapScreen.TAB_TREE -> { icon = "hierarchy"; bg = 0xFF1E3220; fg = 0xFF9FDC8A; }
-            case RoadmapScreen.TAB_CRAFT -> { icon = "hammer"; bg = 0xFF3A2E14; fg = 0xFFE8C07A; }
-            case RoadmapScreen.TAB_ENDGAME -> { icon = "trophy"; bg = 0xFF40280C; fg = 0xFFFFD36B; }
-            case RoadmapScreen.TAB_SEARCH -> { icon = "search"; bg = 0xFF2E2414; fg = 0xFFF2D59A; }
-            default -> { icon = "settings"; bg = 0xFF24242E; fg = 0xFFB4B2A9; }
+            case 0 -> { bg = 0xFF26233A; fg = 0xFFAFA9EC; }
+            case 1 -> { bg = 0xFF3A2A12; fg = 0xFFFAC775; }
+            case 2 -> { bg = 0xFF12273A; fg = 0xFF85B7EB; }
+            case 3 -> { bg = 0xFF3A1616; fg = 0xFFF09595; }
+            case RoadmapScreen.TAB_BANK -> { bg = 0xFF0F2A22; fg = 0xFF5DCAA5; }
+            case RoadmapScreen.TAB_AI -> { bg = 0xFF12303A; fg = 0xFF7FD4E8; }
+            case RoadmapScreen.TAB_DAMAGE -> { bg = 0xFF3A2414; fg = 0xFFF0B27A; }
+            case RoadmapScreen.TAB_DISCOVERIES -> { bg = 0xFF2A1F3A; fg = 0xFFC9A7F0; }
+            case RoadmapScreen.TAB_TREE -> { bg = 0xFF1E3220; fg = 0xFF9FDC8A; }
+            case RoadmapScreen.TAB_CRAFT -> { bg = 0xFF3A2E14; fg = 0xFFE8C07A; }
+            case RoadmapScreen.TAB_ENDGAME -> { bg = 0xFF40280C; fg = 0xFFFFD36B; }
+            case RoadmapScreen.TAB_SEARCH -> { bg = 0xFF2E2414; fg = 0xFFF2D59A; }
+            default -> { bg = 0xFF24242E; fg = 0xFFB4B2A9; }
         }
         if (ink != 0) {
             Art.icon(g, icon, x, y, size, ink);

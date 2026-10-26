@@ -47,7 +47,7 @@ public class BoxPreview implements FabricClientGameTest {
             world.getClientWorld().waitForChunksRender();
             Files.createDirectories(out);
             SearchPreview.loadIndex();
-            ctx.getInput().resizeWindow(1920, 1080);
+            ctx.getInput().resizeWindow(PreviewSize.WIDTH, PreviewSize.HEIGHT);
             ctx.runOnClient(mc -> {
                 mc.options.guiScale().set(3);
                 mc.resizeDisplay();

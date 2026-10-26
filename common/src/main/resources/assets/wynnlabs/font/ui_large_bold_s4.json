@@ -11,6 +11,16 @@
       ]
     },
     {
+      "type": "ttf",
+      "file": "wynnlabs:symbols.ttf",
+      "size": 11.5,
+      "oversample": 4,
+      "shift": [
+        0,
+        2
+      ]
+    },
+    {
       "type": "reference",
       "id": "minecraft:default"
     }

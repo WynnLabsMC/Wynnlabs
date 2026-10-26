@@ -580,6 +580,18 @@ public final class QuestWiki {
         return out;
     }
 
+    /** The first place a line names ("x, y, z" that can be one), or null. */
+    public static int[] placeIn(String line) {
+        Matcher m = LOOSE.matcher(line);
+        while (m.find()) {
+            int[] at = {Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3))};
+            if (at[1] >= -64 && at[1] <= 320 && Math.abs(at[0]) + Math.abs(at[2]) >= 100) {
+                return at;
+            }
+        }
+        return null;
+    }
+
     private static void add(List<Place> out, Place p) {
         // only within a stage: a later stage back at an earlier place (the quest giver at the end)
         // is a step of its own, else it shows as done with the first visit
@@ -593,10 +605,40 @@ public final class QuestWiki {
 
     /** A guide line as shown: without the wiki's leftovers (a spoiler's "|How to open the door}}"). */
     public static String shown(String line) {
-        // a spoiler's closing "|Magic of Nature Puzzle|60|Spoiler alert: …}}" wherever it sits in the line
-        String s = line.replaceAll("\\s*\\|[^{}]*?}}", " ").replaceAll("\\{\\{[^{}]*}}", "")
-                .replaceAll("\\s{2,}", " ").trim();
+        String s = tidy(line);
         return s.isEmpty() ? line : s;
+    }
+
+    /** The wiki's "[X, Y, Z]" placeholder with the words that only point at it ("at", "noktasında"). */
+    private static final Pattern XYZ_HOLDER = Pattern.compile(
+            "(?i)(?:\\s+(?:at|in|near))?\\s*\\[X, Y, Z]\\s*(?:(?:noktasında(?:ki)?|noktasına|konumunda(?:ki)?|konumuna)\\s+)?");
+
+    /**
+     * A guide line without the wiki's leftovers; empty when nothing but leftovers. Goes: an image
+     * ("200x150px|thumb|caption" to the line's end), a spoiler's closing "|Magic of Nature
+     * Puzzle|60|Spoiler alert: …}}" or "|Water Puzzle|60", a colour's "c|var(--…)|", templates,
+     * a lone "left|thumb". A game placeholder keeps its word ("{weapon}" → "weapon"), a count's
+     * brackets go ("[1 {Ingredient}]" → "1 Ingredient"), so does "[X, Y, Z]" and a "[" left
+     * unclosed. Fancy letters (𝕄, glitch marks) become plain ones.
+     */
+    public static String tidy(String line) {
+        String plain = java.text.Normalizer.normalize(line, java.text.Normalizer.Form.NFKC).replaceAll("\\p{Mn}+", "");
+        String s = plain.replaceAll("\\s*\\d+(?:x\\d+)?px\\|.*$", "")
+                .replaceAll("\\s*\\|[^{}]*?}}", " ")
+                .replaceAll("\\{\\{[^{}]*}}", "")
+                .replaceAll("\\|[^|]+\\|\\d+(?:\\|.*)?$", "")
+                .replaceAll("^c\\|[^|]*\\|", "")
+                .replaceAll("\\{([^{}]*)}", "$1")
+                .replace("{{", "").replace("}}", "")
+                .replace(" | ", " → ")
+                .replaceAll("\\[(\\d+) ([^\\[\\]|]+)]", "$1 $2")
+                .replaceAll("\\[(?![^\\[]*])", "")
+                .replaceAll("\\s{2,}", " ").trim();
+        s = XYZ_HOLDER.matcher(s).replaceAll(" ").replaceAll("\\s{2,}", " ").trim();
+        if (s.matches("(?:\\d+(?:x\\d+)?px\\s*)+") || s.indexOf('|') >= 0 && s.indexOf(' ') < 0) {
+            return "";
+        }
+        return s;
     }
 
     /** A stage's hover: its task and its hints (no dialogue), wrapped, and whether lines were left out. */
@@ -614,13 +656,8 @@ public final class QuestWiki {
         List<String> task = st.task().isBlank() ? List.of() : Advice.wrap(shown(st.task()), width);
         List<String> hints = new ArrayList<>();
         boolean more = false;
-        for (int j = 0; j < st.hints().size(); j++) {
-            String en = english != null && j < english.hints().size() ? english.hints().get(j) : st.hints().get(j);
-            String h = shown(st.hints().get(j));
-            if (SPEAKER.matcher(en).find() || h.isBlank()) {
-                continue;
-            }
-            List<String> wrapped = Advice.wrap(h, width);
+        for (int j : shownHints(st, english)) {
+            List<String> wrapped = Advice.wrap(shown(st.hints().get(j)), width);
             if (task.size() + hints.size() + wrapped.size() > maxLines) {
                 more = true;
                 break;
@@ -628,6 +665,102 @@ public final class QuestWiki {
             hints.addAll(wrapped);
         }
         return new Tip(task, hints, more);
+    }
+
+    /**
+     * The hints a guide shows, by index: no NPC dialogue (told by the English stage's hints, as
+     * the Turkish speaker names vary) and no branch heading ("Mechanic Outfit =", "If you talk to
+     * Ava first:") left with nothing under it once the dialogue is gone. A heading that only opens
+     * a dialogue ("If Ava is with you, this plays:") right under another heading gives way to it:
+     * what follows the dialogue belongs to the heading before.
+     */
+    public static List<Integer> shownHints(Stage st, Stage english) {
+        List<Integer> kept = new ArrayList<>();
+        int n = st.hints().size();
+        int next = 0;                                 // the rank of the line after, kept; the end ranks lowest, content highest
+        for (int j = n - 1; j >= 0; j--) {
+            String en = englishHint(st, english, j);
+            String h = tidy(st.hints().get(j));
+            if (dialogue(en) || h.isEmpty()) {
+                continue;
+            }
+            int rank = rank(h, en);
+            if (rank == 3 && j > 0 && j + 1 < n && dialogue(englishHint(st, english, j + 1))
+                    && rank(tidy(st.hints().get(j - 1)), englishHint(st, english, j - 1)) == 3) {
+                continue;
+            }
+            if (rank != Integer.MAX_VALUE && next <= rank) {
+                continue;
+            }
+            kept.add(0, j);
+            next = rank;
+        }
+        return kept;
+    }
+
+    /** Hint {@code j} in English, or the guide's own when there is none. */
+    static String englishHint(Stage st, Stage english, int j) {
+        return english != null && j < english.hints().size() ? english.hints().get(j) : st.hints().get(j);
+    }
+
+    /** "Cargo: 2027, 74, -4631": a place with its name, not someone speaking. */
+    private static final Pattern NAMED_PLACE = Pattern.compile("^[^:]{1,40}:\\s*\\(?-?\\d{1,5},\\s*-?\\d{1,3},\\s*-?\\d{1,5}\\)?\\.?$");
+
+    /** An NPC's line (by its English text): "Name: …", but not a named place or "Used for: Brie". */
+    static boolean dialogue(String en) {
+        return SPEAKER.matcher(en).find() && !NAMED_PLACE.matcher(en.trim()).matches() && !en.startsWith("Used for:");
+    }
+
+    /** A heading's rank: an outfit/path "… =" 1, a part "▸ …" 2, a choice 3; other lines rank highest. */
+    private static int rank(String h, String en) {
+        return h.endsWith("=") ? 1 : h.startsWith("▸ ") ? 2 : choice(h, en) || QUOTED_IF.matcher(en).matches() ? 3 : Integer.MAX_VALUE;
+    }
+
+    /** "If you got two letters somehow and go alone", quoted: the wiki's dialogue heading in quotes. */
+    static final Pattern QUOTED_IF = Pattern.compile("^\"(?:If|When) .*\"$");
+    private static final Pattern IF_EN = Pattern.compile("^(?:If|When|Once|Should|After|Before) ");
+    /** A Turkish condition at a heading's end: "…bakarsan:", "…varsa:", "…konuşunca:", "…yıkadıktan sonra:". */
+    private static final Pattern IF_TR = Pattern.compile("(?:sa|se|san|sen|ken|[ıiuü]nca|[ıiuü]nce|sonra|önce)\\s*:$");
+
+    /**
+     * A line ending in ":" that opens a choice: a short one of one sentence, or one that reads as a
+     * condition ("If …", "…ersen"). A long line ending in ":" leads into the list under it instead.
+     */
+    public static boolean choice(String h, String en) {
+        if (!h.endsWith(":")) {
+            return false;
+        }
+        return h.length() <= 70 && !h.contains(". ") || condition(h, en);
+    }
+
+    /** A heading that reads as a condition: "If …", "After …", "…bakarsan:", "…yıkadıktan sonra:". */
+    public static boolean condition(String h, String en) {
+        return h.endsWith(":") && (en != null && IF_EN.matcher(en).find() || IF_TR.matcher(h).find());
+    }
+
+    /**
+     * A stage's name in a list: its task's first sentence without coordinates, or for a stage
+     * with no task the first line its guide shows; the stage's title when there is neither.
+     */
+    public static String listLabel(Stage st, Stage english) {
+        String task = tidy(st.task());
+        if (!task.isBlank()) {
+            String first = task.split("(?<=[.!?])\\s+")[0];
+            String s = placeText(first);
+            return s.isEmpty() ? task : L.cap(s);
+        }
+        for (int j : shownHints(st, english)) {
+            String h = tidy(st.hints().get(j));
+            if (!h.endsWith("=")) {
+                return h.replaceFirst("^▸ ", "").replaceAll("\\s*:$", "");
+            }
+        }
+        return stageTitle(st.title());
+    }
+
+    /** A task as the guide shows it: cleaned, and a closing ":" (it introduced a list on the wiki) made a full stop. */
+    public static String taskText(String task) {
+        return shown(task).replaceAll("\\s*:$", ".");
     }
 
     /** The English stages behind a guide (the guide's own when it is English). */

@@ -45,6 +45,11 @@ public final class QuestGuides {
         return english().values();
     }
 
+    /** Every shipped guide with its Turkish stages (tests read them all). */
+    static java.util.Collection<Guide> allTurkish() {
+        return turkish().values();
+    }
+
     /**
      * A quest's name as the player reads it: in Turkish the name the game shows with the
      * WynnChaYuan translation (tr.json's "name"), else the English one. Lookups stay English.

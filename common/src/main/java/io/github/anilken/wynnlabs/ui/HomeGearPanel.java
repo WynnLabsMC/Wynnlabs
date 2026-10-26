@@ -24,8 +24,8 @@ import static io.github.anilken.wynnlabs.ui.HomeTab.dots;
  */
 final class HomeGearPanel extends HomePart {
 
-    /** The panel's padding inside its card, the same on every side. */
-    private static final int PAD = 6;
+    /** The panel's inset: none, the columns have no frames (their headings and hairlines part them). */
+    private static final int PAD = 0;
     /**
      * The name zone beside each slot column: at least this share (in percent) of the room between
      * the two columns, at least {@link #PILL_ZONE}, and at most {@link #ZONE_CAP} (the large menu
@@ -41,7 +41,8 @@ final class HomeGearPanel extends HomePart {
     private static final int PLAN_ROW = 18;
 
     /** The out-of-date strip's height with its gap under it. */
-    private static final int STRIP_H = 17;
+    /** The out-of-date notice's room: one line, then the SP_4 gap before the rows. */
+    private static final int STRIP_H = Ui.noticeHeight(1) + Theme.SP_4;
 
     private final HomeTab tab;
     final HomeSlots slots;
@@ -55,20 +56,21 @@ final class HomeGearPanel extends HomePart {
 
     void panel(GuiGraphics g, In in, Host host, int x, int y, int w, int h, boolean compact, boolean large,
             int mx, int my) {
-        card(g, x, y, w, h, 0, false);
         if (DevHooks.ON) {
             DevHooks.part("gear", g.pose(), x, y, w, h);
         }
         // the title line: the name, the refresh button, the level buttons on the right, PAD in from both edges
-        Component title = Component.literal(L.t("wynnlabs.homev.gear")).withStyle(UiFont::bold);
-        int ty = y + PAD + 1;
-        Art.icon(g, "hanger", x + PAD, ty, 8, Theme.INK_2);
+        String title = L.t("wynnlabs.homev.gear");
+        // the buttons' row is a chip tall; the heading's text centred in it, the level pills on line ty
+        int ty = Type.LABEL.yIn(y, Ui.CHIP_H);
+        Art.icon(g, "hanger", x, Type.LABEL.onCaps(ty, 8), 8, Theme.INK_2);
         // compact: the hanger alone, so the buttons, the level pills and a Plan pill keep their room
         boolean named = !compact;
         if (named) {
-            Kit.text(g, font, title, x + PAD + 11, ty, Theme.INK);
+            Type.LABEL.draw(g, font, title, x + 8 + Theme.SP_2, ty);
         }
-        int tx = x + PAD + 11 + (named ? font.width(title) + 5 : 0);
+        int tx = x + 8 + Theme.SP_2 + (named ? Type.LABEL.width(font, title) + Theme.SP_3 : 0);
+        Kit.hair(g, x, y + Ui.CHIP_H + Theme.SP_2, w, 1, Theme.LINE);
         // an out-of-date road map: a strip over the stand where the stand keeps its room, else
         // (compact, or a short panel) an amber badge on the refresh button, its tooltip saying why
         Road early = in.road();
@@ -81,7 +83,7 @@ final class HomeGearPanel extends HomePart {
             staleTip = (early.stale().level() ? L.t("wynnlabs.home.stale_level", early.stale().now()) : L.t("wynnlabs.home.stale_gear"))
                     + (age.isEmpty() ? "" : " · " + age);
         }
-        tx += host.refresh(g, tx, ty - 3, mx, my, staleTip);
+        tx += host.refresh(g, tx, y, mx, my, staleTip);
         // the hanger's drawing starts 1px inside its 8px: the buttons end 1px further in to match
         int right = x + w - PAD - 1;
         int titleRoom = right - tx - 2;
@@ -89,13 +91,13 @@ final class HomeGearPanel extends HomePart {
         // "My builds" and "Choose items" as icons with their counts, left of the level buttons
         int pickW = countW(in.chosen());
         int savedW = countW(in.saved());
-        int pills = host.levelPills(g, ty, right, titleRoom - pickW - savedW - 8);
-        int bx = pills - 4 - pickW;
+        int pills = host.levelPills(g, y + 3, right, titleRoom - pickW - savedW - 8);
+        int bx = pills - Theme.SP_3 - pickW;
         if (bx >= tx) {
-            pickButton(g, host, bx, ty - 3, pickW, in, mx, my);
-            bx -= 3 + savedW;
+            pickButton(g, host, bx, y, pickW, in, mx, my);
+            bx -= Theme.SP_2 + savedW;
             if (bx >= tx) {
-                savedButton(g, host, bx, ty - 3, savedW, in, mx, my);
+                savedButton(g, host, bx, y, savedW, in, mx, my);
             }
         }
         // the title row's free room, where the plan's buttons fold when the panel has no room for their row
@@ -122,7 +124,8 @@ final class HomeGearPanel extends HomePart {
         }
         // the stand's room between the title and the build bar, 4px clear of each
         int barH = compact ? 9 : 20;
-        int top = ty + 11 + 4;
+        // under the heading's hairline: SP_5, or SP_3 in the compact layout so four slots fit a short menu
+        int top = y + Ui.CHIP_H + Theme.SP_2 + 1 + (compact ? Theme.SP_3 : Theme.SP_5);
         Road road = in.road();
         if (road != null && road.none() && in.plan() == null) {
             // no road map yet: an offer to calculate it, or its progress, in the stand's place
@@ -131,11 +134,15 @@ final class HomeGearPanel extends HomePart {
         }
         if (staleNow && stripRoom) {
             // the strip's height comes off the stand's room before the slots, stand and bar are placed
-            bars.staleStrip(g, host, x + PAD + 1, top, w - 2 * PAD - 2, road.stale(), mx, my);
-            top += STRIP_H;
+            top += bars.staleStrip(g, host, x + PAD, top, w - 2 * PAD, road.stale(), mx, my) + Theme.SP_4;
         }
         int bottom = y + h - PAD - barH - 4;
         int areaH = bottom - top;
+        if (large && !compact) {
+            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, planRow(in), mx, my);
+            barLine(g, in, host, x, y, w, h, barH, compact, count, gains);
+            return;
+        }
         int s = large ? 36 : compact ? 18 : 22;
         boolean names = !compact;
         // the rows: tall enough for a pill and two lines of name, else one, else none
@@ -210,6 +217,12 @@ final class HomeGearPanel extends HomePart {
                 bars.planButtons(g, host, in, foldRight - (2 * 16 + 3), ty - 3, 2 * 16 + 3, true, mx, my);
             }
         }
+        barLine(g, in, host, x, y, w, h, barH, compact, count, gains);
+    }
+
+    /** The build bar (or the plan's) along the panel's foot. */
+    private void barLine(GuiGraphics g, In in, Host host, int x, int y, int w, int h, int barH, boolean compact, int count,
+            double gains) {
         // the preview's check: the bar's whole line is one part, which no slot, pill or name may touch
         LayoutCheck.part(g.pose(), x + PAD + 1, y + h - PAD - barH, w - 2 * PAD - 2, barH, "bar", "the build bar");
         if (in.plan() != null) {
@@ -219,9 +232,47 @@ final class HomeGearPanel extends HomePart {
         }
     }
 
+    /** Whether the plan's buttons get their own row under the list. */
+    private static boolean planRow(In in) {
+        return in.plan() != null;
+    }
+
+    /**
+     * The large Home's gear as a list: two columns on one row grid, the armour and the weapon on
+     * the left, the accessories on the right, a hairline between them; each row a slot, its name
+     * and source, and its gain in a fixed column at the row's end. The plan's buttons under it.
+     */
+    private void list(GuiGraphics g, Host host, In in, List<SlotView> armour, SlotView weapon, List<SlotView> trinkets,
+            int x, int top, int w, int bottom, boolean planRow, int mx, int my) {
+        int s = 24;
+        int end = planRow ? bottom - 14 - Theme.SP_4 : bottom;
+        int rh = Math.max(s + Theme.SP_2, Math.min(s + Theme.SP_5, (end - top - s) / 4));
+        int colW = (w - Theme.SP_7) / 2;
+        // a plan's marks are round seals: their column only that wide, the names get the rest
+        int markW = in.plan() != null ? Ui.CHIP_H + 2 : font.width("+142%") + 8;
+        List<SlotView> left = new ArrayList<>(armour);
+        if (weapon != null) {
+            left.add(weapon);
+        }
+        for (int i = 0; i < left.size(); i++) {
+            slots.row(g, host, left.get(i), x, top + i * rh, colW, s, markW);
+        }
+        for (int i = 0; i < trinkets.size(); i++) {
+            slots.row(g, host, trinkets.get(i), x + colW + Theme.SP_7, top + i * rh, colW, s, markW);
+        }
+        Kit.hair(g, x + colW + Theme.SP_7 / 2, top, 1, 4 * rh + s, Theme.LINE);
+        tab.standBox[0] = 0;
+        tab.standBox[1] = 0;
+        tab.standBox[2] = 0;
+        tab.standBox[3] = 0;
+        if (in.plan() != null && planRow) {
+            bars.planButtons(g, host, in, x, bottom - 14, w, false, mx, my);
+        }
+    }
+
     /** An icon button's width with its count beside the icon (none for 0). */
     private int countW(int n) {
-        return n > 0 ? 16 + font.width(String.valueOf(n)) + 2 : 16;
+        return n > 0 ? Ui.iconChipWidth(font, "bookmark", String.valueOf(n), false) : Ui.CHIP_H + 2;
     }
 
     /**
@@ -230,15 +281,12 @@ final class HomeGearPanel extends HomePart {
      * dots instead of the plus while a search runs. Its name and use are in the tooltip.
      */
     private void pickButton(GuiGraphics g, Host host, int x, int y, int w, In in, int mx, int my) {
-        boolean hover = mx >= x && mx < x + w && my >= y && my < y + 14;
-        Kit.primary(g, x, y, w, 14, hover);
+        String count = in.chosen() > 0 ? String.valueOf(in.chosen()) : null;
         if (in.searching()) {
-            dots(g, x + 4, y + 7, Theme.CREAM);
+            Ui.primaryIconChip(g, font, null, count, x, y, w, mx, my);
+            dots(g, x + Theme.SP_3, y + Ui.CHIP_H / 2, Theme.CREAM);
         } else {
-            Art.icon(g, "plus", x + 4, y + 3, 8, Theme.CREAM);
-        }
-        if (in.chosen() > 0) {
-            g.drawString(font, String.valueOf(in.chosen()), x + 13, y + 3, Theme.CREAM, false);
+            Ui.primaryIconChip(g, font, "plus", count, x, y, w, mx, my);
         }
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(in.chosen() > 0 ? L.t("wynnlabs.homev.pick_n", in.chosen()) : L.t("wynnlabs.homev.pick"))
@@ -254,15 +302,9 @@ final class HomeGearPanel extends HomePart {
         host.area(x, y, w, 14, null, tip, "#qpick:");
     }
 
-    /** "My builds" as a wood button with a bookmark and the count of saved builds. */
+    /** "My builds" as an icon chip with a bookmark and the count of saved builds. */
     private void savedButton(GuiGraphics g, Host host, int x, int y, int w, In in, int mx, int my) {
-        boolean hover = mx >= x && mx < x + w && my >= y && my < y + 14;
-        int state = hover ? Kit.HOVER : Kit.REST;
-        Kit.button(g, x, y, w, 14, state);
-        Art.icon(g, "bookmark", x + 4, y + 3, 8, Kit.buttonText(state));
-        if (in.saved() > 0) {
-            g.drawString(font, String.valueOf(in.saved()), x + 13, y + 3, Kit.buttonText(state), false);
-        }
+        Ui.iconChip(g, font, "bookmark", in.saved() > 0 ? String.valueOf(in.saved()) : null, false, x, y, w, false, mx, my);
         host.area(x, y, w, 14, null, List.of(Component.literal(L.t("wynnlabs.homev.saved_n", in.saved())).withStyle(ChatFormatting.WHITE),
                 L.c("wynnlabs.homev.saved_tip").withStyle(ChatFormatting.LIGHT_PURPLE)), "#qsaved:");
     }

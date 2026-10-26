@@ -230,7 +230,7 @@ public final class BoxScreen extends Screen {
         filters(g, in, y + 46, iw, mx, my);
         int top = rolled() ? y + 66 : y + 48;     // no rolls: no filter row, the list right under the chips
         int bottom = y + h - 16;
-        g.fill(in, top - 4, in + iw, top - 3, Theme.LINE);
+        Kit.hair(g, in, top - 4, iw, 1, Theme.LINE);
         if (items.isEmpty()) {
             // Wynntils' gear data is not in yet: say so, keep the fee
             ink(g, fit(L.t("wynnlabs.box.unknown_contents"), iw), in, top + 4, Theme.INK_2);
@@ -389,7 +389,7 @@ public final class BoxScreen extends Screen {
         boolean hover = mx >= x && mx < x + cw && my >= y && my < y + 14;
         int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
         Kit.button(g, x, y, cw, 14, state);
-        g.drawString(font, label, x + 6, y + 3, Kit.buttonText(state), state != Kit.ON);
+        g.drawString(font, label, x + 6, y + 3, Kit.buttonText(state), false);
         hits.add(new Hit(x, y, cw, 14, action));
         return cw;
     }

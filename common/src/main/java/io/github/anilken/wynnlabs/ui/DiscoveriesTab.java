@@ -137,12 +137,12 @@ final class DiscoveriesTab extends MenuTab {
             g.fill(x + 5, ry + 4, x + 20, ry + 19, done ? 0xFF3F7A34 : 0xFF5A4A7A);
             Kit.outline(g, x + 5, ry + 4, 15, 15, 0x55000000);
             String num = done ? "✔" : String.valueOf(i + 1);
-            g.drawString(font(), num, x + 13 - font().width(num) / 2, ry + 8, 0xFFFFFFFF, true);
+            g.drawString(font(), num, x + 13 - font().width(num) / 2, ry + 8, 0xFFFFFFFF, false);
             // the pin button at the row's end: the way to the first place, without opening the guide
             int bx = x + listW - 18;
             boolean pinHover = mx >= bx && mx < bx + 14 && my >= ry + 4 && my < ry + 18;
             Kit.button(g, bx, ry + 4, 14, 14, pinHover ? Kit.ON : Kit.REST);
-            Art.icon(g, "map-pin", bx + 3, ry + 7, 8, pinHover ? Theme.INK : Theme.CREAM);
+            Art.icon(g, "map-pin", bx + 3, ry + 7, 8, Kit.buttonText(pinHover ? Kit.ON : Kit.REST));
             menu.hits.add(new MenuHit(bx, ry + 4, 14, 14, null, List.of(L.c("wynnlabs.discoveries.pin_tip", e.name()).withStyle(ChatFormatting.LIGHT_PURPLE)),
                     "#discpin:0:" + e.id()));
             int textW = listW - 26 - 24;
@@ -251,7 +251,7 @@ final class DiscoveriesTab extends MenuTab {
         }
         menu.hits.add(new MenuHit(ix, iy - Kit.Ui.LINE_DENSE * lore.size(), iw, Kit.Ui.LINE_DENSE * lore.size(), null, loreTip, null));
         iy += 4;
-        g.fill(ix, iy, ix + iw, iy + 1, Theme.LINE);       // a rule between the story and the steps
+        Kit.hair(g, ix, iy, iw, 1, Theme.LINE);       // a rule between the story and the steps
         iy += 6;
         if (guide.newer()) {
             for (net.minecraft.util.FormattedCharSequence l : font().split(L.c("wynnlabs.discoveries.newer"), iw)) {

@@ -618,4 +618,11 @@ public final class BankTab extends MenuTab {
         tip.add(L.c("wynnlabs.bank.click_copy").withStyle(ChatFormatting.DARK_GRAY));
         Vault.setTipExtra(stack, tip);
     }
+
+    /** The rail: how many kinds of items in the bank are worth selling. */
+    @Override
+    MenuRail.Badge badge() {
+        int n = Vault.junk().size();
+        return n == 0 ? null : new MenuRail.Badge(MenuRail.Badge.Kind.GOOD, String.valueOf(n), L.t("wynnlabs.screen.rail_badge_bank", n));
+    }
 }

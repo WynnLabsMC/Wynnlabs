@@ -44,10 +44,8 @@ final class HomeGearBars extends HomePart {
             String s = fit(sub, w);
             Kit.text(g, font, s, cx - font.width(s) / 2, ty + 25, Theme.INK_3);
             int by = ty + 38;
-            boolean hov = mx >= cx - 7 && mx < cx + 7 && my >= by && my < by + 14;
-            Kit.button(g, cx - 7, by, 14, 14, hov ? Kit.HOVER : Kit.REST);
-            Art.icon(g, "x", cx - 4, by + 3, 8, Kit.buttonText(hov ? Kit.HOVER : Kit.REST));
-            host.area(cx - 7, by, 14, 14, null, List.of(L.c("wynnlabs.pick.cancel").withStyle(ChatFormatting.WHITE),
+            Ui.iconButton(g, "x", cx - 8, by, false, mx, my);
+            host.area(cx - 8, by, Ui.CHIP_H + 2, Ui.CHIP_H, null, List.of(L.c("wynnlabs.pick.cancel").withStyle(ChatFormatting.WHITE),
                     L.c("wynnlabs.home.build_cancel_tip").withStyle(ChatFormatting.GRAY)), "#qcancelbuild:");
             return;
         }
@@ -63,16 +61,11 @@ final class HomeGearBars extends HomePart {
         }
         Component t = Component.literal(fit(title, w, true)).withStyle(UiFont::bold);
         Kit.text(g, font, t, cx - font.width(t) / 2, ty, Theme.INK);
-        int bw = Math.min(w, font.width(button) + 23);
+        int bw = Math.min(w, Ui.iconChipWidth(font, "player-play", button, false));
         int bx = cx - bw / 2;
         int by = ty + 13;
-        boolean hov = mx >= bx && mx < bx + bw && my >= by && my < by + 14;
-        Kit.button(g, bx, by, bw, 14, Kit.ON);
-        if (hov) {
-            Kit.outline(g, bx, by, bw, 14, Theme.GOLD_EDGE);
-        }
-        Art.icon(g, "player-play", bx + 6, by + 3, 8, Kit.buttonText(Kit.ON));
-        g.drawString(font, fit(button, bw - 23), bx + 17, by + 3, Kit.buttonText(Kit.ON), false);
+        Ui.iconChip(g, font, "player-play", Type.BODY.fit(font, button, bw - 2 * Theme.SP_4 - 8 - Theme.SP_1), false,
+                bx, by, bw, true, mx, my);
         host.area(bx, by, bw, 14, null, List.of(L.c("wynnlabs.home.none_button").withStyle(ChatFormatting.WHITE),
                 L.c("wynnlabs.home.none_tip").withStyle(ChatFormatting.GRAY)), "#qbuild:");
         String f = fit(faint, w);
@@ -84,42 +77,32 @@ final class HomeGearBars extends HomePart {
      * suggestions are out of date" (or "Your gear changed"), with its age when it is old, and
      * "⟳ Refresh". The longest wording that fits, never cut.
      */
-    void staleStrip(GuiGraphics g, Host host, int x, int y, int w, Roadmap.Stale s, int mx, int my) {
+    int staleStrip(GuiGraphics g, Host host, int x, int y, int w, Roadmap.Stale s, int mx, int my) {
         String what = s.level() ? L.t("wynnlabs.home.stale_level", s.now()) : L.t("wynnlabs.home.stale_gear");
         String age = age(s.ageMs());
         String refresh = L.t("wynnlabs.home.stale_refresh");
-        int full = font.width(refresh) + 23;
-        int bw = w - 120 >= full ? full : 16;
-        int room = w - bw - 4 - 16;
+        Ui.Action act = new Ui.Action("refresh", refresh);
+        int room = Ui.noticeTextRoom(font, act, w);
         String[] tries = age.isEmpty() ? new String[] {what, L.t("wynnlabs.home.stale_short")}
                 : new String[] {what + " · " + age, what, L.t("wynnlabs.home.stale_short")};
         String text = tries[tries.length - 1];
         for (String c : tries) {
-            if (font.width(c) <= room) {
+            if (Type.BODY.width(font, c) <= room) {
                 text = c;
                 break;
             }
         }
-        LayoutCheck.part(g.pose(), x, y, w, 14, "strip", "the out-of-date strip");
-        Kit.seal(g, x, y, w - bw - 3, 14, 0xFFF0D090);
-        Art.icon(g, "alert-triangle", x + 4, y + 3, 8, Theme.WARN);
-        Kit.text(g, font, fit(text, room), x + 15, y + 3, Theme.WARN);
+        int[][] hit = new int[1][];
+        int h = Ui.notice(g, font, Ui.Level.WARNING, List.of(text), act, x, y, w, Ui.noticeHeight(1), mx, my, hit);
+        LayoutCheck.part(g.pose(), x, y, w, h, "strip", "the out-of-date strip");
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(what + (age.isEmpty() ? "" : " · " + age)).withStyle(ChatFormatting.GOLD));
         tip.add(L.c("wynnlabs.home.stale_tip").withStyle(ChatFormatting.GRAY));
-        host.area(x, y, w - bw - 3, 14, null, tip, null);
-        int bx = x + w - bw;
-        boolean hov = mx >= bx && mx < bx + bw && my >= y && my < y + 14;
-        int state = hov ? Kit.HOVER : Kit.REST;
-        Kit.button(g, bx, y, bw, 14, state);
-        if (bw == 16) {
-            Art.icon(g, "refresh", bx + 4, y + 3, 8, Kit.buttonText(state));
-        } else {
-            Art.icon(g, "refresh", bx + 6, y + 3, 8, Kit.buttonText(state));
-            g.drawString(font, refresh, bx + 17, y + 3, Kit.buttonText(state), false);
-        }
-        host.area(bx, y, bw, 14, null, List.of(Component.literal(refresh).withStyle(ChatFormatting.WHITE),
+        int[] b = hit[0];
+        host.area(x, y, b[0] - x, h, null, tip, null);
+        host.area(b[0], b[1], b[2], b[3], null, List.of(Component.literal(refresh).withStyle(ChatFormatting.WHITE),
                 L.c("wynnlabs.home.refresh_tip").withStyle(ChatFormatting.GRAY)), "#qrefresh:");
+        return h;
     }
 
     /**
@@ -138,28 +121,18 @@ final class HomeGearBars extends HomePart {
         int n = folded ? 2 : 3;
         int full = 0;
         for (int i = 0; i < n; i++) {
-            full += font.width(b[i][1]) + 23 + (i > 0 ? 3 : 0);
+            full += Ui.iconChipWidth(font, b[i][0], b[i][1], false) + (i > 0 ? 3 : 0);
         }
         boolean words = !folded && full <= w;
         int total = words ? full : n * 16 + (n - 1) * 3;
         int bx = x + (w - total) / 2;
         for (int i = 0; i < n; i++) {
-            int bw = words ? font.width(b[i][1]) + 23 : 16;
-            boolean hov = mx >= bx && mx < bx + bw && my >= y && my < y + 14;
-            boolean primary = b[i][4].equals("1");
-            int ink;
-            if (primary) {
-                Kit.primary(g, bx, y, bw, 14, hov);
-                ink = Theme.CREAM;
+            int bw = words ? Ui.iconChipWidth(font, b[i][0], b[i][1], false) : 16;
+            String label = words ? b[i][1] : null;
+            if (b[i][4].equals("1")) {
+                Ui.primaryIconChip(g, font, b[i][0], label, bx, y, bw, mx, my);
             } else {
-                Kit.button(g, bx, y, bw, 14, hov ? Kit.HOVER : Kit.REST);
-                ink = Kit.buttonText(hov ? Kit.HOVER : Kit.REST);
-            }
-            if (words) {
-                Art.icon(g, b[i][0], bx + 6, y + 3, 8, ink);
-                g.drawString(font, b[i][1], bx + 17, y + 3, ink, false);
-            } else {
-                Art.icon(g, b[i][0], bx + 4, y + 3, 8, ink);
+                Ui.iconChip(g, font, b[i][0], label, false, bx, y, bw, false, mx, my);
             }
             LayoutCheck.part(g.pose(), bx, y, bw, 14, "planrow", "the plan's " + b[i][2] + " button");
             List<Component> tip = new ArrayList<>();

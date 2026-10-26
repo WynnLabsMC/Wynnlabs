@@ -84,7 +84,7 @@ final class EndgameAspectList extends EndgamePanel {
                 boolean hover = mx >= cx && mx < cx + bw && my >= ry && my < ry + 14;
                 int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
                 Kit.button(g, cx, ry, bw, 14, state);
-                g.drawString(tab.font, names[i], cx + Kit.Ui.BTN_PAD, ry + 3, Kit.buttonText(state), state != Kit.ON);
+                g.drawString(tab.font, names[i], cx + Kit.Ui.BTN_PAD, ry + 3, Kit.buttonText(state), false);
                 int f = i;
                 tab.acts.add(new Act(cx, ry, bw, 14, () -> {
                     tab.filter = f;

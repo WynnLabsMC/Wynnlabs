@@ -41,6 +41,8 @@ final class CraftSuggestionsPanel extends CraftPanel {
     private String suggestedFor = "";
     int suggestPage;
     int suggestFilter;
+    /** The filter row's first chip shown when its chips do not all fit (its › and ‹ move it). */
+    int filterFirst;
 
     CraftSuggestionsPanel(CraftingTab tab) {
         super(tab);
@@ -152,16 +154,29 @@ final class CraftSuggestionsPanel extends CraftPanel {
     void drawSuggestions(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         tab.clip = null;
         // sets or single pieces, then the filters
-        int fx = x;
+        String again = L.t("wynnlabs.craft.suggest_refresh");
+        int aw = Ui.iconChipWidth(tab.font, "refresh", again, false);
+        int ax = x + w - aw;
         String[] modes = {L.t("wynnlabs.craft.suggest_mode.sets"), L.t("wynnlabs.craft.suggest_mode.singles")};
+        List<Ui.Tab> modeTabs = new ArrayList<>();
+        for (String m : modes) {
+            modeTabs.add(new Ui.Tab(null, m));
+        }
+        List<Ui.Tab> filterTabs = new ArrayList<>();
+        int filters = tab.suggestMode == 0 ? 4 : SUGGEST_FILTERS.length;   // type filters are for single pieces
+        for (int i = 0; i < filters; i++) {
+            filterTabs.add(new Ui.Tab(null, L.t("wynnlabs.craft.suggest_filter." + SUGGEST_FILTERS[i])));
+        }
+        int[][] hits = new int[modes.length + filters + 2][];
+        int rowH = Ui.filterRow(g, tab.font, x, y, ax - Theme.SP_4 - x, List.of(modeTabs, filterTabs),
+                new int[] {tab.suggestMode, suggestFilter}, filterFirst, mx, my, hits);
         for (int i = 0; i < modes.length; i++) {
-            int bw = width(modes[i]) + 10;
-            boolean on = i == tab.suggestMode;
-            int state = on ? Kit.ON : in(mx, my, fx, y, bw, ROW_H) ? Kit.HOVER : Kit.REST;
-            Kit.button(g, fx, y, bw, ROW_H, state);
-            wood(g, modes[i], fx + 5, y + 2, Kit.buttonText(state), !on);
+            int[] r = hits[i];
+            if (r == null) {
+                continue;
+            }
             int m = i;
-            tab.acts.add(new Act(fx, y, bw, ROW_H, () -> {
+            tab.acts.add(new Act(r[0], r[1], r[2], r[3], () -> {
                 tab.suggestMode = m;
                 suggestPage = 0;
                 tab.setsPanel.setPage = 0;
@@ -171,44 +186,36 @@ final class CraftSuggestionsPanel extends CraftPanel {
                     startSuggestions(false);
                 }
             }, null, null));
-            fx += bw + 2;
         }
-        fx += 8;
-        for (int i = 0; i < SUGGEST_FILTERS.length; i++) {
-            if (tab.suggestMode == 0 && i > 3) {
-                break;                              // type filters are for single pieces
+        for (int i = 0; i < filters; i++) {
+            int[] r = hits[modes.length + i];
+            if (r == null) {
+                continue;
             }
-            String name = L.t("wynnlabs.craft.suggest_filter." + SUGGEST_FILTERS[i]);
-            int bw = width(name) + 10;
-            if (fx + bw > x + w - 40) {
-                break;
-            }
-            boolean on = i == suggestFilter;
-            int state = on ? Kit.ON : in(mx, my, fx, y, bw, ROW_H) ? Kit.HOVER : Kit.REST;
-            Kit.button(g, fx, y, bw, ROW_H, state);
-            wood(g, name, fx + 5, y + 2, Kit.buttonText(state), !on);
             int f = i;
-            tab.acts.add(new Act(fx, y, bw, ROW_H, () -> {
+            tab.acts.add(new Act(r[0], r[1], r[2], r[3], () -> {
                 suggestFilter = f;
                 suggestPage = 0;
             }, null, null));
-            fx += bw + 3;
         }
-        String again = L.t("wynnlabs.craft.suggest_refresh");
-        int aw = width(again) + 18;
-        int ax = x + w - aw;
-        int as = in(mx, my, ax, y, aw, ROW_H) ? Kit.HOVER : Kit.REST;
-        Kit.button(g, ax, y, aw, ROW_H, as);
-        Art.icon(g, "refresh", ax + 4, y + 2, 8, Kit.buttonText(as));
-        wood(g, again, ax + 14, y + 2, Kit.buttonText(as), true);
-        tab.acts.add(new Act(ax, y, aw, ROW_H, () -> {
+        int[] prev = hits[hits.length - 2];
+        int[] next = hits[hits.length - 1];
+        if (prev != null) {
+            tab.acts.add(new Act(prev[0], prev[1], prev[2], prev[3], () -> filterFirst = Math.max(0, filterFirst - 1), null, null));
+        }
+        if (next != null) {
+            tab.acts.add(new Act(next[0], next[1], next[2], next[3], () -> filterFirst++, null, null));
+        }
+        // Refresh, on the row's line at its right end
+        Ui.iconChip(g, tab.font, "refresh", again, false, ax, y + (rowH - Ui.CHIP_H) / 2, aw, false, mx, my);
+        tab.acts.add(new Act(ax, y + (rowH - Ui.CHIP_H) / 2, aw, Ui.CHIP_H, () -> {
             if (tab.suggestMode == 0) {
                 tab.setsPanel.startSets(true);
             } else {
                 startSuggestions(true);
             }
         }, null, List.of(L.c("wynnlabs.craft.suggest_refresh_tip"))));
-        int top = y + ROW_H + 6;
+        int top = y + rowH + Theme.SP_4;
         if (tab.suggestMode == 0) {
             tab.setsPanel.drawSets(g, x, top, w, y + h - top, mx, my);
             return;
@@ -349,7 +356,7 @@ final class CraftSuggestionsPanel extends CraftPanel {
         int by = y + h - 14;
         int os = in(mx, my, oxp, by, ow, 11) ? Kit.HOVER : Kit.ON;
         Kit.button(g, oxp, by, ow, 11, os);
-        wood(g, openL, oxp + 5, by + 1, os == Kit.ON ? Theme.INK : Theme.CREAM, os != Kit.ON);
+        wood(g, openL, oxp + 5, by + 1, Kit.buttonText(os), false);
         int cs = in(mx, my, cxp, by, cw, 11) ? Kit.HOVER : Kit.REST;
         Kit.button(g, cxp, by, cw, 11, cs);
         wood(g, copyL, cxp + 5, by + 1, Kit.buttonText(cs), true);

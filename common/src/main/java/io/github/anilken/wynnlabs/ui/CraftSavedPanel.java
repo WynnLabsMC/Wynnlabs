@@ -95,7 +95,7 @@ final class CraftSavedPanel extends CraftPanel {
         int sbx = x + fw + 3;
         boolean sh = in(mx, my, sbx, yy - 1, bw, 14);
         Kit.button(g, sbx, yy - 1, bw, 14, sh ? Kit.HOVER : Kit.ON);
-        wood(g, save, sbx + 5, yy + 2, sh ? Theme.CREAM : Theme.INK, sh);
+        wood(g, save, sbx + 5, yy + 2, sh ? Theme.INK_2 : Theme.INK, sh);
         into.add(new Act(sbx, yy - 1, bw, 14, this::saveCurrent, null, null));
         yy += 18;
         if (saved.all().isEmpty()) {

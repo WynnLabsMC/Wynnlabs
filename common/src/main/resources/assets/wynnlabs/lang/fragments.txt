@@ -122,3 +122,10 @@ wynnlabs.update.update_link  the "here" link inside the update line
 wynnlabs.update.newer_end  the end of the update line, after the link
 wynnlabs.next.bag  after "+12% · " on the home's Next line
 wynnlabs.next.bank  after "+12% · " on the home's Next line
+wynnlabs.guide.used_for  "for Brie" after a part's name in the guide
+wynnlabs.guide.key_stage  after the up/down arrows in the guide footer
+wynnlabs.guide.key_option  after the left/right arrows in the guide footer
+wynnlabs.guide.key_part  after the left/right arrows in the guide footer
+wynnlabs.home.hud_health_label  after the health value on the Home card ("1927 effective health")
+wynnlabs.home.hud_casts_label  after the casts value on the Home card
+wynnlabs.home.hud_spell_label  after the spell damage value on the Home card

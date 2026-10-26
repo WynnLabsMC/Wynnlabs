@@ -52,7 +52,7 @@ final class CraftOptimiserPanel extends CraftPanel {
         int rowY = yy;
         boolean gh = in(mx, my, gx, rowY, gw, ROW_H);
         Kit.button(g, gx, rowY, gw, ROW_H, gh ? Kit.HOVER : Kit.ON);
-        wood(g, go, gx + 6, rowY + 2, gh ? Theme.CREAM : Theme.INK, gh);
+        wood(g, go, gx + 6, rowY + 2, gh ? Theme.INK_2 : Theme.INK, gh);
         clipped(gx, rowY, gw, ROW_H, running ? this::stopSearch : this::startSearch, null,
                 List.of(L.c("wynnlabs.craft.search_tip")));
         int limit = gx - 4;
@@ -138,7 +138,7 @@ final class CraftOptimiserPanel extends CraftPanel {
             int ax = x + w - aw - 1;
             boolean ah = in(mx, my, ax, ry + 1, aw, 11);
             Kit.button(g, ax, ry + 1, aw, 11, ah ? Kit.HOVER : Kit.REST);
-            wood(g, apply, ax + 5, ry + 2, Theme.CREAM, true);
+            wood(g, apply, ax + 5, ry + 2, Kit.buttonText(ah ? Kit.HOVER : Kit.REST), false);
             List<Component> tip = layoutTip(o, gaps);
             clipped(ax, ry + 1, aw, 11, () -> apply(l), null, tip);
             clipped(x, ry, w - aw - 2, 13, null, null, tip);

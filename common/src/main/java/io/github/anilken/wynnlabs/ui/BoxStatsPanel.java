@@ -35,7 +35,7 @@ final class BoxStatsPanel {
 
     static void draw(BoxScreen s, GuiGraphics g, String name, int x, int y, int w, int h) {
         Entry e = ItemIndex.get().byName(name);
-        g.fill(x + w + 3, y - 2, x + w + 4, y + h, Theme.LINE);
+        Kit.hair(g, x + w + 3, y - 2, 1, h + 2, Theme.LINE);
         if (e == null) {
             s.ink(g, s.fit(L.t("wynnlabs.box.stats_unknown"), w), x, y, Theme.INK_3);
             return;
@@ -74,7 +74,7 @@ final class BoxStatsPanel {
             if (r.length == 1) {
                 cy += cy == y ? 0 : 3;
                 s.ink(g, s.fit(r[0], w), x, cy, Theme.INK);
-                g.fill(x, cy + 10, x + w, cy + 11, Theme.LINE);
+                Kit.hair(g, x, cy + 10, w, 1, Theme.LINE);
                 cy += 13;
                 continue;
             }
@@ -110,7 +110,7 @@ final class BoxStatsPanel {
         if (src == null || cy + 14 > bottom) {
             return;
         }
-        g.fill(x, cy, x + w, cy + 1, Theme.LINE);
+        Kit.hair(g, x, cy, w, 1, Theme.LINE);
         cy += 5;
         Kit.seal(g, x, cy - 1, 10, 10, Theme.sourceFill(src.badge()));
         Art.icon(g, src.badge(), x + 1, cy, 8, Theme.CREAM);

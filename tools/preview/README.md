@@ -10,6 +10,12 @@ The pictures land in `build/preview/`: `jmenu-now.png`, then `jmenu-step1.png` â
 milestone, `jmenu-tab-<n>.png` for every rail tab and `jmenu-tree-end.png` for the ability
 tree scrolled to its last page. A run takes about half a minute and opens a window while it works.
 
+- The window is 3440x1440 on GUI scale 3 (about 1146x480 logical: the menu's large layout, as
+  the game is usually played here). Another size: `-PpreviewSize=1920x1080` (640x360 logical,
+  the small layout). The layout matrix (`-PpreviewOnly=layout`) keeps its own list of sizes.
+- `-PpreviewOnly=home`: only the Home tab (now, out of date, the options view).
+- `-PpreviewOnly=crafting`: only the crafting tab's shots.
+- `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).
 - Another fixture: `-Dwynnlabs.previewFixture=synthetic` in the run's VM options
   (`fabric/build.gradle`, `loom.runs` â†’ `clientGameTest`).
 - English: `-Dwynnlabs.previewLang=en`.

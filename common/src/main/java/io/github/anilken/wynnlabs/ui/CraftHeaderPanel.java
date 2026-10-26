@@ -128,16 +128,16 @@ final class CraftHeaderPanel extends CraftPanel {
     int viewTabs(GuiGraphics g, int x, int y, int w, int mx, int my) {
         String[][] tabs = {{"hammer", L.t("wynnlabs.craft.view_calc")}, {"star-filled", L.t("wynnlabs.craft.view_suggest")},
             {"trending-up", L.t("wynnlabs.craft.view_plan")}};
-        int tx = x;
+        List<Ui.Tab> list = new ArrayList<>();
+        for (String[] t : tabs) {
+            list.add(new Ui.Tab(t[0], t[1]));
+        }
+        int[][] hits = new int[tabs.length][];
+        int used = Ui.tabBar(g, tab.font, x, y, w, list, tab.view, mx, my, hits);
         for (int i = 0; i < tabs.length; i++) {
-            int bw = width(tabs[i][1]) + 24;
-            boolean on = i == tab.view;
-            int state = on ? Kit.ON : in(mx, my, tx, y, bw, 14) ? Kit.HOVER : Kit.REST;
-            Kit.ledger(g, tx, y, bw, 14, on);
-            Art.icon(g, tabs[i][0], tx + 6, y + 3, 8, on ? Theme.INK : Theme.CREAM);
-            wood(g, tabs[i][1], tx + 17, y + 3, Kit.buttonText(state), !on);
+            int[] r = hits[i];
             int v = i;
-            tab.acts.add(new Act(tx, y, bw, 14, () -> {
+            tab.acts.add(new Act(r[0], r[1], r[2], r[3], () -> {
                 if (v == 2 || tab.view == 2) {
                     tab.scroll = 0;                 // the planner scrolls on its own
                 }
@@ -150,28 +150,27 @@ final class CraftHeaderPanel extends CraftPanel {
                         tab.suggestionsPanel.startSuggestions(false);
                     }
                 }
-            }, null, null));
-            tx += bw + 3;
+            }, null, List.of(Component.literal(tabs[i][1]))));
         }
-        g.fill(x, y + 14, x + w, y + 15, Theme.GOLD_EDGE);
-        return 14;
+        return used;
     }
 
     int subTabs(GuiGraphics g, int x, int y, int w, int mx, int my) {
         String[] names = {L.t("wynnlabs.craft.sub_recipe"), L.t("wynnlabs.craft.sub_result"), L.t("wynnlabs.craft.sub_search")};
-        int bw = (w - 8) / 3;
-        for (int i = 0; i < 3; i++) {
-            int bx = x + i * (bw + 4);
-            boolean on = i == tab.subTab;
-            int state = on ? Kit.ON : in(mx, my, bx, y, bw, 14) ? Kit.HOVER : Kit.REST;
-            Kit.ledger(g, bx, y, bw, 14, on);
-            wood(g, names[i], bx + (bw - width(names[i])) / 2, y + 3, Kit.buttonText(state), !on);
+        List<Ui.Tab> list = new ArrayList<>();
+        for (String n : names) {
+            list.add(new Ui.Tab(null, n));
+        }
+        int[][] hits = new int[names.length][];
+        int used = Ui.tabBar(g, tab.font, x, y, w, list, tab.subTab, mx, my, hits);
+        for (int i = 0; i < names.length; i++) {
+            int[] r = hits[i];
             int t = i;
-            clipped(bx, y, bw, 14, () -> {
+            clipped(r[0], r[1], r[2], r[3], () -> {
                 tab.subTab = t;
                 tab.scroll = 0;
             }, null, null);
         }
-        return 14;
+        return used;
     }
 }

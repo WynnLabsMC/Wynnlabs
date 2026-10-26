@@ -34,9 +34,9 @@ final class HomeNext extends HomePart {
     private List<Vault.Find> bank = List.of();
     private long bankAt;
 
-    /** The row's height in this menu size. */
+    /** The card's height: a chip-tall button with SP_1 around it (compact), a button with SP_2 (else). */
     int height(boolean compact) {
-        return compact ? 14 : large ? 18 : 16;
+        return compact ? Ui.CHIP_H + 2 * Theme.SP_1 : Ui.BUTTON_H + 2 * Theme.SP_2;
     }
 
     /** The first thing to do, or null. */
@@ -117,48 +117,54 @@ final class HomeNext extends HomePart {
         return best;
     }
 
-    /** The row: "Next" in front, the icon, the name and its line, and the compass button on the right. */
+    /**
+     * The row on a soft card: "Next" as a label, the icon, the name in its colour and its line in
+     * small type, and the compass as a real button on the right.
+     */
     void draw(GuiGraphics g, Pick p, Host host, int x, int y, int w, int h, boolean compact, int mx, int my) {
-        boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
-        card(g, x, y, w, h, 0, hover);
-        int ty = y + (h - 8) / 2;
-        int right = x + w - 3;
+        Kit.softCard(g, x, y, w, h);
+        int ty = Type.BODY.yIn(y, h);
+        int right = x + w - Theme.SP_3;
         if (p.compass() != null) {
             // the compass button first: its area is added before the row's, so its click wins
-            String word = compact ? "" : L.t("wynnlabs.next.compass");
-            int bh = h - 4;
-            int bw = (word.isEmpty() ? 0 : font.width(word) + 3) + 8 + 8;
-            int bx = right - bw;
-            boolean on = mx >= bx && mx < bx + bw && my >= y + 2 && my < y + 2 + bh;
-            int state = on ? Kit.HOVER : Kit.REST;
-            Kit.button(g, bx, y + 2, bw, bh, state);
-            Art.icon(g, "compass", bx + 4, y + 2 + (bh - 8) / 2, 8, Kit.buttonText(state));
-            if (!word.isEmpty()) {
-                g.drawString(font, word, bx + 15, y + 2 + (bh - 8) / 2, Kit.buttonText(state), true);
+            String word = L.t("wynnlabs.next.compass") + " ›";
+            int bw;
+            int by;
+            int bh;
+            if (compact) {
+                bw = Ui.CHIP_H + 2;
+                bh = Ui.CHIP_H;
+                by = y + (h - bh) / 2;
+                Ui.iconButton(g, "compass", right - bw, by, true, mx, my);
+            } else {
+                bw = Ui.iconButtonLabelWidth(font, word);
+                bh = Ui.BUTTON_H;
+                by = y + (h - bh) / 2;
+                Ui.iconButtonLabel(g, font, "compass", word, right - bw, by, bw, mx, my);
             }
-            host.area(bx, y + 2, bw, bh, null, List.of(Component.literal(p.title()).withStyle(ChatFormatting.WHITE),
+            host.area(right - bw, by, bw, bh, null, List.of(Component.literal(p.title()).withStyle(ChatFormatting.WHITE),
                     L.c("wynnlabs.screen.click_compass").withStyle(ChatFormatting.DARK_GRAY)), p.compass());
-            right = bx - 4;
+            right -= bw + Theme.SP_3;
         }
         String label = L.t("wynnlabs.next.label");
-        Component lc = Component.literal(label).withStyle(UiFont::bold);
-        int tx = x + 6;
-        ink(g, lc, tx, ty, Theme.INK_2);
-        tx += font.width(lc) + 6;
-        Art.icon(g, p.icon(), tx, y + (h - 8) / 2, 8, Theme.INK_2);
-        tx += 11;
+        int tx = x + Theme.SP_4;
+        Type.LABEL.draw(g, font, label, tx, ty, Theme.INK_2);
+        tx += Type.LABEL.width(font, label) + Theme.SP_3;
+        Art.icon(g, p.icon(), tx, Type.BODY.onCaps(ty, 8), 8, p.colour());
+        tx += 8 + Theme.SP_1;
         int room = right - tx;
-        String title = fit(p.title(), Math.max(20, room * 3 / 5), true);
-        Component tc = Component.literal(title).withStyle(UiFont::bold);
-        ink(g, tc, tx, ty, p.colour());
-        int sx = tx + font.width(tc);
+        String title = Type.LABEL.fit(font, p.title(), Math.max(20, room * 3 / 5));
+        Type.LABEL.draw(g, font, title, tx, ty, p.colour());
+        int sx = tx + Type.LABEL.width(font, title) + Theme.SP_3;
         if (right - sx > 20) {
-            ink(g, fit(" · " + p.sub(), right - sx), sx, ty, Theme.INK_3);
+            Type.META.draw(g, font, Type.META.fit(font, p.sub(), right - sx), sx, ty + 1);
         }
+        // the row's area stops before the compass button, so the two never overlap
+        int rw = right - x;
         if (p.quest() != null) {
-            host.quest(x, y, w, h, p.tip(), p.quest());
+            host.quest(x, y, rw, h, p.tip(), p.quest());
         } else {
-            host.area(x, y, w, h, null, p.tip(), p.action());
+            host.area(x, y, rw, h, null, p.tip(), p.action());
         }
     }
 }

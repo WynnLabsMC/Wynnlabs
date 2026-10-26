@@ -35,7 +35,7 @@ final class EndgameCards extends EndgamePanel {
         mythicGlyph(g, x + 6, y + 4, ICON);
         ink(g, fit(L.t("wynnlabs.endgame.dry_head"), w - 12 - gap), x + 6 + gap, y + 6, Theme.INK_2);
         int mid = x + w / 2;
-        g.fill(mid, y + 18, mid + 1, y + h - 5, Theme.LINE);
+        Kit.hair(g, mid, y + 18, 1, h - 23, Theme.LINE);
         // the raid half
         int hx = x + 6;
         int hw = mid - 5 - hx;
@@ -194,7 +194,7 @@ final class EndgameCards extends EndgamePanel {
             int by = y + 4;
             boolean hover = mx >= bx && mx < bx + 12 && my >= by && my < by + 12;
             Kit.button(g, bx, by, 12, 12, hover ? Kit.HOVER : Kit.REST);
-            Art.icon(g, "refresh", bx + 2, by + 2, 8, Theme.CREAM);
+            Art.icon(g, "refresh", bx + 2, by + 2, 8, Kit.buttonText(hover ? Kit.HOVER : Kit.REST));
             tab.acts.add(new Act(bx - 2, y + 2, 16, 15, tab::unpin, "endgame:back"));
             tab.tips.add(new Tip(bx - 2, y + 2, 16, 15, List.of(grey(L.t("wynnlabs.endgame.back_tip")))));
             right = bx - 4;
@@ -306,7 +306,7 @@ final class EndgameCards extends EndgamePanel {
                     int bx = x + w - 15;
                     boolean hover = mx >= bx && mx < bx + 12 && my >= y + 3 && my < y + 15;
                     Kit.button(g, bx, y + 3, 12, 12, hover ? Kit.HOVER : Kit.REST);
-                    Art.icon(g, "refresh", bx + 2, y + 5, 8, Theme.CREAM);
+                    Art.icon(g, "refresh", bx + 2, y + 5, 8, Kit.buttonText(hover ? Kit.HOVER : Kit.REST));
                     tab.acts.add(new Act(x + w - 16, y, 16, h, tab::unpin, "endgame:back"));
                     tab.tips.add(new Tip(x + w - 16, y, 16, h, List.of(grey(L.t("wynnlabs.endgame.back_tip")))));
                     areaW = w - 16;

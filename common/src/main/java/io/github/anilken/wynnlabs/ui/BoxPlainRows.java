@@ -33,7 +33,7 @@ final class BoxPlainRows {
         s.small(g, L.t("wynnlabs.box.col_unit"), x + 4, y + 1, Theme.INK_3);
         right(s, g, L.t("wynnlabs.box.col_amount"), amountEdge(x, w), y + 1);
         right(s, g, L.t("wynnlabs.box.col_seen"), x + w - 4, y + 1);
-        g.fill(x, y + HEAD - 2, x + w, y + HEAD - 1, Theme.LINE);
+        Kit.hair(g, x, y + HEAD - 2, w, 1, Theme.LINE);
     }
 
     private static void right(BoxScreen s, GuiGraphics g, String t, int rx, int y) {

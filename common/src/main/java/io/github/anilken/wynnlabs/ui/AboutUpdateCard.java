@@ -175,7 +175,7 @@ final class AboutUpdateCard extends MenuPaint {
         if (linkOut) {
             Art.icon(g, "arrow-up-right", bx + 6, y + 3, 8, Kit.buttonText(st));
         }
-        g.drawString(font(), b[0], bx + 7 + (linkOut ? 11 : 0), y + 3, Kit.buttonText(st), st != Kit.ON);
+        g.drawString(font(), b[0], bx + 7 + (linkOut ? 11 : 0), y + 3, Kit.buttonText(st), false);
         menu.toggles.add(new Object[] {new int[] {bx, y, bw, 14}, b[1]});
         if (linkOut && url != null) {
             menu.hits.add(new MenuHit(bx, y, bw, 14, null, List.of(L.c("wynnlabs.about.link_tip", url)), null));

@@ -124,7 +124,7 @@ final class ArchetypePicker extends MenuPaint {
             String a = names.get(i);
             int rh = heights.get(i);
             if (a.isEmpty() && i > 0) {
-                g.fill(x + 6, ry - 1, x + w - 6, ry, Theme.LINE);     // Automatic set apart from the archetypes
+                Kit.hair(g, x + 6, ry - 1, w - 12, 1, Theme.LINE);     // Automatic set apart from the archetypes
             }
             boolean on = a.equalsIgnoreCase(chosen);
             boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + rh;

@@ -58,7 +58,7 @@ final class EndgameTitleBar extends EndgamePanel {
             boolean hover = mx >= cx && mx < cx + bw && my >= py && my < py + 13;
             int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
             Kit.button(g, cx, py, bw, 13, state);
-            g.drawString(tab.font, chips[i], cx + Kit.Ui.BTN_PAD, py + 3, Kit.buttonText(state), state != Kit.ON);
+            g.drawString(tab.font, chips[i], cx + Kit.Ui.BTN_PAD, py + 3, Kit.buttonText(state), false);
             int v = i;
             tab.acts.add(new Act(cx, py, bw, 13, () -> tab.view = v, "endgame:view" + i));
             cx += bw + 2;

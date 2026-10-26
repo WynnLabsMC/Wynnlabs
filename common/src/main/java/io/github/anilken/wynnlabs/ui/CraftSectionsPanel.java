@@ -224,8 +224,8 @@ final class CraftSectionsPanel extends CraftPanel {
         int sx = x + 10;
         boolean sh = in(mx, my, sx, yy + 1, sw, 14);
         Kit.button(g, sx, yy + 1, sw, 14, sh ? Kit.HOVER : Kit.REST);
-        Art.icon(g, "map-pin", sx + 5, yy + 4, 8, Theme.CREAM);
-        wood(g, st, sx + 16, yy + 4, Theme.CREAM, true);
+        Art.icon(g, "map-pin", sx + 5, yy + 4, 8, Kit.buttonText(sh ? Kit.HOVER : Kit.REST));
+        wood(g, st, sx + 16, yy + 4, Kit.buttonText(sh ? Kit.HOVER : Kit.REST), false);
         clipped(sx, yy + 1, sw, 14, this::pinStation, null, List.of(L.c("wynnlabs.craft.station_tip",
                 Professions.name(r.profession().toUpperCase(Locale.ROOT)))));
         int[] xp = Crafting.professionXp(r.profession());

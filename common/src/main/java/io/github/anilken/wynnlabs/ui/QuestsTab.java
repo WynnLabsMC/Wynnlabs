@@ -494,7 +494,7 @@ final class QuestsTab extends MenuTab {
             g.fill(x + 5, ry + 5, x + 21, ry + 21, badge);
             Kit.outline(g, x + 5, ry + 5, 16, 16, 0x55000000);
             String num = done ? "✔" : String.valueOf(i + 1);
-            g.drawString(font(), num, x + 13 - font().width(num) / 2, ry + 9, 0xFFFFFFFF, true);
+            g.drawString(font(), num, x + 13 - font().width(num) / 2, ry + 9, 0xFFFFFFFF, false);
             // right: XP and a tag
             String xp = q.xp() > 0 ? QuestAdvisor.fmt(q.xp()) : "";
             String pct = q.xp() > 0 ? " " + RoadmapScreen.pct(Math.min(999, q.xp() * 100 / lvXp)) : "";
@@ -695,7 +695,7 @@ final class QuestsTab extends MenuTab {
             int pad = even || spread ? 2 : 4;
             ink(g, tn, tx + pad, iy, on ? 0xFFFFFFFF : MUTED);
             if (on) {
-                g.fill(tx + pad - 2, iy + 10, tx + pad + font().width(tn) + 2, iy + 11, ACCENT);
+                Kit.hair(g, tx + pad - 2, iy + 10, font().width(tn) + 4, 1, ACCENT);
             }
             menu.hits.add(new MenuHit(tx, iy - 2, tw, 13, null, null, "#qtab:" + i));
             tx += tw + 4;
@@ -989,5 +989,12 @@ final class QuestsTab extends MenuTab {
             String more = (pointScroll + 1) + "–" + Math.min(places.size(), pointScroll + rows) + " / " + places.size();
             ink(g, more, ix + iw - font().width(more), bottom - 4, FAINT);     // clear of a button row right under it
         }
+    }
+
+    /** The rail: a pin while a quest is tracked. */
+    @Override
+    MenuRail.Badge badge() {
+        String name = Wyn.tracking() ? Wyn.trackedName() : null;
+        return name == null ? null : new MenuRail.Badge(MenuRail.Badge.Kind.PIN, "", L.t("wynnlabs.screen.rail_badge_tracked", name));
     }
 }

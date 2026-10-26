@@ -199,7 +199,7 @@ final class TodayTab extends MenuTab {
             Object[] t = todo.get(i);
             int ty = ry + i * rowH;
             if (i > 0) {
-                g.fill(x + 1, ty, x + w - 1, ty + 1, Theme.LINE);
+                Kit.hair(g, x + 1, ty, w - 2, 1, Theme.LINE);
             }
             boolean click = t[3] != null || t[4] != null;
             boolean hover = click && mx >= x && mx < x + w && my >= ty && my < ty + rowH;
@@ -413,4 +413,16 @@ final class TodayTab extends MenuTab {
     private List<Vault.Find> vaultFinds = List.of();
     private long vaultAt;
     private long daysAt;
+
+    /** The rail: today's daily tasks not done yet on this character. */
+    @Override
+    MenuRail.Badge badge() {
+        List<Today.Day> all = Today.all(Minecraft.getInstance());
+        if (all.isEmpty() || !Today.utcDate().equals(all.get(0).date())) {
+            return null;
+        }
+        long left = all.get(0).objectives().stream().filter(o -> o.max() > 0 && o.score() < o.max()).count();
+        return left == 0 ? null
+                : new MenuRail.Badge(MenuRail.Badge.Kind.COUNT, String.valueOf(left), L.t("wynnlabs.screen.rail_badge_today", left));
+    }
 }

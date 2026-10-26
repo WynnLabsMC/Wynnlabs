@@ -84,10 +84,14 @@ loom.runs.matching { it.name == 'clientGameTest' }.configureEach {
     vmArg "-Dwynnlabs.fixtures=${file('src/test/resources/fixtures').absolutePath}"
     // the shots stay in the root build/preview, where the tools and the README look
     vmArg "-Dwynnlabs.preview=${rootProject.layout.buildDirectory.dir('preview').get().asFile.absolutePath}"
-    // -PpreviewOnly=layout: only the size matrix; -PpreviewOnly=jmenu: only the J menu shots;
+    // -PpreviewOnly=layout: only the size matrix; -PpreviewOnly=jmenu: only the J menu shots (home / crafting / rail: one screen of them);
     // -PpreviewOnly=shots: only the /wynnlabs shots check (ShotsPreview); -PlayoutStrict: problems fail
     if (rootProject.hasProperty('previewOnly')) {
         vmArg "-Dwynnlabs.previewOnly=${rootProject.property('previewOnly')}"
+    }
+    // -PpreviewSize=1920x1080: the preview window's size (default 3440x1440, the large layout at scale 3)
+    if (rootProject.hasProperty('previewSize')) {
+        vmArg "-Dwynnlabs.previewSize=${rootProject.property('previewSize')}"
     }
     if (rootProject.hasProperty('previewTab')) {
         vmArg "-Dwynnlabs.previewTab=${rootProject.property('previewTab')}"

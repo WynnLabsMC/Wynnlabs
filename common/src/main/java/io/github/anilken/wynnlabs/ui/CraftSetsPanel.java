@@ -311,7 +311,7 @@ final class CraftSetsPanel extends CraftPanel {
         int sx = vx - 3 - sw;
         int vs = in(mx, my, vx, by, vw, 11) ? Kit.HOVER : Kit.ON;
         Kit.button(g, vx, by, vw, 11, vs);
-        wood(g, viewL, vx + 5, by + 1, vs == Kit.ON ? Theme.INK : Theme.CREAM, vs != Kit.ON);
+        wood(g, viewL, vx + 5, by + 1, Kit.buttonText(vs), false);
         int ss = in(mx, my, sx, by, sw, 11) ? Kit.HOVER : Kit.REST;
         Kit.button(g, sx, by, sw, 11, ss);
         wood(g, saveL, sx + 5, by + 1, Kit.buttonText(ss), true);
@@ -382,7 +382,7 @@ final class CraftSetsPanel extends CraftPanel {
             int by = ry + (rowH - 11) / 2;
             int os = in(mx, my, ox, by, ow, 11) ? Kit.HOVER : Kit.ON;
             Kit.button(g, ox, by, ow, 11, os);
-            wood(g, openL, ox + 5, by + 1, os == Kit.ON ? Theme.INK : Theme.CREAM, os != Kit.ON);
+            wood(g, openL, ox + 5, by + 1, Kit.buttonText(os), false);
             int cs = in(mx, my, cx, by, cw, 11) ? Kit.HOVER : Kit.REST;
             Kit.button(g, cx, by, cw, 11, cs);
             wood(g, codeL, cx + 5, by + 1, Kit.buttonText(cs), true);

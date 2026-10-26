@@ -1,51 +1,72 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
+import io.github.anilken.wynnlabs.quests.GuideImages;
+import io.github.anilken.wynnlabs.quests.GuideLayout;
 import io.github.anilken.wynnlabs.quests.QuestGuides;
 import io.github.anilken.wynnlabs.quests.QuestWiki;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 
-import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Görev çözümü: the quest's walkthrough from the Wynncraft wiki (wynncraft.wiki.gg), stage by
- * stage, with the stage you are on highlighted and every coordinate one click from the compass.
- * Fetched once in the background (the wiki, not the game server); dialogue is left out.
+ * Görev çözümü: the quest's walkthrough from the Wynncraft wiki (wynncraft.wiki.gg). A shipped
+ * guide reads stage by stage: the stage list on the left ({@link GuideRail}), the stage shown on
+ * the right ({@link GuidePane}) with its task, options, steps and pictures, and every place one
+ * click from the compass. A quest without a shipped guide falls back to the page's lines
+ * ({@link GuideWikiList}). Fetched once in the background (the wiki, not the game server).
  */
 final class GuideScreen extends Screen {
 
-    private record Line(String text, int colour, int[] at, boolean stage) {}
+    /** The option picked per quest ("Brie", "Azure Outfit"), so later stages open on it too. */
+    private static final Map<String, String> PICKED = new ConcurrentHashMap<>();
 
-    private static final Pattern COORDS = Pattern.compile("\\[\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*]");
-
-    private final String quest;
-    private final String task;
-    private volatile List<Line> lines;
-    private volatile String error;
-    private int scroll;
-    private int current = -1;
-    /** The step shown on top: the game's line, or the matched stage's task in Turkish. */
-    private volatile String step;
-    private final List<Object[]> hits = new ArrayList<>();
+    final String quest;
+    final String task;
+    /** A shipped guide: its facts, stages (and the English ones), each laid out, the list labels. */
+    volatile QuestWiki.Info info;
+    volatile List<QuestWiki.Stage> stages;
+    volatile List<GuideLayout.View> views;
+    List<String> labels = List.of();
+    /** The stages' pictures by their heading ("Stage 5"), and the one shown large. */
+    volatile Map<String, List<GuideImages.Image>> images = Map.of();
+    GuideImages.Image zoom;
+    /** The stage the game says you are on (-1: unknown), the one shown, its part and option. */
+    int current = -1;
+    int sel;
+    int part;
+    int option;
+    /** The steps' scroll (px), the stage list's (rows); the keys moved the stage: the list follows. */
+    int scroll;
+    int listScroll;
+    boolean follow = true;
+    /** Where the stage list ends: the wheel scrolls the list left of it and the stage right of it. */
+    int split;
+    private final List<Object[]> taps = new ArrayList<>();      // {rect, Runnable}
     private String flash = "";
     private long flashUntil;
+    private int[] closeRect;
+    private final GuideWikiList wiki;
 
     GuideScreen(String quest, String task) {
         super(Component.literal(quest));
         this.quest = quest;
         this.task = task == null ? "" : task;
-        this.step = this.task;
+        this.wiki = new GuideWikiList(this);
         CompletableFuture.runAsync(this::fetch);
     }
 
@@ -56,150 +77,119 @@ final class GuideScreen extends Screen {
     }
 
     private void fetch() {
-        if (L.code().startsWith("tr")) {
-            // the guide shipped in Turkish (offline too)
-            QuestGuides.Guide g = QuestGuides.find(quest);
-            QuestWiki.Info info = g == null || g.translated() == null ? null : QuestWiki.get(quest);
-            if (info != null) {                           // changed since or not: the Turkish stages
-                lines = shipped(info, g.english());
-                return;
+        // a shipped guide (offline too), in the player's language: stage by stage
+        QuestWiki.Info inf = QuestGuides.find(quest) == null ? null : QuestWiki.get(quest);
+        if (inf != null && !inf.stages().isEmpty()) {
+            List<QuestWiki.Stage> english = QuestWiki.englishStages(inf);
+            StringBuilder text = new StringBuilder();
+            for (QuestWiki.Stage st : inf.stages()) {
+                text.append(st.task()).append(' ').append(String.join(" ", st.hints())).append(' ');
             }
-        }
-        if (!QuestWiki.on()) {
-            error = L.t("wynnlabs.guide.off");
+            String all = text.toString().toLowerCase(Locale.ROOT);
+            List<GuideLayout.View> v = new ArrayList<>();
+            List<String> names = new ArrayList<>();
+            for (int i = 0; i < inf.stages().size(); i++) {
+                QuestWiki.Stage en = i < english.size() ? english.get(i) : null;
+                v.add(GuideLayout.of(inf.stages().get(i), en, all));
+                names.add(QuestWiki.listLabel(inf.stages().get(i), en));
+            }
+            int cur = QuestWiki.currentStage(inf, task);
+            info = inf;
+            labels = names;
+            stages = inf.stages();
+            current = cur;
+            views = v;
+            pick(Math.max(0, cur));
+            if (QuestWiki.on()) {
+                try {
+                    String page = QuestWiki.page(quest);
+                    if (page != null) {
+                        images = GuideImages.byStage(quest, page);
+                    }
+                } catch (Exception e) {
+                    // the guide reads without its pictures
+                }
+            }
             return;
         }
-        try {
-            // the same page QuestWiki keeps on disk for a week: one request per quest per week
-            String text = QuestWiki.page(quest);
-            if (text == null) {
-                error = L.t("wynnlabs.guide.no_page");
-                return;
+        wiki.fetch();
+    }
+
+    // ---- what is shown ----
+
+    /** Shows stage {@code stage}, on the part and option picked earlier in the quest when it has them. */
+    void pick(int stage) {
+        sel = Math.max(0, Math.min(stage, stages.size() - 1));
+        part = 0;
+        option = 0;
+        scroll = 0;
+        String picked = PICKED.get(quest);
+        if (picked == null) {
+            return;
+        }
+        GuideLayout.View v = views.get(sel);
+        for (int i = 0; i < v.parts().size(); i++) {
+            String used = v.parts().get(i).usedFor();
+            if (used != null && List.of(used.split(",\\s*")).contains(picked)) {
+                part = i;
+                break;
             }
-            lines = parse(text);
-        } catch (Exception e) {
-            error = L.t("wynnlabs.guide.unreachable", e.getClass().getSimpleName());
+        }
+        List<GuideLayout.Option> opts = options();
+        for (int k = 0; k < opts.size(); k++) {
+            if (opts.get(k).labels().contains(picked)) {
+                option = k;
+            }
         }
     }
 
-    /** An NPC's line in a shipped guide ("Worid: …"), told by its English hint. */
-    private static final Pattern SPEAKER = Pattern.compile("^[A-Z?][^:]{0,40}: ");
+    /** The options of what is shown: the stage's, or its part's. */
+    List<GuideLayout.Option> options() {
+        GuideLayout.View v = views.get(sel);
+        return v.parts().isEmpty() ? v.options() : v.parts().get(Math.min(part, v.parts().size() - 1)).options();
+    }
 
-    /** A shipped guide's stages: heading, the task (») and its hints, without dialogue; the stage you are on marked. */
-    private List<Line> shipped(QuestWiki.Info info, List<QuestWiki.Stage> english) {
-        List<Line> out = new ArrayList<>();
-        int cur = QuestWiki.currentStage(info, task);
-        for (int i = 0; i < info.stages().size(); i++) {
-            QuestWiki.Stage st = info.stages().get(i);
-            out.add(new Line(QuestWiki.stageTitle(st.title()), 0xFFCECBF6, null, true));
-            if (!st.task().isBlank()) {
-                int[] at = st.at() != null ? st.at() : st.points().isEmpty() ? null : st.points().get(0);
-                if (i == cur) {
-                    current = out.size();
-                    step = st.task();
-                }
-                out.add(new Line("» " + st.task(), 0xFFFFFFFF, at, false));
-            }
-            List<String> en = i < english.size() ? english.get(i).hints() : List.of();
-            for (int j = 0; j < st.hints().size(); j++) {
-                if (j < en.size() && SPEAKER.matcher(en.get(j)).find()) {
-                    continue;
-                }
-                List<QuestWiki.Place> at = QuestWiki.places(new QuestWiki.Info("", "", "", 0, 0, 0, List.of(),
-                        List.of(new QuestWiki.Stage("", "", List.of(st.hints().get(j)), null, List.of(), List.of())), List.of()), 0);
-                String h = st.hints().get(j);
-                if (h.startsWith("▸ ")) {
-                    out.add(new Line(h, 0xFF9C8BD8, null, false));     // a part's heading: "▸ Bulmaca"
-                    continue;
-                }
-                out.add(new Line("• " + QuestWiki.shown(h), 0xFFB4B2A9, at.isEmpty() ? null : at.get(0).at(), false));
+    /** The option named {@code label} picked, and remembered for the rest of the quest. */
+    void pickOption(String label) {
+        List<GuideLayout.Option> opts = options();
+        for (int k = 0; k < opts.size(); k++) {
+            if (opts.get(k).labels().contains(label)) {
+                option = k;
             }
         }
-        return out;
+        PICKED.put(quest, label);
+        scroll = 0;
     }
 
-    /** NPC dialogue lines ("* {{Dialogue|…}}"): the guide shows tasks, not conversations. */
-    private static final Pattern DIALOGUE = Pattern.compile("[*#:]*\\s*\\{\\{Dialogue\\|", Pattern.CASE_INSENSITIVE);
-    private static final Pattern COLOUR = Pattern.compile("\\{\\{c\\|[^|{}]*\\|([^{}]*)}}");
-    private static final Pattern TEMPLATE = Pattern.compile("\\{\\{[^{}]*}}");
-
-    /**
-     * Templates in a line, innermost first so nested ones come apart cleanly: coloured text
-     * ({{c|colour|text}}) keeps its text, any other template is dropped.
-     */
-    static String templates(String l) {
-        String prev;
-        do {
-            prev = l;
-            l = COLOUR.matcher(l).replaceAll(r -> Matcher.quoteReplacement(r.group(1)));
-            l = TEMPLATE.matcher(l).replaceAll("");
-        } while (!l.equals(prev));
-        return l.replace("{{", "").replace("}}", "");
+    /** The label the option chips show as picked. */
+    String pickedLabel() {
+        List<GuideLayout.Option> opts = options();
+        if (opts.isEmpty()) {
+            return null;
+        }
+        List<String> group = opts.get(Math.min(option, opts.size() - 1)).labels();
+        String p = PICKED.get(quest);
+        return p != null && group.contains(p) ? p : group.get(0);
     }
 
-    /** Wikitext → stage headings, the task lines (») and the hidden solutions; no dialogue or tables. */
-    private List<Line> parse(String text) {
-        List<Line> out = new ArrayList<>();
-        text = text.replaceAll("(?s)<ref.*?</ref>", "").replaceAll("(?s)<!--.*?-->", "");
-        // spoilers: keep their content, drop the wrapper and its label
-        text = text.replaceAll("(?s)\\{\\{HideSpoiler\\|(.*?)\\|[^|{}]*}}", "$1");
-        text = QuestWiki.dropBlockTemplates(text);  // {{Infobox/Items … }} and the like
-        boolean inTable = false;
-        boolean skip = false;
-        String taskLow = task.toLowerCase(Locale.ROOT);
-        int bestScore = 0;
-        for (String raw : text.split("\n")) {
-            String l = raw.trim();
-            if (l.startsWith("{|") || l.startsWith("{{MobTable") || l.startsWith("{{Infobox")) {
-                inTable = true;
-                continue;
-            }
-            if (inTable) {
-                if (l.startsWith("|}") || l.equals("}}")) {
-                    inTable = false;
-                }
-                continue;
-            }
-            if (l.startsWith("==")) {
-                String h = l.replaceAll("=", "").trim();
-                skip = h.equalsIgnoreCase("Navigation") || h.equalsIgnoreCase("Trivia") || h.equalsIgnoreCase("Rewards");
-                if (!skip) {
-                    out.add(new Line(QuestWiki.stageTitle(h), 0xFFCECBF6, null, true));
-                }
-                continue;
-            }
-            if (skip || l.isEmpty() || l.startsWith("[[File:") || l.startsWith("[[Category") || l.startsWith("'''Dialogue")
-                    || l.startsWith("*'''") || l.startsWith("{{") || l.startsWith("|") || DIALOGUE.matcher(l).lookingAt()) {
-                continue;
-            }
-            String clean = templates(l.replaceAll("\\[\\[(?:[^|\\]]*\\|)?([^\\]]*)]]", "$1").replaceAll("'''?", ""))
-                    .replaceAll("<[^>]+>", "").replaceFirst("^[*#:]+\\s*", "• ").trim();
-            if (clean.isEmpty() || clean.equals("•")) {
-                continue;
-            }
-            int[] at = null;
-            Matcher m = COORDS.matcher(clean);
-            if (m.find()) {
-                at = new int[] {Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3))};
-            }
-            boolean taskLine = clean.startsWith("»");
-            out.add(new Line(clean, taskLine ? 0xFFFFFFFF : 0xFFB4B2A9, at, false));
-            // the stage you are on: the task line that shares the most words with the tracked task
-            if (taskLine && !taskLow.isEmpty()) {
-                int score = 0;
-                for (String word : clean.toLowerCase(Locale.ROOT).split("[^a-z0-9]+")) {
-                    if (word.length() > 3 && taskLow.contains(word)) {
-                        score++;
-                    }
-                }
-                if (score > bestScore) {
-                    bestScore = score;
-                    current = out.size() - 1;
-                }
+    String picked() {
+        return PICKED.get(quest);
+    }
+
+    void pickPart(int i) {
+        part = i;
+        option = 0;
+        scroll = 0;
+        String p = PICKED.get(quest);
+        List<GuideLayout.Option> opts = options();
+        for (int k = 0; k < opts.size() && p != null; k++) {
+            if (opts.get(k).labels().contains(p)) {
+                option = k;
             }
         }
-        return out;
     }
+
+    // ---- drawing ----
 
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
@@ -209,93 +199,173 @@ final class GuideScreen extends Screen {
 
     private void draw(GuiGraphics g, int mx, int my, float pt) {
         super.render(g, mx, my, pt);
-        hits.clear();
-        // more of the walkthrough at once on a large screen
+        taps.clear();
         boolean large = MenuLayout.of(width, height).large();
         int w = Math.min(width - 20, large ? 720 : 460);
         int h = Math.min(height - 20, large ? 480 : 320);
         int x = (width - w) / 2;
         int y = (height - h) / 2;
         // the J menu's look: a wooden frame, parchment, dark ink without shadows
+        Kit.windowShadow(g, x - 5, y - 5, w + 10, h + 10);
         Kit.window(g, x - 5, y - 5, w + 10, h + 10);
         Kit.paper(g, x, y, w, h);
         int[] cr = closeRect;
-        boolean closeHover = cr != null && mx >= cr[0] && mx < cr[0] + cr[2] && my >= cr[1] && my < cr[1] + cr[3];
+        boolean closeHover = cr != null && in(mx, my, cr);
         closeRect = Kit.closeOutside(g, width, x, y, w, closeHover);
-        Kit.text(g, font, Component.literal(QuestGuides.title(quest)).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD), x + 10, y + 8, Theme.INK);
-        String src = "wynncraft.wiki.gg";
-        Kit.text(g, font, src, x + w - font.width(src) - 10, y + 8, Theme.INK_3);
-        if (!task.isEmpty()) {
-            Kit.text(g, font, font.plainSubstrByWidth(L.t("wynnlabs.guide.current_step", step), w - 20), x + 10, y + 20, Theme.PRICE);
+        int left = x + Theme.SP_6;
+        int right = x + w - Theme.SP_6;
+        // header: the title, and how far along you are
+        int ty = y + Theme.SP_4;
+        Type.TITLE.draw(g, font, Type.TITLE.fit(font, QuestGuides.title(quest), w / 2), left, ty);
+        List<QuestWiki.Stage> st = stages;
+        if (st != null && current >= 0) {
+            int bw = 48;
+            Kit.tealBar(g, right - bw, ty + 6, bw, 5, current / (double) st.size(), false);
+            String p = large ? L.t("wynnlabs.guide.progress", current, st.size()) : current + " / " + st.size();
+            Type.META.drawRight(g, font, p, right - bw - Theme.SP_3, ty + 4, Type.META.colour);
         }
-        g.fill(x + 10, y + 30, x + w - 10, y + 31, Theme.LINE);
-        int top = y + 34;
-        int bottom = y + h - 16;
-        if (lines == null) {
-            Kit.text(g, font, error != null ? error : L.t("wynnlabs.guide.loading"), x + 10, top + 4, error != null ? Theme.BAD : Theme.INK_2);
+        int rule = ty + Type.TITLE.lineHeight + Theme.SP_4;
+        Kit.hair(g, left, rule, right - left, 1, Theme.LINE);
+        int top = rule + 1 + Theme.SP_5;
+        int foot = y + h - Theme.SP_4 - Type.META.lineHeight;
+        int bottom = foot - Theme.SP_5;
+        footer(g, left, right, foot, st != null);
+        if (views != null) {
+            int lw = large ? 200 : 132;
+            split = left + lw + Theme.SP_5;
+            GuideRail.draw(this, g, mx, my, left, top, lw, bottom);
+            Kit.hair(g, split, top, 1, bottom - top, Theme.LINE);
+            GuidePane.draw(this, g, mx, my, split + Theme.SP_5, top, right - split - Theme.SP_5, bottom, large);
+            if (zoom != null) {
+                drawZoom(g);
+            }
             return;
         }
-        // wrap everything once per frame width; scroll to the current stage the first time
-        List<Object[]> rows = new ArrayList<>();             // {text, colour, at, isCurrent}
-        for (int i = 0; i < lines.size(); i++) {
-            Line l = lines.get(i);
-            boolean cur = i == current;
-            List<net.minecraft.util.FormattedCharSequence> wrapped = font.split(Component.literal(l.text()), w - 70);
-            for (int k = 0; k < wrapped.size(); k++) {
-                rows.add(new Object[] {wrapped.get(k), l.stage() ? Theme.ACCENT : cur ? Theme.GOOD : Theme.paperRgb(l.colour()),
-                        k == 0 ? l.at() : null, cur, l.stage()});
-            }
-        }
-        if (scroll < 0) {
-            scroll = 0;
-        }
-        int lineH = 10;
-        int fit = (bottom - top) / lineH;
-        if (current >= 0 && scroll == 0 && firstFrame) {
-            int idx = 0;
-            for (int i = 0; i < rows.size(); i++) {
-                if ((boolean) rows.get(i)[3]) {
-                    idx = i;
-                    break;
-                }
-            }
-            scroll = Math.max(0, idx - 3);
-        }
-        firstFrame = false;
-        scroll = Math.min(scroll, Math.max(0, rows.size() - fit));
-        int ry = top;
-        for (int i = scroll; i < rows.size() && i < scroll + fit; i++) {
-            Object[] r = rows.get(i);
-            boolean cur = (boolean) r[3];
-            boolean stage = (boolean) r[4];
-            if (cur) {
-                g.fill(x + 6, ry - 1, x + 8, ry + 9, Theme.GOOD);
-            }
-            g.drawString(font, Kit.ink((net.minecraft.util.FormattedCharSequence) r[0]), x + (stage ? 10 : 14), ry, (int) r[1], false);
-            int[] at = (int[]) r[2];
-            if (at != null) {
-                String go = L.t("wynnlabs.guide.go");
-                int gx = x + w - 14 - font.width(go);
-                boolean hover = mx >= gx - 2 && mx < x + w - 8 && my >= ry - 1 && my < ry + 9;
-                Kit.text(g, font, go, gx, ry, hover ? Theme.GOLD_EDGE : Theme.LINK);
-                hits.add(new Object[] {new int[] {gx - 2, ry - 1, font.width(go) + 6, 10}, at, r[0]});
-            }
-            ry += lineH;
-        }
-        String foot = System.currentTimeMillis() < flashUntil ? flash
-                : current >= 0 ? L.t("wynnlabs.guide.footer_current") : L.t("wynnlabs.guide.footer");
-        Kit.text(g, font, foot, x + 10, y + h - 12, System.currentTimeMillis() < flashUntil ? Theme.GOOD : Theme.INK_3);
+        wiki.draw(g, mx, my, left, top, right, bottom);
     }
 
-    private int[] closeRect;
+    /** Key hints (drawn arrows, not the pixel font's), or a moment's message; the source on the right. */
+    private void footer(GuiGraphics g, int left, int right, int y, boolean guide) {
+        Type.META.drawRight(g, font, "wynncraft.wiki.gg", right, y, Type.META.colour);
+        if (System.currentTimeMillis() < flashUntil) {
+            Type.META.draw(g, font, flash, left, y, Theme.GOOD);
+            return;
+        }
+        if (!guide) {
+            Type.META.draw(g, font, L.t(wiki.current() ? "wynnlabs.guide.footer_current" : "wynnlabs.guide.footer"), left, y);
+            return;
+        }
+        int ink = Type.META.colour;
+        int cx = left;
+        Kit.icon(g, "icon_up", cx, Type.META.onCaps(y, 7), 5, 7, ink);
+        Kit.icon(g, "icon_down", cx + 6, Type.META.onCaps(y, 7), 5, 7, ink);
+        cx += 11 + Theme.SP_2;
+        String stage = L.t("wynnlabs.guide.key_stage");
+        Type.META.draw(g, font, stage, cx, y);
+        cx += Type.META.width(font, stage) + Theme.SP_5;
+        boolean parts = views != null && !views.get(sel).parts().isEmpty();
+        if (parts || options().size() > 1) {
+            Kit.icon(g, "icon_left", cx, Type.META.onCaps(y, 5), 7, 5, ink);
+            Kit.icon(g, "icon_right", cx + 8, Type.META.onCaps(y, 5), 7, 5, ink);
+            cx += 15 + Theme.SP_2;
+            String k = L.t(parts ? "wynnlabs.guide.key_part" : "wynnlabs.guide.key_option");
+            Type.META.draw(g, font, k, cx, y);
+            cx += Type.META.width(font, k) + Theme.SP_5;
+        }
+        String k = L.t("wynnlabs.guide.key_scroll");
+        Type.META.draw(g, font, k, cx, y);
+        cx += Type.META.width(font, k) + Theme.SP_5;
+        Type.META.draw(g, font, L.t("wynnlabs.guide.key_close"), cx, y);
+    }
 
-    private boolean firstFrame = true;
+    /** The picture clicked, as large as the screen allows (at most twice its size), with its caption. */
+    private void drawZoom(GuiGraphics g) {
+        GuideImageCache.Tex t = GuideImageCache.get(zoom.file());
+        if (t == null) {
+            zoom = null;
+            return;
+        }
+        g.nextStratum();
+        g.fill(0, 0, width, height, 0xC8000000);
+        double k = Math.min(2.0, Math.min((width - 40) / (double) t.w(), (height - 50) / (double) t.h()));
+        int w = (int) (t.w() * k);
+        int h = (int) (t.h() * k);
+        int x = (width - w) / 2;
+        int y = (height - h) / 2 - 8;
+        g.blit(RenderPipelines.GUI_TEXTURED, t.id(), x, y, 0, 0, w, h, t.w(), t.h(), t.w(), t.h());
+        String close = L.t("wynnlabs.guide.image_close");
+        String line = zoom.caption().isEmpty() ? close : zoom.caption() + " · " + close;
+        g.drawCenteredString(font, font.plainSubstrByWidth(line, width - 20), width / 2, y + h + 6, 0xFFE8E2D0);
+    }
+
+    // ---- clicks and the compass ----
+
+    /** While the steps draw: their visible box; a click area outside it is left out. */
+    int[] clip;
+
+    /** A click area for this frame (cut to {@link #clip} while it is set). */
+    void tap(int x, int y, int w, int h, Runnable action) {
+        if (clip != null) {
+            int x1 = Math.max(x, clip[0]);
+            int y1 = Math.max(y, clip[1]);
+            int x2 = Math.min(x + w, clip[0] + clip[2]);
+            int y2 = Math.min(y + h, clip[1] + clip[3]);
+            if (x2 <= x1 || y2 <= y1) {
+                return;
+            }
+            x = x1;
+            y = y1;
+            w = x2 - x1;
+            h = y2 - y1;
+        }
+        taps.add(new Object[] {new int[] {x, y, w, h}, action});
+    }
+
+    private static boolean in(double mx, double my, int[] r) {
+        return mx >= r[0] && mx < r[0] + r[2] && my >= r[1] && my < r[1] + r[3];
+    }
+
+    /** Points the compass at {@code at}; {@code knowsY} false (the guide gave x and z): at the player's height. */
+    void compass(int[] at, boolean knowsY) {
+        int y = at[1];
+        if (!knowsY) {
+            var p = Minecraft.getInstance().player;
+            y = p == null ? 64 : p.getBlockY();
+        }
+        if (Waypoints.go(at[0], y, at[2], QuestGuides.title(quest))) {
+            flash = L.t("wynnlabs.guide.showing_way", at[0] + ", " + y + ", " + at[2]);
+            flashUntil = System.currentTimeMillis() + 2500;
+        }
+    }
+
+    void compassAll(List<int[]> points) {
+        if (Waypoints.goAll(points, QuestGuides.title(quest)) > 0) {
+            flash = L.t("wynnlabs.guide.showing_all", points.size());
+            flashUntil = System.currentTimeMillis() + 2500;
+        }
+    }
+
+    /** How far {@code at} is from the player, "~140 m"; null when unknown. */
+    static String distance(int[] at) {
+        var p = Minecraft.getInstance().player;
+        if (p == null || at == null) {
+            return null;
+        }
+        double d = Math.hypot(p.getX() - at[0], p.getZ() - at[2]);
+        return "~" + (d >= 1000 ? String.format(Locale.ROOT, "%.1f km", d / 1000) : Math.round(d) + " m");
+    }
 
     @Override
     public boolean mouseScrolled(double x, double y, double h, double v) {
         x = MenuScale.at(x);
-        y = MenuScale.at(y);
-        scroll = Math.max(0, scroll - 3 * (int) Math.signum(v));
+        int step = 3 * Type.BODY.lineHeight;
+        if (views != null && x < split) {
+            listScroll = Math.max(0, listScroll - 3 * (int) Math.signum(v));
+        } else if (views != null) {
+            scroll = Math.max(0, scroll - step * (int) Math.signum(v));
+        } else {
+            wiki.scroll(-3 * (int) Math.signum(v));
+        }
         return true;
     }
 
@@ -303,22 +373,54 @@ final class GuideScreen extends Screen {
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         event = MenuScale.event(event);
         int[] cr = closeRect;
-        if (cr != null && event.x() >= cr[0] && event.x() < cr[0] + cr[2] && event.y() >= cr[1] && event.y() < cr[1] + cr[3]) {
+        if (cr != null && in(event.x(), event.y(), cr)) {
             onClose();
             return true;
         }
-        for (Object[] hit : hits) {
-            int[] r = (int[]) hit[0];
-            if (event.x() >= r[0] && event.x() < r[0] + r[2] && event.y() >= r[1] && event.y() < r[1] + r[3]) {
-                int[] at = (int[]) hit[1];
-                if (Waypoints.go(at[0], at[1], at[2], QuestGuides.title(quest))) {
-                    flash = L.t("wynnlabs.guide.showing_way", at[0] + ", " + at[1] + ", " + at[2]);
-                    flashUntil = System.currentTimeMillis() + 2500;
-                }
+        if (zoom != null) {
+            zoom = null;
+            return true;
+        }
+        for (Object[] tap : List.copyOf(taps)) {
+            if (in(event.x(), event.y(), (int[]) tap[0])) {
+                ((Runnable) tap[1]).run();
                 return true;
             }
         }
         return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (zoom != null && event.key() == GLFW.GLFW_KEY_ESCAPE) {
+            zoom = null;
+            return true;
+        }
+        if (views != null) {
+            GuideLayout.View v = views.get(sel);
+            int parts = v.parts().size();
+            List<GuideLayout.Option> opts = options();
+            int step = event.key() == GLFW.GLFW_KEY_LEFT ? -1 : event.key() == GLFW.GLFW_KEY_RIGHT ? 1 : 0;
+            switch (event.key()) {
+                case GLFW.GLFW_KEY_UP -> pick(sel - 1);
+                case GLFW.GLFW_KEY_DOWN -> pick(sel + 1);
+                case GLFW.GLFW_KEY_LEFT, GLFW.GLFW_KEY_RIGHT -> {
+                    if (parts > 1) {
+                        pickPart((part + step + parts) % parts);
+                    } else if (opts.size() > 1) {
+                        List<GuideLayout.Option> o = opts;
+                        int k = (option + step + o.size()) % o.size();
+                        pickOption(o.get(k).labels().get(0));
+                    }
+                }
+                default -> {
+                    return super.keyPressed(event);
+                }
+            }
+            follow = true;
+            return true;
+        }
+        return super.keyPressed(event);
     }
 
     @Override

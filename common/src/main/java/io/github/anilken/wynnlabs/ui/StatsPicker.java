@@ -49,35 +49,45 @@ final class StatsPicker extends HomePart {
      * The toggle at {@code right} and the button left of it (no further left than {@code left}),
      * at {@code y}.
      */
+    /**
+     * The header's controls ending at {@code right}, none left of {@code left}: the view toggle as an
+     * icon button, and the compare menu as a chip with its chevron, or (no room for its name) an
+     * icon button whose tooltip names it. Centred on a chip's height from {@code y}.
+     */
     void draw(GuiGraphics g, HomeTab.Host host, StatsSource.Shown shown, int right, int y, int left, int mx, int my) {
         frame(UiFont.get(), large);
         boolean none = shown.other() == null;
-        // the toggle: an icon button, faint while there is nothing to compare (still clickable, with a hint)
-        int tx = right - H;
-        boolean th = mx >= tx && mx < tx + H && my >= y && my < y + H;
-        int ts = source.flipped() && !none ? Kit.ON : th ? Kit.HOVER : Kit.REST;
-        Kit.button(g, tx, y, H, H, ts);
-        Art.icon(g, "arrows-horizontal", tx + 2, y + 2, 8, none ? (Kit.buttonText(ts) & 0xFFFFFF) | 0x66000000 : Kit.buttonText(ts));
-        host.area(tx, y, H, H, null, List.of(
+        int bw = Ui.CHIP_H + 2;
+        int tx = right - bw;
+        Ui.iconButton(g, "arrows-horizontal", tx, y, source.flipped() && !none, mx, my);
+        host.area(tx, y, bw, Ui.CHIP_H, null, List.of(
                 L.c(source.flipped() ? "wynnlabs.stats.view_new_title" : "wynnlabs.stats.view_now_title").withStyle(ChatFormatting.WHITE),
                 L.c(none ? "wynnlabs.stats.view_none_tip" : "wynnlabs.stats.view_tip").withStyle(ChatFormatting.GRAY)), "#qstatsflip:");
-        // the button: what the list shows now
         String label = none ? L.t("wynnlabs.stats.src_none")
                 : shown.flipped() ? L.t("wynnlabs.stats.view_new", shown.name()) : L.t("wynnlabs.stats.vs", shown.name());
-        int room = tx - 3 - left;
-        // a narrow card: the build's name alone, the whole line stays in the tooltip
-        String shownLabel = !none && width(label, false) > room - 22 ? shown.name() : label;
-        shownLabel = fit(shownLabel, Math.max(16, room - 22));
-        int bw = Math.min(room, width(shownLabel, false) + 20);
-        int bx = tx - 3 - bw;
-        boolean bh = mx >= bx && mx < bx + bw && my >= y && my < y + H;
-        int bs = open ? Kit.ON : bh ? Kit.HOVER : Kit.REST;
-        Kit.button(g, bx, y, bw, H, bs);
-        g.drawString(font, shownLabel, bx + 5, y + 2, Kit.buttonText(bs), false);
-        Art.icon(g, "chevron-down", bx + bw - 11, y + 2, 8, Kit.buttonText(bs));
-        host.area(bx, y, bw, H, null, open ? List.of() : List.of(Component.literal(label).withStyle(ChatFormatting.LIGHT_PURPLE),
+        int room = tx - Theme.SP_2 - left;
+        String shownLabel = !none && Ui.iconChipWidth(font, null, label, true) > room ? shown.name() : label;
+        int cw = Ui.iconChipWidth(font, null, shownLabel, true);
+        int bx;
+        int w;
+        if (cw <= room) {
+            w = cw;
+            bx = tx - Theme.SP_2 - w;
+            Ui.iconChip(g, font, null, shownLabel, true, bx, y, w, open, mx, my);
+        } else {
+            // a narrow column: the menu as an icon, its name in the tooltip
+            w = bw;
+            bx = tx - Theme.SP_2 - w;
+            Ui.iconButton(g, "scale", bx, y, open, mx, my);
+        }
+        host.area(bx, y, w, Ui.CHIP_H, null, open ? List.of() : List.of(Component.literal(label).withStyle(ChatFormatting.LIGHT_PURPLE),
                 L.c("wynnlabs.stats.src_tip").withStyle(ChatFormatting.GRAY)), "#qstatssrc:");
-        at = new int[] {bx, y + H, right - bx};
+        at = new int[] {Math.min(bx, right - 120), y + Ui.CHIP_H, right - Math.min(bx, right - 120)};
+    }
+
+    /** The left edge the controls took last frame (for the heading's room). */
+    int left() {
+        return at == null ? Integer.MAX_VALUE : at[0];
     }
 
     /** The open list under the button, over the card; drawn last. */

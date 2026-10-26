@@ -230,6 +230,8 @@ public final class HomePage extends MenuTab {
             stats().picker.toggle();           // the compare button: its list
         } else if (c.startsWith("#qstatsset:")) {
             stats().source.choose(c.substring(11));
+        } else if (c.startsWith("#qstatstab:")) {
+            stats().spellsTab = c.endsWith("spells");     // the compact column's tabs
         } else if (c.startsWith("#qstatsflip:")) {
             stats().source.flip();             // your numbers, or the other build's
         } else if (c.startsWith("#qgoal:")) {
@@ -300,6 +302,23 @@ public final class HomePage extends MenuTab {
     private boolean goalOpen;
     private HomeStats stats;
     private int[] goalAnchor;
+    /** The character card on top, made on first use (a field without an initializer: safe to hot swap in). */
+    private HomeHero hero;
+
+    private HomeHero hero() {
+        if (hero == null) {
+            hero = new HomeHero(menu, this);
+        }
+        return hero;
+    }
+
+    boolean goalOpen() {
+        return goalOpen;
+    }
+
+    void goalAnchor(int[] r) {
+        goalAnchor = r;
+    }
     private final List<int[]> goalRows = new ArrayList<>();     // x, y, w, h, index in Setup.GOALS
 
     /** One row per goal: its name and what it weighs, the current one marked, the hovered one lit (when the list is open). */
@@ -398,7 +417,7 @@ public final class HomePage extends MenuTab {
      * has it) or the next one's is wearable as early (its picks were there already, only better
      * chosen), so the tabs climb one level each.
      */
-    private List<Integer> shownSteps() {
+    List<Integer> shownSteps() {
         List<Integer> out = new ArrayList<>();
         int now = menu.steps.isEmpty() ? 0 : wearAt(menu.steps.get(0));
         for (int i = 1; i < menu.steps.size(); i++) {
@@ -484,9 +503,8 @@ public final class HomePage extends MenuTab {
             return;
         }
         // with no road map yet the gear panel offers to calculate one: nothing is built on its own
-        drawHomeHeader(g, x, y, w);
-        // the visual home (HomeTab): the gear on a stand between the tiles and the stats list
-        int by = y + HUD_H + 13;                            // 4px under the experience bar and its "%100 XP"
+        // the character card, the settings' chips and the experience bar (HomeHero)
+        int by = hero().draw(g, x, y, w, mx, my) + Theme.SP_4;
         // 4px short of the page's foot: the parchment's corner curls sit there
         // a level pill other than "now": the stats compare with the road map's build for that level
         Plans.Build current = Plans.current();
@@ -746,193 +764,26 @@ public final class HomePage extends MenuTab {
                 // a new map over the last one: a small bar and Cancel (the last map stays)
                 Kit.tealBar(g, x, y + 5, 24, 4, Roadmap.progress(), false);
                 menu.hits.add(new MenuHit(x, y, 24, 14, null, List.of(L.c("wynnlabs.home.refreshing").withStyle(ChatFormatting.GRAY)), null));
-                boolean ch = mx >= x + 27 && mx < x + 41 && my >= y && my < y + 14;
-                Kit.button(g, x + 27, y, 14, 14, ch ? Kit.HOVER : Kit.REST);
-                Art.icon(g, "x", x + 30, y + 3, 8, Kit.buttonText(ch ? Kit.HOVER : Kit.REST));
-                menu.hits.add(new MenuHit(x + 27, y, 14, 14, null, List.of(L.c("wynnlabs.pick.cancel").withStyle(ChatFormatting.WHITE),
+                Ui.iconButton(g, "x", x + 27, y, false, mx, my);
+                menu.hits.add(new MenuHit(x + 27, y, Ui.CHIP_H + 2, Ui.CHIP_H, null, List.of(L.c("wynnlabs.pick.cancel").withStyle(ChatFormatting.WHITE),
                         L.c("wynnlabs.home.build_cancel_tip").withStyle(ChatFormatting.GRAY)), "#qcancelbuild:"));
-                return 45;
+                return 27 + Ui.CHIP_H + 2 + Theme.SP_2;
             }
             // the road map built again now: only ever on a click
-            boolean hover = mx >= x && mx < x + 14 && my >= y && my < y + 14;
-            Kit.button(g, x, y, 14, 14, hover ? Kit.HOVER : Kit.REST);
-            Art.icon(g, "refresh", x + 3, y + 3, 8, Kit.buttonText(hover ? Kit.HOVER : Kit.REST));
+            Ui.iconButton(g, "refresh", x, y, false, mx, my);
             List<Component> tip = new ArrayList<>();
             if (staleTip != null) {
                 // out of date where no strip fits: an amber badge on the button's corner
-                Kit.seal(g, x + 9, y - 2, 7, 7, 0xFFF0B040);
+                Kit.seal(g, x + 11, y - 2, 7, 7, 0xFFF0B040);
                 tip.add(Component.literal(staleTip).withStyle(ChatFormatting.GOLD));
                 tip.add(L.c("wynnlabs.home.stale_click").withStyle(ChatFormatting.GRAY));
             } else {
                 tip.add(L.c("wynnlabs.home.refresh_tip").withStyle(ChatFormatting.GRAY));
             }
-            menu.hits.add(new MenuHit(x, y, 14, 14, null, tip, "#qrefresh:"));
-            return 18;
+            menu.hits.add(new MenuHit(x, y, Ui.CHIP_H + 2, Ui.CHIP_H, null, tip, "#qrefresh:"));
+            return Ui.CHIP_H + 2 + Theme.SP_2;
         }
     };
-
-    private static final int HUD_H = 56;
-
-    /** The class in a brass medal: the pack's class icon, or the best weapon without the pack. */
-    private void classMedal(GuiGraphics g, int x, int y, String cls) {
-        Kit.medal(g, x, y);
-        boolean drew = cls != null && !"?".equals(cls)
-                && WynnTex.draw(g, "wynn/gui/character_select/icon/" + cls.toLowerCase(Locale.ROOT), x + 4, y + 4, 16, 16);
-        LocalPlayer player = Minecraft.getInstance().player;
-        ItemStack weapon = drew || player == null ? ItemStack.EMPTY : AutoAdvice.bestWeapon();
-        if (weapon != null && !weapon.isEmpty()) {
-            g.renderItem(weapon, x + 4, y + 4);
-        }
-    }
-
-    /**
-     * The character as a HUD on dark slate: the medal, name, archetype and level; effective
-     * health, mana and spell damage as filled bars against the next milestone's build, the
-     * experience bar under them; the build score on a gauge; the goal and powder buttons and
-     * the nearest bank and Trade Market on the right.
-     */
-    private void drawHomeHeader(GuiGraphics g, int x, int y, int w) {
-        String cls;
-        int level;
-        int xp;
-        try {
-            cls = nice(Wyn.classType().name());
-            level = Wyn.level();
-            xp = Wyn.xp().percentInt();
-        } catch (Throwable t) {
-            cls = "?";
-            level = 0;
-            xp = 0;
-        }
-        Kit.slate(g, x, y, w, HUD_H);
-        classMedal(g, x + 6, y + 17, cls);
-        // the name line: class, archetype (click: the list), level
-        String arch = TreePlanner.chosen();
-        int tx = x + 36;
-        // the name large and bright, with its shadow: ink() would dull the gold for paper
-        float ns = Settings.on("webFont") ? 1.5f : 1f;     // the bitmap font scaled gives uneven strokes
-        Component name = Component.literal(cls).withStyle(UiFont::bold).withStyle(st -> UiFont.sized(st, ns));
-        g.drawString(font(), name, tx, y + 4, Theme.GOLD, true);
-        int nx = tx + font().width(name) + 8;
-        String archLabel = arch.isEmpty() ? L.t("wynnlabs.settings.archetype_off") : arch;
-        Art.icon(g, "sparkles", nx, y + 7, 8, 0xFFAFA9EC);
-        g.drawString(font(), archLabel, nx + 10, y + 7, 0xFFAFA9EC, true);
-        menu.hits.add(new MenuHit(nx, y + 5, font().width(archLabel) + 10, 12, null, List.of(
-                L.c("wynnlabs.home.archetype_tip", arch.isEmpty() ? L.t("wynnlabs.settings.archetype_off") : arch)
-                        .withStyle(ChatFormatting.LIGHT_PURPLE),
-                L.c("wynnlabs.home.archetype_click").withStyle(ChatFormatting.DARK_GRAY)), "#qarch:"));
-        nx += font().width(archLabel) + 18;
-        g.drawString(font(), "Lv " + level, nx, y + 7, Theme.CREAM_DIM, true);
-        // the right side: the goal button with the XP switch beside it, the powder button, the
-        // nearest bank and Trade Market below
-        int chipW = 112;
-        int cx = x + w - chipW - 6;
-        // the XP switch at the column's right edge, its short label before it; the goal button
-        // takes the rest of the row
-        boolean xpOn = Setup.countsXp();
-        String xpLabel = L.t("wynnlabs.home.count_xp_short");
-        int sx = cx + chipW - 19;
-        int lx = sx - 3 - font().width(xpLabel);
-        int goalW = lx - 4 - cx;
-        int gs = goalOpen ? Kit.ON : Kit.REST;
-        Kit.button(g, cx, y + 7, goalW, 13, gs);
-        woodIconText(g, "target", fit(Setup.goalName(Setup.goal()), goalW - 28), cx + 4, y + 10, gs);
-        Art.icon(g, "chevron-down", cx + goalW - 12, y + 10, 8, goalOpen ? Theme.INK_2 : Theme.CREAM_DIM);
-        goalAnchor = new int[] {cx, y + 7, goalW, 13};
-        menu.hits.add(new MenuHit(cx, y + 8, goalW, 12, null, goalOpen ? List.of() : List.of(
-                L.c("wynnlabs.home.goal_tip", Setup.goalName(Setup.goal())).withStyle(ChatFormatting.LIGHT_PURPLE),
-                L.c("wynnlabs.home.goal_click").withStyle(ChatFormatting.DARK_GRAY)), "#qgoal:"));
-        g.drawString(font(), xpLabel, lx, y + 10, xpOn ? Theme.CREAM : Theme.CREAM_DIM, true);
-        Kit.toggle(g, sx, y + 8, xpOn);
-        menu.hits.add(new MenuHit(lx, y + 8, sx + 19 - lx, 12, null, List.of(
-                L.c("wynnlabs.home.count_xp", L.t(xpOn ? "wynnlabs.rules.on" : "wynnlabs.rules.off")).withStyle(ChatFormatting.LIGHT_PURPLE),
-                L.c(xpOn ? "wynnlabs.home.count_xp_on_tip" : "wynnlabs.home.count_xp_off_tip").withStyle(ChatFormatting.GRAY),
-                L.c("wynnlabs.home.powder_click").withStyle(ChatFormatting.DARK_GRAY)), "#qxp:"));
-        boolean powdered = Rules.sub("model", "assumePowders", 1) > 0;
-        String powLabel = powdered ? L.t("wynnlabs.home.powder_on") : L.t("wynnlabs.home.powder_off");
-        Kit.button(g, cx, y + 23, chipW, 13, powdered ? Kit.ON : Kit.REST);
-        woodIconText(g, "diamond", fit(powLabel, chipW - 18), cx + 4, y + 26, powdered ? Kit.ON : Kit.REST);
-        menu.hits.add(new MenuHit(cx, y + 24, chipW, 12, null, List.of(
-                L.c(powdered ? "wynnlabs.home.powder_on_tip" : "wynnlabs.home.powder_off_tip").withStyle(ChatFormatting.LIGHT_PURPLE),
-                L.c("wynnlabs.home.powder_click").withStyle(ChatFormatting.DARK_GRAY)), "#qpowder:"));
-        drawNearest(g, cx, y + 40, chipW);
-        // the gauge: the build score against the next milestone's
-        Build.Plan plan = Build.plan();
-        Damage.Result now = plan == null ? null : plan.current();
-        List<Integer> shown = shownSteps();
-        Damage.Result target = null;
-        int targetLevel = 0;
-        if (!shown.isEmpty() && menu.steps.get(shown.get(0)).set() != null) {
-            target = menu.steps.get(shown.get(0)).set().result();
-            targetLevel = menu.steps.get(shown.get(0)).level();
-        }
-        int gx = cx - 8 - 58;
-        if (now != null) {
-            double frac = target == null || target.objective() <= 0 ? 1 : now.objective() / target.objective();
-            int gcx = gx + 29;
-            int gcy = y + 50;
-            Kit.gauge(g, gcx, gcy, 29, 5, Math.max(0, Math.min(1, frac)), 0xFF525C66, Theme.GOLD, Theme.GOLD_DEEP);
-            // inside the ring: the score where the chord is wide enough for five digits, the label under it
-            String score = String.valueOf(Math.round(now.objective()));
-            Component bold = Component.literal(score).withStyle(UiFont::bold);
-            g.drawString(font(), bold, gcx - font().width(bold) / 2, gcy - 17, Theme.GOLD, true);
-            String lbl = L.t("wynnlabs.home.stat_build");
-            g.drawString(font(), lbl, gcx - font().width(lbl) / 2, gcy - 7, Theme.CREAM_DIM, false);
-            menu.hits.add(new MenuHit(gx, gcy - 28, 58, 30, null, vsTip(L.t("wynnlabs.home.stat_build"), score, frac, targetLevel), null));
-        }
-        // the bars: effective health, mana (casts in a row), spell damage per cast
-        int bx = tx;
-        // a large page's bars stop at 300px: a longer track says no more
-        int bw = menu.layout.large() ? Math.min(300, gx - 10 - bx) : gx - 10 - bx;
-        if (now != null && bw > 60) {
-            // the game's own maximum health when it is known, the model's otherwise
-            double health = Wyn.health().map(c -> (double) c.max()).filter(m -> m > 0).orElse(now.health());
-            Object[][] bars = {
-                {String.valueOf(Math.round(health)), L.t("wynnlabs.home.stat_health") + " · " + L.t("wynnlabs.home.stat_ehp") + " "
-                    + Math.round(now.ehp()), health, target == null ? 0 : target.health(),
-                    0xFF4A1B0C, 0xFFE96033, 0xFFC6522C, 0xFF8E3B1F, "heart"},
-                {L.n("wynnlabs.home.hud_casts", Math.round(now.casts())), L.t("wynnlabs.home.hud_casts_tip"), now.casts(),
-                    target == null ? 0 : target.casts(), 0xFF042C53, 0xFF388EE4, 0xFF3079C2, 0xFF22578B, "droplet"},
-                {String.valueOf(Math.round(now.spellDps())), L.t("wynnlabs.home.stat_spell"), now.spellDps(), target == null ? 0 : target.spellDps(),
-                    0xFF26215C, 0xFF867EE9, 0xFF726BC6, 0xFF524D8E, "wand"}};
-            int by = y + 18;
-            for (Object[] b : bars) {
-                double val = (Double) b[2];
-                double ref = (Double) b[3];
-                double frac = ref <= 0 ? 1 : val / ref;
-                g.fill(bx, by, bx + bw, by + 10, (Integer) b[4]);
-                int fw = (int) Math.round(bw * Math.max(0, Math.min(1, frac)));
-                if (fw > 0) {
-                    g.fill(bx, by, bx + fw, by + 3, (Integer) b[5]);
-                    g.fill(bx, by + 3, bx + fw, by + 8, (Integer) b[6]);
-                    g.fill(bx, by + 8, bx + fw, by + 10, (Integer) b[7]);
-                }
-                // an icon of the bar's height at the left, the value after it
-                Art.icon(g, (String) b[8], bx + 2, by + 1, 8, 0xFFFFFFFF);
-                g.drawString(font(), fit((String) b[0], bw - 16), bx + 13, by + 1, 0xFFFFFFFF, true);
-                // the milestone's value at the track's end; white with a shadow where the fill reaches it
-                if (ref > 0) {
-                    String rv = String.valueOf(Math.round(ref));
-                    int rx = bx + bw - font().width(rv) - 3;
-                    if (rx > bx + 13 + font().width((String) b[0]) + 6) {
-                        boolean over = bx + fw >= rx - 2;
-                        g.drawString(font(), rv, rx, by + 1, over ? 0xFFFFFFFF : Theme.CREAM_DIM, over);
-                    }
-                }
-                menu.hits.add(new MenuHit(bx, by, bw, 10, null, vsTip((String) b[1], (String) b[0], frac, targetLevel), null));
-                by += 11;
-            }
-        }
-        // experience: the teal bar with its brass rim and notches under the band, as before
-        int ey = y + HUD_H + 5;
-        String pct = RoadmapScreen.pct(xp) + " XP";
-        // the % at the bar's end, on its line: the home's page starts right under it
-        int xw = w - font().width(pct) - 6;
-        Kit.tealBar(g, x, ey, xw, 4, Math.max(0, Math.min(100, xp)) / 100.0, true);
-        Kit.notches(g, x, ey, xw, 4);
-        // level with the bar, 1px in from the page's edge
-        ink(g, pct, x + w - font().width(pct) - 1, ey - 2, FAINT);
-    }
 
     /** The stats list's scrollbar thumb follows the mouse while dragged; true while it is. */
     boolean statsDragged(double y) {
@@ -954,7 +805,7 @@ public final class HomePage extends MenuTab {
     }
 
     /** A bar's or the gauge's tooltip: the value, and how it compares with the next milestone's build. */
-    private List<Component> vsTip(String label, String value, double frac, int targetLevel) {
+    List<Component> vsTip(String label, String value, double frac, int targetLevel) {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(label + " · " + value).withStyle(ChatFormatting.WHITE));
         if (targetLevel > 0) {
@@ -963,50 +814,6 @@ public final class HomePage extends MenuTab {
             tip.add(L.c("wynnlabs.home.hud_vs_none").withStyle(ChatFormatting.DARK_GRAY));
         }
         return tip;
-    }
-
-    /**
-     * The nearest bank (wiki's Bank page) and Trade Market (Wynntils' service list) as two small
-     * seals; one click puts a waypoint there (compass, beacon, map pin).
-     */
-    private void drawNearest(GuiGraphics g, int x, int y, int w) {
-        LocalPlayer me = Minecraft.getInstance().player;
-        if (me == null) {
-            return;
-        }
-        String[][] kinds = {{"building-bank", "BANKS"}, {"shopping-cart", "TMS"}};
-        String bankData = "-866 67 -1590 Ragni|-141 72 -1607 Alekin Village|476 67 -1564 Detlas|855 71 -1623 Ternaves|90 41 -2205 Nemract|-293 44 -1151 Tempo Town|1020 99 -1956 Almuj|1310 33 -1310 Rymek|21 66 -3202 Selchar|793 59 -3342 Nodguj|1142 43 -3114 Craftmas Island|-252 36 -4025 Isle of Fiction|106 75 -828 Nesaak|-217 30 -324 Lusuco|-701 31 -3085 Pirate Town|-888 77 -918 Troms|-664 67 -1036 Temple of the Legends|981 73 -685 Lutho|-2000 78 -4444 Llevigar|-1742 68 -5533 Olux|-1022 46 -5316 Bucie|-1448 44 -4725 Gelibord|-884 122 -4898 The Forgery|-871 123 -4918 The Forgery|-435 46 -4929 Cinfras|-315 64 -4975 Guild Hall|-296 103 -4403 Aldorei Town|167 7 -5300 Thanos|224 29 -5242 Thanos|823 74 -5095 Thesead|925 116 -5480 Eltom|468 109 -4768 Bantisu Air Temple|1018 19 -5134 Rodoroc|1473 45 -5293 Maex|743 164 -4434 Kandon-Beda|1065 108 -4548 Ahmsord|-1593 68 -2912 Corkus City|-1167 65 -2403 Legendary Island|-1906 71 -1649 Fort Torann|-2101 24 -999 Espren|-1721 27 -555 Timasca|-1300 77 -706 Aldwell|-1375 109 -1238 Hyloch|-1554 123 -807 Aelumia Safe Zone|-728 100 -6452 Nexus of Light";
-        String tmData = "-2100 26 -1020 Espren|-2024 78 -4479 Llevigar|-1763 67 -5548 Olux|-1718 27 -575 Timasca|-1624 70 -2933 Corkus City|-1538 131 -786 Aelumia Safe Zone|-1326 108 -1249 Hyloch|-1286 80 -671 Aldwell|-874 81 -964 Troms|-456 49 -4949 Cinfras|105 67 -3194 Selchar|502 69 -1570 Detlas|737 165 -4409 Kandon-Beda|816 77 -5079 Thesead|997 76 -713 Lutho|1001 114 -4566 Ahmsord|1058 19 -5121 Rodoroc";
-        int px = x;
-        int each = (w - 4) / 2;
-        for (String[] k : kinds) {
-            String bestLine = null;
-            double bestD = Double.MAX_VALUE;
-            for (String line : (k[1].equals("BANKS") ? bankData : tmData).split("\\|")) {
-                String[] f = line.split(" ", 4);
-                double d = Math.hypot(Integer.parseInt(f[0]) - me.getX(), Integer.parseInt(f[2]) - me.getZ());
-                if (d < bestD) {
-                    bestD = d;
-                    bestLine = line;
-                }
-            }
-            if (bestLine == null) {
-                continue;
-            }
-            String[] f = bestLine.split(" ", 4);
-            String dist = bestD >= 1000 ? Math.round(bestD / 100) / 10.0 + "k" : String.valueOf(Math.round(bestD));
-            String label = dist + "m";
-            Kit.pillLine(g, px, y, each, 12, 0xFF9EB0A0);
-            Art.icon(g, k[0], px + 4, y + 2, 8, Theme.NEAR_TEXT);
-            g.drawString(font(), fit(label, each - 16), px + 14, y + 2, Theme.NEAR_TEXT, true);
-            String what = (k[1].equals("BANKS") ? L.t("wynnlabs.home.bank") : "Trade Market") + " · " + f[3];
-            menu.hits.add(new MenuHit(px, y, each, 12, null, List.of(
-                    L.c("wynnlabs.home.nearest", what).withStyle(ChatFormatting.GREEN),
-                    L.c("wynnlabs.home.coords_blocks", f[0] + " " + f[1] + " " + f[2], Math.round(bestD)).withStyle(ChatFormatting.GRAY),
-                    L.c("wynnlabs.home.click_mark").withStyle(ChatFormatting.DARK_GRAY)),
-                    "#qnear:" + f[0] + " " + f[1] + " " + f[2] + " " + what));
-            px += each + 4;
-        }
     }
 
     /** An item's bright Minecraft tier colour, for the ring inside its slot (0 when it has none). */
@@ -1049,7 +856,7 @@ public final class HomePage extends MenuTab {
         Plans.Build plan = Plans.current();
         boolean planOn = planPills.planSelected(plan);
         String planText = L.t("wynnlabs.homev.plan_pill");
-        int planW = plan == null ? 0 : font().width(planText) + 12 + PLAN_X;
+        int planW = plan == null ? 0 : Type.BODY.width(font(), planText) + 14 + PLAN_X;
         room -= plan == null ? 0 : planW + 3;
         List<int[]> order = pillOrder(shown, pos, levelWindow);
         while (levelWindow > 1 && pillsWidth(order, shown) > room) {
@@ -1063,11 +870,10 @@ public final class HomePage extends MenuTab {
             int tw = i < 0 ? 16 : font().width(t) + 12;
             bx -= tw;
             boolean on = !planOn && i == menu.selected;
-            Kit.ledger(g, bx, y - 3, tw, 14, on);
             if (i < 0) {
-                Art.icon(g, i == -1 ? "chevron-left" : "chevron-right", bx + 4, y, 8, Kit.buttonText(Kit.REST));
+                Ui.iconButton(g, i == -1 ? "chevron-left" : "chevron-right", bx, y - 3, false, menu.frameMx, menu.frameMy);
             } else {
-                onWood(g, t, bx + 6, y, on ? Kit.ON : Kit.REST);
+                Ui.chip(g, font(), t, bx, y - 3, tw, on, false, false, menu.frameMx, menu.frameMy);
             }
             levelRows.add(new int[] {bx, y - 3, tw, 14, i});
             if (i > 0) {
@@ -1079,25 +885,22 @@ public final class HomePage extends MenuTab {
         }
         if (plan != null) {
             bx -= planW;
-            // purple when selected, like the chosen items on the panel
+            // purple when selected, like the chosen items on the panel; a thin chip otherwise
+            boolean ph = menu.frameMx >= bx && menu.frameMx < bx + planW && menu.frameMy >= y - 3 && menu.frameMy < y + 11;
             if (planOn) {
-                Kit.ledgerPrimary(g, bx, y - 3, planW, 14);
+                Kit.pillPrimary(g, bx, y - 3, planW, Ui.CHIP_H, ph);
             } else {
-                Kit.ledger(g, bx, y - 3, planW, 14, false);
+                Kit.pill(g, bx, y - 3, planW, Ui.CHIP_H, false, ph);
             }
-            if (planOn) {
-                g.drawString(font(), planText, bx + 6, y, Theme.CREAM, false);
-            } else {
-                onWood(g, planText, bx + 6, y, Kit.REST);
-            }
+            Type.BODY.draw(g, font(), planText, bx + Theme.SP_4, Type.BODY.yIn(y - 3, Ui.CHIP_H), planOn ? Theme.CREAM : Theme.INK_2);
             levelRows.add(new int[] {bx, y - 3, planW - PLAN_X, 14, PLAN_PILL});
             menu.hits.add(new MenuHit(bx, y - 3, planW - PLAN_X, 14, null, List.of(Component.literal(plan.name()).withStyle(ChatFormatting.LIGHT_PURPLE),
                     L.c("wynnlabs.homev.plan_pill_tip").withStyle(ChatFormatting.GRAY)), null));
             // its ✕ at the right end: the plan removed (Undo on the build line for a few seconds)
             int xx = bx + planW - PLAN_X - 1;
             boolean xh = menu.frameMx >= xx && menu.frameMx < xx + 12 && menu.frameMy >= y - 2 && menu.frameMy < y + 10;
-            Kit.button(g, xx, y - 2, 12, 12, xh ? Kit.HOVER : Kit.REST);
-            Art.icon(g, "x", xx + 2, y, 8, Kit.buttonText(xh ? Kit.HOVER : Kit.REST));
+            int xink = planOn ? Theme.CREAM : Theme.INK_2;
+            Art.icon(g, "x", xx + 2, y, 8, xh ? (planOn ? Theme.GOLD_EDGE : Theme.INK) : xink);
             List<Component> xtip = new ArrayList<>();
             xtip.add(L.c("wynnlabs.homev.plan_remove").withStyle(ChatFormatting.WHITE));
             xtip.add(L.c("wynnlabs.homev.plan_remove_tip").withStyle(ChatFormatting.GRAY));
@@ -1267,27 +1070,22 @@ public final class HomePage extends MenuTab {
         Roadmap.Option pick = all.isEmpty() ? null : all.get(0);
         List<Roadmap.Option> opts = PanelOptions.shown(all, detailMarket, Wyn.level());
         String back = L.t("wynnlabs.home.back");
-        int bw = font().width(back) + 24;
+        int bw = Ui.iconChipWidth(font(), "chevron-left", back, false);
         String[] fl = {L.t("wynnlabs.home.filter_all"), L.t("wynnlabs.home.filter_market")};
-        int fx = x + w - bw - 8 - (font().width(fl[0]) + 12) - (font().width(fl[1]) + 12) - 2;
+        int fx = x + w - bw - 8 - Ui.chipWidth(font(), fl[0]) - Ui.chipWidth(font(), fl[1]) - 2;
         // the title, without "options, by gain" when the filter needs its room
         Component title = Component.literal(detailLabel).withStyle(ChatFormatting.LIGHT_PURPLE).withStyle(UiFont::bold);
         Component full = title.copy().append(L.c("wynnlabs.home.detail_sub").withStyle(ChatFormatting.DARK_GRAY));
         ink(g, font().width(full) + 8 <= fx - x ? full : title, x, y, 0xFFFFFFFF);
-        boolean bh = mx >= x + w - bw && mx < x + w && my >= y - 2 && my < y + 11;
-        Kit.button(g, x + w - bw, y - 2, bw, 13, bh ? Kit.HOVER : Kit.REST);
-        woodIconText(g, "chevron-left", back, x + w - bw + 7, y, bh ? Kit.HOVER : Kit.REST);
-        backRect = new int[] {x + w - bw, y - 2, bw, 13};
+        Ui.iconChip(g, font(), "chevron-left", back, false, x + w - bw, y - 3, bw, false, mx, my);
+        backRect = new int[] {x + w - bw, y - 3, bw, Ui.CHIP_H};
         // the filter, left of Back: every option, or only what the Trade Market sells
         filterRects = new int[2][];
         for (int i = 0; i < 2; i++) {
-            int fw = font().width(fl[i]) + 12;
+            int fw = Ui.chipWidth(font(), fl[i]);
             boolean on = detailMarket == (i == 1);
-            boolean fh = mx >= fx && mx < fx + fw && my >= y - 2 && my < y + 11;
-            int state = on ? Kit.ON : fh ? Kit.HOVER : Kit.REST;
-            Kit.button(g, fx, y - 2, fw, 13, state);
-            onWood(g, fl[i], fx + 6, y + 1, state);
-            filterRects[i] = new int[] {fx, y - 2, fw, 13};
+            Ui.chip(g, font(), fl[i], fx, y - 3, fw, on, false, false, mx, my);
+            filterRects[i] = new int[] {fx, y - 3, fw, Ui.CHIP_H};
             fx += fw + 2;
         }
 
@@ -1368,12 +1166,10 @@ public final class HomePage extends MenuTab {
         ink(g, build, rx + rw - font().width(build), y + 8, FAINT);
         String total = (o.gain() >= 0 ? "+" : "−") + RoadmapScreen.pct(Math.round(Math.abs(o.gain())));
         Kit.seal(g, rx + 4, y + 19, rw - 4, 18, o.gain() >= 0 ? (pick ? Theme.SEAL_3 : Theme.SEAL_2) : Theme.BAD);
-        g.drawString(font(), total, rx + 4 + (rw - 4 - font().width(total)) / 2, y + 24, Theme.SEAL_TEXT, true);
+        g.drawString(font(), total, rx + 4 + (rw - 4 - font().width(total)) / 2, y + 24, Theme.SEAL_TEXT, false);
         String copy = L.t("wynnlabs.home.card_copy");
-        int cbw = font().width(copy) + 12;
-        int cstate = hover ? Kit.ON : Kit.REST;
-        Kit.button(g, rx + rw - cbw, y + h - 21, cbw, 14, cstate);
-        onWood(g, copy, rx + rw - cbw + 6, y + h - 18, cstate);
+        int cbw = Ui.chipWidth(font(), copy);
+        Ui.chip(g, font(), copy, rx + rw - cbw, y + h - 21, cbw, hover, false, false, -1, -1);
 
         // middle: name and level, where it is had, the tags
         int tx = x + 52;
