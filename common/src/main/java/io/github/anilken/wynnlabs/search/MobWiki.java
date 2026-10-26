@@ -68,6 +68,11 @@ public final class MobWiki {
         }
     }
 
+    /** The kept list as the quests' panes read it (never fetched from here); empty when there is none. */
+    public static List<Mob> kept() {
+        return cached(QuestWiki.cacheDir());
+    }
+
     /** Whether the kept list is under a week old. */
     static boolean fresh(Path dir) {
         try {

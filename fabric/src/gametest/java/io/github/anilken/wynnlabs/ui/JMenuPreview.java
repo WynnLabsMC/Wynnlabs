@@ -318,6 +318,33 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).tree.treeSearch.setValue(""));
     }
 
+    /**
+     * A quests pane drawn once more with the layout check on: no text over other text (the foot's
+     * buttons over a pane's last lines, the small window's overflow). Fails the run when found.
+     */
+    private static void paneLayout(ClientGameTestContext ctx, String name) {
+        ctx.runOnClient(mc -> LayoutCheck.start());
+        ctx.waitTicks(1);
+        List<LayoutCheck.Drawn> drawn = ctx.computeOnClient(mc -> LayoutCheck.stop());
+        List<String> clash = LayoutCheck.textOverlaps(drawn);
+        if (!clash.isEmpty()) {
+            throw new AssertionError("[wynnlabs-layout] " + name + " at " + PreviewSize.WIDTH + "x" + PreviewSize.HEIGHT + ": " + clash);
+        }
+        System.out.println("[wynnlabs-layout] " + name + " at " + PreviewSize.WIDTH + "x" + PreviewSize.HEIGHT + ": no text over text");
+    }
+
+    /** The tests' excerpt of the wiki's Mini-Quest page (the run's folder is fabric/run or fabric). */
+    private static String miniPage() {
+        for (String dir : new String[] {"src/test/resources/wiki/mini-quest.txt", "../src/test/resources/wiki/mini-quest.txt"}) {
+            try {
+                return java.nio.file.Files.readString(java.nio.file.Path.of(dir));
+            } catch (java.io.IOException ignored) {
+                // the other folder
+            }
+        }
+        return null;
+    }
+
     /** -PpreviewOnly=search or bank: the page's search field empty, then typed in. */
     private static void searchFieldShots(ClientGameTestContext ctx, Path out, String name, int tab, String typed) {
         ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(tab));
@@ -371,10 +398,16 @@ public class JMenuPreview implements FabricClientGameTest {
                         "Infiltrate Almuj's Secret Emerald Labyrinth at [1019, 84, -1976] underground and find the Banker",
                         1019, 84, -1976, null, System.currentTimeMillis(), "QUEST", "Medium"));
                 set(mc.screen, "tab", 2);
+                // the wiki's Mini-Quest table (the tests' excerpt) as if the page had been read; the bank, for what you hold
+                io.github.anilken.wynnlabs.quests.MiniQuests.preview(miniPage());
+                io.github.anilken.wynnlabs.market.Vault.preview(FixtureState.load(Fixtures.root().resolve(
+                        System.getProperty("wynnlabs.previewFixture", "shaman-44"))).bankStacks());
             });
             // the guide of the quest you are on, its places, a quest not started, the order menu, nothing read
             String[][] views = {{"Jungle Fever", "0", "quests-tab"}, {"Jungle Fever", "3", "quests-points"},
-                {"Underice", "0", "quests-underice"}, {"Underice", "3", "quests-underice-points"}};
+                {"Underice", "0", "quests-underice"}, {"Underice", "3", "quests-underice-points"},
+                {"Slay Creatures of Nesaak Forest", "0", "quests-mini-open"}, {"Slay Idols", "0", "quests-mini-locked"},
+                {"Gather Copper", "0", "quests-mini-gather"}, {"Slay Slimes", "0", "quests-mini-have"}};
             for (String[] v : views) {
                 ctx.runOnClient(mc -> {
                     QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
@@ -384,6 +417,7 @@ public class JMenuPreview implements FabricClientGameTest {
                 });
                 ctx.waitTicks(10);
                 shot(ctx, out, v[2]);
+                paneLayout(ctx, v[2]);
             }
             // the tab's draw time with the caches off (every value worked out each frame) and on
             for (String[] v : new String[][] {{"Jungle Fever", "0"}, {"Jungle Fever", "3"}}) {
@@ -417,6 +451,7 @@ public class JMenuPreview implements FabricClientGameTest {
             });
             ctx.waitTicks(10);
             shot(ctx, out, "quests-cave");
+            paneLayout(ctx, "quests-cave");
             // the secret discoveries as a kind: their list and a guide with its steps
             ctx.runOnClient(mc -> {
                 QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
@@ -425,6 +460,7 @@ public class JMenuPreview implements FabricClientGameTest {
             });
             ctx.waitTicks(10);
             shot(ctx, out, "quests-secret");
+            paneLayout(ctx, "quests-secret");
             ctx.runOnClient(mc -> {
                 QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
                 q.action("#qtype:RECOMMENDED");

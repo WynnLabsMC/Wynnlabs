@@ -1,0 +1,70 @@
+==Mini-Quests==
+{| class="wikitable sortable"
+!'''Miniquest&nbsp;Name'''
+!'''Min.&nbsp;Level'''
+!'''Starting Location'''
+!'''Coordinates'''
+!'''Province'''
+!'''Items Required'''
+!'''Combat XP Given'''
+|-
+| Slay Spiders
+| align="center" |4
+|[[Nivla Woods]]
+| align="center" | -272, 70, -1587
+| align="center" |Wynn 
+|5 Forest Web
+| align="center" |400
+|-
+| Slay Creatures of Nesaak Forest
+| align="center" |40
+|[[Nesaak Forest]]
+| align="center" |82, 69, -725
+| align="center" |Wynn
+|15 Snow Clumps
+| align="center" |12,960
+|-
+| Slay Slimes
+| align="center" |50
+|[[Jungle|Troms Jungle]]
+| align="center" | -480, 68, -707
+| align="center" |Wynn
+|22 Viscous Slime
+| align="center" |32,400
+|-
+| Slay Idols
+| align="center" |65
+|[[Dernel Jungle]]
+| align="center" | -708, 28, -413
+| align="center" |Wynn
+|18 Ancient Metal
+| align="center" |129,600
+|-
+| Slay Pernix Monkeys
+| align="center" |90
+|[[Corkus]]
+| align="center" | -1721, 110, -2255
+| align="center" |Corkus
+|24 Perkish Potatoes
+| align="center" |1,234,200
+|}
+{| class="wikitable sortable"
+!'''Mini-Quest&nbsp;Name'''
+!'''Mining Min.&nbsp;Level'''
+!'''Starting Location'''
+!'''Coordinates'''
+!'''Province'''
+!'''Items Required'''
+!'''Mining XP Given'''
+!'''Combat XP Given'''
+|-
+|Gather Copper
+| align="center" |8
+|[[Emerald Trail]]
+| align="center" |-563, 68, -1547
+| align="center" |Wynn
+|12 Copper Ingot or 12 Copper Gem
+| align="center" |120
+| align="center" |100
+|}
+== Removed Quests ==

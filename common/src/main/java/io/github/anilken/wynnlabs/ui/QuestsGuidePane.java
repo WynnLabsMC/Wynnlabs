@@ -100,9 +100,11 @@ final class QuestsGuidePane extends MenuPaint {
         int bottom = y + h;
         int foot = bottom - Ui.BUTTON_H;
         int cy = y + titleRow(g, x, y, w, name, info, places.size(), mx, my);
+        boolean mini = io.github.anilken.wynnlabs.quests.MiniQuests.is(name);
         if (info == null) {
-            String why = !QuestWiki.on() ? L.t("wynnlabs.quests.wiki_off") : QuestWiki.failed(name) ? L.t("wynnlabs.quests.wiki_not_found")
-                    : L.t("wynnlabs.quests.wiki_loading");
+            String why = !QuestWiki.on() ? L.t("wynnlabs.quests.wiki_off")
+                    : mini ? L.t(io.github.anilken.wynnlabs.quests.MiniQuests.loading() ? "wynnlabs.quests.wiki_loading" : "wynnlabs.quests.mini_unknown")
+                    : QuestWiki.failed(name) ? L.t("wynnlabs.quests.wiki_not_found") : L.t("wynnlabs.quests.wiki_loading");
             Type.MUTED.draw(g, font(), Type.MUTED.fit(font(), why, w), x, cy);
             buttons(g, x, foot, w, name, q, null, mx, my);
             return;
@@ -110,13 +112,15 @@ final class QuestsGuidePane extends MenuPaint {
         int cur = QuestsData.stage(name, info);
         int shown = Math.max(0, Math.min(info.stages().size() - 1, cur));
         QuestWiki.Stage st = info.stages().get(shown);
-        Type.LABEL.draw(g, font(), L.t("wynnlabs.quests.stage_of", shown + 1, info.stages().size()), x, cy, Theme.ACCENT);
+        if (!mini) {                                // a mini has one step: no "Aşama 1 / 1"
+            Type.LABEL.draw(g, font(), L.t("wynnlabs.quests.stage_of", shown + 1, info.stages().size()), x, cy, Theme.ACCENT);
+        }
         if (QuestWiki.newer(info)) {
             String note = L.t("wynnlabs.quests.newer_than_translation");
             int nx = x + Type.LABEL.width(font(), L.t("wynnlabs.quests.stage_of", shown + 1, info.stages().size())) + Theme.SP_4;
             Type.META.draw(g, font(), Type.META.fit(font(), note, x + w - nx), nx, cy + 1, Theme.WARN);
         }
-        cy += Type.LABEL.lineHeight + Theme.SP_2;
+        cy += mini ? 0 : Type.LABEL.lineHeight + Theme.SP_2;
         int[] at = st.at() != null ? st.at() : !st.points().isEmpty() ? st.points().get(0) : null;
         cy = stageCard(g, x, cy, w, st, at, mx, my) + Theme.SP_3;
         // the stage's places in a line, the full list one click away

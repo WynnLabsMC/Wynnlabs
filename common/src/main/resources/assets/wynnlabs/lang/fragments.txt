@@ -137,3 +137,10 @@ wynnlabs.today.u_per_cast  a unit after its number in the last session line ("12
 wynnlabs.tree.per_cast  a unit or note after its number on the tree page
 wynnlabs.tree.measured  a unit or note after its number on the tree page
 wynnlabs.tree.deaths_week  a unit or note after its number on the tree page
+wynnlabs.quests.mini_enough  a part of a line in the mini-quest pane
+wynnlabs.quests.mini_have  a part of a line in the mini-quest pane
+wynnlabs.quests.mini_have_tip  a part of a line in the mini-quest pane
+wynnlabs.quests.mini_or  a part of a line in the mini-quest pane
+wynnlabs.quests.mini_req_combat  a part of a line in the mini-quest pane
+wynnlabs.quests.mini_req_prof  a part of a line in the mini-quest pane
+wynnlabs.quests.mini_price_tip  a part of a line in the mini-quest pane

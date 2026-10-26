@@ -39,6 +39,12 @@ public final class QuestBook {
 
     private QuestBook() {}
 
+    /** One quest by its name, or null. */
+    public static Entry get(String name) {
+        load();
+        return previewHidden || name == null ? null : ENTRIES.get(name);
+    }
+
     public static List<Entry> all() {
         load();
         return previewHidden ? new ArrayList<>() : new ArrayList<>(ENTRIES.values());

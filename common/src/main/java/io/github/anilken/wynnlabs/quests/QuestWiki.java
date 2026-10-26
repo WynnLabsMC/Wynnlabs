@@ -73,6 +73,9 @@ public final class QuestWiki {
      * guide: the live page, or null while it loads.
      */
     public static Info get(String quest) {
+        if (quest != null && MiniQuests.is(quest)) {
+            return MiniQuests.info(quest);          // no page of its own: its post from the Mini-Quest page
+        }
         Info live = live(quest);
         QuestGuides.Guide g = quest == null ? null : QuestGuides.find(quest);
         if (g == null) {

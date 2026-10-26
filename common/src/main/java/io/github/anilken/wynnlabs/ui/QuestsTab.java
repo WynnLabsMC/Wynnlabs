@@ -33,6 +33,7 @@ final class QuestsTab extends MenuTab {
         super(menu);
         rail = new QuestsRail(menu, this);
         guide = new QuestsGuidePane(menu, this);
+        mini = new QuestsMiniPane(menu, this);
         points = new QuestsPointsPane(menu, this);
         place = new QuestsPlacePane(menu, this);
         types = new QuestsTypes(menu, this);
@@ -44,6 +45,7 @@ final class QuestsTab extends MenuTab {
 
     final QuestsRail rail;
     final QuestsGuidePane guide;
+    final QuestsMiniPane mini;
     final QuestsPointsPane points;
     final QuestsPlacePane place;
     final QuestsTypes types;
@@ -239,6 +241,9 @@ final class QuestsTab extends MenuTab {
             map.refit();
         } else if (c.startsWith("#qzoom:")) {
             map.zoomBy(c.endsWith("+") ? 1 : -1);
+        } else if (c.startsWith("#qmapopen:")) {
+            String[] p = c.substring(10).split(" ");
+            Wyn.openMap(Float.parseFloat(p[0]), Float.parseFloat(p[1]));
         } else if (c.startsWith("#qstage:")) {
             map.step(c.endsWith("+") ? 1 : -1);
             // the list follows: its first row of the focused stage on top
@@ -427,6 +432,8 @@ final class QuestsTab extends MenuTab {
         } else if (questSelected != null) {
             if (questDetailTab == 3) {
                 points.draw(g, px, py, pw, y + h - py, mx, my);
+            } else if (io.github.anilken.wynnlabs.quests.MiniQuests.is(questSelected)) {
+                mini.draw(g, px, py, pw, y + h - py, mx, my);     // a mini-quest: its own pane (post, items, prices)
             } else {
                 guide.draw(g, px, py, pw, y + h - py, mx, my);
             }
