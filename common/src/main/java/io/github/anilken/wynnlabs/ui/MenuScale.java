@@ -13,6 +13,7 @@ import net.minecraft.client.input.MouseButtonEvent;
  * as it does at 3). A screen works in a logical size (window pixels ÷ the menu scale), draws under
  * a pose scaled by game scale ÷ menu scale, and turns mouse positions into logical ones and
  * tooltip positions back. A scale that would leave less than 426×240 steps down until it fits.
+ * Unset ("Automatic") it is the game's, or a smaller one (not under 2) that fits the large layout.
  */
 public final class MenuScale {
 
@@ -22,17 +23,24 @@ public final class MenuScale {
 
     private MenuScale() {}
 
-    /** The chosen menu scale, 0 for "same as the game". */
+    /** The chosen menu scale, 0 for automatic. */
     static int setting() {
         return Settings.number("menuScale", 0);
     }
 
-    /** The scale the mod's screens draw at: the setting, stepped down until 426×240 fits; the game's when unset. */
+    /** The scale the mod's screens draw at: the setting, stepped down until 426×240 fits; automatic when unset. */
     static int effective() {
         var w = Minecraft.getInstance().getWindow();
         int game = (int) Math.round(w.getGuiScale());
         int s = setting();
         if (s <= 0) {
+            // the large layout (MenuLayout: 800×450) when a smaller scale, not under 2, gives it room:
+            // 1920×1080 at the game's 3 or 4 draws the menu at 2 instead of squeezing it
+            for (int t = game; t >= 2; t--) {
+                if (w.getWidth() / t >= 800 && w.getHeight() / t >= 450) {
+                    return t;
+                }
+            }
             return game;
         }
         while (s > 1 && (w.getWidth() / s < 426 || w.getHeight() / s < 240)) {
