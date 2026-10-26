@@ -288,8 +288,7 @@ final class HomeStats extends HomePart {
         int bottom = y + h;
         if (tabs && spellsTab) {
             spells.draw(g, host, x, top, w, bottom - top, large, false, mx, my);
-            picker.drawList(g, host, mx, my);
-            return;
+            return;                             // the open compare list: the home's popup, drawn over all
         }
         if (now == null) {
             Type.MUTED.drawWrapped(g, font, L.t("wynnlabs.stats.none"), x, top, w, 3, Theme.INK_3);
@@ -372,7 +371,6 @@ final class HomeStats extends HomePart {
         }
         g.disableScissor();
         bar.drawSlim(g, mx, my);
-        picker.drawList(g, host, mx, my);
     }
 
     /** One stat's row: its label (after its element's mark), Now's value right-aligned and the difference to the other build. */

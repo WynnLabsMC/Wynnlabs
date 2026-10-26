@@ -255,6 +255,29 @@ public class JMenuPreview implements FabricClientGameTest {
                 }
             }
             ctx.runOnClient(mc -> QuestsCache.measure(true));
+            // the content kinds: the kind menu, a cave on its stageless page (places from a small sample)
+            ctx.runOnClient(mc -> {
+                io.github.anilken.wynnlabs.quests.Content.preview(PREVIEW_CAVES, PREVIEW_FEATURES);
+                QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
+                q.questDetailTab = 0;
+                q.typeOpen = true;
+            });
+            ctx.waitTicks(3);
+            shot(ctx, out, "quests-types");
+            ctx.runOnClient(mc -> {
+                QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
+                q.typeOpen = false;
+                q.action("#qtype:CAVE");
+                q.action("#qcsel:CAVE\nWolf Den");
+            });
+            ctx.waitTicks(10);
+            shot(ctx, out, "quests-cave");
+            ctx.runOnClient(mc -> {
+                QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
+                q.action("#qtype:RECOMMENDED");
+            });
+            ctx.waitTicks(5);
+            shot(ctx, out, "quests-recommended");
             ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).questsTab.filterOpen = true);
             ctx.waitTicks(3);
             shot(ctx, out, "quests-menu");
@@ -630,4 +653,27 @@ public class JMenuPreview implements FabricClientGameTest {
         f.setAccessible(true);
         f.setInt(screen, value);
     }
+
+    /** A few caves and places around Nesaak for the quests tab's kinds (Wynntils' cache is not in the preview). */
+    private static final String PREVIEW_CAVES = """
+            [{"name":"Wolf Den","description":"The home of the wolves all around the frozen area of Nesaak, found around [175, 73, -715]",
+              "length":"medium","difficulty":"easy","requirements":"43","rewards":["7000 XP","1 Snow Boots","Various Items"],
+              "location":{"x":175,"y":73,"z":-715}},
+             {"name":"Breaking Ice","description":"A cave covered in thin ice and full of rocky creatures around [-134, 74, -797]",
+              "length":"medium","difficulty":"medium","requirements":"46","rewards":["9000 XP","Various Items"],
+              "location":{"x":-134,"y":74,"z":-797}},
+             {"name":"Ice Doors","description":"A frosted over doorway at [-118, 71, -923]","length":"long","difficulty":"medium",
+              "requirements":"41","rewards":["12000 XP"],"location":{"x":-118,"y":71,"z":-923}},
+             {"name":"Raging Survivor","description":"","length":"medium","difficulty":"hard","requirements":"45","rewards":[],
+              "location":{"x":-287,"y":27,"z":-555}},
+             {"name":"Gold Rush","description":"","length":"medium","difficulty":"easy","requirements":"38","rewards":[],
+              "location":{"x":1440,"y":34,"z":-1369}},
+             {"name":"Swamp Hill","description":"","length":"short","difficulty":"easy","requirements":"50","rewards":[],
+              "location":{"x":-2059,"y":59,"z":-5241}}]""";
+    private static final String PREVIEW_FEATURES = """
+            [{"categoryId":"wynntils:content:dungeon","attributes":{"label":"Ice Barrows","level":45},"location":{"x":134,"y":62,"z":-639}},
+             {"categoryId":"wynntils:content:dungeon","attributes":{"label":"Sand-Swept Tomb","level":36},"location":{"x":1428,"y":62,"z":-1830}},
+             {"categoryId":"wynntils:content:boss-altar","attributes":{"label":"Prison of Souls","level":45},"location":{"x":50,"y":60,"z":-487}},
+             {"categoryId":"wynntils:content:raid","attributes":{"label":"Nest of the Grootslangs","level":54},"location":{"x":-1977,"y":63,"z":-5635}},
+             {"categoryId":"wynntils:content:time-trial","attributes":{"label":"Llevigar Leg Day","level":40},"location":{"x":-2018,"y":60,"z":-4822}}]""";
 }

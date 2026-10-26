@@ -165,9 +165,42 @@ final class SearchTab extends MenuTab {
         card.draw(g, x + listW + 8, bodyY, cardW, bodyH, mx, my);
         // the keys, at the foot of the page
         ink(g, fit(L.t("wynnlabs.search.footer"), w), x, y + h - 9, FAINT);
-        if (sortOpen) {
-            sortList(g, sx, y + 14, sortW, mx, my);
+        sortAt = new int[] {sx, y + 14, sortW};     // its list: the popup, drawn over the page by drawPopup
+    }
+
+    // ---- the sort's list: a popup that owns the mouse ----
+
+    private int[] sortAt;
+
+    @Override
+    boolean popupOpen() {
+        return sortOpen;
+    }
+
+    @Override
+    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+        if (sortAt == null) {
+            sortOpen = false;
+            return;
         }
+        boxes.add(sortList(g, sortAt[0], sortAt[1], sortAt[2], mx, my));
+    }
+
+    @Override
+    void closePopup() {
+        sortOpen = false;
+    }
+
+    @Override
+    boolean popupClicked(MouseButtonEvent event) {
+        for (int i = clicks.size() - 1; i >= 0; i--) {
+            Click c = clicks.get(i);
+            if (in(event.x(), event.y(), c.rect())) {
+                c.run().run();
+                return true;
+            }
+        }
+        return true;
     }
 
     /** The chips under the box: kinds with their counts, the level range, my class, owned, on the market. Returns the bottom. */
@@ -223,7 +256,7 @@ final class SearchTab extends MenuTab {
     }
 
     /** The sort's list, open under its button, over everything else. */
-    private void sortList(GuiGraphics g, int x, int y, int w, int mx, int my) {
+    private int[] sortList(GuiGraphics g, int x, int y, int w, int mx, int my) {
         int lw = w;
         for (String s : SORTS) {
             lw = Math.max(lw, font().width(L.t(s)) + 16);
@@ -244,6 +277,7 @@ final class SearchTab extends MenuTab {
                 results.scroll = 0;
             });
         }
+        return new int[] {lx, y, lw, SORTS.length * 14 + 4};
     }
 
     // ---- the query ----

@@ -564,6 +564,93 @@ public final class Wyn {
         }, false);
     }
 
+    /**
+     * One content book line as Wynntils read it: the name, AVAILABLE / STARTED / UNAVAILABLE /
+     * COMPLETED, the level it asks for (0 when none) and its description, plain text.
+     */
+    public record ContentLine(String name, String status, int level, String description) {}
+
+    /**
+     * Wynntils reads one kind of the content book ({@code kind}: an {@code ActivityType} name such as
+     * "CAVE" or "DUNGEON") and hands the lines to {@code done} on the game thread. False when the kind
+     * is unknown to this Wynntils or the call fails. Like {@link #rescanQuests}, only ever on the
+     * player's press of the quests tab's refresh: never automatically, on a timer or in a loop.
+     */
+    public static boolean scanContent(String kind, java.util.function.Consumer<List<ContentLine>> done) {
+        ActivityType type = activityType(kind);
+        if (type == null) {
+            return false;
+        }
+        return guard(Feature.QUESTS, () -> {
+            Models.Activity.scanContentBook(type, (list, progress) -> {
+                try {
+                    List<ContentLine> out = new ArrayList<>();
+                    for (com.wynntils.models.activities.type.ActivityInfo a : list) {
+                        int lv = a.requirements() == null || a.requirements().level() == null ? 0 : a.requirements().level().a();
+                        String d = a.description().map(t -> t.getStringWithoutFormatting()).orElse("");
+                        out.add(new ContentLine(a.name(), a.status() == null ? "UNKNOWN" : a.status().name(), lv, d));
+                    }
+                    done.accept(out);
+                } catch (Throwable t) {
+                    System.out.println("[WynnLabs] content book lines unreadable: " + t);
+                }
+            });
+            return true;
+        }, false);
+    }
+
+    /**
+     * What Wynntils itself keeps of one kind for this character (caves and the three discovery
+     * kinds; empty for the rest and until Wynntils read them).
+     */
+    public static List<ContentLine> knownContent(String kind) {
+        return guard(Feature.QUESTS, () -> {
+            List<ContentLine> out = new ArrayList<>();
+            switch (kind) {
+                case "CAVE" -> {
+                    for (var c : Models.Cave.getSortedCaves(ActivitySortOrder.LEVEL)) {
+                        out.add(new ContentLine(c.name(), c.status() == null ? "UNKNOWN" : c.status().name(), c.recommendedLevel(),
+                                c.description() == null ? "" : c.description()));
+                    }
+                }
+                case "SECRET_DISCOVERY", "WORLD_DISCOVERY", "TERRITORIAL_DISCOVERY" -> {
+                    DiscoveryType t = kind.startsWith("SECRET") ? DiscoveryType.SECRET : kind.startsWith("WORLD") ? DiscoveryType.WORLD
+                            : DiscoveryType.TERRITORY;
+                    Models.Discovery.getAllDiscoveriesForType(t).forEach(d -> out.add(new ContentLine(d.name(),
+                            d.discovered() ? "COMPLETED" : "AVAILABLE", d.minLevel(), d.description() == null ? "" : d.description())));
+                }
+                default -> {
+                }
+            }
+            return out;
+        }, List.of());
+    }
+
+    /** Whether this Wynntils knows the content book kind (Time Trial is missing in 4.2.x). */
+    public static boolean knowsKind(String kind) {
+        return activityType(kind) != null;
+    }
+
+    private static ActivityType activityType(String kind) {
+        try {
+            return ActivityType.valueOf(kind);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Tracks a content book entry of any kind Wynntils knows; on the player's click only. */
+    public static boolean startTracking(String name, String kind) {
+        ActivityType type = activityType(kind);
+        if (type == null) {
+            return false;
+        }
+        return guard(Feature.QUESTS, () -> {
+            Models.Activity.startTracking(name, type);
+            return true;
+        }, false);
+    }
+
     private static Quest quest(QuestInfo q) {
         var req = q.additionalRequirements();
         Quest.Requirements r = null;

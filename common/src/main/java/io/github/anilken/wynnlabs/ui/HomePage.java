@@ -78,8 +78,47 @@ public final class HomePage extends MenuTab {
         }
     }
 
+    // ---- the popups: the goal list, the stats' compare list ----
+
+    @Override
+    boolean popupOpen() {
+        return goalOpen || stats != null && stats.picker.open();
+    }
+
+    @Override
+    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+        int[] b = drawGoalList(g, mx, my);
+        if (b != null) {
+            boxes.add(b);
+        }
+        b = stats != null ? stats.picker.drawList(g, homeHost, mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
+        if (boxes.isEmpty()) {
+            closePopup();
+        }
+    }
+
+    @Override
+    void closePopup() {
+        goalOpen = false;
+        if (stats != null) {
+            stats.picker.close();
+        }
+    }
+
+    @Override
+    boolean popupClicked(MouseButtonEvent event) {
+        if (stats != null && stats.picker.open()) {
+            stats.picker.close();               // a row's own click area still picks
+            return false;
+        }
+        return goalClicked(event.x(), event.y());
+    }
+
     /** A click while the goal list is open: it closes, and a row picks that goal. True when the click is used up. */
-    boolean goalClicked(double ex, double ey) {
+    private boolean goalClicked(double ex, double ey) {
         if (!goalOpen) {
             return false;
         }
@@ -322,9 +361,9 @@ public final class HomePage extends MenuTab {
     private final List<int[]> goalRows = new ArrayList<>();     // x, y, w, h, index in Setup.GOALS
 
     /** One row per goal: its name and what it weighs, the current one marked, the hovered one lit (when the list is open). */
-    void drawGoalList(GuiGraphics g, int mx, int my) {
+    private int[] drawGoalList(GuiGraphics g, int mx, int my) {
         if (!goalOpen || goalAnchor == null) {
-            return;
+            return null;
         }
         goalRows.clear();
         int rowH = 20;
@@ -338,9 +377,7 @@ public final class HomePage extends MenuTab {
         int y = goalAnchor[1] + goalAnchor[3] + 2;
         int h = Setup.GOALS.size() * rowH + 6;
         g.nextStratum();                            // over the menu's own text and items
-        // what the list covers shows no tooltip (the stats under it)
         int[] b = {x, y, w, h};
-        menu.hits.removeIf(hit -> hit.x() < b[0] + b[2] && hit.x() + hit.w() > b[0] && hit.y() < b[1] + b[3] && hit.y() + hit.h() > b[1]);
         Kit.card(g, x, y, w, h, 0);
         String now = Setup.goal();
         for (int i = 0; i < Setup.GOALS.size(); i++) {
@@ -357,6 +394,7 @@ public final class HomePage extends MenuTab {
             ink(g, L.t(goalDesc(goal)), x + 7, ry + 11, MUTED);
             goalRows.add(new int[] {x + 2, ry, w - 4, rowH, i});
         }
+        return b;
     }
 
     private static String goalDesc(String goal) {

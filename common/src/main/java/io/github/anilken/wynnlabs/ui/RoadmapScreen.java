@@ -87,6 +87,8 @@ public final class RoadmapScreen extends Screen {
     public final HomePage home = new HomePage(this);
     final TodayTab today = new TodayTab(this);
     public final QuestsTab questsTab = new QuestsTab(this);
+    /** The open popups' boxes this frame (a click inside one goes to it, outside closes it). */
+    final List<int[]> popupBoxes = new ArrayList<>();
     final DeathsTab deaths = new DeathsTab(this);
     public final BankTab bank = new BankTab(this);
     public final SettingsTab settings = new SettingsTab(this);
@@ -464,6 +466,16 @@ public final class RoadmapScreen extends Screen {
         // the page: content keeps 10px from the parchment's sides (14 at the top, 8 at the bottom)
         Kit.paper(g, x0 + railW() + 2, y0 + 2, w - railW() - 4, h - 4);
 
+        // an open popup owns the mouse: everything under it draws as if the mouse were away
+        MenuTab page = tab == TAB_CRAFT || tab == TAB_ENDGAME ? null : pages[tab];
+        boolean popup = page != null && page.popupOpen();
+        int realX = mx;
+        int realY = my;
+        if (popup) {
+            mx = -1;
+            my = -1;
+        }
+        popupBoxes.clear();
         rail.draw(g, x0, y0, h, mx, my);
         int cx = x0 + railW() + 12;
         int cw = w - railW() - 24;
@@ -501,8 +513,12 @@ public final class RoadmapScreen extends Screen {
             case TAB_ENDGAME -> EndgameTab.INSTANCE.draw(g, cx, cy, cw, ch, cy - HEADER_H, new int[] {x0, y0, w, h}, width, mx, my, pt);
             default -> pages[tab].draw(g, cx, cy, cw, ch, mx, my, pt);
         }
-        if (tab == 0) {
-            home.drawGoalList(g, mx, my);
+        if (popup) {
+            hits.clear();                               // nothing under the popup clicks or shows a tooltip
+            mx = realX;
+            my = realY;
+            g.nextStratum();                            // over the page's text and items
+            page.drawPopup(g, mx, my, popupBoxes);
         }
         archPicker.draw(g, mx, my);
         // the build window over the home: what is under it neither shows a tooltip nor takes a click
@@ -724,7 +740,25 @@ public final class RoadmapScreen extends Screen {
             }
             return BuildWindow.INSTANCE.mouseClicked(ex, ey, event.button());
         }
-        if (home.goalClicked(ex, ey) || archPicker.clicked(ex, ey)) {
+        MenuTab open = tab == TAB_CRAFT || tab == TAB_ENDGAME ? null : pages[tab];
+        if (open != null && open.popupOpen()) {
+            // an open popup owns the mouse: inside, only its click areas; outside, it just closes
+            for (int[] b : popupBoxes) {
+                if (MenuPaint.in(ex, ey, b)) {
+                    if (!open.popupClicked(event)) {
+                        for (MenuHit h : hits) {
+                            if (hitClicked(h, event)) {
+                                break;
+                            }
+                        }
+                    }
+                    return true;
+                }
+            }
+            open.closePopup();
+            return true;
+        }
+        if (archPicker.clicked(ex, ey)) {
             return true;
         }
         if (closeRect != null && MenuPaint.in(ex, ey, closeRect)) {
@@ -902,6 +936,15 @@ public final class RoadmapScreen extends Screen {
         archPicker.close();                         // the page moves under it
         if (tab == 0 && BuildWindow.INSTANCE.isOpen()) {
             return BuildWindow.INSTANCE.mouseScrolled(x, y, v);
+        }
+        MenuTab open = tab == TAB_CRAFT || tab == TAB_ENDGAME ? null : pages[tab];
+        if (open != null && open.popupOpen()) {
+            for (int[] b : popupBoxes) {
+                if (MenuPaint.in(x, y, b)) {
+                    open.popupScrolled(x, y, v);
+                }
+            }
+            return true;                                // never the page under a popup
         }
         if (pages[tab] != null) {
             pages[tab].mouseScrolled(x, y, v);

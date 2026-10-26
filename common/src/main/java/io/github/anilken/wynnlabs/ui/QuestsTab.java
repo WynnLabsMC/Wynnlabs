@@ -2,6 +2,8 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.Wyn;
+import io.github.anilken.wynnlabs.quests.Content;
+import io.github.anilken.wynnlabs.quests.ContentType;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.quests.QuestGuides;
@@ -34,12 +36,16 @@ final class QuestsTab extends MenuTab {
         rail = new QuestsRail(menu, this);
         guide = new QuestsGuidePane(menu, this);
         points = new QuestsPointsPane(menu, this);
+        place = new QuestsPlacePane(menu, this);
+        types = new QuestsTypes(menu, this);
         map = new QuestMap(menu);
     }
 
     final QuestsRail rail;
     final QuestsGuidePane guide;
     final QuestsPointsPane points;
+    final QuestsPlacePane place;
+    final QuestsTypes types;
     final QuestMap map;
     /** The list's and the places' scroll bars: dragged, clicked or wheeled. */
     final ScrollBar railBar = new ScrollBar();
@@ -49,8 +55,13 @@ final class QuestsTab extends MenuTab {
 
     /** The order and filter ({@link QuestAdvisor#FILTERS}). */
     String questFilter = "RECOMMENDED";
-    /** The picked quest (null: none yet). */
+    /** The kind shown, as the content book's filter (Recommended: the advisor's quests and places). */
+    ContentType questType = ContentType.RECOMMENDED;
+    /** The picked quest or place (null: none yet), and the picked place's kind (null: a quest). */
     String questSelected;
+    ContentType pickedType;
+    /** The kind menu open. */
+    boolean typeOpen;
     /** The pane: 0 the guide, 3 the places ("Noktalar"); the numbers the preview and dev tools set. */
     int questDetailTab;
     int railScroll;
@@ -186,6 +197,9 @@ final class QuestsTab extends MenuTab {
      * the rescan, pins, the session plan, the map's zoom); false when {@code c} is not one of them.
      */
     boolean action(String c) {
+        if (types.action(c)) {
+            return true;
+        }
         if (c.startsWith("#qfilter:")) {
             questFilter = c.substring(9);
             railScroll = 0;
@@ -193,6 +207,7 @@ final class QuestsTab extends MenuTab {
             searchBox.setValue("");
         } else if (c.equals("#qmenu")) {
             filterOpen = !filterOpen;
+            typeOpen = false;
         } else if (c.equals("#qlist")) {
             listOpen = !listOpen;
         } else if (c.equals("#qsearch")) {
@@ -202,6 +217,7 @@ final class QuestsTab extends MenuTab {
             }
         } else if (c.startsWith("#qsel:")) {
             questSelected = c.substring(6);
+            pickedType = null;
             pointScrollKey = "";
             listOpen = false;
             map.zoom = 1;
@@ -222,8 +238,12 @@ final class QuestsTab extends MenuTab {
                 }
             }
         } else if (c.startsWith("#qrescan:")) {
-            // the player's press, the only thing that starts Wynntils' quest book refresh
-            QuestBook.askWynntils();
+            // the player's press, the only thing that starts Wynntils' content book read
+            if (questType.book()) {
+                Content.scan(questType);
+            } else {
+                QuestBook.askWynntils();
+            }
         } else if (c.equals("#qclear")) {
             int n = Waypoints.clearAll();
             menu.flash(L.n("wynnlabs.quests.pins_cleared", n));
@@ -353,9 +373,9 @@ final class QuestsTab extends MenuTab {
             r -= sw + Theme.SP_3;
         }
         Ui.iconButton(g, "refresh", r - sq, by, false, mx, my);
-        menu.hits.add(new MenuHit(r - sq, by, sq, Ui.CHIP_H, null, rescanTip(), "#qrescan:"));
+        menu.hits.add(new MenuHit(r - sq, by, sq, Ui.CHIP_H, null, questType.book() ? types.rescanTip(questType) : rescanTip(), "#qrescan:"));
         r -= sq + Theme.SP_2;
-        long at = QuestBook.readAt();
+        long at = types.readAt();
         if (at > 0 && !compact) {
             String read = System.currentTimeMillis() - at < 60_000 ? L.t("wynnlabs.quests.read_now") : L.t("wynnlabs.quests.read_ago", ago(at));
             int rw = Type.META.width(font(), read);
@@ -402,9 +422,12 @@ final class QuestsTab extends MenuTab {
             return;
         }
         List<QuestsRail.Row> rows = rail.rows();
-        if (questSelected == null || rows.stream().noneMatch(r -> r.name() != null && r.name().equals(questSelected))
-                && QuestsData.entry(questSelected) == null) {
-            questSelected = rows.stream().filter(r -> r.name() != null).map(QuestsRail.Row::name).findFirst().orElse(null);
+        boolean listed = rows.stream().anyMatch(r -> r.name() != null && r.name().equals(questSelected)
+                && (r.line() == null ? pickedType == null : r.line().type() == pickedType));
+        if (questSelected == null || !listed && (pickedType != null || QuestsData.entry(questSelected) == null)) {
+            QuestsRail.Row first = rows.stream().filter(r -> r.name() != null).findFirst().orElse(null);
+            questSelected = first == null ? null : first.name();
+            pickedType = first == null || first.line() == null ? null : first.line().type();
         }
         boolean compact = menu.layout.compact();
         int px = x;
@@ -419,20 +442,18 @@ final class QuestsTab extends MenuTab {
             px = x + railW + 2 * Theme.SP_6;
             pw = w - railW - 2 * Theme.SP_6;
         }
-        if (questSelected != null) {
+        if (questSelected != null && pickedType != null) {
+            place.draw(g, px, py, pw, y + h - py, mx, my);
+        } else if (questSelected != null) {
             if (questDetailTab == 3) {
                 points.draw(g, px, py, pw, y + h - py, mx, my);
             } else {
                 guide.draw(g, px, py, pw, y + h - py, mx, my);
             }
         }
-        // overlays last: the list over the pane (compact), the order menu
-        if (compact && listOpen) {
-            rail.overlay(g, x, py, w, y + h - py, rows, mx, my);
-        }
-        if (filterOpen) {
-            rail.menu(g, mx, my);
-        }
+        // the popups (the list over the pane, the order and kind menus) come after, from drawPopup
+        overlayAt = new int[] {x, py, w, y + h - py};
+        overlayRows = rows;
     }
 
     /** Nothing read yet: an info notice with "Read with Wynntils" in it, the manual way under it. */
@@ -449,6 +470,57 @@ final class QuestsTab extends MenuTab {
             menu.hits.add(new MenuHit(hit[0][0], hit[0][1], hit[0][2], hit[0][3], null, rescanTip(), "#qrescan:"));
         }
         Type.META.draw(g, font(), Type.META.fit(font(), L.t("wynnlabs.quests.empty_manual"), nw), nx, ny + nh + Theme.SP_3, Theme.INK_3);
+    }
+
+    // ---- the popups: the list over the pane (compact), the order and kind menus ----
+
+    private int[] overlayAt;
+    private List<QuestsRail.Row> overlayRows = List.of();
+
+    @Override
+    boolean popupOpen() {
+        return filterOpen || typeOpen || listOpen && menu.layout.compact();
+    }
+
+    @Override
+    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+        if (listOpen && menu.layout.compact() && overlayAt != null) {
+            boxes.add(rail.overlay(g, overlayAt[0], overlayAt[1], overlayAt[2], overlayAt[3], overlayRows, mx, my));
+        }
+        int[] b = filterOpen ? rail.menu(g, mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
+        b = typeOpen ? types.menu(g, mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
+        if (boxes.isEmpty()) {
+            closePopup();                           // nothing to show it under (no chip this frame)
+        }
+    }
+
+    @Override
+    void closePopup() {
+        filterOpen = false;
+        typeOpen = false;
+        listOpen = false;
+    }
+
+    @Override
+    boolean popupClicked(MouseButtonEvent event) {
+        if (listOpen && railRect != null && in(event.x(), event.y(), railRect) && railBar.mouseClicked(event.x(), event.y())) {
+            railScroll = railBar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    void popupScrolled(double x, double y, double v) {
+        if (listOpen && railRect != null && in(x, y, railRect)) {
+            railScroll = Math.max(0, railScroll - (int) Math.signum(v));
+        }
     }
 
     /** The rail: a pin while a quest is tracked. */

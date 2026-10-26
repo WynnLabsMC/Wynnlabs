@@ -72,6 +72,35 @@ abstract class MenuTab extends MenuPaint {
         return null;
     }
 
+    // ---- popups: an open one owns the mouse ----
+
+    /**
+     * Whether a popup of this tab is open (a menu under a chip, a list over the page). While one
+     * is, the screen draws the page with the mouse away (no hover, no tooltips, no click areas),
+     * then {@link #drawPopup} with the real mouse; a click outside it only closes it
+     * ({@link #closePopup}) and the wheel never reaches the page under it.
+     */
+    boolean popupOpen() {
+        return false;
+    }
+
+    /** Draws the open popups over the page with the real mouse; adds each one's box to {@code boxes}. */
+    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+    }
+
+    /** A click outside every popup: they close, nothing else happens. */
+    void closePopup() {
+    }
+
+    /** A click inside a popup before its click areas get it (a scroll bar in it); true when taken. */
+    boolean popupClicked(MouseButtonEvent event) {
+        return false;
+    }
+
+    /** The wheel over an open popup (the page under it never scrolls). */
+    void popupScrolled(double x, double y, double v) {
+    }
+
     /** A key press the menu did not take first; true when the tab took it. */
     boolean keyPressed(int key) {
         return false;

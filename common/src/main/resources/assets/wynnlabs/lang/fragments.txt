@@ -128,3 +128,4 @@ wynnlabs.home.hud_health_label  after the health value on the Home card ("1927 e
 wynnlabs.home.hud_casts_label  after the casts value on the Home card
 wynnlabs.home.hud_spell_label  after the spell damage value on the Home card
 wynnlabs.quests.share  after the other facts of a quest ("Lv 43 · Wynn · seviyenin %11'i")
+wynnlabs.content.done  joined after the kind and level in the place pane's facts line

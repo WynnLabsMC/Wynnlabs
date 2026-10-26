@@ -3,6 +3,8 @@ package io.github.anilken.wynnlabs.ui;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.game.Wyn;
+import io.github.anilken.wynnlabs.quests.Content;
+import io.github.anilken.wynnlabs.quests.ContentType;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.quests.QuestGuides;
@@ -40,12 +42,40 @@ final class QuestsRail extends MenuPaint {
         this.tab = tab;
     }
 
-    /** A line of the rail: a quest (its name, its suggestion when the advisor ranked it) or a heading. */
-    record Row(String name, String head, QuestAdvisor.Suggestion s) {}
+    /**
+     * A line of the rail: a quest (its name, its suggestion when the advisor ranked it), a place or
+     * discovery of another kind ({@code line}), or a heading.
+     */
+    record Row(String name, String head, QuestAdvisor.Suggestion s, Content.Line line) {
+        Row(String name, String head, QuestAdvisor.Suggestion s) {
+            this(name, head, s, null);
+        }
+    }
 
     /** The rail's rows: the search's matches, or the tracked quest, the filter's list, then the finished ones. */
     List<Row> rows() {
-        return QuestsCache.kept("rows|" + tab.questFilter + "|" + tab.query() + "|" + QuestsData.tracked(), 500, this::rowsNow);
+        ContentType t = tab.questType;
+        return QuestsCache.kept("rows|" + t + "|" + tab.questFilter + "|" + tab.query() + "|" + QuestsData.tracked(), 500,
+                () -> t.book() ? tab.types.rows(t, tab.query())
+                        : t == ContentType.RECOMMENDED && tab.questFilter.equals("RECOMMENDED") && tab.query().isEmpty()
+                        ? QuestsTypes.mix(rowsNow()) : rowsNow());
+    }
+
+    /** Whether a quest of the book belongs to the shown kind (Quest: no minis; Mini-Quest: only minis). */
+    private boolean kind(String name) {
+        ContentType t = tab.questType;
+        if (t == ContentType.RECOMMENDED) {
+            return true;
+        }
+        QuestBook.Entry e = QuestsData.entry(name);
+        boolean mini = e != null && "MINI_QUEST".equals(e.type());
+        return t == ContentType.MINI_QUEST ? mini : !mini;
+    }
+
+    /** The order's list for the kind (Mini-Quest on "Önerilen": the minis you can do). */
+    private List<QuestAdvisor.Suggestion> listFor(Map<String, List<QuestAdvisor.Suggestion>> lists) {
+        String f = tab.questType == ContentType.MINI_QUEST && tab.questFilter.equals("RECOMMENDED") ? "MINI" : tab.questFilter;
+        return lists.getOrDefault(f, List.of());
     }
 
     private List<Row> rowsNow() {
@@ -55,7 +85,7 @@ final class QuestsRail extends MenuPaint {
         if (!q.isEmpty()) {
             List<QuestBook.Entry> found = new ArrayList<>();
             for (QuestBook.Entry e : QuestBook.all()) {
-                if (e.name().toLowerCase(Locale.ROOT).contains(q)) {
+                if (e.name().toLowerCase(Locale.ROOT).contains(q) && kind(e.name())) {
                     found.add(e);
                 }
             }
@@ -67,20 +97,20 @@ final class QuestsRail extends MenuPaint {
         }
         String tracked = QuestsData.tracked();
         List<String> seen = new ArrayList<>();
-        if (tracked != null) {
+        if (tracked != null && QuestsData.entry(tracked) != null && kind(tracked)) {
             out.add(new Row(tracked, null, suggestion(lists, tracked)));
             seen.add(tracked);
         }
         // the quests you started, then the rest of the filter's list
-        List<QuestAdvisor.Suggestion> list = new ArrayList<>(lists.getOrDefault(tab.questFilter, List.of()));
+        List<QuestAdvisor.Suggestion> list = new ArrayList<>(listFor(lists));
         list.sort((a, b) -> Boolean.compare(!"STARTED".equals(a.quest().status()), !"STARTED".equals(b.quest().status())));
         for (QuestAdvisor.Suggestion s : list) {
-            if (!seen.contains(s.quest().name())) {
+            if (!seen.contains(s.quest().name()) && kind(s.quest().name())) {
                 out.add(new Row(s.quest().name(), null, s));
                 seen.add(s.quest().name());
             }
         }
-        List<QuestAdvisor.Suggestion> done = lists.getOrDefault("DONE", List.of());
+        List<QuestAdvisor.Suggestion> done = lists.getOrDefault("DONE", List.of()).stream().filter(s -> kind(s.quest().name())).toList();
         if (!tab.questFilter.equals("DONE") && !done.isEmpty()) {
             out.add(new Row(null, L.t("wynnlabs.quests.done_head", done.size()), null));
             for (QuestAdvisor.Suggestion s : done) {
@@ -105,7 +135,7 @@ final class QuestsRail extends MenuPaint {
     void draw(GuiGraphics g, int x, int y, int w, int h, List<Row> rows, int mx, int my) {
         int top = y;
         if (tab.query().isEmpty()) {
-            top += orderChip(g, x, y, mx, my) + Theme.SP_4;
+            top += orderChip(g, x, y, w, rows, mx, my) + Theme.SP_4;
         } else {
             String n = rows.isEmpty() ? L.t("wynnlabs.quests.search_none", tab.query()) : L.n("wynnlabs.quests.count", rows.size());
             Type.META.draw(g, font(), Type.META.fit(font(), n, w), x + Theme.SP_2, top, Theme.INK_3);
@@ -154,16 +184,31 @@ final class QuestsRail extends MenuPaint {
         tab.railBar.drawThin(g, mx, my);
     }
 
-    /** "Önerilen ▾" and how many quests it lists; returns its height. */
-    private int orderChip(GuiGraphics g, int x, int y, int mx, int my) {
-        String name = L.t(QuestAdvisor.FILTER_NAMES[filterIndex()]);
-        int cw = Ui.iconChipWidth(font(), null, name, true);
-        Ui.iconChip(g, font(), null, name, true, x, y, cw, tab.filterOpen, mx, my);
-        menu.hits.add(new MenuHit(x, y, cw, Ui.CHIP_H, null, null, "#qmenu"));
-        chip = new int[] {x, y, cw, Ui.CHIP_H};
-        int n = tab.lists().getOrDefault(tab.questFilter, List.of()).size();
-        String count = L.n("wynnlabs.quests.count", n);
-        Type.META.draw(g, font(), count, x + cw + Theme.SP_3, Type.META.yIn(y, Ui.CHIP_H), Theme.INK_3);
+    /** "Önerilen ▾" (the quest kinds only), the kind's chip, and how many are listed; returns its height. */
+    private int orderChip(GuiGraphics g, int x, int y, int w, List<Row> rows, int mx, int my) {
+        int cx = x;
+        chip = null;
+        if (tab.questType.quest()) {
+            String name = L.t(QuestAdvisor.FILTER_NAMES[filterIndex()]);
+            int cw = Ui.iconChipWidth(font(), null, name, true);
+            Ui.iconChip(g, font(), null, name, true, cx, y, cw, tab.filterOpen, mx, my);
+            menu.hits.add(new MenuHit(cx, y, cw, Ui.CHIP_H, null, null, "#qmenu"));
+            chip = new int[] {cx, y, cw, Ui.CHIP_H};
+            cx += cw + Theme.SP_2;
+        }
+        cx += tab.types.chip(g, cx, y, mx, my) + Theme.SP_3;
+        // what is left: the rows before the "Biten" heading
+        long n = 0;
+        for (Row r : rows) {
+            if (r.head() != null) {
+                break;
+            }
+            n++;
+        }
+        String count = L.n("wynnlabs.content.count", n);
+        if (cx + Type.META.width(font(), count) <= x + w) {
+            Type.META.draw(g, font(), count, cx, Type.META.yIn(y, Ui.CHIP_H), Theme.INK_3);
+        }
         return Ui.CHIP_H;
     }
 
@@ -178,8 +223,12 @@ final class QuestsRail extends MenuPaint {
 
     /** One quest: its mark, its name, and on the right where it is (or the stage you are on). */
     private void row(GuiGraphics g, Row r, int x, int y, int w, int mx, int my) {
+        if (r.line() != null) {
+            tab.types.row(g, r, x, y, w, mx, my);
+            return;
+        }
         QuestBook.Entry q = QuestsData.entry(r.name());
-        boolean picked = r.name().equals(tab.questSelected);
+        boolean picked = r.name().equals(tab.questSelected) && tab.pickedType == null;
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + ROW;
         if (picked) {
             Kit.rowLit(g, x, y, w, ROW);
@@ -259,14 +308,17 @@ final class QuestsRail extends MenuPaint {
             tab.searchField(g, x, y, w, mx, my);
             return Ui.CHIP_H;
         }
-        String label = L.t("wynnlabs.quests.list_chip", tab.lists().getOrDefault(tab.questFilter, List.of()).size());
-        int cw = Ui.iconChipWidth(font(), "list-check", label, true);
-        Ui.iconChip(g, font(), "list-check", label, true, x, y, cw, tab.listOpen, mx, my);
+        String label = tab.questSelected == null ? L.t("wynnlabs.content.list") : tab.questSelected;
+        int cw = Math.min(w / 2, Ui.iconChipWidth(font(), "list-check", label, true));
+        Ui.iconChip(g, font(), "list-check", Type.BODY.fit(font(), label, cw - Ui.iconChipWidth(font(), "list-check", "", true)), true,
+                x, y, cw, tab.listOpen, mx, my);
         menu.hits.add(new MenuHit(x, y, cw, Ui.CHIP_H, null, null, "#qlist"));
+        int tcx = x + cw + Theme.SP_2;
+        tcx += tab.types.chip(g, tcx, y, mx, my);
         String tracked = QuestsData.tracked();
-        if (tracked != null) {
+        if (tracked != null && tab.questType.quest()) {
             String link = L.t("wynnlabs.quests.started_link", QuestGuides.title(tracked));
-            int lx = x + cw + Theme.SP_3;
+            int lx = tcx + Theme.SP_3;
             String cut = Type.META.fit(font(), link, x + w - lx);
             Type.META.draw(g, font(), cut, lx, Type.META.yIn(y, Ui.CHIP_H), Theme.LINK);
             menu.hits.add(new MenuHit(lx, y, Type.META.width(font(), cut), Ui.CHIP_H, null, null, "#qsel:" + tracked));
@@ -275,18 +327,18 @@ final class QuestsRail extends MenuPaint {
     }
 
     /** Compact: the list over the pane, on a soft card. */
-    void overlay(GuiGraphics g, int x, int y, int w, int h, List<Row> rows, int mx, int my) {
+    int[] overlay(GuiGraphics g, int x, int y, int w, int h, List<Row> rows, int mx, int my) {
         int cw = Math.min(w, 260);
         int[] r = {x, y, cw, h};
-        menu.hits.removeIf(hit -> overlaps(hit, r));
         Kit.softCard(g, x, y, cw, h - 2);
         draw(g, x + Theme.SP_3, y + Theme.SP_3, cw - 2 * Theme.SP_3, h - 2 * Theme.SP_3 - 2, rows, mx, my);
+        return r;
     }
 
     /** The "Önerilen ▾" menu under its chip: the orders and filters with their counts, then the session plan. */
-    void menu(GuiGraphics g, int mx, int my) {
+    int[] menu(GuiGraphics g, int mx, int my) {
         if (chip == null) {
-            return;
+            return null;
         }
         Map<String, List<QuestAdvisor.Suggestion>> lists = tab.lists();
         List<QuestAdvisor.Suggestion> plan = plan(lists);
@@ -300,7 +352,6 @@ final class QuestsRail extends MenuPaint {
         int x = chip[0];
         int y = chip[1] + chip[3] + Theme.SP_1;
         int[] r = {x, y, w, h};
-        menu.hits.removeIf(hit -> overlaps(hit, r));
         Kit.softCard(g, x, y, w, h);
         int ry = y + Theme.SP_2;
         for (int i = 0; i < rows; i++) {
@@ -346,6 +397,7 @@ final class QuestsRail extends MenuPaint {
             tip.add(L.c("wynnlabs.quests.plan_sum", minutes, tab.share(xp)).withStyle(ChatFormatting.GREEN));
             menu.hits.add(new MenuHit(x, ry, w, ROW, null, tip, cmd.toString()));
         }
+        return r;
     }
 
     /** This session's plan: the best safe quests near each other, nearest first, for about an hour. */
@@ -378,9 +430,5 @@ final class QuestsRail extends MenuPaint {
             sz = nearest.quest().z();
         }
         return plan;
-    }
-
-    static boolean overlaps(MenuHit h, int[] r) {
-        return h.x() < r[0] + r[2] && r[0] < h.x() + h.w() && h.y() < r[1] + r[3] && r[1] < h.y() + h.h();
     }
 }

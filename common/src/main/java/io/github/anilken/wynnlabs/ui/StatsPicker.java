@@ -39,6 +39,12 @@ final class StatsPicker extends HomePart {
         open = false;
     }
 
+    /** Closed by a click outside it (the menu's popup rule): the next click on the button opens it. */
+    void close() {
+        open = false;
+        closedNow = false;
+    }
+
     /** The button's click: the list opens, unless this press just closed it. */
     void toggle() {
         open = !closedNow;
@@ -91,9 +97,9 @@ final class StatsPicker extends HomePart {
     }
 
     /** The open list under the button, over the card; drawn last. */
-    void drawList(GuiGraphics g, HomeTab.Host host, int mx, int my) {
+    int[] drawList(GuiGraphics g, HomeTab.Host host, int mx, int my) {
         if (!open || at == null) {
-            return;
+            return null;
         }
         List<String[]> opts = source.options();
         int w = at[2];
@@ -118,5 +124,6 @@ final class StatsPicker extends HomePart {
             ink(g, fit(o[1], w - 18), x + 14, ry + 2, Theme.INK);
             host.area(x, ry, w, ROW_H, null, null, "#qstatsset:" + o[0]);
         }
+        return new int[] {x - 1, y - 1, w + 2, h + 2};
     }
 }
