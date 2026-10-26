@@ -23,3 +23,6 @@ openspec/
 
 # Python bytecode from the tools
 __pycache__/
+
+# graphify knowledge-graph output (regenerate with /graphify .)
+graphify-out/
