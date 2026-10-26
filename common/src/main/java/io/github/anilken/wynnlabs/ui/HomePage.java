@@ -319,6 +319,9 @@ public final class HomePage extends MenuTab {
         int y = goalAnchor[1] + goalAnchor[3] + 2;
         int h = Setup.GOALS.size() * rowH + 6;
         g.nextStratum();                            // over the menu's own text and items
+        // what the list covers shows no tooltip (the stats under it)
+        int[] b = {x, y, w, h};
+        menu.hits.removeIf(hit -> hit.x() < b[0] + b[2] && hit.x() + hit.w() > b[0] && hit.y() < b[1] + b[3] && hit.y() + hit.h() > b[1]);
         Kit.card(g, x, y, w, h, 0);
         String now = Setup.goal();
         for (int i = 0; i < Setup.GOALS.size(); i++) {
