@@ -292,7 +292,7 @@ final class TreeBoard extends MenuPaint {
         // the board's scroll bar: dragged, clicked, or the wheel
         if (treeScrollMax > 0) {
             bar.place(px + pw - ScrollBar.HIT, py + 2, ph - 4, Math.max(1, (ph - 2) / cell), Math.max(1, contentH / cell), treeScroll / cell);
-            bar.drawThin(g, mx, my);
+            bar.draw(g, mx, my);
         }
     }
 

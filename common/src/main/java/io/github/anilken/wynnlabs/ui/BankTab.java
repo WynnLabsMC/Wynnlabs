@@ -55,6 +55,10 @@ public final class BankTab extends MenuTab {
         if (UiInput.clicked(searchHit, search, event, doubleClick, menu::setFocused)) {
             return true;
         }
+        if (bankBar.mouseClicked(event.x(), event.y())) {
+            bankScroll = bankBar.offset();
+            return true;
+        }
         search.setFocused(false);
         for (Object[] f : bankFilterHits) {
             if (in(event.x(), event.y(), (int[]) f[0])) {
@@ -110,6 +114,7 @@ public final class BankTab extends MenuTab {
     private static final int MARK_USE = Theme.MARK_USE;
 
     private void drawBank(GuiGraphics g, int x, int y, int w, int h, int mx, int my, float pt) {
+        bankBar.place(0, 0, 0, 1, 1, 0);
         bankPageHits.clear();
         List<Vault.Group> all = Vault.groups();
         if (all.isEmpty()) {
@@ -241,14 +246,17 @@ public final class BankTab extends MenuTab {
         String q = search.getValue().trim().toLowerCase(Locale.ROOT);
         g.enableScissor(x, gy, x + w, bottom);
         int contentH;
+        int gw = bankScrollMax > 0 ? w - ScrollBar.W - Theme.SP_2 : w;     // last frame's: room for the bar
         if (bankPage.isEmpty()) {
-            contentH = drawAllItems(g, x, gy - bankScroll, w, gy, bottom, all, junkNames, q, mx, my);
+            contentH = drawAllItems(g, x, gy - bankScroll, gw, gy, bottom, all, junkNames, q, mx, my);
         } else {
-            contentH = drawOnePage(g, x, gy - bankScroll, w, gy, bottom, bankPage, junkNames, byName, q, mx, my);
+            contentH = drawOnePage(g, x, gy - bankScroll, gw, gy, bottom, bankPage, junkNames, byName, q, mx, my);
         }
         g.disableScissor();
         bankScrollMax = Math.max(0, contentH - (bottom - gy));
         bankScroll = Math.min(bankScroll, bankScrollMax);
+        bankBar.place(x + w - ScrollBar.W, gy, bottom - gy, bottom - gy, contentH, bankScroll);    // in pixels
+        bankBar.draw(g, mx, my);
 
         // legend
         int lx = x;
@@ -262,6 +270,21 @@ public final class BankTab extends MenuTab {
     }
 
     private int bankScrollMax;
+    private final ScrollBar bankBar = new ScrollBar();
+
+    @Override
+    boolean barDragged(double x, double y) {
+        if (bankBar.mouseDragged(y)) {
+            bankScroll = bankBar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    void barReleased() {
+        bankBar.mouseReleased();
+    }
 
     private int legend(GuiGraphics g, int x, int y, int colour, String text) {
         g.fill(x, y + 1, x + 6, y + 7, colour);

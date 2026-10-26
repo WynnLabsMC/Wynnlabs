@@ -231,7 +231,7 @@ final class QuestsSecretPane extends MenuPaint {
         tip(x, y, 14, Math.min(h, ry - y), List.of(L.c("wynnlabs.discoveries.licence").withStyle(ChatFormatting.DARK_GRAY)));
         if (shown < steps.size()) {
             stepBar.place(x + w + Theme.SP_1, y, h, shown, steps.size(), stepScroll);
-            stepBar.drawThin(g, mx, my);
+            stepBar.draw(g, mx, my);
         }
     }
 

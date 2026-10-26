@@ -306,7 +306,7 @@ final class UiMenu {
         }
         if (scrolls) {
             st.bar.place(x + rw, y + Theme.SP_2, h - 2 * Theme.SP_2, visible, items.size(), st.scroll);
-            st.bar.drawThin(g, mx, my);
+            st.bar.draw(g, mx, my);
         }
         return b;
     }

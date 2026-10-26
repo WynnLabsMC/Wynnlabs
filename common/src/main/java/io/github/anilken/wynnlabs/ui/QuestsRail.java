@@ -184,7 +184,7 @@ final class QuestsRail extends MenuPaint {
         }
         // where in the list you are: a thin bar at the rail's right, dragged or clicked like any list's
         tab.railBar.place(x + w + Theme.SP_1, top, bottom - top, Math.max(1, fit), total <= bottom - top ? fit : rows.size(), tab.railScroll);
-        tab.railBar.drawThin(g, mx, my);
+        tab.railBar.draw(g, mx, my);
     }
 
     /** The secret discoveries never read: an info notice with the content book's read in it (the why in its tooltip). */

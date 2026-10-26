@@ -383,6 +383,9 @@ final class GuideScreen extends Screen {
             scroll = paneBar.offset();
             return true;
         }
+        if (views == null && wiki.drag(e.y())) {
+            return true;
+        }
         return super.mouseDragged(event, dx, dy);
     }
 
@@ -390,6 +393,7 @@ final class GuideScreen extends Screen {
     public boolean mouseReleased(MouseButtonEvent event) {
         railBar.mouseReleased();
         paneBar.mouseReleased();
+        wiki.bar.mouseReleased();
         return super.mouseReleased(event);
     }
 
@@ -411,6 +415,9 @@ final class GuideScreen extends Screen {
         }
         if (views != null && paneBar.mouseClicked(event.x(), event.y())) {
             scroll = paneBar.offset();
+            return true;
+        }
+        if (views == null && wiki.press(event.x(), event.y())) {
             return true;
         }
         for (Object[] tap : List.copyOf(taps)) {

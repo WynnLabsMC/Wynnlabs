@@ -68,4 +68,16 @@ class ScrollBarTest {
         assertTrue(bar.mouseClicked(202, 90));
         assertEquals(10, bar.offset());
     }
+
+    @Test
+    void theSharedBarIsWideEnoughToGrabAndItsThumbNeverShrinksBelowSixteen() {
+        assertTrue(ScrollBar.HIT >= Theme.SP_3);
+        assertEquals(ScrollBar.W, ScrollBar.HIT);
+        assertEquals(16, ScrollBar.thumbH(200, 1, 10_000));
+        assertEquals(12, ScrollBar.thumbH(12, 1, 10_000));       // a track shorter than that: the whole track
+        ScrollBar bar = new ScrollBar();
+        bar.place(0, 0, 100, 10, 10, 0);
+        assertFalse(bar.shown());                                 // everything fits: nothing drawn, nothing to click
+        assertFalse(bar.mouseClicked(4, 50));
+    }
 }

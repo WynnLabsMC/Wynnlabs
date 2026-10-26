@@ -276,7 +276,7 @@ public final class TreeTab extends MenuTab {
         if (contentH > h) {
             int step = Theme.SP_6;
             pageBar.place(x + w - ScrollBar.HIT + Theme.SP_1, y, h, Math.max(1, h / step), Math.max(1, contentH / step), scroll / step);
-            pageBar.drawThin(g, mx, my);
+            pageBar.draw(g, mx, my);
         }
     }
 

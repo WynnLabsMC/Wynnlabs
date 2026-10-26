@@ -133,7 +133,7 @@ final class GuidePane {
         g.disableScissor();
         // where in the stage you are: a thin bar on the right edge, dragged or clicked
         s.paneBar.place(x + w + Theme.SP_2, areaTop, box, box, total, s.scroll);
-        s.paneBar.drawThin(g, mx, my);
+        s.paneBar.draw(g, mx, my);
         if (!pics.isEmpty()) {
             pictures(s, g, font, mx, my, x, areaBottom + Theme.SP_5, w, th, pics);
         }

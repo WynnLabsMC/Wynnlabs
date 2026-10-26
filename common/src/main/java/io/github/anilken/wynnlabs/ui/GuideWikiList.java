@@ -33,6 +33,8 @@ final class GuideWikiList {
     private int current = -1;
     private int scroll;
     private boolean first = true;
+    /** The walkthrough's bar (offsets in rows). */
+    final ScrollBar bar = new ScrollBar();
 
     GuideWikiList(GuideScreen screen) {
         this.screen = screen;
@@ -142,8 +144,29 @@ final class GuideWikiList {
         return out;
     }
 
+    /** A press on the bar; true when it took it. */
+    boolean press(double mx, double my) {
+        if (bar.mouseClicked(mx, my)) {
+            scroll = bar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    /** A drag with the bar held; true while it is. */
+    boolean drag(double my) {
+        if (bar.mouseDragged(my)) {
+            scroll = bar.offset();
+            return true;
+        }
+        return false;
+    }
+
     void draw(GuiGraphics g, int mx, int my, int left, int top, int right, int bottom) {
         var font = screen.getFont();
+        bar.place(0, 0, 0, 1, 1, 0);
+        int barX = right - ScrollBar.W;
+        right -= ScrollBar.W + Theme.SP_2;                   // the text and the go buttons leave the bar its room
         if (lines == null) {
             Type.BODY.draw(g, font, error != null ? error : L.t("wynnlabs.guide.loading"), left, top, error != null ? Theme.BAD : Theme.INK_2);
             return;
@@ -172,6 +195,8 @@ final class GuideWikiList {
         }
         first = false;
         scroll = Math.min(scroll, Math.max(0, rows.size() - fit));
+        bar.place(barX, top, fit * lineH, fit, rows.size(), scroll);
+        bar.draw(g, mx, my);
         int ry = top;
         for (int i = scroll; i < rows.size() && i < scroll + fit; i++, ry += lineH) {
             Object[] r = rows.get(i);

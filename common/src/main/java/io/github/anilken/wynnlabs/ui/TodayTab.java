@@ -125,7 +125,7 @@ final class TodayTab extends MenuTab {
         if (contentH > h) {
             int step = Theme.SP_6;
             bar.place(x + w - barW + Theme.SP_1, y, h, Math.max(1, h / step), Math.max(1, contentH / step), scroll / step);
-            bar.drawThin(g, mx, my);
+            bar.draw(g, mx, my);
         }
     }
 

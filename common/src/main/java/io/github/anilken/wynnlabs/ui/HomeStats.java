@@ -370,7 +370,7 @@ final class HomeStats extends HomePart {
             ly += rowH;
         }
         g.disableScissor();
-        bar.drawSlim(g, mx, my);
+        bar.draw(g, mx, my);
     }
 
     /** One stat's row: its label (after its element's mark), Now's value right-aligned and the difference to the other build. */

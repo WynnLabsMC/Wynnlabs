@@ -254,7 +254,7 @@ final class HomeSpells extends HomePart {
             cy += eh + GAP;
         }
         g.disableScissor();
-        bar.drawSlim(g, mx, my);
+        bar.draw(g, mx, my);
     }
 
     /** A source's height: its name, then a row per number. */

@@ -65,6 +65,8 @@ public final class EndgameTab {
     private String character = "";
     int listScroll;
     int listScrollMax;
+    /** The aspect list's bar. */
+    final ScrollBar listBar = new ScrollBar();
     int[] listRect;
     /** Where the mythic camps line was drawn last frame, for the preview's tooltip shot; null when not drawn. */
     int[] mythicRect;
@@ -120,6 +122,7 @@ public final class EndgameTab {
         acts.clear();
         tips.clear();
         listRect = null;
+        listBar.place(0, 0, 0, 1, 1, 0);
         mythicRect = null;
         pools.newFrame();
         rowRects.clear();
@@ -260,6 +263,12 @@ public final class EndgameTab {
         if (button != 0) {
             return false;
         }
+        if (view == VIEW_POOLS ? pools.barPressed(mx, my) : listBar.mouseClicked(mx, my)) {
+            if (view != VIEW_POOLS) {
+                listScroll = listBar.offset();
+            }
+            return true;
+        }
         for (int i = acts.size() - 1; i >= 0; i--) {
             EndgamePanel.Act a = acts.get(i);
             if (a.in(mx, my)) {
@@ -268,6 +277,23 @@ public final class EndgameTab {
             }
         }
         return false;
+    }
+
+    /** A drag with a list's bar held; true while one is. */
+    boolean barDragged(double my) {
+        if (pools.barDragged(my)) {
+            return true;
+        }
+        if (listBar.mouseDragged(my)) {
+            listScroll = listBar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    void barReleased() {
+        pools.barReleased();
+        listBar.mouseReleased();
     }
 
     /** The wheel over the page: scrolls the list under the mouse; true when it did. */

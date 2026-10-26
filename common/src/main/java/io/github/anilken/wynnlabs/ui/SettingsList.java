@@ -234,7 +234,7 @@ final class SettingsList extends MenuPaint {
         menu.hits.subList(h0, menu.hits.size()).removeIf(hb -> hb.y() < y || hb.y() + hb.h() > y + h);
         // where in the list you are: a thin bar at the right, dragged or clicked
         tab.settingsBar.place(x + w - ScrollBar.W, y, h, h, total, tab.settingsScroll);
-        tab.settingsBar.drawThin(g, mx, my);
+        tab.settingsBar.draw(g, mx, my);
     }
 
     private int height(Item it, int w, boolean first, boolean compact) {

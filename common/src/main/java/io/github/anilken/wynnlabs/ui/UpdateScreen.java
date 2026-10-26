@@ -136,7 +136,7 @@ public final class UpdateScreen extends Screen {
         bodyTop = y + 42;
         bodyH = statusY - 4 - bodyTop;
         if (changelog && newer) {
-            drawNotes(g, s, in, bodyTop, iw, bodyH);
+            drawNotes(g, s, in, bodyTop, iw, bodyH, mx, my);
         } else {
             drawSummary(g, s, newer, in, bodyTop, iw);
         }
@@ -165,7 +165,8 @@ public final class UpdateScreen extends Screen {
     }
 
     /** The release notes as plain lines, scrolled by the wheel. */
-    private void drawNotes(GuiGraphics g, UpdateCheck.State s, int x, int y, int w, int h) {
+    private void drawNotes(GuiGraphics g, UpdateCheck.State s, int x, int y, int w, int h, int mx, int my) {
+        notesBar.place(0, 0, 0, 1, 1, 0);
         if (notes == null || !s.latest().equals(notesFor)) {
             notes = ReleaseNotes.lines(s.notes());
             notesFor = s.latest();
@@ -174,7 +175,7 @@ public final class UpdateScreen extends Screen {
         List<Component> lines = new ArrayList<>();
         for (ReleaseNotes.Line l : notes) {
             String prefix = l.bullet() ? "• " : "";
-            for (String part : wrap(prefix + l.text(), w - 6, 4)) {
+            for (String part : wrap(prefix + l.text(), w - ScrollBar.W - Theme.SP_2, 4)) {
                 lines.add(l.heading() ? Component.literal(part).withStyle(UiFont::bold) : Component.literal(part));
             }
         }
@@ -189,13 +190,26 @@ public final class UpdateScreen extends Screen {
             Kit.text(g, font, lines.get(scroll + i), x, y + i * 10, Theme.paperRgb(Theme.INK));
         }
         g.disableScissor();
-        if (lines.size() > visible) {
-            // a thin scroll mark on the right
-            int track = h;
-            int thumb = Math.max(8, track * visible / lines.size());
-            int ty = y + (track - thumb) * scroll / Math.max(1, lines.size() - visible);
-            g.fill(x + w - 2, ty, x + w, ty + thumb, Theme.LINE);
+        notesBar.place(x + w - ScrollBar.W, y, h, visible, lines.size(), scroll);
+        notesBar.draw(g, mx, my);
+    }
+
+    /** The release notes' bar (offsets in lines). */
+    private final ScrollBar notesBar = new ScrollBar();
+
+    @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        if (notesBar.mouseDragged(MenuScale.event(event).y())) {
+            scroll = notesBar.offset();
+            return true;
         }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        notesBar.mouseReleased();
+        return super.mouseReleased(event);
     }
 
     /** The download's progress, the ready note or why it failed. */
@@ -350,6 +364,10 @@ public final class UpdateScreen extends Screen {
         double ey = event.y();
         if (closeRect != null && in(ex, ey, closeRect)) {
             onClose();
+            return true;
+        }
+        if (changelog && notesBar.mouseClicked(ex, ey)) {
+            scroll = notesBar.offset();
             return true;
         }
         for (Hit h : List.copyOf(hits)) {

@@ -3,20 +3,25 @@ package io.github.anilken.wynnlabs.ui;
 import net.minecraft.client.gui.GuiGraphics;
 
 /**
- * A list's scrollbar that works with the mouse, not only the wheel: its thumb is as long as the
- * share of the list in view (at least {@link #MIN_THUMB}) and never leaves the track; pressing it
- * and dragging moves the list with the grab point kept, also when the pointer leaves the bar,
- * until the button is let go; a click on the track above or below the thumb moves one page.
- * Offsets count rows. Drawn with the kit's wood button (lighter on hover, gold while dragged).
+ * The scroll bar every scrolling list and panel of the mod uses (the approved component sheet,
+ * build/ui-components/scrollbar.html): an {@link #W} wide box inside the content's right padding,
+ * a one-pixel hairline well, and a rounded pill thumb as long as the share in view (at least
+ * {@link #MIN_THUMB}); 3 px of INK_3 at rest, 5 px of INK_2 while the pointer is over the bar, 5 px
+ * of gold while dragged. It is never drawn when everything fits, and it always works with the
+ * mouse: pressing the thumb and dragging moves the list with the grab point kept (also when the
+ * pointer leaves the bar) until the button is let go, and a click on the track moves one page.
+ * Offsets count rows (or whatever unit the caller scrolls by).
  */
 final class ScrollBar {
 
-    /** The bar's width. */
-    static final int W = 6;
+    /** The bar's box: its width, all of it taking clicks. */
+    static final int W = Theme.SP_4;
     /** The thumb's shortest length. */
-    static final int MIN_THUMB = 10;
-    /** How wide the bar takes clicks: never less than SP_3, whatever its look (every bar is draggable). */
-    static final int HIT = Math.max(W, Theme.SP_3);
+    static final int MIN_THUMB = 16;
+    /** How wide the bar takes clicks (the whole box). */
+    static final int HIT = W;
+    /** The well's hairline. */
+    private static final int WELL = 0x809A855C;
 
     private int x;
     private int y;
@@ -116,52 +121,27 @@ final class ScrollBar {
         return new int[] {x, thumbTop(), W, thumbH()};
     }
 
+    /** Whether the pointer is over the bar's box. */
+    boolean hovered(double mx, double my) {
+        return shown() && mx >= x && mx < x + W && my >= y && my < y + h;
+    }
+
+    /** The bar: the well and the thumb, nothing when everything fits. */
     void draw(GuiGraphics g, int mx, int my) {
         if (!shown()) {
             return;
         }
-        g.fill(x + 2, y, x + W - 2, y + h, 0x30000000);
-        int ty = thumbTop();
-        int th = thumbH();
-        boolean hover = mx >= x && mx < x + W && my >= ty && my < ty + th;
-        Kit.button(g, x, ty, W, th, dragging ? Kit.ON : hover ? Kit.HOVER : Kit.REST);
-    }
-
-    /**
-     * The slim look of the crafting page's bar: a faint 2px track and a wood thumb at the right of
-     * the bar's box, which still takes the clicks and drags.
-     */
-    void drawSlim(GuiGraphics g, int mx, int my) {
-        if (!shown()) {
-            return;
-        }
-        int sx = x + W - 3;
-        g.fill(sx, y, sx + 2, y + h, 0x30624E3C);
-        int ty = thumbTop();
-        boolean hover = mx >= x && mx < x + W && my >= ty && my < ty + thumbH();
-        g.fill(sx - (hover || dragging ? 1 : 0), ty, sx + 2, ty + thumbH(), dragging ? Theme.GOLD_DEEP : Theme.WOOD);
-    }
-
-    /**
-     * The parchment lists' look: a one-pixel track and a thin thumb at the right of the bar's box,
-     * wider and gold while hovered or dragged; the whole {@link #HIT} still takes the clicks.
-     */
-    void drawThin(GuiGraphics g, int mx, int my) {
-        if (!shown()) {
-            return;
-        }
-        int sx = x + W - 3;
-        Kit.hair(g, sx + 1, y, 1, h, Theme.LINE);
-        int ty = thumbTop();
-        int th = thumbH();
-        boolean hover = mx >= x + W - HIT && mx < x + W && my >= y && my < y + h;
-        int tw = hover || dragging ? 4 : 2;
-        g.fill(sx + 2 - tw, ty, sx + 2, ty + th, dragging ? Theme.GOLD_DEEP : hover ? Theme.INK_2 : Theme.INK_3);
+        int lx = x + W - 3;                                 // the well's line, 2 px in from the box's right
+        Kit.hair(g, lx, y, 1, h, WELL);
+        boolean hover = hovered(mx, my);
+        int tw = hover || dragging ? 5 : 3;
+        int tx = lx + 1 - (tw + 1) / 2;
+        Art.box(g, tx, thumbTop(), tw, thumbH(), tw / 2, dragging ? Theme.GOLD_DEEP : hover ? Theme.INK_2 : Theme.INK_3, 0);
     }
 
     /** A press: on the thumb it starts a drag, on the track it pages. True when the bar took it. */
     boolean mouseClicked(double mx, double my) {
-        if (!shown() || mx < x + W - HIT || mx >= x + W || my < y || my >= y + h) {
+        if (!hovered(mx, my)) {
             return false;
         }
         int ty = thumbTop();

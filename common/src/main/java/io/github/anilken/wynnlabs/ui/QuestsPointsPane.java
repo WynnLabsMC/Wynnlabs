@@ -147,7 +147,7 @@ final class QuestsPointsPane extends MenuPaint {
         tab.litPlace = lit;
         // where in the list you are: a thin bar at the right edge, dragged or clicked
         tab.pointsBar.place(x + w + Theme.SP_1, top, bottom - top, rows, all.size(), tab.pointScroll);
-        tab.pointsBar.drawThin(g, mx, my);
+        tab.pointsBar.draw(g, mx, my);
     }
 
     /** A colour at half its strength (a passed place's row). */

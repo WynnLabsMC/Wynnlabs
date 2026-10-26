@@ -53,6 +53,40 @@ final class EndgamePoolsView extends EndgamePanel {
     /** A new frame: the lists the wheel scrolls are added again as they are drawn. */
     void newFrame() {
         wheels.clear();
+        for (ScrollBar b : bars) {
+            b.place(0, 0, 0, 1, 1, 0);                 // placed again by the lists drawn this frame
+        }
+    }
+
+    /** Each list's bar, by its slot (the columns, the compact list, the regions). */
+    private final ScrollBar[] bars = {new ScrollBar(), new ScrollBar(), new ScrollBar(), new ScrollBar(), new ScrollBar()};
+
+    /** A press on a list's bar: a drag starts or the track pages; true when one took it. */
+    boolean barPressed(double mx, double my) {
+        for (int i = 0; i < bars.length; i++) {
+            if (bars[i].mouseClicked(mx, my)) {
+                tab.poolScroll[tab.poolTab][i] = bars[i].offset();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** A drag with a bar held; true while one is. */
+    boolean barDragged(double my) {
+        for (int i = 0; i < bars.length; i++) {
+            if (bars[i].mouseDragged(my)) {
+                tab.poolScroll[tab.poolTab][i] = bars[i].offset();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void barReleased() {
+        for (ScrollBar b : bars) {
+            b.mouseReleased();
+        }
     }
 
     /** The wheel over Havuzlar: each column, the compact list and the region list scroll on their own; true when it did. */
@@ -263,7 +297,7 @@ final class EndgamePoolsView extends EndgamePanel {
         int[] sc = tab.poolScroll[tab.poolTab];
         sc[S_REGIONS] = Math.max(0, Math.min(max, sc[S_REGIONS]));
         wheels.add(new Wheel(x, y, w, ch, S_REGIONS, max));
-        int rw = w - 4 - (max > 0 ? 4 : 0);
+        int rw = w - 4 - (max > 0 ? ScrollBar.W : 0);
         int ry = y + 2;
         int shown = 0;
         for (int i = sc[S_REGIONS]; i < regs.size() && ry + REGION_ROW <= y + ch - 2; i++) {
@@ -290,7 +324,7 @@ final class EndgamePoolsView extends EndgamePanel {
             shown++;
         }
         if (max > 0) {
-            thumb(g, x + w - 5, y + 2, ch - 4, shown, regs.size(), sc[S_REGIONS], max);
+            thumb(g, x + w - 2 - ScrollBar.W, y + 2, ch - 4, regs.size(), sc[S_REGIONS], max, S_REGIONS, mx, my);
         }
     }
 
@@ -484,7 +518,7 @@ final class EndgamePoolsView extends EndgamePanel {
         int[] sc = tab.poolScroll[tab.poolTab];
         sc[slot] = Math.max(0, Math.min(max, sc[slot]));
         wheels.add(new Wheel(x, y, w, h, slot, max));
-        int rw = max > 0 ? w - 6 : w;
+        int rw = max > 0 ? w - ScrollBar.W - Theme.SP_1 : w;
         int ly = y;
         int shown = 0;
         for (int i = sc[slot]; i < lines.size(); i++) {
@@ -502,16 +536,14 @@ final class EndgamePoolsView extends EndgamePanel {
             shown++;
         }
         if (max > 0) {
-            thumb(g, x + w - 3, y, h, shown, lines.size(), sc[slot], max);
+            thumb(g, x + w - ScrollBar.W, y, h, lines.size(), sc[slot], max, slot, mx, my);
         }
     }
 
-    /** A thumb on a list's right edge. */
-    private void thumb(GuiGraphics g, int x, int y, int h, int shown, int total, int pos, int max) {
-        int knobH = Math.max(12, h * shown / Math.max(1, total));
-        int knobY = y + (h - knobH) * pos / Math.max(1, max);
-        g.fill(x, y, x + 2, y + h, 0x30624E3C);
-        g.fill(x, knobY, x + 2, knobY + knobH, Theme.WOOD);
+    /** A list's bar ({@link ScrollBar}) in its box at x: rows from {@code pos}, {@code max} the furthest. */
+    private void thumb(GuiGraphics g, int x, int y, int h, int total, int pos, int max, int slot, int mx, int my) {
+        bars[slot].place(x, y, h, total - max, total, pos);
+        bars[slot].draw(g, mx, my);
     }
 
     private static String groupName(PoolView.Group.Kind k) {

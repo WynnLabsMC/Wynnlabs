@@ -42,6 +42,7 @@ final class CraftDropdowns extends CraftPanel {
             return;
         }
         g.nextStratum();
+        tab.dropBar.place(0, 0, 0, 1, 1, 0);           // none until a list with one draws it
         switch (tab.open) {
             case TYPE -> dropTypes(g, mx, my);
             case LEVEL -> dropLevels(g, mx, my);
@@ -121,13 +122,10 @@ final class CraftDropdowns extends CraftPanel {
         });
     }
 
-    private void scrollMarks(GuiGraphics g, int x, int y, int h, int first, int total, int shown) {
-        if (total <= shown) {
-            return;
-        }
-        int knobH = Math.max(8, h * shown / total);
-        int ky = y + (h - knobH) * first / Math.max(1, total - shown);
-        g.fill(x, ky, x + 2, ky + knobH, Theme.WOOD);
+    /** The open list's scroll bar ({@link ScrollBar}: dragged, its track paged) in its box at x. */
+    private void scrollMarks(GuiGraphics g, int x, int y, int h, int first, int total, int shown, int mx, int my) {
+        tab.dropBar.place(x, y, h, shown, total, first);
+        tab.dropBar.draw(g, mx, my);
     }
 
     /** The ingredient list of one slot: searchable, own ones first, then by what they add there. */
@@ -173,7 +171,8 @@ final class CraftDropdowns extends CraftPanel {
         });
         int rowH = 12;
         int shown = Math.min(11, Math.max(1, rows.size()));
-        int w = 210;
+        int bar = rows.size() > shown ? ScrollBar.W + Theme.SP_1 : 0;
+        int w = 210 + bar;
         int h = 18 + shown * rowH + 6;
         int x = dropX(w);
         int y = dropY(h);
@@ -195,8 +194,8 @@ final class CraftDropdowns extends CraftPanel {
             Row row = rows.get(tab.dropScroll + i);
             Ingredient in = row.ing();
             boolean locked = in.level() > lv;
-            boolean hover = in(mx, my, x + 2, ry, w - 4, rowH);
-            Kit.row(g, x + 2, ry, w - 4, rowH, i, hover);
+            boolean hover = in(mx, my, x + 2, ry, w - 4 - bar, rowH);
+            Kit.row(g, x + 2, ry, w - 4 - bar, rowH, i, hover);
             int tx = x + 6;
             if (locked) {
                 Art.icon(g, "lock", tx, ry + 2, 8, Theme.paperRgb(Theme.INK_3));
@@ -209,10 +208,10 @@ final class CraftDropdowns extends CraftPanel {
             String price = locked ? "Lv " + in.level() : p == null ? "?" : Prices.fmt(p.emeralds());
             text(g, price, x + 158 - width(price), ry + 2, locked ? Theme.BAD : Theme.PRICE);
             String gain = (row.gain() >= 0 ? "+" : "") + dec(row.gain(), row.gain() == Math.rint(row.gain()) ? 0 : 1);
-            text(g, gain, x + w - 6 - width(gain), ry + 2, row.gain() > 0 ? Theme.GOOD
+            text(g, gain, x + w - bar - 6 - width(gain), ry + 2, row.gain() > 0 ? Theme.GOOD
                     : row.gain() < 0 ? Theme.BAD : Theme.INK_3);
             String name = in.name();
-            tab.overlay.add(new Act(x + 2, ry, w - 4, rowH, () -> {
+            tab.overlay.add(new Act(x + 2, ry, w - 4 - bar, rowH, () -> {
                 tab.slots[tab.openSlot] = name;
                 tab.open = Drop.NONE;
                 tab.pickSearch.setFocused(false);
@@ -224,7 +223,7 @@ final class CraftDropdowns extends CraftPanel {
             }
             ry += rowH;
         }
-        scrollMarks(g, x + w - 3, y + 19, shown * rowH, tab.dropScroll, rows.size(), shown);
+        scrollMarks(g, x + w - ScrollBar.W - Theme.SP_1, y + 19, shown * rowH, tab.dropScroll, rows.size(), shown, mx, my);
     }
 
     /** Identifications that the recipe's profession can get, for the goal and filter lists. */
@@ -263,7 +262,8 @@ final class CraftDropdowns extends CraftPanel {
         int rowH = 12;
         int fixed = 3;
         int shown = Math.min(10, ids.size());
-        int w = 190;
+        int bar = ids.size() > shown ? ScrollBar.W + Theme.SP_1 : 0;
+        int w = 190 + bar;
         int h = (fixed + shown) * rowH + 8;
         int x = dropX(w);
         int y = dropY(h);
@@ -272,23 +272,23 @@ final class CraftDropdowns extends CraftPanel {
         int ry = y + 4;
         // the durability floor, the cap to the player's points, then "no negative" per identification
         String floor = L.t("wynnlabs.craft.cond_floor", CraftingTab.FLOORS[tab.floorIndex]);
-        condRow(g, x, ry, w, floor, null, mx, my, () -> tab.floorIndex = (tab.floorIndex + 1) % CraftingTab.FLOORS.length);
+        condRow(g, x, ry, w - bar, floor, null, mx, my, () -> tab.floorIndex = (tab.floorIndex + 1) % CraftingTab.FLOORS.length);
         ry += rowH;
-        condRow(g, x, ry, w, L.t("wynnlabs.craft.cond_points"), tab.capToPoints, mx, my, () -> tab.capToPoints = !tab.capToPoints);
+        condRow(g, x, ry, w - bar, L.t("wynnlabs.craft.cond_points"), tab.capToPoints, mx, my, () -> tab.capToPoints = !tab.capToPoints);
         ry += rowH;
         text(g, L.t("wynnlabs.craft.cond_no_negative"), x + 6, ry + 2, Theme.INK_3);
         ry += rowH;
         tab.dropScroll = Math.max(0, Math.min(tab.dropScroll, ids.size() - shown));
         for (int i = 0; i < shown; i++) {
             String id = ids.get(tab.dropScroll + i);
-            condRow(g, x, ry, w, tab.statName(id), tab.noNegative.contains(id), mx, my, () -> {
+            condRow(g, x, ry, w - bar, tab.statName(id), tab.noNegative.contains(id), mx, my, () -> {
                 if (!tab.noNegative.remove(id)) {
                     tab.noNegative.add(id);
                 }
             });
             ry += rowH;
         }
-        scrollMarks(g, x + w - 3, y + 3 * rowH + 4, shown * rowH, tab.dropScroll, ids.size(), shown);
+        scrollMarks(g, x + w - ScrollBar.W - Theme.SP_1, y + 3 * rowH + 4, shown * rowH, tab.dropScroll, ids.size(), shown, mx, my);
     }
 
     private void condRow(GuiGraphics g, int x, int y, int w, String text, Boolean on, int mx, int my, Runnable click) {

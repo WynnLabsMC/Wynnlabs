@@ -186,7 +186,12 @@ final class MenuRail extends MenuPaint {
         }
         int lx = edge + 9 + Theme.SP_3;
         String name = name(i);
-        role.draw(g, font(), role.fit(font(), name, end - (used > 0 ? used + Theme.SP_2 : 0) - lx), lx, ty, ink);
+        int room = end - (used > 0 ? used + Theme.SP_2 : 0) - lx;
+        // the picked row is bold, but never cut short for it: a name that only fits in BODY stays whole
+        if (role != Type.BODY && role.width(font(), name) > room && Type.BODY.width(font(), name) <= room) {
+            role = Type.BODY;
+        }
+        role.draw(g, font(), role.fit(font(), name, room), lx, ty, ink);
         if (hover && b != null && b.tip() != null) {
             menu.hits.add(new MenuHit(left, ry, right - left, rowH, null, List.of(Component.literal(b.tip())), null));
         }

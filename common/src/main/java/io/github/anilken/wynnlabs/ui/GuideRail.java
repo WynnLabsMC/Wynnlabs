@@ -55,7 +55,7 @@ final class GuideRail {
         }
         // where in the list you are: a thin bar along the rail's right edge, dragged or clicked
         s.railBar.place(x + w + Theme.SP_1, top, bottom - top, fit, n, s.listScroll);
-        s.railBar.drawThin(g, mx, my);
+        s.railBar.draw(g, mx, my);
     }
 
     /** The whole label when it fits, else its first clause (before ", ", " (" or "; "), "…" last. */

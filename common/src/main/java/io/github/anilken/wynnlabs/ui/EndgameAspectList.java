@@ -124,7 +124,7 @@ final class EndgameAspectList extends EndgamePanel {
         int hintH = compact ? 0 : 12;
         int listTop = ry;
         int listBottom = bottom - hintH;
-        int listW = w - 6;
+        int listW = w - ScrollBar.W - Theme.SP_1;
         tab.listRect = new int[] {x, listTop, w, listBottom - listTop};
         if (rows.isEmpty()) {
             ink(g, fit(L.t(tab.filter == EndgameTab.F_POOL && tab.d.poolSeen() < 0 && !tab.d.p().wynnventory() ? "wynnlabs.endgame.pool_never"
@@ -154,13 +154,8 @@ final class EndgameAspectList extends EndgamePanel {
             ry += rh;
             shown++;
         }
-        if (tab.listScrollMax > 0) {
-            int trackH = listBottom - listTop;
-            int knobH = Math.max(12, trackH * shown / Math.max(1, rows.size()));
-            int knobY = listTop + (trackH - knobH) * tab.listScroll / tab.listScrollMax;
-            g.fill(x + w - 3, listTop, x + w - 1, listBottom, 0x30624E3C);
-            g.fill(x + w - 3, knobY, x + w - 1, knobY + knobH, Theme.WOOD);
-        }
+        tab.listBar.place(x + w - ScrollBar.W, listTop, listBottom - listTop, rows.size() - tab.listScrollMax, rows.size(), tab.listScroll);
+        tab.listBar.draw(g, mx, my);
         if (!compact) {
             ink(g, fit(L.t("wynnlabs.screen.hint_endgame"), w), x, bottom - 9, Theme.INK_3);
         }

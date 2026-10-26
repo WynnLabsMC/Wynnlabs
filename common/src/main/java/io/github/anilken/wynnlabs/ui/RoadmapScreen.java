@@ -774,6 +774,9 @@ public final class RoadmapScreen extends Screen {
         if (pages[tab] != null && pages[tab].barDragged(e.x(), e.y())) {
             return true;                                // a list's scroll bar thumb follows the mouse
         }
+        if (tab == TAB_ENDGAME && EndgameTab.INSTANCE.barDragged(e.y())) {
+            return true;
+        }
         if (tab == TAB_CRAFT && CraftingTab.INSTANCE.mouseDragged(e.x(), e.y())) {
             return true;                                // the probability slider follows the mouse
         }
@@ -783,6 +786,7 @@ public final class RoadmapScreen extends Screen {
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
         CraftingTab.INSTANCE.mouseReleased();
+        EndgameTab.INSTANCE.barReleased();
         archPicker.release();
         BuildWindow.INSTANCE.mouseReleased();
         home.statsReleased();

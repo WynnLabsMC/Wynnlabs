@@ -176,6 +176,10 @@ public final class HomePage extends MenuTab {
         double ex = event.x();
         double ey = event.y();
         if (detail != null) {
+            if (listRect != null && detailBar.mouseClicked(ex, ey)) {
+                detailScroll = detailBar.offset();
+                return true;
+            }
             if (backRect != null && in(ex, ey, backRect)) {
                 detail = null;
                 return true;
@@ -369,6 +373,8 @@ public final class HomePage extends MenuTab {
     private boolean detailMarket;
     private int detailScroll;
     private int detailScrollMax;
+    /** The comparison list's bar (offsets in pixels). */
+    private final ScrollBar detailBar = new ScrollBar();
     private int[][] filterRects;
     private int[] listRect;
 
@@ -865,10 +871,15 @@ public final class HomePage extends MenuTab {
 
     /** The stats list's scrollbar thumb follows the mouse while dragged; true while it is. */
     boolean statsDragged(double y) {
+        if (detail != null && detailBar.mouseDragged(y)) {
+            detailScroll = detailBar.offset();
+            return true;
+        }
         return stats != null && stats.barDragged(y);
     }
 
     void statsReleased() {
+        detailBar.mouseReleased();
         if (stats != null) {
             stats.barReleased();
         }
@@ -1193,7 +1204,7 @@ public final class HomePage extends MenuTab {
         detailScrollMax = Math.max(0, listH - (bottom - top));
         detailScroll = Math.min(detailScroll, detailScrollMax);
         boolean bar = detailScrollMax > 0;
-        int cw = bar ? w - ScrollBar.W - 4 : w;
+        int cw = bar ? w - ScrollBar.W - Theme.SP_2 : w;
         listRect = new int[] {x, top, w, bottom - top};
         int hitsFrom = menu.hits.size();
         g.enableScissor(x, top, x + w, bottom);
@@ -1207,13 +1218,8 @@ public final class HomePage extends MenuTab {
         g.disableScissor();
         // an item's tooltip only where its card is in view
         menu.hits.subList(hitsFrom, menu.hits.size()).removeIf(hb -> hb.y() < top || hb.y() + hb.h() > bottom);
-        if (bar) {
-            int trackH = bottom - top - 8;
-            int thumb = Math.max(ScrollBar.MIN_THUMB, trackH * (bottom - top) / listH);
-            int ty = top + (trackH - thumb) * detailScroll / detailScrollMax;
-            g.fill(x + w - ScrollBar.W + 2, top, x + w - 2, top + trackH, 0x30000000);
-            Kit.button(g, x + w - ScrollBar.W, ty, ScrollBar.W, thumb, Kit.REST);
-        }
+        detailBar.place(x + w - ScrollBar.W, top, bottom - top, bottom - top, listH, detailScroll);
+        detailBar.draw(g, mx, my);
         if (opts.size() <= (detailMarket ? 0 : 1)) {
             ink(g, L.c(detailMarket ? "wynnlabs.home.detail_none_market" : "wynnlabs.home.detail_none")
                     .withStyle(ChatFormatting.DARK_GRAY), x, cy + 2, 0xFFFFFFFF);

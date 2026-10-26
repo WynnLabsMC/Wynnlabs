@@ -117,6 +117,7 @@ final class CraftResultPanel extends CraftPanel {
         // identifications: min, name, max, mean, and ▸ for the roll chances
         int minCol = 24;
         int idsTop = yy;
+        int barW = ids > ID_ROWS ? ScrollBar.W : 0;
         int index = 0;
         for (Map.Entry<String, Craft.Range> e : c.ids().entrySet()) {
             if (index++ < idScroll || index > idScroll + ID_ROWS) {
@@ -126,7 +127,7 @@ final class CraftResultPanel extends CraftPanel {
             String id = e.getKey();
             boolean sel = id.equals(tab.sectionsPanel.distId);
             if (sel) {
-                g.fill(x + 2, yy - 1, x + w - 2, yy + 9, 0x55FFF3C8);
+                g.fill(x + 2, yy - 1, x + w - 2 - barW, yy + 9, 0x55FFF3C8);
             }
             String unit = tab.unit(id);
             String lo = signed(v.min()) + unit;
@@ -136,12 +137,12 @@ final class CraftResultPanel extends CraftPanel {
             String mean = "⌀" + dec(v.mean(), 1);
             int meanW = width(mean) + 10;
             int hiW = width(hi);
-            String name = fit(tab.statName(id), w - 12 - minCol - 8 - hiW - meanW - 8);
+            String name = fit(tab.statName(id), w - 12 - barW - minCol - 8 - hiW - meanW - 8);
             text(g, name, ix + minCol + 6, yy, Theme.INK_2);
-            int hx = x + w - 6 - meanW - 6 - hiW;
+            int hx = x + w - 6 - barW - meanW - 6 - hiW;
             text(g, hi, hx, yy, col);
-            text(g, mean + " ▸", x + w - 6 - meanW, yy, sel ? Theme.ACCENT : Theme.INK_3);
-            clipped(x + 2, yy - 1, w - 4, 10, () -> {
+            text(g, mean + " ▸", x + w - 6 - barW - meanW, yy, sel ? Theme.ACCENT : Theme.INK_3);
+            clipped(x + 2, yy - 1, w - 4 - barW, 10, () -> {
                 tab.sectionsPanel.distId = id;
                 tab.sectionsPanel.distTarget = null;
                 tab.distBox.setValue("");
@@ -153,12 +154,8 @@ final class CraftResultPanel extends CraftPanel {
             text(g, L.t("wynnlabs.craft.no_ids"), ix, yy, Theme.INK_3);
         }
         if (ids > ID_ROWS) {
-            // a thin bar at the card's edge shows where the list is
-            int trackH = ID_ROWS * 10;
-            int knobH = Math.max(6, trackH * ID_ROWS / ids);
-            int knobY = idsTop + (trackH - knobH) * idScroll / (ids - ID_ROWS);
-            Kit.hair(g, x + w - 4, idsTop, 1, trackH, 0x30624E3C);
-            Kit.hair(g, x + w - 4, knobY, 1, knobH, Theme.WOOD);
+            idBar.place(x + w - 2 - ScrollBar.W, idsTop - 1, ID_ROWS * 10, ID_ROWS, ids, idScroll);
+            idBar.draw(g, mx, my);
         }
         yy = idsTop + ID_ROWS * 10;
         // powder and durability, or duration and charges
@@ -228,6 +225,8 @@ final class CraftResultPanel extends CraftPanel {
     private static final int ID_ROWS = 8;
 
     int idScroll;
+    /** The identifications' own bar, when more than {@link #ID_ROWS} roll. */
+    final ScrollBar idBar = new ScrollBar();
     int idMax;
     int[] cardRect;
 }

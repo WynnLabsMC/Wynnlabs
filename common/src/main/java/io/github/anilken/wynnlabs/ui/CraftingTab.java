@@ -84,6 +84,9 @@ public final class CraftingTab {
     int dropScroll;
     /** The open list's dropdown state (its scroll bar, the keys' row). */
     final UiMenu.State dropMenu = new UiMenu.State();
+    /** The ingredient picker's and the conditions' list bar (CraftDropdowns), and the page's own. */
+    final ScrollBar dropBar = new ScrollBar();
+    private final ScrollBar pageBar = new ScrollBar();
     int scroll;
     private int scrollMax;
     boolean foldWhat;
@@ -325,6 +328,8 @@ public final class CraftingTab {
         acts.clear();
         overlay.clear();
         overlayBox = null;
+        pageBar.place(0, 0, 0, 1, 1, 0);               // the bars this frame draws place themselves again
+        resultPanel.idBar.place(0, 0, 0, 1, 1, 0);
         preview = nextPreview;
         nextPreview = null;
         refresh();
@@ -352,12 +357,12 @@ public final class CraftingTab {
         clip = new int[] {x, y, w, h};
         g.enableScissor(x, y, x + w, y + h);
         int top = y - scroll;
-        int cw = w - 6;                             // room for the scroll bar
+        int cw = w - ScrollBar.W - Theme.SP_2;      // room for the scroll bar
         int used;
         if (view == 2) {
             used = planPanel.drawPlan(g, x, top, cw, mx, my) + 4;
             g.disableScissor();
-            scrollBar(g, x, y, w, h, used);
+            scrollBar(g, x, y, w, h, used, mx, my);
             showTooltip(g, mx, my);
             return;
         }
@@ -390,22 +395,18 @@ public final class CraftingTab {
             used = sy - top;
         }
         g.disableScissor();
-        scrollBar(g, x, y, w, h, used);
+        scrollBar(g, x, y, w, h, used, mx, my);
         savedPanel.drawSaved(g, frame, screenW, x, y, w, h, two, mx, my);
         dropdowns.drawDrop(g, mx, my, pt);
         showTooltip(g, mx, my);
     }
 
     /** The page's scroll limit for {@code used} pixels of content, and its bar when it scrolls. */
-    private void scrollBar(GuiGraphics g, int x, int y, int w, int h, int used) {
+    private void scrollBar(GuiGraphics g, int x, int y, int w, int h, int used, int mx, int my) {
         scrollMax = Math.max(0, used - h + 4);
         scroll = Math.min(scroll, scrollMax);
-        if (scrollMax > 0) {
-            int knobH = Math.max(14, h * h / (used + 4));
-            int knobY = y + (h - knobH) * scroll / scrollMax;
-            g.fill(x + w - 3, y, x + w - 1, y + h, 0x30624E3C);
-            g.fill(x + w - 3, knobY, x + w - 1, knobY + knobH, Theme.WOOD);
-        }
+        pageBar.place(x + w - ScrollBar.W, y, h, h, used + 4, scroll);   // offsets in pixels
+        pageBar.draw(g, mx, my);
     }
 
     Craft.Result result() {
@@ -465,11 +466,26 @@ public final class CraftingTab {
         if (open != Drop.NONE && dropMenu.drag(my)) {
             return true;
         }
+        if (resultPanel.idBar.mouseDragged(my)) {
+            resultPanel.idScroll = resultPanel.idBar.offset();
+            return true;
+        }
+        if (dropBar.mouseDragged(my)) {
+            dropScroll = dropBar.offset();
+            return true;
+        }
+        if (pageBar.mouseDragged(my)) {
+            scroll = pageBar.offset();
+            return true;
+        }
         return sectionsPanel.mouseDragged(mx, my);
     }
 
     void mouseReleased() {
         dropMenu.release();
+        dropBar.mouseReleased();
+        pageBar.mouseReleased();
+        resultPanel.idBar.mouseReleased();
         sectionsPanel.mouseReleased();
     }
 
@@ -492,6 +508,18 @@ public final class CraftingTab {
         sectionsPanel.lastX = mx;
         if (overlayBox != null && open != Drop.NONE && dropMenu.press(mx, my)) {
             return true;                            // the list's scroll bar
+        }
+        if (overlayBox != null && open != Drop.NONE && dropBar.mouseClicked(mx, my)) {
+            dropScroll = dropBar.offset();
+            return true;
+        }
+        if (overlayBox == null && resultPanel.idBar.mouseClicked(mx, my)) {
+            resultPanel.idScroll = resultPanel.idBar.offset();
+            return true;
+        }
+        if (overlayBox == null && pageBar.mouseClicked(mx, my)) {
+            scroll = pageBar.offset();
+            return true;
         }
         if (overlayBox != null) {
             Runnable r = target(overlay, mx, my, button);
