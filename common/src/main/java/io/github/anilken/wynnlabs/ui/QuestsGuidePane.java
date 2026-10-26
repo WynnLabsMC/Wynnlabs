@@ -197,13 +197,23 @@ final class QuestsGuidePane extends MenuPaint {
         }
         if (at != null) {
             ly += Theme.SP_1;
-            String where = at[0] + ", " + at[1] + ", " + at[2];
-            Type.META.draw(g, font(), where, x + pad, ly, Theme.LINK);
-            int ww = Type.META.width(font(), where);
-            Art.icon(g, "map-pin", x + pad + ww + Theme.SP_1, Type.META.onCaps(ly, 8), 8, Theme.GOLD_EDGE);
+            // every place of the stage ("here or there" alike), each with its pin; what does not fit is in Noktalar
+            List<int[]> all = st.points().size() > 1 ? st.points() : List.of(at);
+            int px = x + pad;
+            int room = x + w - pad - goW - Theme.SP_5;
+            for (int[] p : all) {
+                String where = p[0] + ", " + p[1] + ", " + p[2];
+                int ww = Type.META.width(font(), where);
+                if (px + ww + Theme.SP_1 + 8 > room && px > x + pad) {
+                    break;
+                }
+                Type.META.draw(g, font(), where, px, ly, Theme.LINK);
+                Art.icon(g, "map-pin", px + ww + Theme.SP_1, Type.META.onCaps(ly, 8), 8, Theme.GOLD_EDGE);
+                menu.hits.add(new MenuHit(px, ly, ww + Theme.SP_1 + 8, Type.META.lineHeight, null,
+                        List.of(L.c("wynnlabs.quests.point_click").withStyle(ChatFormatting.GRAY)), "/compass at " + p[0] + " " + p[1] + " " + p[2]));
+                px += ww + Theme.SP_1 + 8 + Theme.SP_4;
+            }
             String go = "/compass at " + at[0] + " " + at[1] + " " + at[2];
-            menu.hits.add(new MenuHit(x + pad, ly, ww + Theme.SP_1 + 8, Type.META.lineHeight, null,
-                    List.of(L.c("wynnlabs.quests.point_click").withStyle(ChatFormatting.GRAY)), go));
             int bx = x + w - pad - goW;
             int by = y + pad + (Type.LEAD.lineHeight - Ui.SMALL_H) / 2;
             Ui.small(g, font(), L.t("wynnlabs.guide.go"), bx, by, goW, mx, my);

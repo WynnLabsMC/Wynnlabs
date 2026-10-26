@@ -63,7 +63,8 @@ public class LayoutMatrix implements FabricClientGameTest {
     private static final int ENDGAME = 11;
     private static final int SETTINGS = 5;
     private static final int TAB_AI = 6;
-    private static final int TAB_DISCOVERIES = 8;
+    /** 8: the old secret discoveries page, now a kind in the quests tab (no page of its own). */
+    private static final int NO_PAGE = 8;
     /** The settings tab's categories, in its order: each one is measured and shot. */
     private static final String[] SETTING_CATS = {"about", "look", "tips", "glow", "coach", "quests", "build", "rules", "data"};
     /**
@@ -265,7 +266,7 @@ public class LayoutMatrix implements FabricClientGameTest {
         // the rail's pages: name, tab number
         Object[][] plan = {
             {"fill80-home", 0}, {"fill80-today-summary", 1}, {"fill80-today-deaths", 3},
-            {"fill80-quests-discoveries", TAB_DISCOVERIES}, {"fill80-settings-ai", TAB_AI}};
+            {"fill80-quests", 2}, {"fill80-settings-ai", TAB_AI}};
         for (Object[] p : plan) {
             if (!ONLY.isEmpty() && !((String) p[0]).contains(ONLY)) {
                 continue;                               // -PpreviewTab=home: only the shots that name it
@@ -615,7 +616,7 @@ public class LayoutMatrix implements FabricClientGameTest {
             throws Exception {
         int[][] stands = new int[2][];
         for (int tab = 0; tab < TAB_NAMES.length; tab++) {
-            if (!ONLY.isEmpty() && !TAB_NAMES[tab].equals(ONLY)) {
+            if (tab == NO_PAGE || !ONLY.isEmpty() && !TAB_NAMES[tab].equals(ONLY)) {
                 continue;
             }
             int t = tab;

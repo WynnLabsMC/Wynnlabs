@@ -19,11 +19,11 @@ public final class GuideCoords {
      */
     public record Spot(int start, int end, int[] at, boolean knowsY) {}
 
-    private static final Pattern XYZ = Pattern.compile("(?<![\\d.,-])[\\[(]?(-?\\d{1,5}),\\s*(-?\\d{1,3}),\\s*(-?\\d{1,5})[\\])]?(?![\\d.])");
+    private static final Pattern XYZ = Pattern.compile("(?<![\\d.,-])[\\[(]?(-?\\d{1,5}),\\s*(-?\\d{1,3}),\\s*(-?\\d{1,5})[\\])]?(?!\\d|\\.\\d)");
     /** "(-1656 75 -2939)": three numbers in brackets without commas. */
     private static final Pattern XYZ_SPACED = Pattern.compile("[\\[(](-?\\d{1,5}) (-?\\d{1,3}) (-?\\d{1,5})[\\])]");
     /** "-1657, -2940" or "(-1797 -2120)": two numbers of two digits or more. */
-    private static final Pattern XZ = Pattern.compile("(?<![\\d.,-])[\\[(]?(-?\\d{2,5})(?:,\\s*|\\s+)(-?\\d{2,5})[\\])]?(?![\\d.]|,\\s*-?\\d)");
+    private static final Pattern XZ = Pattern.compile("(?<![\\d.,-])[\\[(]?(-?\\d{2,5})(?:,\\s*|\\s+)(-?\\d{2,5})[\\])]?(?!\\d|\\.\\d|,\\s*-?\\d)");
 
     /** How far (x and z, in blocks) a stage point may be to lend its height to an x/z pair. */
     static final int NEAR = 32;

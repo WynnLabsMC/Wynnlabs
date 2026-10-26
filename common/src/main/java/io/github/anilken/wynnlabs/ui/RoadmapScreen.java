@@ -33,7 +33,7 @@ import java.util.Map;
  * line and the tooltips, and the routing of clicks, the wheel and keys to the open tab. Each tab
  * draws its own page in its own class ({@link MenuTab}: {@link HomePage}, {@link TodayTab},
  * {@link QuestsTab}, {@link DeathsTab}, {@link BankTab}, {@link SettingsTab}, {@link AiTab},
- * {@link DamageTab}, {@link DiscoveriesTab}, {@link TreeTab}; the Crafting and Endgame tabs are
+ * {@link DamageTab}, {@link TreeTab}; the Crafting and Endgame tabs are
  * {@link CraftingTab} and {@link EndgameTab}). The screen keeps what they share: the road map's
  * steps and the chosen milestone, the quest suggestions, this frame's hover and click areas and
  * the flash line. Shows only; never buys, starts or clicks anything in the game.
@@ -48,7 +48,7 @@ public final class RoadmapScreen extends Screen {
     static final int TAB_SETTINGS = 5;
     static final int TAB_AI = 6;
     static final int TAB_DAMAGE = 7;
-    static final int TAB_DISCOVERIES = 8;
+    /** 8: the secret discoveries' own page until they moved into the quests tab (the number stays free). */
     static final int TAB_TREE = 9;
     static final int TAB_CRAFT = 10;
     static final int TAB_ENDGAME = 11;
@@ -94,13 +94,12 @@ public final class RoadmapScreen extends Screen {
     public final SettingsTab settings = new SettingsTab(this);
     final AiTab ai = new AiTab(this);
     final DamageTab damage = new DamageTab(this);
-    final DiscoveriesTab discoveries = new DiscoveriesTab(this);
     public final TreeTab tree = new TreeTab(this);
     final SearchTab search = new SearchTab(this);
     /** The archetype list the archetype buttons open (home, tree, settings). */
     final ArchetypePicker archPicker = new ArchetypePicker(this);
     /** The tabs by number (null for the Crafting and Endgame tabs, which are their own singletons). */
-    private final MenuTab[] pages = {home, today, questsTab, deaths, bank, settings, ai, damage, discoveries, tree, null, null,
+    private final MenuTab[] pages = {home, today, questsTab, deaths, bank, settings, ai, damage, null, tree, null, null,
         search};
     /** The screen the search key was pressed on (a bank, a chest): closing the menu goes back to it. */
     private Screen parent;
@@ -113,6 +112,13 @@ public final class RoadmapScreen extends Screen {
         if (item != null) {
             s.search.show(item);
         }
+        return s;
+    }
+
+    /** The menu opened straight on tab {@code t} (previews and tests: nothing else is drawn first). */
+    static RoadmapScreen on(int t) {
+        RoadmapScreen s = new RoadmapScreen();
+        s.tab = t;
         return s;
     }
 
@@ -890,7 +896,7 @@ public final class RoadmapScreen extends Screen {
         double ex = event.x();
         double ey = event.y();
         boolean over = ex >= h.x() && ex < h.x() + h.w() && ey >= h.y() && ey < h.y() + h.h();
-        if (h.copy() != null && h.copy().startsWith("#disc") && over && discoveries.discoveryClick(h.copy())) {
+        if (h.copy() != null && h.copy().startsWith("#disc") && over && questsTab.secrets.action(h.copy())) {
             return true;
         }
         if (h.copy() != null && h.copy().startsWith("#q") && over) {
@@ -902,8 +908,9 @@ public final class RoadmapScreen extends Screen {
                 tab = Integer.parseInt(c.substring(7));     // a home tile: its tab
                 home.detail = null;
             } else if (c.startsWith("#qdisc:")) {
-                tab = TAB_DISCOVERIES;                      // the home's nearest discovery, chosen there
-                discoveries.discSelected = c.substring(7);
+                tab = 2;                                    // the quests tab on its secret discoveries
+                String id = c.substring(7);
+                questsTab.secrets.show(id.isEmpty() ? null : id);
                 home.detail = null;
             } else if (!questsTab.action(c)) {
                 home.action(c, event.button());

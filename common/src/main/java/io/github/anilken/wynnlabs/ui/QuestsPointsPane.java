@@ -57,8 +57,9 @@ final class QuestsPointsPane extends MenuPaint {
         int listBottom = foot - Theme.SP_4;
         if (!left.isEmpty()) {
             if (compact) {
-                int sh = 84;
-                if (menu.layout.h() >= 300 && listBottom - cy > sh + 2 * PITCH
+                // a thin strip over the list, as tall as two rows of the list leave (48 to 84)
+                int sh = Math.min(84, listBottom - cy - 2 * PITCH - Theme.SP_4);
+                if (sh >= 48
                         && tab.map.draw(g, x, cy, w, sh, left, tab.litPlace, true, name + "|" + QuestsData.stage(name, info) + "|p", mx, my)) {
                     listTop = cy + sh + Theme.SP_4;
                 }
@@ -99,12 +100,13 @@ final class QuestsPointsPane extends MenuPaint {
             QuestMap.Place p = all.get(i);
             boolean done = p.state() == QuestMapLayout.DONE;
             boolean now = p.state() == QuestMapLayout.NOW || p.state() == QuestMapLayout.START;
-            boolean hover = mx >= x - Theme.SP_3 && mx < x + w && my >= ry && my < ry + ROW;
+            // the wash stays in the content column: SP_2 out on both sides, never into the page's padding
+            boolean hover = mx >= x - Theme.SP_2 && mx < x + w + Theme.SP_2 && my >= ry && my < ry + ROW;
             boolean fromMap = p.num().equals(tab.map.hovered);
             if (now) {
-                Kit.rowLit(g, x - Theme.SP_3, ry, w + Theme.SP_3, ROW);
+                Kit.rowLit(g, x - Theme.SP_2, ry, w + 2 * Theme.SP_2, ROW);
             } else if (hover || fromMap) {
-                g.fill(x - Theme.SP_3, ry, x + w, ry + ROW, Theme.CARD_HOVER);
+                g.fill(x - Theme.SP_2, ry, x + w + Theme.SP_2, ry + ROW, Theme.CARD_HOVER);
             }
             if (hover) {
                 lit = p.num();
@@ -136,7 +138,7 @@ final class QuestsPointsPane extends MenuPaint {
             tip.add(Component.literal(p.num() + " · " + p.task()).withStyle(ChatFormatting.LIGHT_PURPLE));
             tip.add(Component.literal(at).withStyle(ChatFormatting.GRAY));
             tip.add(L.c("wynnlabs.quests.point_click").withStyle(ChatFormatting.DARK_GRAY));
-            menu.hits.add(new MenuHit(x - Theme.SP_3, ry, w + Theme.SP_3, ROW, null, tip,
+            menu.hits.add(new MenuHit(x - Theme.SP_2, ry, w + 2 * Theme.SP_2, ROW, null, tip,
                     "/compass at " + p.at()[0] + " " + p.at()[1] + " " + p.at()[2]));
             ry += PITCH;
         }

@@ -391,7 +391,7 @@ final class HomeTiles extends HomePart {
         Discoveries.Entry e = d.near();
         if (e == null) {
             ink(g, fit(L.t("wynnlabs.homev.discovery_none"), w - 12), x + 6, y + 20, Theme.INK_3);
-            host.area(x, y, w, h, null, List.of(opens("wynnlabs.screen.tab_discoveries")), "#qopen:" + RoadmapScreen.TAB_DISCOVERIES);
+            host.area(x, y, w, h, null, List.of(opens("wynnlabs.screen.tab_discoveries")), "#qdisc:");
             return;
         }
         ink(g, Component.literal(fit(e.name(), w - 12, true)).withStyle(UiFont::bold), x + 6, y + 19, Theme.ACCENT);

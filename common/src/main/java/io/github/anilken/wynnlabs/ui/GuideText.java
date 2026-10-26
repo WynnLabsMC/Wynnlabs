@@ -76,6 +76,19 @@ final class GuideText {
      */
     static void draw(GuiGraphics g, Font font, Type role, List<List<Tok>> lines, int x, int y, int ink,
                      int mx, int my, GuideScreen screen, boolean clickable) {
+        draw(g, font, role, lines, x, y, ink, mx, my,
+                clickable ? (tx, ty, tw, th, sp) -> screen.tap(tx, ty, tw, th, () -> screen.compass(sp.at(), sp.knowsY())) : null);
+    }
+
+    /** A coordinate group's click area: where it is drawn and its place. */
+    interface Taps {
+        void tap(int x, int y, int w, int h, GuideCoords.Spot spot);
+    }
+
+    /** As above, each group's area handed to {@code taps} (null: not clickable). */
+    static void draw(GuiGraphics g, Font font, Type role, List<List<Tok>> lines, int x, int y, int ink,
+                     int mx, int my, Taps taps) {
+        boolean clickable = taps != null;
         int space = role.width(font, " ");
         for (List<Tok> line : lines) {
             int cx = x;
@@ -104,8 +117,7 @@ final class GuideText {
                     Kit.hair(g, cx, y + role.lineHeight - 2, tw, 1, Theme.LINK);
                 }
                 if (clickable) {
-                    GuideCoords.Spot sp = t.spot();
-                    screen.tap(cx, y, t.w(), role.lineHeight, () -> screen.compass(sp.at(), sp.knowsY()));
+                    taps.tap(cx, y, t.w(), role.lineHeight, t.spot());
                 }
                 cx += t.w() + space;
             }

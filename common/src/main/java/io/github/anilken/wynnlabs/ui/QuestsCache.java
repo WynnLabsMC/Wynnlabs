@@ -28,7 +28,9 @@ final class QuestsCache {
     private static final long SHORT = 500;
     private static final long LONG = 30_000;
     private static final Map<String, Object[]> KEPT = new HashMap<>();
-    private static final Map<Long, Boolean> TILES = new HashMap<>();
+    private static final Map<Long, Long> TILES = new HashMap<>();
+    /** How long "no tiles here" holds before Wynntils is asked again (its map may still be downloading). */
+    private static final long NO_TILE_AGAIN = 10_000;
     private static Map<String, QuestBook.Entry> byName = Map.of();
     private static long byNameAt;
 
@@ -91,15 +93,22 @@ final class QuestsCache {
             return Wyn.hasMap(x - 1, z - 1, x + 1, z + 1);
         }
         long key = ((long) x << 32) ^ (z & 0xFFFFFFFFL);
-        Boolean b = TILES.get(key);
-        if (b == null) {
-            b = Wyn.hasMap(x - 1, z - 1, x + 1, z + 1);
-            if (TILES.size() > 4000) {
-                TILES.clear();
-            }
-            TILES.put(key, b);
+        Long seen = TILES.get(key);                     // Long.MAX_VALUE: tiles there; else when none were found
+        long now = System.currentTimeMillis();
+        if (seen != null && (seen == Long.MAX_VALUE || now - seen < NO_TILE_AGAIN)) {
+            return seen == Long.MAX_VALUE;
         }
+        boolean b = Wyn.hasMap(x - 1, z - 1, x + 1, z + 1);
+        if (TILES.size() > 4000) {
+            TILES.clear();
+        }
+        TILES.put(key, b ? Long.MAX_VALUE : now);
         return b;
+    }
+
+    /** Everything kept is worked out again on the next frame (a change the player just made). */
+    static void forget() {
+        KEPT.clear();
     }
 
     /** One frame of the tab drawn in {@code dt} ns. */

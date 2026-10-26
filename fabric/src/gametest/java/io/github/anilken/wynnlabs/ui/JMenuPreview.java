@@ -58,7 +58,10 @@ public class JMenuPreview implements FabricClientGameTest {
                 Wyn.clearDown();                // marked down before the recording was in
             });
             SearchPreview.loadIndex();
-            ctx.setScreen(RoadmapScreen::new);
+            // straight on the screen being checked: a filtered run never draws Home first
+            int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("quests") ? 2
+                    : part.equals("settings") ? 5 : part.equals("crafting") ? 10 : 0;
+            ctx.setScreen(() -> RoadmapScreen.on(first));
             ctx.waitForScreen(RoadmapScreen.class);
             ctx.getInput().setCursorPos(2, 2);      // the window's corner: no tooltip over the menu
             // nothing is built on its own: the gear panel offers to; the button builds it, with
@@ -140,7 +143,7 @@ public class JMenuPreview implements FabricClientGameTest {
                 shot(ctx, out, scroll == 0 ? "jmenu-settings-glow" : "jmenu-settings-glow-end");
             }
             questGuides(ctx, out);
-            ctx.setScreen(RoadmapScreen::new);
+            ctx.setScreen(() -> RoadmapScreen.on(10));
             ctx.waitForScreen(RoadmapScreen.class);
             try {
                 craftShots(ctx, out);
@@ -290,6 +293,14 @@ public class JMenuPreview implements FabricClientGameTest {
             });
             ctx.waitTicks(10);
             shot(ctx, out, "quests-cave");
+            // the secret discoveries as a kind: their list and a guide with its steps
+            ctx.runOnClient(mc -> {
+                QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
+                q.action("#qtype:SECRET_DISCOVERY");
+                q.action("#qcsel:SECRET_DISCOVERY\nNilrem's Sealed Letter");
+            });
+            ctx.waitTicks(10);
+            shot(ctx, out, "quests-secret");
             ctx.runOnClient(mc -> {
                 QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
                 q.action("#qtype:RECOMMENDED");
@@ -333,7 +344,7 @@ public class JMenuPreview implements FabricClientGameTest {
             optionShots(ctx, out);
             return;
         }
-        ctx.setScreen(RoadmapScreen::new);
+        ctx.setScreen(() -> RoadmapScreen.on(10));
         ctx.waitForScreen(RoadmapScreen.class);
         try {
             craftShots(ctx, out);
@@ -597,7 +608,7 @@ public class JMenuPreview implements FabricClientGameTest {
      * page is unchanged, then the live English stages with the note when the page changed since.
      */
     private static void questGuides(ClientGameTestContext ctx, Path out) throws ReflectiveOperationException {
-        ctx.setScreen(RoadmapScreen::new);
+        ctx.setScreen(() -> RoadmapScreen.on(2));
         ctx.waitForScreen(RoadmapScreen.class);
         ctx.runOnClient(mc -> QuestBook.put(new QuestBook.Entry("Jungle Fever", "STARTED", 48, "Medium", 0, true,
                 "Infiltrate Almuj's Secret Emerald Labyrinth at [1019, 84, -1976] underground and find the Banker",

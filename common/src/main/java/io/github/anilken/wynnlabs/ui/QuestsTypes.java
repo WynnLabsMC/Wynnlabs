@@ -47,6 +47,9 @@ final class QuestsTypes extends MenuPaint {
 
     /** A kind's rows: what you can do now nearest first, then the higher ones by level, then "Biten". */
     List<QuestsRail.Row> rows(ContentType type, String query) {
+        if (type == ContentType.SECRET_DISCOVERY) {
+            return tab.secrets.rows(query);
+        }
         List<Content.Line> all = lines(type);
         String q = query.toLowerCase(Locale.ROOT);
         int level = Wyn.level();
@@ -132,7 +135,7 @@ final class QuestsTypes extends MenuPaint {
                 case QUEST -> (int) lists.getOrDefault("RECOMMENDED", List.of()).stream()
                         .filter(s -> !"MINI_QUEST".equals(s.quest().type())).count();
                 case MINI_QUEST -> lists.getOrDefault("MINI", List.of()).size();
-                case SECRET_DISCOVERY -> secretsLeft();
+                case SECRET_DISCOVERY -> QuestsSecrets.left();
                 default -> {
                     int level = Wyn.level();
                     yield (int) lines(type).stream().filter(l -> !l.done() && l.level() <= level).count();
@@ -141,18 +144,6 @@ final class QuestsTypes extends MenuPaint {
         });
     }
 
-    /** The secret discoveries left within your level, as the discoveries page counts them. */
-    private static int secretsLeft() {
-        var gs = io.github.anilken.wynnlabs.game.GameState.current();
-        java.util.Set<String> found = io.github.anilken.wynnlabs.quests.Discoveries.foundInGame();
-        int n = 0;
-        for (var e : io.github.anilken.wynnlabs.quests.Discoveries.all()) {
-            if (e.minLevel() <= gs.level() && !io.github.anilken.wynnlabs.quests.Discoveries.done(e, found, gs.characterId())) {
-                n++;
-            }
-        }
-        return n;
-    }
 
     // ---- the chip and its menu ----
 
@@ -172,8 +163,7 @@ final class QuestsTypes extends MenuPaint {
         }
         UiMenu.Items items = new UiMenu.Items();
         for (ContentType t : ContentType.values()) {
-            List<Component> tip = t == ContentType.SECRET_DISCOVERY ? List.of(L.c("wynnlabs.content.secret_tab").withStyle(ChatFormatting.GRAY)) : null;
-            items.add(UiMenu.Item.of("#qtype:" + t.name(), t.icon, t.shown, String.valueOf(count(t)), t == tab.questType).tip(tip));
+            items.add(UiMenu.Item.of("#qtype:" + t.name(), t.icon, t.shown, String.valueOf(count(t)), t == tab.questType));
             if (BREAK_AFTER.contains(t)) {
                 items.divide();
             }
@@ -213,7 +203,18 @@ final class QuestsTypes extends MenuPaint {
         } else if (!l.done() && l.level() > 0) {
             right = "Lv " + l.level();
         }
-        int rw = right.isEmpty() ? 0 : Type.META.width(font(), right) + Theme.SP_3;
+        // a secret discovery's row, hovered: a pin for the way to its first place (one click, no guide)
+        boolean pin = hover && !l.done() && l.type() == ContentType.SECRET_DISCOVERY;
+        if (pin) {
+            int sq = Ui.CHIP_H + 2;
+            int bx = x + w - Theme.SP_2 - sq;
+            int by = y + (rowH - Ui.CHIP_H) / 2;
+            Ui.iconButton(g, "map-pin", bx, by, false, mx, my);
+            menu.hits.add(new MenuHit(bx, by, sq, Ui.CHIP_H, null,
+                    List.of(L.c("wynnlabs.discoveries.pin_tip", l.name()).withStyle(ChatFormatting.LIGHT_PURPLE)), "#discpin:0:" + l.name()));
+            right = "";
+        }
+        int rw = right.isEmpty() ? (pin ? Ui.CHIP_H + 2 + Theme.SP_3 : 0) : Type.META.width(font(), right) + Theme.SP_3;
         if (!right.isEmpty()) {
             Type.META.drawRight(g, font(), right, x + w - Theme.SP_3, ty + 1, Theme.INK_3);
         }
@@ -221,7 +222,8 @@ final class QuestsTypes extends MenuPaint {
         Type role = picked ? Type.LABEL : l.done() ? Type.MUTED : Type.BODY;
         int ink = picked ? Theme.GOOD : role.colour;
         role.draw(g, font(), role.fit(font(), l.name(), x + w - Theme.SP_3 - rw - tx), tx, ty, ink);
-        menu.hits.add(new MenuHit(x, y, w, rowH, null, tip(l), "#qcsel:" + l.type().name() + "\n" + l.name()));
+        var e = l.type() == ContentType.SECRET_DISCOVERY ? QuestsSecrets.entry(l.name()) : null;
+        menu.hits.add(new MenuHit(x, y, w, rowH, null, e != null ? QuestsSecrets.tip(e) : tip(l), "#qcsel:" + l.type().name() + "\n" + l.name()));
     }
 
     private static List<Component> tip(Content.Line l) {
@@ -261,9 +263,7 @@ final class QuestsTypes extends MenuPaint {
         } else if (c.startsWith("#qtype:")) {
             tab.typeOpen = false;
             ContentType t = ContentType.of(c.substring(7));
-            if (t == ContentType.SECRET_DISCOVERY) {
-                menu.openTab(RoadmapScreen.TAB_DISCOVERIES);   // its own page, with the guides
-            } else if (t != tab.questType) {
+            if (t != tab.questType) {
                 tab.questType = t;
                 tab.questSelected = null;
                 tab.pickedType = null;

@@ -239,8 +239,8 @@ final class SearchThingCard extends MenuPaint {
                 if (!id.isEmpty()) {
                     String discovery = id.get(0).name();
                     cy = link(g, L.t("wynnlabs.search.open_discoveries"), x, cy + 2, w, mx, my, () -> {
-                        menu.discoveries.discSelected = discovery;
-                        menu.openTab(RoadmapScreen.TAB_DISCOVERIES);
+                        menu.openTab(2);
+                        menu.questsTab.secrets.show(discovery);
                     });
                 }
             }

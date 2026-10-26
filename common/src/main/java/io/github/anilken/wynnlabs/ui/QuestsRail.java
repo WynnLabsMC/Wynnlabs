@@ -141,6 +141,9 @@ final class QuestsRail extends MenuPaint {
             Type.META.draw(g, font(), Type.META.fit(font(), n, w), x + Theme.SP_2, top, Theme.INK_3);
             top += Type.META.lineHeight + Theme.SP_3;
         }
+        if (tab.questType == ContentType.SECRET_DISCOVERY && tab.query().isEmpty() && QuestsSecrets.unread()) {
+            top += unread(g, x, top, w, mx, my) + Theme.SP_4;
+        }
         int bottom = y + h;
         tab.railRect = new int[] {x, top, w, bottom - top};
         if (tab.query().isEmpty() && rows.stream().noneMatch(r -> r.name() != null)) {
@@ -184,12 +187,28 @@ final class QuestsRail extends MenuPaint {
         tab.railBar.drawThin(g, mx, my);
     }
 
+    /** The secret discoveries never read: an info notice with the content book's read in it (the why in its tooltip). */
+    private int unread(GuiGraphics g, int x, int y, int w, int mx, int my) {
+        Ui.Action act = new Ui.Action("refresh", L.t("wynnlabs.content.read_book"));
+        List<String> lines = List.of(L.t("wynnlabs.discoveries.book_unread"));
+        int nh = Ui.noticeHeight(2);
+        int[][] hit = new int[1][];
+        nh = Ui.notice(g, font(), Ui.Level.INFO, lines, act, x, y, w, nh, mx, my, hit);
+        List<Component> why = List.of(Component.literal(L.t("wynnlabs.discoveries.book_tip")).withStyle(ChatFormatting.GRAY));
+        if (hit[0] != null) {
+            menu.hits.add(new MenuHit(hit[0][0], hit[0][1], hit[0][2], hit[0][3], null, tab.types.rescanTip(ContentType.SECRET_DISCOVERY), "#qrescan:"));
+        }
+        menu.hits.add(new MenuHit(x, y, w, nh, null, why, null));
+        return nh;
+    }
+
     /** "Önerilen ▾" (the quest kinds only), the kind's chip, and how many are listed; returns its height. */
     private int orderChip(GuiGraphics g, int x, int y, int w, List<Row> rows, int mx, int my) {
         int cx = x;
         chip = null;
-        if (tab.questType.quest()) {
-            String name = L.t(QuestAdvisor.FILTER_NAMES[filterIndex()]);
+        boolean secret = tab.questType == ContentType.SECRET_DISCOVERY;
+        if (tab.questType.quest() || secret) {
+            String name = secret ? QuestsSecrets.sortName() : L.t(QuestAdvisor.FILTER_NAMES[filterIndex()]);
             int cw = UiMenu.chip(g, font(), null, name, cx, y, tab.filterOpen, mx, my);
             menu.hits.add(new MenuHit(cx, y, cw, Ui.CHIP_H, null, null, "#qmenu"));
             chip = new int[] {cx, y, cw, Ui.CHIP_H};
@@ -204,7 +223,7 @@ final class QuestsRail extends MenuPaint {
             }
             n++;
         }
-        String count = L.n("wynnlabs.content.count", n);
+        String count = secret ? QuestsSecrets.progress() : L.n("wynnlabs.content.count", n);
         if (cx + Type.META.width(font(), count) <= x + w) {
             Type.META.draw(g, font(), count, cx, Type.META.yIn(y, Ui.CHIP_H), Theme.INK_3);
         }
@@ -340,6 +359,10 @@ final class QuestsRail extends MenuPaint {
     int[] menu(GuiGraphics g, int mx, int my) {
         if (chip == null) {
             return null;
+        }
+        if (tab.questType == ContentType.SECRET_DISCOVERY) {
+            return UiMenu.draw(g, font(), UiMenu.Spec.under(chip, menu.width, menu.height), tab.orderMenu, QuestsSecrets.menuItems(), mx, my,
+                    r -> menu.hits.add(new MenuHit(r.x(), r.y(), r.w(), r.h(), null, r.item().tip(), r.item().id())));
         }
         Map<String, List<QuestAdvisor.Suggestion>> lists = tab.lists();
         UiMenu.Items items = new UiMenu.Items();

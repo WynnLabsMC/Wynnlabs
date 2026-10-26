@@ -81,7 +81,7 @@ final class QuestMap extends MenuPaint {
         float z0 = (float) minZ;
         float x1 = (float) maxX + 1;
         float z1 = (float) maxZ + 1;
-        return QuestsCache.kept("map|" + x0 + "|" + z0 + "|" + x1 + "|" + z1, 30_000, () -> Wyn.hasMap(x0, z0, x1, z1));
+        return QuestsCache.kept("map|" + x0 + "|" + z0 + "|" + x1 + "|" + z1, 3_000, () -> Wyn.hasMap(x0, z0, x1, z1));
     }
 
     /**

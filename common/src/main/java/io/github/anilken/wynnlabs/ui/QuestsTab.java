@@ -37,6 +37,8 @@ final class QuestsTab extends MenuTab {
         place = new QuestsPlacePane(menu, this);
         types = new QuestsTypes(menu, this);
         popups = new QuestsPopups(menu, this);
+        secrets = new QuestsSecrets(menu, this);
+        secretPane = new QuestsSecretPane(menu, this);
         map = new QuestMap(menu);
     }
 
@@ -46,6 +48,8 @@ final class QuestsTab extends MenuTab {
     final QuestsPlacePane place;
     final QuestsTypes types;
     final QuestsPopups popups;
+    final QuestsSecrets secrets;
+    final QuestsSecretPane secretPane;
     final QuestMap map;
     /** The list's and the places' scroll bars: dragged, clicked or wheeled. */
     final ScrollBar railBar = new ScrollBar();
@@ -110,6 +114,10 @@ final class QuestsTab extends MenuTab {
             railScroll = railBar.offset();
             return true;
         }
+        if (secretPane.stepRect != null && secretPane.stepBar.mouseClicked(event.x(), event.y())) {
+            secretPane.stepScroll = secretPane.stepBar.offset();
+            return true;
+        }
         if (pointsRect != null && questDetailTab == 3 && pointsBar.mouseClicked(event.x(), event.y())) {
             pointScroll = pointsBar.offset();
             return true;
@@ -142,6 +150,10 @@ final class QuestsTab extends MenuTab {
             pointScroll = pointsBar.offset();
             return true;
         }
+        if (secretPane.stepBar.mouseDragged(y)) {
+            secretPane.stepScroll = secretPane.stepBar.offset();
+            return true;
+        }
         return false;
     }
 
@@ -155,6 +167,7 @@ final class QuestsTab extends MenuTab {
         }
         railBar.mouseReleased();
         pointsBar.mouseReleased();
+        secretPane.stepBar.mouseReleased();
     }
 
     /** "/" while nothing is being typed: the search box. */
@@ -186,6 +199,8 @@ final class QuestsTab extends MenuTab {
         int dir = (int) Math.signum(v);
         if (map.rect != null && in(x, y, map.rect)) {
             map.zoomAt(x, y, dir);
+        } else if (secretPane.scrolled(x, y, v)) {
+            return;
         } else if (pointsRect != null && in(x, y, pointsRect)) {
             pointScroll = Math.max(0, pointScroll - dir);
         } else if (railRect != null && in(x, y, railRect)) {
@@ -205,7 +220,7 @@ final class QuestsTab extends MenuTab {
      * the rescan, pins, the session plan, the map's zoom); false when {@code c} is not one of them.
      */
     boolean action(String c) {
-        if (types.action(c)) {
+        if (types.action(c) || secrets.action(c)) {
             return true;
         }
         if (c.startsWith("#qfilter:")) {
@@ -393,6 +408,7 @@ final class QuestsTab extends MenuTab {
         railRect = null;
         pointsRect = null;
         map.rect = null;
+        secretPane.stepRect = null;
         if (!Wyn.up(Wyn.Feature.QUESTS)) {
             Type.BODY.draw(g, font(), Type.BODY.fit(font(), L.t("wynnlabs.wyn.quests_off", Wyn.version()), w), x, y, Theme.WARN);
             return;
@@ -422,7 +438,9 @@ final class QuestsTab extends MenuTab {
             px = x + railW + 2 * Theme.SP_6;
             pw = w - railW - 2 * Theme.SP_6;
         }
-        if (questSelected != null && pickedType != null) {
+        if (questSelected != null && pickedType == ContentType.SECRET_DISCOVERY) {
+            secretPane.draw(g, px, py, pw, y + h - py, mx, my);
+        } else if (questSelected != null && pickedType != null) {
             place.draw(g, px, py, pw, y + h - py, mx, my);
         } else if (questSelected != null) {
             if (questDetailTab == 3) {

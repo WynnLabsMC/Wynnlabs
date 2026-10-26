@@ -167,7 +167,6 @@ class MenuPaint {
             case RoadmapScreen.TAB_BANK -> "building-bank";
             case RoadmapScreen.TAB_AI -> "sparkles";
             case RoadmapScreen.TAB_DAMAGE -> "sword";
-            case RoadmapScreen.TAB_DISCOVERIES -> "compass";
             case RoadmapScreen.TAB_TREE -> "hierarchy";
             case RoadmapScreen.TAB_CRAFT -> "hammer";
             case RoadmapScreen.TAB_ENDGAME -> "trophy";
@@ -189,7 +188,6 @@ class MenuPaint {
             case RoadmapScreen.TAB_BANK -> { bg = 0xFF0F2A22; fg = 0xFF5DCAA5; }
             case RoadmapScreen.TAB_AI -> { bg = 0xFF12303A; fg = 0xFF7FD4E8; }
             case RoadmapScreen.TAB_DAMAGE -> { bg = 0xFF3A2414; fg = 0xFFF0B27A; }
-            case RoadmapScreen.TAB_DISCOVERIES -> { bg = 0xFF2A1F3A; fg = 0xFFC9A7F0; }
             case RoadmapScreen.TAB_TREE -> { bg = 0xFF1E3220; fg = 0xFF9FDC8A; }
             case RoadmapScreen.TAB_CRAFT -> { bg = 0xFF3A2E14; fg = 0xFFE8C07A; }
             case RoadmapScreen.TAB_ENDGAME -> { bg = 0xFF40280C; fg = 0xFFFFD36B; }
