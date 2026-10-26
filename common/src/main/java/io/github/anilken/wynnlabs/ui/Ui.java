@@ -177,12 +177,17 @@ final class Ui {
         }
     }
 
-    /** A square icon button the height of a chip: gold when on, a thin outline otherwise. */
+    /** Where an icon {@code size} long starts in a box {@code box} long: centred, both even so it lands on a whole pixel. */
+    static int iconIn(int box, int size) {
+        return (box - size) / 2;
+    }
+
+    /** A square icon button the height of a chip (16×14, an 8 px icon): gold when on, a thin outline otherwise. */
     static boolean iconButton(GuiGraphics g, String icon, int x, int y, boolean on, int mx, int my) {
         int w = CHIP_H + 2;
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + CHIP_H;
         Kit.pill(g, x, y, w, CHIP_H, on, hover);
-        Art.icon(g, icon, x + (w - 8) / 2, y + (CHIP_H - 8) / 2, 8, on ? Theme.INK : Theme.INK_2);
+        Art.icon(g, icon, x + iconIn(w, 8), y + iconIn(CHIP_H, 8), 8, on ? Theme.INK : Theme.INK_2);
         return hover;
     }
 

@@ -54,7 +54,7 @@ final class QuestsPlacePane extends MenuPaint {
         String name = Type.TITLE.fit(font(), l.name(), w - (tx - x));
         Type.TITLE.draw(g, font(), name, tx, y, Theme.LINK);
         List<String> facts = new ArrayList<>();
-        facts.add(l.type().shown);
+        facts.add(l.type().label());
         if (l.level() > 0) {
             facts.add("Lv " + l.level());
         }

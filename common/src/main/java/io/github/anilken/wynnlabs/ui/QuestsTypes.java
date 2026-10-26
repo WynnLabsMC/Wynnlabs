@@ -137,8 +137,12 @@ final class QuestsTypes extends MenuPaint {
                 case MINI_QUEST -> lists.getOrDefault("MINI", List.of()).size();
                 case SECRET_DISCOVERY -> QuestsSecrets.left();
                 default -> {
+                    List<Content.Line> all = lines(type);
+                    if (all.isEmpty() && Content.readAt(type) == 0) {
+                        yield -1;                       // not read yet: unknown, not none
+                    }
                     int level = Wyn.level();
-                    yield (int) lines(type).stream().filter(l -> !l.done() && l.level() <= level).count();
+                    yield (int) all.stream().filter(l -> !l.done() && l.level() <= level).count();
                 }
             };
         });
@@ -150,7 +154,7 @@ final class QuestsTypes extends MenuPaint {
     /** The type chip at x, y; returns its width. */
     int chip(GuiGraphics g, int x, int y, int mx, int my) {
         ContentType t = tab.questType;
-        int cw = UiMenu.chip(g, font(), t.icon, t.shown, x, y, tab.typeOpen, mx, my);
+        int cw = UiMenu.chip(g, font(), t.icon, t.label(), x, y, tab.typeOpen, mx, my);
         menu.hits.add(new MenuHit(x, y, cw, Ui.CHIP_H, null, null, "#qtypes"));
         chip = new int[] {x, y, cw, Ui.CHIP_H};
         return cw;
@@ -163,7 +167,13 @@ final class QuestsTypes extends MenuPaint {
         }
         UiMenu.Items items = new UiMenu.Items();
         for (ContentType t : ContentType.values()) {
-            items.add(UiMenu.Item.of("#qtype:" + t.name(), t.icon, t.shown, String.valueOf(count(t)), t == tab.questType));
+            int n = count(t);
+            UiMenu.Item it = UiMenu.Item.of("#qtype:" + t.name(), t.icon, t.label(), n < 0 ? "—" : String.valueOf(n), t == tab.questType);
+            if (n < 0) {
+                // never read for this character: not "none", just unknown until the book is read
+                it = it.tip(List.of(L.c("wynnlabs.content.count_unknown").withStyle(ChatFormatting.GRAY)));
+            }
+            items.add(it);
             if (BREAK_AFTER.contains(t)) {
                 items.divide();
             }
@@ -229,7 +239,7 @@ final class QuestsTypes extends MenuPaint {
     private static List<Component> tip(Content.Line l) {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(l.name()).withStyle(ChatFormatting.AQUA).withStyle(UiFont::bold));
-        tip.add(Component.literal(l.type().shown + (l.level() > 0 ? " · Lv " + l.level() : "")).withStyle(ChatFormatting.GRAY));
+        tip.add(Component.literal(l.type().label() + (l.level() > 0 ? " · Lv " + l.level() : "")).withStyle(ChatFormatting.GRAY));
         if ("UNKNOWN".equals(l.status())) {
             tip.add(L.c("wynnlabs.content.not_read").withStyle(ChatFormatting.DARK_GRAY));
         }
@@ -241,9 +251,9 @@ final class QuestsTypes extends MenuPaint {
     /** The refresh's tooltip on a non-quest kind: what it reads, or why it cannot. */
     List<Component> rescanTip(ContentType t) {
         if (!Wyn.canRescanQuests() || !Wyn.knowsKind(t.name())) {
-            return List.of(L.c("wynnlabs.content.rescan_off", t.shown).withStyle(ChatFormatting.GOLD));
+            return List.of(L.c("wynnlabs.content.rescan_off", t.label()).withStyle(ChatFormatting.GOLD));
         }
-        return List.of(L.c(Content.scanning(t) ? "wynnlabs.content.rescanning" : "wynnlabs.content.rescan", t.shown).withStyle(ChatFormatting.GOLD),
+        return List.of(L.c(Content.scanning(t) ? "wynnlabs.content.rescanning" : "wynnlabs.content.rescan", t.label()).withStyle(ChatFormatting.GOLD),
                 L.c("wynnlabs.quests.rescan_only_press").withStyle(ChatFormatting.DARK_GRAY));
     }
 

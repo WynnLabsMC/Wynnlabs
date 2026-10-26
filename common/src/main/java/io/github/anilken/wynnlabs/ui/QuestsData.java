@@ -139,4 +139,19 @@ final class QuestsData {
         int n = Waypoints.showAll(pts, labels);
         menu.flash(n > 0 ? L.n("wynnlabs.quests.pins_added", n) : L.t("wynnlabs.quests.no_coords"));
     }
+
+    /** The places with the repeats left out: the same coordinates, or within 3 blocks of one kept. */
+    static List<int[]> distinct(List<int[]> points) {
+        List<int[]> out = new java.util.ArrayList<>();
+        for (int[] p : points) {
+            boolean seen = false;
+            for (int[] q : out) {
+                seen |= Math.abs(p[0] - q[0]) <= 3 && Math.abs(p[1] - q[1]) <= 3 && Math.abs(p[2] - q[2]) <= 3;
+            }
+            if (!seen) {
+                out.add(p);
+            }
+        }
+        return out;
+    }
 }

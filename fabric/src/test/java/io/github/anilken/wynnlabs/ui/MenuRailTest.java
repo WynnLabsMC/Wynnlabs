@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.ui;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import org.junit.jupiter.api.Test;
 
@@ -13,11 +14,15 @@ class MenuRailTest {
     }
 
     @Test
-    void damageAndDeathsAreSectionsOfTheTreeInThatOrder() {
+    void theTreeIsOnePageAndTheDamageAndDeathsAreNotRailEntries() {
         int tree = MenuRail.entry(RoadmapScreen.TAB_TREE);
-        assertArrayEquals(new int[] {RoadmapScreen.TAB_TREE, RoadmapScreen.TAB_DAMAGE, 3}, MenuRail.RAIL[tree]);
-        assertEquals(tree, MenuRail.entry(RoadmapScreen.TAB_DAMAGE), "a link to Hasar lands under the tree");
-        assertEquals(tree, MenuRail.entry(3), "a link to Ölümler lands under the tree");
+        assertArrayEquals(new int[] {RoadmapScreen.TAB_TREE}, MenuRail.RAIL[tree]);
+        for (int[] e : MenuRail.RAIL) {
+            for (int t : e) {
+                assertNotEquals(RoadmapScreen.TAB_DAMAGE, t, "the damage is a drawer of the tree page");
+                assertNotEquals(3, t, "the deaths are a drawer of the tree page");
+            }
+        }
     }
 
     @Test

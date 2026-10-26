@@ -142,12 +142,27 @@ public final class Glossary {
      * wrapped to at most half the window ({@code screenW}), never narrower than 160.
      */
     static void draw(GuiGraphics g, Font font, List<Component> tip, int mx, int my, int screenW) {
+        draw(g, font, tip, mx, my, screenW, Integer.MAX_VALUE);
+    }
+
+    /** As above, never taller than the window ({@code screenH}): what does not fit ends in "…". */
+    static void draw(GuiGraphics g, Font font, List<Component> tip, int mx, int my, int screenW, int screenH) {
         int maxW = Math.max(160, Math.min(260, screenW / 2));
         List<FormattedCharSequence> lines = new ArrayList<>();
         for (Component c : with(tip)) {
             List<FormattedCharSequence> part = font.split(c, maxW);
             lines.addAll(part.isEmpty() ? List.of(FormattedCharSequence.EMPTY) : part);
         }
+        int most = maxLines(screenH, font.lineHeight);
+        if (lines.size() > most) {
+            lines = new ArrayList<>(lines.subList(0, most - 1));
+            lines.add(Component.literal("…").withStyle(net.minecraft.ChatFormatting.DARK_GRAY).getVisualOrderText());
+        }
         g.setTooltipForNextFrame(font, lines, mx, my);
+    }
+
+    /** How many lines a tooltip may have in a window {@code screenH} tall (its frame and margin kept). */
+    static int maxLines(int screenH, int lineH) {
+        return screenH == Integer.MAX_VALUE ? Integer.MAX_VALUE : Math.max(4, (screenH - 16) / Math.max(1, lineH + 1));
     }
 }

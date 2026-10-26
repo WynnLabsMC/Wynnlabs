@@ -272,23 +272,6 @@ class MenuPaint {
         box.setTextShadow(false);
     }
 
-    /**
-     * A text box on the parchment: the field, the box's text inside it, and its hint (a
-     * language key) in faint ink while it is empty and not being typed in. The game's own hint
-     * is not used: it is drawn with a shadow, which smears on paper.
-     */
-    void textBox(GuiGraphics g, net.minecraft.client.gui.components.EditBox box, int x, int y, int w,
-            String hint, int mx, int my, float pt) {
-        Kit.field(g, x, y, w, 12, box.isFocused());
-        box.setX(x + 4);
-        box.setY(y + 2);
-        box.setWidth(w - 8);
-        box.render(g, mx, my, pt);
-        if (box.getValue().isEmpty() && !box.isFocused()) {
-            ink(g, fit(L.t(hint), w - 8), x + 4, y + 2, Theme.INK_3, false);
-        }
-    }
-
     static String ago(long t) {
         long min = (System.currentTimeMillis() - t) / 60000;
         if (min < 60) {

@@ -94,6 +94,11 @@ abstract class MenuTab extends MenuPaint {
             return false;
         }
 
+        /** The same with the double-click (a map refits on one). */
+        default boolean clicked(MouseButtonEvent event, boolean doubleClick) {
+            return clicked(event);
+        }
+
         /** The wheel over an open popup. */
         default void scrolled(double x, double y, double v) {
         }
@@ -121,8 +126,8 @@ abstract class MenuTab extends MenuPaint {
         popup().close();
     }
 
-    final boolean popupClicked(MouseButtonEvent event) {
-        return popup().clicked(event);
+    final boolean popupClicked(MouseButtonEvent event, boolean doubleClick) {
+        return popup().clicked(event, doubleClick);
     }
 
     final void popupScrolled(double x, double y, double v) {
@@ -135,6 +140,11 @@ abstract class MenuTab extends MenuPaint {
 
     /** A key press the menu did not take first; true when the tab took it. */
     boolean keyPressed(int key) {
+        return false;
+    }
+
+    /** "/" while nothing is being typed: the page's search box takes the focus; true when it has one. */
+    boolean slashTyped() {
         return false;
     }
 }

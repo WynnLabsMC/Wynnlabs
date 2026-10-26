@@ -81,11 +81,9 @@ final class SearchTab extends MenuTab {
     List<EditBox> init() {
         String typed = box == null ? (typedBefore == null ? "" : typedBefore) : box.getValue();
         typedBefore = null;
-        box = new EditBox(font(), 0, 0, 200, 12, L.c("wynnlabs.search.box"));
+        box = UiInput.box(font(), "wynnlabs.search.box_hint", null, v -> results.scroll = 0);
         box.setMaxLength(60);
         box.setValue(typed);
-        box.setResponder(v -> results.scroll = 0);
-        paperField(box);
         return List.of(box);
     }
 
@@ -114,8 +112,12 @@ final class SearchTab extends MenuTab {
 
     /** The tab is shown: the box takes the keys. */
     void focus() {
-        box.setFocused(true);
-        menu.setFocused(box);
+        UiInput.focus(box, menu::setFocused);
+    }
+
+    @Override
+    boolean slashTyped() {
+        return UiInput.focus(box, menu::setFocused);
     }
 
     /** The tab is left or the menu closes: the worker stops, the map's marks go unless kept. */
@@ -138,7 +140,7 @@ final class SearchTab extends MenuTab {
         // the box and the sort on one line
         String sortLabel = L.t(SORTS[sort.ordinal()]);
         int sortW = Ui.iconChipWidth(font(), null, sortLabel, true);
-        textBox(g, box, x, y, w - sortW - 6, "wynnlabs.search.box_hint", mx, my, pt);
+        searchHit = UiInput.search(g, font(), box, L.t("wynnlabs.search.box_hint"), true, x, y - 1, w - sortW - Theme.SP_3, mx, my);
         int sx = x + w - sortW;
         UiMenu.chip(g, font(), null, sortLabel, sx, y - 1, sortOpen, mx, my);
         click(sx, y - 1, sortW, Ui.CHIP_H, () -> {
@@ -420,12 +422,10 @@ final class SearchTab extends MenuTab {
             }
         }
         sortOpen = false;
-        if (box.mouseClicked(event, doubleClick)) {
-            menu.setFocused(box);
-            return true;
-        }
-        return false;
+        return UiInput.clicked(searchHit, box, event, doubleClick, menu::setFocused);
     }
+
+    private UiInput.Hit searchHit;
 
     @Override
     boolean sharedClicks() {
@@ -468,7 +468,7 @@ final class SearchTab extends MenuTab {
                 return true;
             }
             default -> {
-                return false;
+                return UiInput.escape(box, key);
             }
         }
     }

@@ -110,12 +110,7 @@ public final class BuildWindow {
     /** The window's text boxes, for the screen to add as widgets (init: again after a resize). */
     List<EditBox> init(Font f) {
         ui.font = f;
-        String typed = search == null ? "" : search.getValue();
-        search = new EditBox(f, 0, 0, 100, 12, L.c("wynnlabs.pick.search"));
-        search.setMaxLength(40);
-        search.setValue(typed);
-        search.setResponder(v -> pick.listScroll = 0);
-        paperField(search);
+        search = UiInput.box(f, "wynnlabs.pick.search_hint", search, v -> pick.listScroll = 0);
         String renamed = rename == null ? "" : rename.getValue();
         rename = new EditBox(f, 0, 0, 100, 12, L.c("wynnlabs.saved.rename"));
         rename.setMaxLength(Plans.MAX_NAME);
@@ -446,6 +441,10 @@ public final class BuildWindow {
                 close();
             }
             case "search" -> search.setFocused(true);
+            case "searchclear" -> {
+                search.setValue("");
+                search.setFocused(true);
+            }
             case "type" -> {
                 pick.type = (int) hit.arg();
                 pick.listScroll = 0;

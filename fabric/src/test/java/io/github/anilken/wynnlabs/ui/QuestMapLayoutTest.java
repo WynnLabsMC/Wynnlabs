@@ -152,4 +152,49 @@ class QuestMapLayoutTest {
             placed.add(new double[] {at[0], at[1], 30, 11});
         }
     }
+
+    @Test
+    void byHandTheMapZoomsOutUntilTheWholeMapFitsAndInCloserThanAFit() {
+        float[] continent = {-2500, -6600, 2500, 0};
+        double most = QuestMapLayout.handMaxSpan(continent, 400, 300);
+        org.junit.jupiter.api.Assertions.assertEquals(22.0, most, 0.01);           // 6600 blocks over 300 px
+        org.junit.jupiter.api.Assertions.assertEquals(QuestMapLayout.MAX_SPAN, QuestMapLayout.handMaxSpan(null, 400, 300));
+        org.junit.jupiter.api.Assertions.assertTrue(QuestMapLayout.HAND_MIN_SPAN < QuestMapLayout.MIN_SPAN);
+    }
+
+    @Test
+    void deathsAreSeparateEventsSoTheirMapHasNoRouteLegs() {
+        java.util.List<double[]> deaths = java.util.List.of(new double[] {20, 20}, new double[] {120, 80}, new double[] {200, 150});
+        QuestMapLayout.Fit f = new QuestMapLayout.Fit(0, 0, 1, false);
+        org.junit.jupiter.api.Assertions.assertTrue(QuestMapLayout.route(false, f, deaths, 260, 220).isEmpty());
+        org.junit.jupiter.api.Assertions.assertFalse(QuestMapLayout.route(true, f, deaths, 260, 220).isEmpty());
+    }
+
+    @Test
+    void aFocusedMapShowsItsStageTheNextAsGhostsAndAPeekedRow() {
+        java.util.List<String> nums = java.util.List.of("4.1", "5.1", "5.2", "6.1", "11.1", "14.6");
+        QuestMapLayout.Focus<String> f = QuestMapLayout.focus(nums, n -> n, 5, null);
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("5.1", "5.2"), f.shown());
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("6.1"), f.ghosts());
+        QuestMapLayout.Focus<String> peek = QuestMapLayout.focus(nums, n -> n, 5, "11.1");
+        org.junit.jupiter.api.Assertions.assertEquals(java.util.List.of("5.1", "5.2", "11.1"), peek.shown());
+    }
+
+    @Test
+    void placesOfDifferentStagesNeverMergeAndOneStageMergesOnlyConsecutively() {
+        java.util.List<QuestMapLayout.Marker> m = java.util.List.of(
+                new QuestMapLayout.Marker("5.11", 100, 100, QuestMapLayout.NOW),
+                new QuestMapLayout.Marker("14.6", 101, 100, QuestMapLayout.NEXT),
+                new QuestMapLayout.Marker("5.12", 102, 100, QuestMapLayout.NOW),
+                new QuestMapLayout.Marker("5.13", 103, 101, QuestMapLayout.NOW));
+        java.util.List<QuestMapLayout.Group> g = QuestMapLayout.merge(m, true);
+        org.junit.jupiter.api.Assertions.assertEquals(3, g.size());
+        org.junit.jupiter.api.Assertions.assertEquals("5.12–5.13", g.get(2).label());
+        org.junit.jupiter.api.Assertions.assertEquals("5.9–5.10", new QuestMapLayout.Group(
+                new java.util.ArrayList<>(java.util.List.of("5.10", "5.9")), 0, 0, QuestMapLayout.NOW).label());
+        // deaths (unstaged): close ones still merge
+        org.junit.jupiter.api.Assertions.assertEquals(1, QuestMapLayout.merge(java.util.List.of(
+                new QuestMapLayout.Marker("1", 10, 10, QuestMapLayout.NOW),
+                new QuestMapLayout.Marker("2", 12, 10, QuestMapLayout.NEXT)), false).size());
+    }
 }

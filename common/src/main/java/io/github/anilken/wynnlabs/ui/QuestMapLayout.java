@@ -17,6 +17,16 @@ final class QuestMapLayout {
      * further out the tiles turn to grain, so the map shows less and the rest go to edge chips.
      */
     static final double MAX_SPAN = 3.0;
+    /** By hand (the wheel, +) the map goes closer than a fit does: two logical px a block. */
+    static final double HAND_MIN_SPAN = 0.5;
+
+    /** By hand (the wheel, −) the map goes out until the whole of Wynntils' map fits a {@code w} by {@code h} frame. */
+    static double handMaxSpan(float[] coverage, int w, int h) {
+        if (coverage == null || w <= 0 || h <= 0) {
+            return MAX_SPAN;
+        }
+        return Math.max(MAX_SPAN, Math.max((coverage[2] - coverage[0]) / w, (coverage[3] - coverage[1]) / h));
+    }
     /** The player shows on the map within this many blocks of a place; further off, an arrow on the border. */
     static final double NEAR = 1500;
     /** Markers closer than this (px) merge into one. */
@@ -92,12 +102,56 @@ final class QuestMapLayout {
     /** One drawn marker: its places, where its dot is, its state (the most current of them). */
     record Group(List<String> nums, double x, double y, int state) {
 
-        /** "5.2", or "5.1–5.3" for merged places. */
+        /** "5.2", or "5.1–5.3" for merged places (in number order: 5.9 before 5.10). */
         String label() {
             List<String> n = new ArrayList<>(nums);
-            n.sort(null);
+            n.sort(java.util.Comparator.comparingInt(QuestMapLayout::stageOf).thenComparingInt(QuestMapLayout::stepOf));
             return n.size() == 1 ? n.get(0) : n.get(0) + "–" + n.get(n.size() - 1);
         }
+    }
+
+    /** A place number's stage: 5 for "5.2", 3 for "3"; -1 when it has none (a death, a cave). */
+    static int stageOf(String num) {
+        String s = num == null ? "" : num.contains(".") ? num.substring(0, num.indexOf('.')) : num;
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+    }
+
+    /** A place number's step in its stage: 2 for "5.2", 0 for "5". */
+    static int stepOf(String num) {
+        if (num == null || !num.contains(".")) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(num.substring(num.indexOf('.') + 1).trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /** The places a stage-focused map shows: the focused stage's (with chips), the next stage's (outlined dots only). */
+    record Focus<T>(List<T> shown, List<T> ghosts) {}
+
+    /**
+     * Focus on {@code stage}: its places, plus {@code peek} (a list row of another stage under the
+     * mouse) on its own; the next stage's places as ghosts; every other stage left out.
+     */
+    static <T> Focus<T> focus(List<T> places, java.util.function.Function<T, String> num, int stage, String peek) {
+        List<T> shown = new ArrayList<>();
+        List<T> ghosts = new ArrayList<>();
+        for (T p : places) {
+            String n = num.apply(p);
+            int s = stageOf(n);
+            if (s == stage || n.equals(peek)) {
+                shown.add(p);
+            } else if (s == stage + 1) {
+                ghosts.add(p);
+            }
+        }
+        return new Focus<>(shown, ghosts);
     }
 
     /**
@@ -105,17 +159,34 @@ final class QuestMapLayout {
      * one and the start never merges, so a done tick never hides what is left to do.
      */
     static List<Group> merge(List<Marker> markers) {
+        return merge(markers, true);
+    }
+
+    /**
+     * As above; {@code staged}: the places are numbered by stage, and a place only merges with the
+     * one just before it of the same stage (never across stages, "14.6–5.11"). Unstaged places
+     * (deaths, caves) merge with any close one.
+     */
+    static List<Group> merge(List<Marker> markers, boolean staged) {
         List<Group> out = new ArrayList<>();
+        Marker last = null;
         for (Marker m : markers) {
             int found = -1;
-            for (int i = 0; i < out.size(); i++) {
-                Group g = out.get(i);
-                boolean sameKind = (g.state() == DONE) == (m.state() == DONE) && g.state() != START && m.state() != START;
-                if (sameKind && Math.hypot(g.x() - m.x(), g.y() - m.y()) < MERGE) {
-                    found = i;
-                    break;
+            if (staged) {
+                if (last != null && !out.isEmpty() && stageOf(last.num()) == stageOf(m.num())
+                        && kin(out.get(out.size() - 1), m) && Math.hypot(last.x() - m.x(), last.y() - m.y()) < MERGE) {
+                    found = out.size() - 1;
+                }
+            } else {
+                for (int i = 0; i < out.size(); i++) {
+                    Group g = out.get(i);
+                    if (kin(g, m) && Math.hypot(g.x() - m.x(), g.y() - m.y()) < MERGE) {
+                        found = i;
+                        break;
+                    }
                 }
             }
+            last = m;
             if (found < 0) {
                 List<String> nums = new ArrayList<>();
                 nums.add(m.num());
@@ -127,6 +198,11 @@ final class QuestMapLayout {
             }
         }
         return out;
+    }
+
+    /** A passed place never merges with a live one, and the start never merges. */
+    private static boolean kin(Group g, Marker m) {
+        return (g.state() == DONE) == (m.state() == DONE) && g.state() != START && m.state() != START;
     }
 
     /** The directions a chip tries around its dot, most natural first (degrees, 0 = east, y down). */
@@ -206,6 +282,10 @@ final class QuestMapLayout {
      * each projected where it really is now, every leg clipped to the frame; legs wholly outside
      * are left out, a leg toward a place out of view runs to the border on its way there.
      */
+    static List<double[]> route(boolean ordered, Fit f, List<double[]> places, int w, int h) {
+        return ordered ? route(f, places, w, h) : List.of();         // separate events (deaths): no path between them
+    }
+
     static List<double[]> route(Fit f, List<double[]> places, int w, int h) {
         List<double[]> out = new ArrayList<>();
         for (int i = 0; i + 1 < places.size(); i++) {

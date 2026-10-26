@@ -32,6 +32,11 @@ final class MenuResume {
 
     private MenuResume() {}
 
+    /** A stored tab that is now part of another page: the damage (7) and the deaths (3) are the tree's (9). */
+    static int page(int stored) {
+        return stored == 3 || stored == 7 ? 9 : stored;
+    }
+
     /** The tab to open: the stored one while it still has a page ({@code exists}), else Home (0). */
     static int tab(int stored, IntPredicate exists) {
         return stored >= 0 && exists.test(stored) ? stored : 0;

@@ -219,7 +219,8 @@ final class SettingsControls extends MenuPaint {
                     : String.valueOf(Math.round(inUnit * 100) / 100.0));
         }
         tab.ruleBoxFor = r.rule();
-        textBox(g, tab.ruleBox, x, y, w, "wynnlabs.rules.type_hint", mx, my, 0f);
-        tab.ruleBoxRect = new int[] {x, y, w, 12};
+        String typed = tab.ruleBox.getValue().trim();
+        boolean bad = !typed.isEmpty() && !typed.matches("\\d+([.,]\\d+)?\\s*[a-zA-Z²]*");
+        tab.ruleBoxRect = UiInput.input(g, font(), tab.ruleBox, L.t("wynnlabs.rules.type_hint"), x, y - 1, w, true, bad, mx, my);
     }
 }

@@ -18,6 +18,8 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
 - `-PpreviewOnly=quests`: only the quests tab, on the fixture's quest book (Jungle Fever started), plus the content kinds
   (the kind menu, a cave, Recommended with places) from a small built-in sample of caves and places.
 - `-PpreviewOnly=settings`: only the settings (a few pages, a search, the changed list).
+- `-PpreviewOnly=tree`: only the tree page (three deaths seeded), its damage and deaths drawers, and its search typed in.
+- `-PpreviewOnly=search` / `-PpreviewOnly=bank`: only that tab, its search field empty and typed in.
 - `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).
 - Another fixture: `-Dwynnlabs.previewFixture=synthetic` in the run's VM options
   (`fabric/build.gradle`, `loom.runs` → `clientGameTest`).

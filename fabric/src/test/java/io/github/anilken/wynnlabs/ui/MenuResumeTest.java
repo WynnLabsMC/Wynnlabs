@@ -41,4 +41,11 @@ class MenuResumeTest {
         assertNull(s.questSelected());
         assertEquals(0, s.settingsCat());
     }
+
+    @Test
+    void aStoredDamageOrDeathsTabOpensTheTreePage() {
+        assertEquals(9, MenuResume.page(7));
+        assertEquals(9, MenuResume.page(3));
+        assertEquals(2, MenuResume.page(2));
+    }
 }

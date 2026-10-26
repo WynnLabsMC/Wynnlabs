@@ -80,14 +80,7 @@ final class CraftSavedPanel extends CraftPanel {
         String save = L.t(renaming != null ? "wynnlabs.craft.rename" : "wynnlabs.craft.save");
         int bw = width(save) + 10;
         int fw = w - bw - 3;
-        Kit.field(g, x, yy, fw, 12, tab.saveName.isFocused());
-        tab.saveName.setX(x + 3);
-        tab.saveName.setY(yy + 2);
-        tab.saveName.setWidth(fw - 6);
-        tab.saveName.render(g, mx, my, 0);
-        if (tab.saveName.getValue().isEmpty() && !tab.saveName.isFocused()) {
-            text(g, fit(L.t("wynnlabs.craft.saved_name"), fw - 6), x + 3, yy + 2, Theme.INK_3);
-        }
+        UiInput.input(g, tab.font, tab.saveName, L.t("wynnlabs.craft.saved_name"), x, yy - 1, fw, true, false, mx, my);
         into.add(new Act(x, yy, fw, 12, () -> {
             tab.screen.setFocused(tab.saveName);
             tab.saveName.setFocused(true);

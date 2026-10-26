@@ -470,6 +470,16 @@ final class Kit {
         nine(g, on ? (hover ? "pill_gold_hover" : "pill_gold") : (hover ? "pill_thin_hover" : "pill_thin"), x, y, w, h);
     }
 
+    /** A text field's ring over its pill: gold while typed in, red on an invalid value. */
+    static void ring(GuiGraphics g, int x, int y, int w, int h, boolean error) {
+        nine(g, error ? "pill_error" : "pill_focus", x, y, w, h);
+    }
+
+    /** A field that is off: the thin pill, faded. */
+    static void hairPill(GuiGraphics g, int x, int y, int w, int h) {
+        nine(g, "pill_thin", x, y, w, h, 0x80FFFFFF);
+    }
+
     /** A primary pill (the items you chose, Save, the picked plan): the archetype's purple, lighter on hover. */
     static void pillPrimary(GuiGraphics g, int x, int y, int w, int h, boolean hover) {
         nine(g, hover ? "pill_purple_hover" : "pill_purple", x, y, w, h);

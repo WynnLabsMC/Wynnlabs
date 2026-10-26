@@ -198,7 +198,7 @@ final class QuestsGuidePane extends MenuPaint {
         if (at != null) {
             ly += Theme.SP_1;
             // every place of the stage ("here or there" alike), each with its pin; what does not fit is in Noktalar
-            List<int[]> all = st.points().size() > 1 ? st.points() : List.of(at);
+            List<int[]> all = st.points().size() > 1 ? QuestsData.distinct(st.points()) : List.of(at);
             int px = x + pad;
             int room = x + w - pad - goW - Theme.SP_5;
             for (int[] p : all) {

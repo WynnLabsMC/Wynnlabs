@@ -1410,8 +1410,7 @@ public final class Wyn {
     public static boolean drawMap(net.minecraft.client.gui.GuiGraphics g, float x0, float z0, float x1, float z1,
             float sx, float sy, float scale, int tint) {
         return guard(Feature.WAYPOINTS, () -> {
-            var box = new com.wynntils.utils.type.BoundingBox(x0, z0, x1, z1);
-            var tiles = com.wynntils.core.components.Services.Map.getMapsForBoundingBox(box);
+            var tiles = tilesFor(x0, z0, x1, z1);
             var colour = new com.wynntils.utils.colors.CustomColor((tint >> 16) & 255, (tint >> 8) & 255, tint & 255, 255);
             for (var t : tiles) {
                 // the part of the tile inside the box, drawn tinted (the map's dark wash on the tiles themselves)
@@ -1428,6 +1427,40 @@ public final class Wyn {
             }
             return !tiles.isEmpty();
         }, false);
+    }
+
+    /** The view box the tile list below was asked for, and its tiles (only those crossing it). */
+    private static float[] tilesBox;
+    private static List<com.wynntils.services.map.MapTexture> tilesCache = List.of();
+
+    /** The tiles crossing the box, asked of Wynntils again only when the view moves. */
+    private static List<com.wynntils.services.map.MapTexture> tilesFor(float x0, float z0, float x1, float z1) {
+        float[] box = {x0, z0, x1, z1};
+        if (!java.util.Arrays.equals(box, tilesBox)) {
+            tilesCache = List.copyOf(com.wynntils.core.components.Services.Map
+                    .getMapsForBoundingBox(new com.wynntils.utils.type.BoundingBox(x0, z0, x1, z1)));
+            tilesBox = box;
+        }
+        return tilesCache;
+    }
+
+    /** The world box all of Wynntils' map tiles cover {x0, z0, x1, z1}, or null without them. */
+    public static float[] mapCoverage() {
+        return guard(Feature.WAYPOINTS, () -> {
+            var all = com.wynntils.core.components.Services.Map
+                    .getMapsForBoundingBox(new com.wynntils.utils.type.BoundingBox(-100_000, -100_000, 100_000, 100_000));
+            if (all.isEmpty()) {
+                return null;
+            }
+            float[] b = {Float.MAX_VALUE, Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
+            for (var t : all) {
+                b[0] = Math.min(b[0], t.getX1());
+                b[1] = Math.min(b[1], t.getZ1());
+                b[2] = Math.max(b[2], t.getX2() + 1f);
+                b[3] = Math.max(b[3], t.getZ2() + 1f);
+            }
+            return b;
+        }, null);
     }
 
     /** Wynntils' place names inside the world box (provinces, cities, towns), largest first. */

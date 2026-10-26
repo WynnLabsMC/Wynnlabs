@@ -52,12 +52,7 @@ final class SettingsTab extends MenuTab {
         ruleBox.setMaxLength(12);
         paperField(ruleBox);
         ruleBoxFor = -1;
-        String typed = searchBox == null ? "" : searchBox.getValue();
-        searchBox = new EditBox(font(), 0, 0, 100, 10, L.c("wynnlabs.settings.search_hint"));
-        searchBox.setMaxLength(40);
-        paperField(searchBox);
-        searchBox.setValue(typed);
-        searchBox.setResponder(s -> settingsScroll = 0);
+        searchBox = UiInput.box(font(), "wynnlabs.settings.search_hint", searchBox, s -> settingsScroll = 0);
         return List.of(keyBox, ruleBox, searchBox);
     }
 
@@ -129,7 +124,7 @@ final class SettingsTab extends MenuTab {
             return true;
         }
         keyBox.setFocused(false);
-        if (here && boxClicked(searchBox, searchRect, event, doubleClick)) {
+        if (here && UiInput.clicked(searchHit, searchBox, event, doubleClick, menu::setFocused)) {
             return true;
         }
         searchBox.setFocused(false);
@@ -251,14 +246,11 @@ final class SettingsTab extends MenuTab {
             saveKey();
             return true;
         }
-        if (searchBox != null && searchBox.isFocused() && key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && !searchBox.getValue().isEmpty()) {
-            searchBox.setValue("");
-            return true;
-        }
-        return false;
+        return UiInput.escape(searchBox, key);
     }
 
     /** "/" while nothing is being typed: the search box (its "/" never lands in it). */
+    @Override
     boolean slashTyped() {
         if (menu.layout.compact()) {
             searchOpen = true;
@@ -268,8 +260,7 @@ final class SettingsTab extends MenuTab {
     }
 
     private void focusSearch() {
-        searchBox.setFocused(true);
-        menu.setFocused(searchBox);
+        UiInput.focus(searchBox, menu::setFocused);
     }
 
     EditBox keyBox;
@@ -312,7 +303,7 @@ final class SettingsTab extends MenuTab {
     /** Compact: the categories' filter row's first chip. */
     int filterFirst;
     EditBox searchBox;
-    int[] searchRect;
+    UiInput.Hit searchHit;
     /** When the rules' reset was asked for: a second click within {@link #RESET_WINDOW_MS} resets. */
     long resetArmedAt;
     static final long RESET_WINDOW_MS = 4000;
@@ -357,11 +348,10 @@ final class SettingsTab extends MenuTab {
      */
     @Override
     int titleRight(GuiGraphics g, int right, int y, int room, int mx, int my) {
-        searchRect = null;
+        searchHit = null;
         int by = y - 3;
-        if (menu.layout.compact() || room < 90) {
-            int bw = Ui.CHIP_H + 2;
-            Ui.iconButton(g, "search", right - bw, by, searchOpen, mx, my);
+        if (menu.layout.compact() || room < UiInput.MIN_W) {
+            int bw = UiInput.icon(g, searchBox, searchOpen, right - Ui.CHIP_H - 2, by, mx, my);
             menu.toggles.add(new Object[] {new int[] {right - bw, by, bw, Ui.CHIP_H}, "#searchopen"});
             return bw;
         }

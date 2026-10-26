@@ -182,7 +182,7 @@ final class QuestMapMarks extends MenuPaint {
         for (QuestMap.Place p : places) {
             xz.add(new double[] {p.at()[0], p.at()[2]});
         }
-        for (double[] leg : QuestMapLayout.route(f, xz, w, h)) {
+        for (double[] leg : QuestMapLayout.route(map.route, f, xz, w, h)) {
             int n = (int) (Math.hypot(leg[2] - leg[0], leg[3] - leg[1]) / 3);
             for (int k = 1; k < n; k++) {
                 double t = k / (double) n;

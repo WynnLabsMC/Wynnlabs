@@ -1,5 +1,7 @@
 package io.github.anilken.wynnlabs.ui;
 
+import io.github.anilken.wynnlabs.quests.ContentType;
+
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.Wyn;
@@ -53,7 +55,7 @@ final class QuestsSecretPane extends MenuPaint {
         int tx = x + 10 + Theme.SP_2;
         String name = Type.TITLE.fit(font(), e.name(), w - (tx - x));
         Type.TITLE.draw(g, font(), name, tx, y, Theme.LINK);
-        List<String> facts = new ArrayList<>(List.of("Secret Discovery", "Lv " + e.minLevel(), e.region()));
+        List<String> facts = new ArrayList<>(List.of(ContentType.SECRET_DISCOVERY.label(), "Lv " + e.minLevel(), e.region()));
         String dist = QuestsData.distance(new int[] {e.x(), e.y(), e.z()});
         if (!small && dist != null) {
             facts.add(dist);

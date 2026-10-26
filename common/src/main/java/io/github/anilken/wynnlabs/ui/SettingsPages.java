@@ -169,7 +169,7 @@ final class SettingsPages extends MenuPaint {
         int sw = Ui.chipWidth(font(), save);
         int rw = masked == null ? 0 : Ui.chipWidth(font(), remove) + Theme.SP_2;
         int kw = Math.max(60, Math.min(220, w - sw - rw - Theme.SP_2));
-        textBox(g, tab.keyBox, x, by, kw, "wynnlabs.settings.key_box", mx, my, 0f);
+        UiInput.input(g, font(), tab.keyBox, L.t("wynnlabs.settings.key_box"), x, by - 1, kw, true, false, mx, my);
         int sx = x + kw + Theme.SP_2;
         Ui.small(g, font(), save, sx, by, sw, mx, my);
         menu.toggles.add(new Object[] {new int[] {sx, by, sw, Ui.SMALL_H}, "#keysave"});
@@ -190,24 +190,9 @@ final class SettingsPages extends MenuPaint {
         }
     }
 
-    /** The search box: a thin pill, the magnifier, the typed text (or the hint and "/"). */
+    /** The search box ({@link UiInput}). */
     void searchField(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        boolean focused = tab.searchBox.isFocused();
-        boolean hover = mx >= x && mx < x + w && my >= y && my < y + Ui.CHIP_H;
-        Kit.pill(g, x, y, w, Ui.CHIP_H, false, hover || focused);
-        Art.icon(g, "search", x + Theme.SP_3, y + (Ui.CHIP_H - 8) / 2, 8, focused ? Theme.INK : Theme.INK_3);
-        int tx = x + Theme.SP_3 + 8 + Theme.SP_2;
-        int tw = x + w - Theme.SP_3 - tx;
-        tab.searchBox.setX(tx);
-        tab.searchBox.setY(Type.BODY.yIn(y, Ui.CHIP_H));
-        tab.searchBox.setWidth(tw);
-        tab.searchBox.render(g, mx, my, 0f);
-        if (tab.searchBox.getValue().isEmpty() && !focused) {
-            Type.META.draw(g, font(), Type.META.fit(font(), L.t("wynnlabs.settings.search_hint"), tw - 10), tx,
-                    Type.META.yIn(y, Ui.CHIP_H), Theme.INK_3);
-            Type.META.drawRight(g, font(), "/", x + w - Theme.SP_3, Type.META.yIn(y, Ui.CHIP_H), Theme.LINE);
-        }
-        tab.searchRect = new int[] {x, y, w, Ui.CHIP_H};
+        tab.searchHit = UiInput.search(g, font(), tab.searchBox, L.t("wynnlabs.settings.search_hint"), true, x, y, w, mx, my);
     }
 
     /** The rules' reset as an error notice at the page's foot (ending at {@code bottom}); returns its height. */

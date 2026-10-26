@@ -36,12 +36,7 @@ public final class BankTab extends MenuTab {
 
     @Override
     List<EditBox> init() {
-        String typed = search == null ? "" : search.getValue();
-        search = new EditBox(font(), 0, 0, 150, 12, L.c("wynnlabs.bank.search"));
-        search.setMaxLength(40);
-        search.setValue(typed);
-        search.setResponder(v -> bankScroll = 0);
-        paperField(search);
+        search = UiInput.box(font(), "wynnlabs.bank.search_hint", search, v -> bankScroll = 0);
         return List.of(search);
     }
 
@@ -57,10 +52,10 @@ public final class BankTab extends MenuTab {
 
     @Override
     boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (search.mouseClicked(event, doubleClick)) {
-            menu.setFocused(search);
+        if (UiInput.clicked(searchHit, search, event, doubleClick, menu::setFocused)) {
             return true;
         }
+        search.setFocused(false);
         for (Object[] f : bankFilterHits) {
             if (in(event.x(), event.y(), (int[]) f[0])) {
                 bankFilter = (Integer) f[1];
@@ -90,6 +85,17 @@ public final class BankTab extends MenuTab {
 
     /** The search over the bank's items. */
     public EditBox search;
+    private UiInput.Hit searchHit;
+
+    @Override
+    boolean slashTyped() {
+        return UiInput.focus(search, menu::setFocused);
+    }
+
+    @Override
+    boolean keyPressed(int key) {
+        return UiInput.escape(search, key);
+    }
     private int bankFilter;
     private int bankScroll;
     private String bankPage = "";                                       // "" = every item, by kind
@@ -154,7 +160,7 @@ public final class BankTab extends MenuTab {
             chipsW += font().width(L.t(f)) + 16;
         }
         int searchW = Math.max(70, Math.min(130, w - 8 - chipsW));
-        textBox(g, search, x, sy, searchW, "wynnlabs.bank.search_hint", mx, my, pt);
+        searchHit = UiInput.search(g, font(), search, L.t("wynnlabs.bank.search_hint"), true, x, sy - 1, searchW, mx, my);
         int fx = x + searchW + 8;
         for (int i = 0; i < BANK_FILTERS.length; i++) {
             boolean on = i == bankFilter;

@@ -99,7 +99,9 @@ final class QuestsPointsPane extends MenuPaint {
         for (int i = tab.pointScroll; i < all.size() && ry + ROW <= bottom; i++) {
             QuestMap.Place p = all.get(i);
             boolean done = p.state() == QuestMapLayout.DONE;
-            boolean now = p.state() == QuestMapLayout.NOW || p.state() == QuestMapLayout.START;
+            // the rows of the stage the map shows are lit (the stage you are on, or where the stepper went)
+            boolean now = !done && (tab.map.focus > 0 ? QuestMapLayout.stageOf(p.num()) == tab.map.focus
+                    : p.state() == QuestMapLayout.NOW || p.state() == QuestMapLayout.START);
             // the wash stays in the content column: SP_2 out on both sides, never into the page's padding
             boolean hover = mx >= x - Theme.SP_2 && mx < x + w + Theme.SP_2 && my >= ry && my < ry + ROW;
             boolean fromMap = p.num().equals(tab.map.hovered);

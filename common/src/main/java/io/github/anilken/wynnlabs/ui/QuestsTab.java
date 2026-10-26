@@ -83,7 +83,7 @@ final class QuestsTab extends MenuTab {
     int[] railRect;
     int[] pointsRect;
     private EditBox searchBox;
-    private int[] searchRect;
+    private UiInput.Hit searchHit;
     private Map<String, List<QuestAdvisor.Suggestion>> questLists = new HashMap<>();
     private long questListsAt;
 
@@ -91,12 +91,7 @@ final class QuestsTab extends MenuTab {
 
     @Override
     List<EditBox> init() {
-        String typed = searchBox == null ? "" : searchBox.getValue();
-        searchBox = new EditBox(font(), 0, 0, 100, 10, L.c("wynnlabs.quests.search_hint"));
-        searchBox.setMaxLength(40);
-        paperField(searchBox);
-        searchBox.setValue(typed);
-        searchBox.setResponder(s -> railScroll = 0);
+        searchBox = UiInput.box(font(), "wynnlabs.quests.search_hint", searchBox, s -> railScroll = 0);
         return List.of(searchBox);
     }
 
@@ -122,10 +117,7 @@ final class QuestsTab extends MenuTab {
             pointScroll = pointsBar.offset();
             return true;
         }
-        if (searchRect != null && in(event.x(), event.y(), searchRect)) {
-            searchBox.mouseClicked(event, doubleClick);
-            searchBox.setFocused(true);
-            menu.setFocused(searchBox);
+        if (UiInput.clicked(searchHit, searchBox, event, doubleClick, menu::setFocused)) {
             return true;
         }
         if (searchBox != null) {
@@ -171,20 +163,15 @@ final class QuestsTab extends MenuTab {
     }
 
     /** "/" while nothing is being typed: the search box. */
+    @Override
     boolean slashTyped() {
         searchOpen = true;
-        searchBox.setFocused(true);
-        menu.setFocused(searchBox);
-        return true;
+        return UiInput.focus(searchBox, menu::setFocused);
     }
 
     @Override
     boolean keyPressed(int key) {
-        if (searchBox != null && searchBox.isFocused() && key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && !searchBox.getValue().isEmpty()) {
-            searchBox.setValue("");
-            return true;
-        }
-        return false;
+        return UiInput.escape(searchBox, key);
     }
 
     @Override
@@ -252,6 +239,16 @@ final class QuestsTab extends MenuTab {
             map.refit();
         } else if (c.startsWith("#qzoom:")) {
             map.zoomBy(c.endsWith("+") ? 1 : -1);
+        } else if (c.startsWith("#qstage:")) {
+            map.step(c.endsWith("+") ? 1 : -1);
+            // the list follows: its first row of the focused stage on top
+            List<QuestMap.Place> all = QuestsData.mapPlaces(questSelected, io.github.anilken.wynnlabs.quests.QuestWiki.get(questSelected), true);
+            for (int i = 0; i < all.size(); i++) {
+                if (QuestMapLayout.stageOf(all.get(i).num()) == map.focus) {
+                    pointScroll = i;
+                    break;
+                }
+            }
         } else if (c.startsWith("#qtrack:")) {
             QuestBook.Entry q = QuestsData.entry(c.substring(8));
             if (q != null) {
@@ -350,7 +347,7 @@ final class QuestsTab extends MenuTab {
     /** On the title row's right: when the book was read, its refresh, and the search ("/"). */
     @Override
     int titleRight(GuiGraphics g, int right, int y, int room, int mx, int my) {
-        searchRect = null;
+        searchHit = null;
         if (!Wyn.up(Wyn.Feature.QUESTS) || QuestAdvisor.known() == 0) {
             return 0;
         }
@@ -359,7 +356,7 @@ final class QuestsTab extends MenuTab {
         int r = right;
         boolean compact = menu.layout.compact() || room < 260;
         if (compact) {
-            Ui.iconButton(g, "search", r - sq, by, searchOpen, mx, my);
+            UiInput.icon(g, searchBox, searchOpen, r - sq, by, mx, my);
             menu.hits.add(new MenuHit(r - sq, by, sq, Ui.CHIP_H, null, null, "#qsearch"));
             r -= sq + Theme.SP_2;
         } else {
@@ -382,24 +379,9 @@ final class QuestsTab extends MenuTab {
         return right - r;
     }
 
-    /** The search box: a thin pill, the magnifier, the typed text (or the hint and "/"). */
+    /** The search box ({@link UiInput}). */
     void searchField(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        boolean focused = searchBox.isFocused();
-        boolean hover = mx >= x && mx < x + w && my >= y && my < y + Ui.CHIP_H;
-        Kit.pill(g, x, y, w, Ui.CHIP_H, false, hover || focused);
-        Art.icon(g, "search", x + Theme.SP_3, y + (Ui.CHIP_H - 8) / 2, 8, focused ? Theme.INK : Theme.INK_3);
-        int tx = x + Theme.SP_3 + 8 + Theme.SP_2;
-        int tw = x + w - Theme.SP_3 - tx;
-        searchBox.setX(tx);
-        searchBox.setY(Type.BODY.yIn(y, Ui.CHIP_H));
-        searchBox.setWidth(tw);
-        searchBox.render(g, mx, my, 0f);
-        if (searchBox.getValue().isEmpty() && !focused) {
-            Type.META.draw(g, font(), Type.META.fit(font(), L.t("wynnlabs.quests.search_hint"), tw - 10), tx, Type.META.yIn(y, Ui.CHIP_H),
-                    Theme.INK_3);
-            Type.META.drawRight(g, font(), "/", x + w - Theme.SP_3, Type.META.yIn(y, Ui.CHIP_H), Theme.LINE);
-        }
-        searchRect = new int[] {x, y, w, Ui.CHIP_H};
+        searchHit = UiInput.search(g, font(), searchBox, L.t("wynnlabs.quests.search_hint"), true, x, y, w, mx, my);
     }
 
     // ---- the page ----

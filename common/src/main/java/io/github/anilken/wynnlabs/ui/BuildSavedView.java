@@ -82,12 +82,8 @@ final class BuildSavedView {
             if (b.id().equals(win.renameId)) {
                 renaming = true;
                 int fw = Math.max(40, nameRoom - 30);
-                Kit.field(g, nx - 2, ry + 2, fw, 12, true);
-                win.rename.setX(nx + 2);
-                win.rename.setY(ry + 4);
-                win.rename.setWidth(fw - 8);
-                win.rename.render(g, mx, my, pt);
                 win.rename.setFocused(true);
+                UiInput.input(g, ui.font, win.rename, "", nx - 2, ry + 1, fw, true, false, mx, my);
                 int okX = nx - 2 + fw + 2;
                 Kit.button(g, okX, ry + 2, 12, 12, Kit.ON);
                 Art.icon(g, "check", okX + 2, ry + 4, 8, Kit.buttonText(Kit.ON));

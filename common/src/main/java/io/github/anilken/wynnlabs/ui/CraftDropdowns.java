@@ -180,13 +180,11 @@ final class CraftDropdowns extends CraftPanel {
         Kit.card(g, x, y, w, h, 0);
         tab.overlayBox = new int[] {x, y, w, h};
         // the search field
-        Kit.field(g, x + 4, y + 4, w - 8, 12, true);
-        tab.pickSearch.setX(x + 7);
-        tab.pickSearch.setY(y + 6);
-        tab.pickSearch.setWidth(w - 14);
-        tab.pickSearch.render(g, mx, my, pt);
-        if (tab.pickSearch.getValue().isEmpty()) {
-            text(g, fit(L.t("wynnlabs.craft.picker_hint", pct(slotEff)), w - 14), x + 7, y + 6, Theme.INK_3);
+        UiInput.Hit sh = UiInput.search(g, tab.font, tab.pickSearch, L.t("wynnlabs.craft.picker_hint", pct(slotEff)), false,
+                x + 4, y + 3, w - 8, mx, my);
+        if (sh.clear() != null) {
+            int[] c = sh.clear();
+            tab.overlay.add(new Act(c[0], c[1], c[2], c[3], () -> tab.pickSearch.setValue(""), null, null));
         }
         tab.dropScroll = Math.max(0, Math.min(tab.dropScroll, rows.size() - shown));
         int ry = y + 19;

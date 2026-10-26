@@ -136,7 +136,7 @@ final class QuestsSecrets extends MenuPaint {
     static List<Component> tip(Discoveries.Entry e) {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(e.name()).withStyle(ChatFormatting.AQUA).withStyle(UiFont::bold));
-        tip.add(Component.literal("Secret Discovery · Lv " + e.minLevel() + " · " + e.region()).withStyle(ChatFormatting.GRAY));
+        tip.add(Component.literal(ContentType.SECRET_DISCOVERY.label() + " · Lv " + e.minLevel() + " · " + e.region()).withStyle(ChatFormatting.GRAY));
         for (String l : io.github.anilken.wynnlabs.advice.Advice.wrap(e.lore(), 48)) {
             tip.add(Component.literal(l).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
         }

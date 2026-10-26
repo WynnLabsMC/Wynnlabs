@@ -133,16 +133,13 @@ final class BuildPickView {
             return;
         }
         // the win.search box
-        Kit.field(g, x, cy, w, 12, win.search.isFocused());
-        win.search.setX(x + 4);
-        win.search.setY(cy + 2);
-        win.search.setWidth(w - 8);
-        win.search.render(g, mx, my, pt);
-        if (win.search.getValue().isEmpty() && !win.search.isFocused()) {
-            Kit.text(g, ui.font, ui.fit(L.t("wynnlabs.pick.search_hint"), w - 8, false), x + 4, cy + 2, Theme.INK_3);
+        UiInput.Hit sh = UiInput.search(g, ui.font, win.search, L.t("wynnlabs.pick.search_hint"), false, x, cy, w, mx, my);
+        ui.btn(x, cy, w, UiInput.H, "search", null);
+        if (sh.clear() != null) {
+            int[] c = sh.clear();
+            ui.btn(c[0], c[1], c[2], c[3], "searchclear", null);       // the last one added wins
         }
-        ui.btn(x, cy, w, 12, "search", null);
-        cy += 16;
+        cy += UiInput.H + Theme.SP_2;
         // the type pills, on as many lines as they need
         int px = x;
         for (int i = 0; i < TYPE_KEYS.length; i++) {

@@ -140,15 +140,10 @@ final class CraftSectionsPanel extends CraftPanel {
             sliderDrag = true;                          // held: the knob follows the mouse
         }, null, List.of(L.c("wynnlabs.craft.dist_slider")));
         int fx = bx + bw + 6;
-        Kit.field(g, fx, yy - 1, 40, 12, tab.distBox.isFocused());
-        tab.distBox.setX(fx + 3);
-        tab.distBox.setY(yy + 1);
-        tab.distBox.setWidth(34);
-        if (visible(fx, yy - 1, 40, 12)) {
-            tab.distBox.render(g, mx, my, pt);
-            if (tab.distBox.getValue().isEmpty() && !tab.distBox.isFocused()) {
-                text(g, fit(L.t("wynnlabs.craft.dist_value"), 34), fx + 3, yy + 1, Theme.INK_3);
-            }
+        if (visible(fx, yy - 2, 40, UiInput.H)) {
+            String v = tab.distBox.getValue();
+            boolean bad = v.equals("-") || !v.isEmpty() && (Integer.parseInt(v) < d.low() || Integer.parseInt(v) > d.high());
+            UiInput.input(g, tab.font, tab.distBox, L.t("wynnlabs.craft.dist_value"), fx, yy - 2, 40, true, bad, mx, my);
         }
         clipped(fx, yy - 1, 40, 12, () -> {
             tab.screen.setFocused(tab.distBox);

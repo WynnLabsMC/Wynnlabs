@@ -41,10 +41,21 @@ final class QuestsGuideFacts {
             parts.add(L.t("wynnlabs.quests.reward_emeralds", info.emeralds()));
             tip.add(L.c("wynnlabs.quests.reward_emeralds", info.emeralds()).withStyle(ChatFormatting.GREEN));
         }
+        java.util.Map<String, Integer> rewards = new java.util.LinkedHashMap<>();
         for (String r : info.rewards()) {
-            parts.add(r);
-            tip.add(Component.literal(r).withStyle(ChatFormatting.LIGHT_PURPLE)
-                    .append(Component.literal(gain(r)).withStyle(ChatFormatting.GRAY)));
+            rewards.merge(r, 1, Integer::sum);           // the wiki repeats some: each once, "×N"
+        }
+        int rows = 0;
+        for (var r : rewards.entrySet()) {
+            String shown = r.getKey() + (r.getValue() > 1 ? " ×" + r.getValue() : "");
+            parts.add(shown);
+            if (rows++ < TIP_ROWS) {
+                tip.add(Component.literal(shown).withStyle(ChatFormatting.LIGHT_PURPLE)
+                        .append(Component.literal(gain(r.getKey())).withStyle(ChatFormatting.GRAY)));
+            }
+        }
+        if (rewards.size() > TIP_ROWS) {
+            tip.add(L.c("wynnlabs.quests.tip_more", rewards.size() - TIP_ROWS).withStyle(ChatFormatting.DARK_GRAY));
         }
         if (parts.isEmpty()) {
             return y;
@@ -95,33 +106,102 @@ final class QuestsGuideFacts {
         return gp > 0.5 ? L.t("wynnlabs.quests.reward_gain", Math.round(gp)) : L.t("wynnlabs.quests.reward_no_gain");
     }
 
-    /** "Düşmanlar: Frost Wraith, Ice Golem" with health and weaknesses in the tooltip; returns the y under it. */
+    /** One enemy kind of a quest: the highest level and health seen, its weaknesses, and how often it appears. */
+    record Enemy(String name, int level, int health, List<String> weak, int count) {}
+
+    /** The wiki's mob list, each name once (the most common first, then the strongest). */
+    static List<Enemy> enemyKinds(List<QuestWiki.Mob> mobs) {
+        java.util.Map<String, Enemy> by = new java.util.LinkedHashMap<>();
+        for (QuestWiki.Mob m : mobs) {
+            Enemy e = by.get(m.name());
+            if (e == null) {
+                by.put(m.name(), new Enemy(m.name(), m.level(), m.health(), m.weak(), 1));
+            } else {
+                by.put(m.name(), new Enemy(m.name(), Math.max(e.level(), m.level()), Math.max(e.health(), m.health()),
+                        e.weak().isEmpty() ? m.weak() : e.weak(), e.count() + 1));
+            }
+        }
+        List<Enemy> out = new ArrayList<>(by.values());
+        out.sort(java.util.Comparator.comparingInt(Enemy::count).reversed().thenComparing(java.util.Comparator.comparingInt(Enemy::level).reversed()));
+        return out;
+    }
+
+    /** A health amount short: 950, 12k, 1.2M. */
+    static String shortNumber(long n) {
+        if (n >= 1_000_000) {
+            return trim(n / 1_000_000.0) + "M";
+        }
+        if (n >= 1_000) {
+            return trim(n / 1_000.0) + "k";
+        }
+        return String.valueOf(n);
+    }
+
+    private static String trim(double v) {
+        double r = Math.round(v * 10) / 10.0;
+        return r == Math.rint(r) ? String.valueOf((long) r) : String.valueOf(r);
+    }
+
+    /** The most rows an enemies or rewards tooltip lists before "+N more". */
+    static final int TIP_ROWS = 10;
+
+    /**
+     * The enemies: a META heading and one line of chips, each kind once ("Ricochet Sprout · Lv 40 ×12"),
+     * "+N" for the kinds that do not fit; the tooltip has one row per kind (level, health,
+     * weaknesses, how many). Returns the y under it.
+     */
     static int enemies(QuestsGuidePane pane, GuiGraphics g, int x, int y, int w, QuestWiki.Info info) {
         if (info.mobs().isEmpty()) {
             return y;
         }
         Font font = pane.paneFont();
+        List<Enemy> kinds = enemyKinds(info.mobs());
         List<String> mine = myElements();
-        List<String> names = new ArrayList<>();
-        List<Component> tip = new ArrayList<>();
         int lv = Wyn.level();
-        for (QuestWiki.Mob m : info.mobs()) {
-            names.add(m.name());
+        List<Component> tip = new ArrayList<>();
+        for (int i = 0; i < kinds.size() && i < TIP_ROWS; i++) {
+            Enemy m = kinds.get(i);
             List<String> weak = new ArrayList<>();
             boolean yours = false;
             for (String e : m.weak()) {
                 weak.add(element(e));
                 yours |= mine.contains(e);
             }
-            tip.add(Component.literal(m.name() + " · Lv " + m.level()).withStyle(m.level() > lv + 3 ? ChatFormatting.RED : ChatFormatting.WHITE));
-            tip.add(Component.literal("  " + L.t("wynnlabs.quests.mob_health", m.health())
+            tip.add(Component.literal(m.name() + " · Lv " + m.level() + (m.count() > 1 ? "  ×" + m.count() : ""))
+                    .withStyle(m.level() > lv + 3 ? ChatFormatting.RED : ChatFormatting.WHITE));
+            tip.add(Component.literal("  " + L.t("wynnlabs.quests.mob_health", shortNumber(m.health()))
                     + (weak.isEmpty() ? "" : L.t("wynnlabs.quests.mob_weak", String.join(", ", weak)))).withStyle(ChatFormatting.GRAY)
                     .append(Component.literal(yours ? L.t("wynnlabs.quests.mob_your_build") : "").withStyle(ChatFormatting.GREEN)));
         }
-        String line = L.t("wynnlabs.quests.enemies_line", String.join(", ", names));
-        int lines = wrapped(g, font, line, x, y, w, Theme.INK_2);
-        pane.tip(x, y, w, lines * Type.META.lineHeight, tip);
-        return y + lines * Type.META.lineHeight + Theme.SP_1;
+        if (kinds.size() > TIP_ROWS) {
+            tip.add(L.c("wynnlabs.quests.tip_more", kinds.size() - TIP_ROWS).withStyle(ChatFormatting.DARK_GRAY));
+        }
+        String head = L.t("wynnlabs.quests.enemies_head");
+        Type.META.draw(g, font, head, x, Type.META.yIn(y, Ui.CHIP_H), Theme.INK_3);
+        int cx = x + Type.META.width(font, head) + Theme.SP_3;
+        int right = x + w;
+        int shown = 0;
+        for (Enemy m : kinds) {
+            String label = m.name() + " · Lv " + m.level() + (m.count() > 1 ? " ×" + m.count() : "");
+            int cw = Ui.chipWidth(font, label);
+            int left = kinds.size() - shown - 1;
+            int moreW = left > 0 ? Ui.chipWidth(font, "+" + left) + Theme.SP_2 : 0;
+            if (cx + cw + moreW > right) {
+                break;
+            }
+            Ui.chip(g, font, label, cx, y, cw, false, false, false, -1, -1);
+            cx += cw + Theme.SP_2;
+            shown++;
+        }
+        if (shown < kinds.size()) {
+            String more = "+" + (kinds.size() - shown);
+            int mw = Ui.chipWidth(font, more);
+            if (cx + mw <= right) {
+                Ui.chip(g, font, more, cx, y, mw, false, false, false, -1, -1);
+            }
+        }
+        pane.tip(x, y, w, Ui.CHIP_H, tip);
+        return y + Ui.CHIP_H + Theme.SP_2;
     }
 
     /**

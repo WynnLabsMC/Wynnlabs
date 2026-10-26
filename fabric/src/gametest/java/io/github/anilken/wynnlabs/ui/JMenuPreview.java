@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today", "tree", "search", "bank").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -59,8 +59,9 @@ public class JMenuPreview implements FabricClientGameTest {
             });
             SearchPreview.loadIndex();
             // straight on the screen being checked: a filtered run never draws Home first
-            int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("today") ? 1 : part.equals("quests") ? 2
-                    : part.equals("settings") ? 5 : part.equals("crafting") ? 10 : 0;
+            int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("today") ? 1 : part.equals("tree") ? RoadmapScreen.TAB_TREE : part.equals("quests") ? 2
+                    : part.equals("settings") ? 5 : part.equals("crafting") ? 10 : part.equals("bank") ? RoadmapScreen.TAB_BANK
+                    : part.equals("search") ? RoadmapScreen.TAB_SEARCH : 0;
             ctx.setScreen(() -> RoadmapScreen.on(first));
             ctx.waitForScreen(RoadmapScreen.class);
             ctx.getInput().setCursorPos(2, 2);      // the window's corner: no tooltip over the menu
@@ -280,8 +281,75 @@ public class JMenuPreview implements FabricClientGameTest {
         shot(ctx, out, "today-tree-strip");
     }
 
+    /**
+     * -PpreviewOnly=tree: the tree page with three recorded deaths, then its damage drawer and its
+     * deaths drawer open.
+     */
+    private static void treeShots(ClientGameTestContext ctx, Path out) throws Exception {
+        long now = System.currentTimeMillis();
+        ctx.runOnClient(mc -> io.github.anilken.wynnlabs.coach.DeathCoach.preview(List.of(
+                new io.github.anilken.wynnlabs.coach.DeathCoach.Death(now - 3 * 86_400_000L, -760, 79, -666, 41, "Jungle", false, 42, 3300, 1800,
+                        9.0, 4, List.of("Jungle Spider", "Cobra"), List.of()),
+                new io.github.anilken.wynnlabs.coach.DeathCoach.Death(now - 86_400_000L, -1297, 71, -4776, 43, "Leadin Fortress", false, 45, 3100,
+                        1880, 6.1, 0, List.of("Orc Warrior"), List.of()),
+                new io.github.anilken.wynnlabs.coach.DeathCoach.Death(now - 3_600_000L, 1019, 21, -1991, 44, "Almuj Emerald Labyrinth", false, 48,
+                        2900, 1927, 3.4, 2, List.of("Guard Golem", "Emerald Sentry"), List.of()))));
+        ctx.runOnClient(mc -> set(mc.screen, "tab", RoadmapScreen.TAB_TREE));
+        ctx.waitTicks(40);                         // the deaths are read again every second
+        shot(ctx, out, "tree-page");
+        ctx.runOnClient(mc -> set(mc.screen, "tab", RoadmapScreen.TAB_DAMAGE));      // a link's target: the drawer opens
+        ctx.waitTicks(5);
+        shot(ctx, out, "tree-drawer-damage");
+        ctx.runOnClient(mc -> {
+            ((RoadmapScreen) mc.screen).tree.closePopup();
+            set(mc.screen, "tab", 3);
+        });
+        ctx.waitTicks(5);
+        shot(ctx, out, "tree-drawer-deaths");
+        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).tree.closePopup());
+        // the search ("/"), typed in: the gold ring and the ✕; compact, it opens under the title row
+        ctx.runOnClient(mc -> {
+            RoadmapScreen s = (RoadmapScreen) mc.screen;
+            s.tree.slashTyped();
+            s.tree.treeSearch.setValue("Totem");
+        });
+        ctx.waitTicks(5);
+        shot(ctx, out, "tree-search");
+        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).tree.treeSearch.setValue(""));
+    }
+
+    /** -PpreviewOnly=search or bank: the page's search field empty, then typed in. */
+    private static void searchFieldShots(ClientGameTestContext ctx, Path out, String name, int tab, String typed) {
+        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(tab));
+        ctx.waitTicks(10);
+        shot(ctx, out, name);
+        ctx.runOnClient(mc -> {
+            RoadmapScreen s = (RoadmapScreen) mc.screen;
+            s.page(tab).slashTyped();
+            (tab == RoadmapScreen.TAB_BANK ? s.bank.search : s.search.box).setValue(typed);
+        });
+        ctx.waitTicks(40);
+        shot(ctx, out, name + "-typed");
+    }
+
     /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
     private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
+        if (part.equals("search") || part.equals("bank")) {
+            boolean bank = part.equals("bank");
+            if (bank) {
+                var fx = FixtureState.load(Fixtures.root().resolve(System.getProperty("wynnlabs.previewFixture", "shaman-44")));
+                ctx.runOnClient(mc -> io.github.anilken.wynnlabs.market.Vault.preview(fx.bankStacks()));
+            } else {
+                ctx.waitFor(mc -> io.github.anilken.wynnlabs.search.ItemIndex.get().missing() == null, 20 * 60);
+            }
+            searchFieldShots(ctx, out, bank ? "bank-tab" : "search-tab", bank ? RoadmapScreen.TAB_BANK : RoadmapScreen.TAB_SEARCH,
+                    bank ? "Emerald" : "lucky rab");
+            return;
+        }
+        if (part.equals("tree")) {
+            treeShots(ctx, out);
+            return;
+        }
         if (part.equals("today")) {
             todayShots(ctx, out);
             return;

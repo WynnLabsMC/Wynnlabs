@@ -54,9 +54,34 @@ final class QuestMap extends MenuPaint {
     String hovered;
     /** Where the map was drawn this frame, for the wheel; null when it was not. */
     int[] rect;
+    /**
+     * Whether its + − ⌖ buttons are the quests tab's ("#qzoom", "#qmapfit"); a map elsewhere (the
+     * deaths drawer) takes their clicks itself through {@link #button}.
+     */
+    boolean questsButtons = true;
+    /**
+     * The stage a staged map (a quest's places, a secret's steps) shows: its places with chips and
+     * route, the next stage's as outlined dots, nothing of the others. Set to the stage you are on
+     * whenever the view's key changes (a new quest, the stage moved in game); the stepper moves it.
+     */
+    int focus = -1;
+    private String focusKey = "";
+    /** The stages that have places on this map (the stepper walks them), this frame. */
+    private List<Integer> stages = List.of();
+    /** The stepper's box this frame {x, y, w, h} and its two arrows' x. */
+    private int[] stepRect;
+
+    /** Whether the places are an ordered path (a quest's stages, a secret's steps): the dotted route joins them. */
+    final boolean route;
 
     QuestMap(RoadmapScreen menu) {
+        this(menu, true);
+    }
+
+    /** A map whose places are a path ({@code route}) or separate events (deaths: no route). */
+    QuestMap(RoadmapScreen menu, boolean route) {
         super(menu);
+        this.route = route;
         marks = new QuestMapMarks(menu, this);
     }
 
@@ -101,11 +126,37 @@ final class QuestMap extends MenuPaint {
         rect = null;
         hovered = null;
         buttonsRect = null;
+        stepRect = null;
         places = QuestMapLayout.remaining(places, Place::state);
         if (!key.equals(viewKey)) {
             viewKey = key;
             pinned = false;
             zoom = 1;
+        }
+        List<Place> ghosts = List.of();
+        if (route && !places.isEmpty()) {
+            // a staged map: the focused stage only (the next one as outlined dots)
+            java.util.TreeSet<Integer> have = new java.util.TreeSet<>();
+            int cur = Integer.MAX_VALUE;
+            for (Place p : places) {
+                int s = QuestMapLayout.stageOf(p.num());
+                have.add(s);
+                if (p.state() == QuestMapLayout.NOW || p.state() == QuestMapLayout.START) {
+                    cur = Math.min(cur, s);
+                }
+            }
+            stages = new ArrayList<>(have);
+            if (!key.equals(focusKey)) {
+                focusKey = key;
+                focus = cur == Integer.MAX_VALUE ? have.first() : cur;
+            }
+            if (!have.contains(focus)) {
+                Integer up = have.ceiling(focus);
+                focus = up != null ? up : have.last();       // a stage with no place on the map: the next that has one
+            }
+            QuestMapLayout.Focus<Place> fo = QuestMapLayout.focus(places, Place::num, focus, lit);
+            places = fo.shown();
+            ghosts = fo.ghosts();
         }
         if (places.isEmpty() || w < 60 || h < 40) {
             return false;
@@ -154,7 +205,9 @@ final class QuestMap extends MenuPaint {
             bx1 = Math.max(bx1, p.at()[0]);
             bz1 = Math.max(bz1, p.at()[2]);
         }
-        bounds = new double[] {bx0 - 600, bz0 - 600, bx1 + 600, bz1 + 600};
+        float[] cov = coverage();
+        // a pan may go anywhere Wynntils has map (the places' box and a margin without it)
+        bounds = cov != null ? new double[] {cov[0], cov[1], cov[2], cov[3]} : new double[] {bx0 - 600, bz0 - 600, bx1 + 600, bz1 + 600};
         float x0 = (float) f.x0();
         float z0 = (float) f.z0();
         float x1 = (float) (f.x0() + f.span() * w);
@@ -173,9 +226,17 @@ final class QuestMap extends MenuPaint {
         if (buttons) {
             avoid.add(new double[] {w - Theme.SP_3 - (Ui.CHIP_H + 2), Theme.SP_3, Ui.CHIP_H + 2, 3 * Ui.CHIP_H + 2 * Theme.SP_1});
         }
+        boolean stepper = buttons && route && stages.size() > 1;
+        String stepText = stepper ? L.t("wynnlabs.quests.stage_of", focus, stages.get(stages.size() - 1)) : "";
+        int stepW = stepper ? 2 * (Ui.CHIP_H + 2) + Type.META.width(font(), stepText) + 2 * Theme.SP_3 : 0;
+        if (stepper) {
+            avoid.add(new double[] {Theme.SP_3, Theme.SP_3, stepW, Ui.CHIP_H});
+        }
         double[] youBox = marks.youBox(w, h, f, me, places);
         if (youBox != null) {
             avoid.add(youBox);
+        } else if (me != null && QuestMapLayout.onMap(f.px(me[0]), f.py(me[1]), w, h)) {
+            avoid.add(new double[] {f.px(me[0]) - 7, f.py(me[1]) - 7, 15, 15});     // your arrow: no place name under it
         }
         List<QuestMapLayout.Marker> inside = new ArrayList<>();
         List<QuestMapLayout.Marker> outside = new ArrayList<>();
@@ -184,7 +245,7 @@ final class QuestMap extends MenuPaint {
             double py = f.py(p.at()[2]);
             (QuestMapLayout.onMap(px, py, w, h) ? inside : outside).add(new QuestMapLayout.Marker(p.num(), px, py, p.state()));
         }
-        List<QuestMapLayout.Group> groups = QuestMapLayout.merge(inside);
+        List<QuestMapLayout.Group> groups = QuestMapLayout.merge(inside, route);
         List<double[]> dots = new ArrayList<>();
         for (QuestMapLayout.Group gr : groups) {
             dots.add(new double[] {gr.x(), gr.y()});
@@ -198,6 +259,14 @@ final class QuestMap extends MenuPaint {
             chips.add(new double[] {at[0], at[1], cw, CHIP_H});
         }
         marks.route(g, x, y, w, h, f, places);
+        for (Place p : ghosts) {
+            // the next stage: an outlined dot, no chip
+            double gx = f.px(p.at()[0]);
+            double gy = f.py(p.at()[2]);
+            if (QuestMapLayout.onMap(gx, gy, w, h)) {
+                Art.box(g, x + (int) Math.round(gx) - 3, y + (int) Math.round(gy) - 3, 7, 7, 3, 0, CREAM);
+            }
+        }
         List<double[]> taken = new ArrayList<>(chips);
         taken.addAll(avoid);
         marks.names(g, x, y, w, h, x0, z0, x1, z1, f, dots, taken);
@@ -232,21 +301,37 @@ final class QuestMap extends MenuPaint {
             int by = y + Theme.SP_3;
             int step = Ui.CHIP_H + Theme.SP_1;
             Ui.iconButton(g, "plus", bx, by, false, mx, my);
-            menu.hits.add(new MenuHit(bx, by, Ui.CHIP_H + 2, Ui.CHIP_H, null, null, "#qzoom:+"));
+            menu.hits.add(new MenuHit(bx, by, Ui.CHIP_H + 2, Ui.CHIP_H, null, null, questsButtons ? "#qzoom:+" : null));
             Ui.iconButton(g, "minus", bx, by + step, false, mx, my);
-            menu.hits.add(new MenuHit(bx, by + step, Ui.CHIP_H + 2, Ui.CHIP_H, null, null, "#qzoom:-"));
+            menu.hits.add(new MenuHit(bx, by + step, Ui.CHIP_H + 2, Ui.CHIP_H, null, null, questsButtons ? "#qzoom:-" : null));
             int n = 2;
             if (pinned) {
                 // back to the view that fits the places (a double-click does the same)
                 Ui.iconButton(g, "target", bx, by + 2 * step, false, mx, my);
                 menu.hits.add(new MenuHit(bx, by + 2 * step, Ui.CHIP_H + 2, Ui.CHIP_H,
-                        null, List.of(L.c("wynnlabs.quests.map_fit").withStyle(ChatFormatting.GRAY)), "#qmapfit"));
+                        null, List.of(L.c("wynnlabs.quests.map_fit").withStyle(ChatFormatting.GRAY)), questsButtons ? "#qmapfit" : null));
                 n = 3;
             }
             buttonsRect = new int[] {bx, by, Ui.CHIP_H + 2, n * step};
         }
+        if (stepper) {
+            // "◀ Aşama 5 / 14 ▶" in the top left, inside the frame like the zoom buttons
+            int sx = x + Theme.SP_3;
+            int sy = y + Theme.SP_3;
+            int aw = Ui.CHIP_H + 2;
+            Ui.iconButton(g, "chevron-left", sx, sy, false, mx, my);
+            menu.hits.add(new MenuHit(sx, sy, aw, Ui.CHIP_H, null, null, questsButtons ? "#qstage:-" : null));
+            int lx = sx + aw;
+            int lw = stepW - 2 * aw;
+            Kit.pill(g, lx, sy, lw, Ui.CHIP_H, false, false);
+            Type.META.draw(g, font(), stepText, lx + Theme.SP_3, Type.META.yIn(sy, Ui.CHIP_H), Theme.INK);
+            Ui.iconButton(g, "chevron-right", lx + lw, sy, false, mx, my);
+            menu.hits.add(new MenuHit(lx + lw, sy, aw, Ui.CHIP_H, null, null, questsButtons ? "#qstage:+" : null));
+            stepRect = new int[] {sx, sy, stepW, Ui.CHIP_H};
+        }
         // the hand that says the map moves: a pointer over a marker, the move cursor elsewhere
-        if (mx >= x && mx < x + w && my >= y && my < y + h && (buttonsRect == null || !in(mx, my, buttonsRect))) {
+        if (mx >= x && mx < x + w && my >= y && my < y + h && (buttonsRect == null || !in(mx, my, buttonsRect))
+                && (stepRect == null || !in(mx, my, stepRect))) {
             g.requestCursor(hovered != null ? com.mojang.blaze3d.platform.cursor.CursorTypes.POINTING_HAND
                     : com.mojang.blaze3d.platform.cursor.CursorTypes.RESIZE_ALL);
         }
@@ -257,7 +342,8 @@ final class QuestMap extends MenuPaint {
 
     /** Whether a press starts on the map (off its buttons): it is held to tell a pan from a click. */
     boolean press(net.minecraft.client.input.MouseButtonEvent e) {
-        if (rect == null || !in(e.x(), e.y(), rect) || buttonsRect != null && in(e.x(), e.y(), buttonsRect)) {
+        if (rect == null || !in(e.x(), e.y(), rect) || buttonsRect != null && in(e.x(), e.y(), buttonsRect)
+                || stepRect != null && in(e.x(), e.y(), stepRect)) {
             return false;
         }
         press = e;
@@ -297,7 +383,8 @@ final class QuestMap extends MenuPaint {
         if (rect == null) {
             return;
         }
-        double ns = Math.max(QuestMapLayout.MIN_SPAN, Math.min(QuestMapLayout.MAX_SPAN, dir > 0 ? vspan / 1.5 : vspan * 1.5));
+        double most = QuestMapLayout.handMaxSpan(coverage(), rect[2], rect[3]);
+        double ns = Math.max(QuestMapLayout.HAND_MIN_SPAN, Math.min(most, dir > 0 ? vspan / 1.5 : vspan * 1.5));
         double ox = mx - rect[0];
         double oy = my - rect[1];
         vx0 = vx0 + ox * vspan - ox * ns;
@@ -305,6 +392,11 @@ final class QuestMap extends MenuPaint {
         vspan = ns;
         pinned = true;
         clamp();
+    }
+
+    /** The world box Wynntils' map tiles cover (asked once a minute), or null. */
+    private static float[] coverage() {
+        return QuestsCache.kept("map|coverage", 60_000, Wyn::mapCoverage);
     }
 
     /** Back to the view that fits the places. */
@@ -322,6 +414,50 @@ final class QuestMap extends MenuPaint {
         double cz = Math.max(bounds[1], Math.min(bounds[3], vz0 + vspan * rect[3] / 2));
         vx0 = cx - vspan * rect[2] / 2;
         vz0 = cz - vspan * rect[3] / 2;
+    }
+
+    /** The stepper: the focus to the stage before ({@code dir} below 0) or after that has places; the view fits it. */
+    void step(int dir) {
+        int i = stages.indexOf(focus);
+        if (i < 0) {
+            return;
+        }
+        int j = Math.max(0, Math.min(stages.size() - 1, i + (dir < 0 ? -1 : 1)));
+        focus = stages.get(j);
+        pinned = false;
+        zoom = 1;
+    }
+
+    /** A click on the + − ⌖ buttons (a map that owns them): zooms or refits; true when it was on one. */
+    boolean button(double x, double y) {
+        if (buttonsRect == null || !in(x, y, buttonsRect)) {
+            return false;
+        }
+        int row = (int) ((y - buttonsRect[1]) / (Ui.CHIP_H + Theme.SP_1));
+        if (row == 0) {
+            zoomBy(1);
+        } else if (row == 1) {
+            zoomBy(-1);
+        } else {
+            refit();
+        }
+        return true;
+    }
+
+    /** Brings {@code at} (x, y, z) into view when it is outside it: the view centres on it and stays. */
+    void reveal(int[] at) {
+        if (rect == null) {
+            return;
+        }
+        double px = (at[0] - vx0) / vspan;
+        double py = (at[2] - vz0) / vspan;
+        if (QuestMapLayout.onMap(px, py, rect[2], rect[3])) {
+            return;
+        }
+        vx0 = at[0] - vspan * rect[2] / 2;
+        vz0 = at[2] - vspan * rect[3] / 2;
+        pinned = true;
+        clamp();
     }
 
     /** One step of the + / − buttons: closer or further around the map's middle. */

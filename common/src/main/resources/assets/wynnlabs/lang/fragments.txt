@@ -134,3 +134,6 @@ wynnlabs.today.u_levels  a unit after its number in the last session line ("120 
 wynnlabs.today.u_emeralds  a unit after its number in the last session line ("120 dk")
 wynnlabs.today.u_deaths  a unit after its number in the last session line ("120 dk")
 wynnlabs.today.u_per_cast  a unit after its number in the last session line ("120 dk")
+wynnlabs.tree.per_cast  a unit or note after its number on the tree page
+wynnlabs.tree.measured  a unit or note after its number on the tree page
+wynnlabs.tree.deaths_week  a unit or note after its number on the tree page

@@ -32,8 +32,8 @@ import java.util.Map;
  * The J menu's window: the wooden frame, the rail of tabs on the left, the page title, the flash
  * line and the tooltips, and the routing of clicks, the wheel and keys to the open tab. Each tab
  * draws its own page in its own class ({@link MenuTab}: {@link HomePage}, {@link TodayTab},
- * {@link QuestsTab}, {@link DeathsTab}, {@link BankTab}, {@link SettingsTab}, {@link AiTab},
- * {@link DamageTab}, {@link TreeTab}; the Crafting and Endgame tabs are
+ * {@link QuestsTab}, {@link BankTab}, {@link SettingsTab}, {@link AiTab},
+ * {@link TreeTab} (with the damage and the deaths); the Crafting and Endgame tabs are
  * {@link CraftingTab} and {@link EndgameTab}). The screen keeps what they share: the road map's
  * steps and the chosen milestone, the quest suggestions, this frame's hover and click areas and
  * the flash line. Shows only; never buys, starts or clicks anything in the game.
@@ -89,17 +89,15 @@ public final class RoadmapScreen extends Screen {
     public final QuestsTab questsTab = new QuestsTab(this);
     /** The open popups' boxes this frame (a click inside one goes to it, outside closes it). */
     final List<int[]> popupBoxes = new ArrayList<>();
-    final DeathsTab deaths = new DeathsTab(this);
     public final BankTab bank = new BankTab(this);
     public final SettingsTab settings = new SettingsTab(this);
     final AiTab ai = new AiTab(this);
-    final DamageTab damage = new DamageTab(this);
     public final TreeTab tree = new TreeTab(this);
     final SearchTab search = new SearchTab(this);
     /** The archetype list the archetype buttons open (home, tree, settings). */
     final ArchetypePicker archPicker = new ArchetypePicker(this);
     /** The tabs by number (null for the Crafting and Endgame tabs, which are their own singletons). */
-    private final MenuTab[] pages = {home, today, questsTab, deaths, bank, settings, ai, damage, null, tree, null, null,
+    private final MenuTab[] pages = {home, today, questsTab, null, bank, settings, ai, null, null, tree, null, null,
         search};
     /** The screen the search key was pressed on (a bank, a chest): closing the menu goes back to it. */
     private Screen parent;
@@ -154,7 +152,9 @@ public final class RoadmapScreen extends Screen {
 
     /** The place the menu closed at: its tab (Home when that page is gone) and the view inside it. */
     private void restore(MenuResume.State s) {
-        tab = MenuResume.tab(s.tab(), t -> t == TAB_CRAFT || t == TAB_ENDGAME || page(t) != null);
+        // the damage and the deaths are the tree page's drawers now: the page, its drawers closed
+        int stored = MenuResume.page(s.tab());
+        tab = MenuResume.tab(stored, t -> t == TAB_CRAFT || t == TAB_ENDGAME || page(t) != null);
         if (s.questType() != null) {
             questsTab.questType = io.github.anilken.wynnlabs.quests.ContentType.of(s.questType());
         }
@@ -406,7 +406,7 @@ public final class RoadmapScreen extends Screen {
      */
     private static final String[] TAB_HINT = {"", "wynnlabs.screen.hint_today", "",
         "wynnlabs.screen.hint_deaths", "wynnlabs.screen.hint_bank", "", "wynnlabs.screen.hint_ai",
-        "wynnlabs.screen.hint_damage", "wynnlabs.screen.hint_discoveries", "wynnlabs.screen.hint_tree", "",
+        "wynnlabs.screen.hint_damage", "wynnlabs.screen.hint_discoveries", "", "",
         "wynnlabs.screen.hint_endgame", ""};
 
     private final Map<Integer, ItemStack> railIcons = new HashMap<>();
@@ -518,6 +518,11 @@ public final class RoadmapScreen extends Screen {
         // the page: content keeps 10px from the parchment's sides (14 at the top, 8 at the bottom)
         Kit.paper(g, x0 + railW() + 2, y0 + 2, w - railW() - 4, h - 4);
 
+        // the damage (7) and the deaths (3) live on the tree page: their targets open it with that drawer
+        if (tab == 3 || tab == TAB_DAMAGE) {
+            tree.openDrawer(tab == 3 ? "deaths" : "damage");
+            tab = TAB_TREE;
+        }
         // an open popup owns the mouse: everything under it draws as if the mouse were away
         MenuTab page = tab == TAB_CRAFT || tab == TAB_ENDGAME ? null : pages[tab];
         boolean popup = page != null && page.popupOpen() || archPicker.isOpen();
@@ -635,7 +640,7 @@ public final class RoadmapScreen extends Screen {
                     g.setTooltipForNextFrame(font, hit.stack(), mx, my);
                 } else if (hit.tip() != null && !hit.tip().isEmpty()) {
                     // long lines wrap, and the game words in it are explained under it
-                    Glossary.draw(g, font, hit.tip(), mx, my, width);
+                    Glossary.draw(g, font, hit.tip(), mx, my, width, height);
                 }
                 break;
             }
@@ -817,7 +822,7 @@ public final class RoadmapScreen extends Screen {
             // an open popup owns the mouse: inside, only its click areas; outside, it just closes
             for (int[] b : popupBoxes) {
                 if (MenuPaint.in(ex, ey, b)) {
-                    if (!open.popupClicked(event)) {
+                    if (!open.popupClicked(event, doubleClick)) {
                         for (MenuHit h : hits) {
                             if (hitClicked(h, event)) {
                                 break;
@@ -882,10 +887,10 @@ public final class RoadmapScreen extends Screen {
         }
         tab = t;
         home.detail = null;
-        bank.search.setFocused(tab == TAB_BANK);
-        tree.treeSearch.setFocused(tab == TAB_TREE);
+        bank.search.setFocused(false);             // "/" focuses a page's search (UiInput)
+        tree.treeSearch.setFocused(false);
         search.box.setFocused(false);
-        setFocused(tab == TAB_BANK ? bank.search : tab == TAB_TREE ? tree.treeSearch : null);
+        setFocused(null);
         if (tab == TAB_SEARCH) {
             search.focus();
         }
@@ -897,10 +902,11 @@ public final class RoadmapScreen extends Screen {
         if (SearchKey.swallow()) {
             return true;
         }
-        // "/" on the settings while nothing is being typed: their search box
-        if ((tab == TAB_SETTINGS || tab == 2) && event.codepoint() == '/'
-                && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox b && b.isFocused())) {
-            return tab == 2 ? questsTab.slashTyped() : settings.slashTyped();
+        // "/" while nothing is being typed: the page's search box (UiInput), when it has one
+        MenuTab p = page(tab);
+        if (event.codepoint() == '/' && p != null && !p.popupOpen() && !archPicker.isOpen()
+                && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox b && b.isFocused()) && p.slashTyped()) {
+            return true;
         }
         return super.charTyped(event);
     }

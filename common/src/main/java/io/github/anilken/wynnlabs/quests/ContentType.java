@@ -1,8 +1,8 @@
 package io.github.anilken.wynnlabs.quests;
 
 /**
- * The content book's kinds, in the game's order and with its English names (they stay English in
- * both languages, as in the game). World Event and Mount Enclosure are left out: Wynntils keeps
+ * The content book's kinds, in the game's order. {@link #shown} is the game's English name (logs,
+ * matching); {@link #label} the menu's word for it in the player's language. World Event and Mount Enclosure are left out: Wynntils keeps
  * no list of events and the game's filter has no enclosures.
  */
 public enum ContentType {
@@ -30,6 +30,11 @@ public enum ContentType {
         this.shown = shown;
         this.icon = icon;
         this.feature = feature;
+    }
+
+    /** The kind's name in the menu, the chip and the panes, in the player's language. */
+    public String label() {
+        return io.github.anilken.wynnlabs.core.L.t("wynnlabs.content.type." + name().toLowerCase(java.util.Locale.ROOT));
     }
 
     /** The quest book's own kinds: the guide pane, stages and the order menu. */
