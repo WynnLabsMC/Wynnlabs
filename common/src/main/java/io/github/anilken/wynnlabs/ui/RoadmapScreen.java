@@ -351,9 +351,9 @@ public final class RoadmapScreen extends Screen {
     /** This frame's size class, panel and rail (MenuLayout): set at the start of each render. */
     MenuLayout layout = MenuLayout.of(640, 360);
     /** A section's name on its page's strip, by tab number ("" for a tab that is never a section). */
-    private static final String[] SECTION_NAMES = {"", "wynnlabs.screen.sec_summary", "wynnlabs.screen.tab_quests",
+    private static final String[] SECTION_NAMES = {"", "", "wynnlabs.screen.tab_quests",
         "wynnlabs.screen.tab_deaths", "", "wynnlabs.screen.tab_settings", "wynnlabs.screen.sec_ai", "wynnlabs.screen.tab_damage",
-        "wynnlabs.screen.sec_discoveries", "", "", "", ""};
+        "", "wynnlabs.screen.sec_tree", "", "", ""};
     /**
      * Each tab's hint as a language key ("" for none), by tab number. The Endgame tab's title line
      * holds its pills, so its hint is drawn under its aspect list instead.
@@ -912,6 +912,8 @@ public final class RoadmapScreen extends Screen {
                 String id = c.substring(7);
                 questsTab.secrets.show(id.isEmpty() ? null : id);
                 home.detail = null;
+            } else if (c.equals("#qtodayothers")) {
+                today.action(c);
             } else if (!questsTab.action(c)) {
                 home.action(c, event.button());
             }

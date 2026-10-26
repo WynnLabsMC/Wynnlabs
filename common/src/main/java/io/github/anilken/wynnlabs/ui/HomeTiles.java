@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The tiles of the Today tab's "Next" section ({@link TodayNext}): the next quest, where to level,
+ * The tiles of the Today tab's "Next" section (the Today tab once had them): the next quest, where to level,
  * the bank, the nearest secret discovery, this week's raid pool, the aspects and the professions;
  * and the compact Home's first-steps row. They read {@link HomeData}, refreshed twice a second.
  */

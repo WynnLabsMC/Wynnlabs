@@ -23,8 +23,8 @@ final class MenuRail extends MenuPaint {
      * The rail's entries: each lists the tab numbers it holds; an entry with more than one shows
      * them as sections along the top of its page. Settings (the last) is pinned to the bottom.
      */
-    static final int[][] RAIL = {{0}, {1, 3, RoadmapScreen.TAB_DAMAGE}, {2},
-        {RoadmapScreen.TAB_TREE}, {RoadmapScreen.TAB_ENDGAME}, {RoadmapScreen.TAB_BANK}, {RoadmapScreen.TAB_CRAFT},
+    static final int[][] RAIL = {{0}, {1}, {2},
+        {RoadmapScreen.TAB_TREE, RoadmapScreen.TAB_DAMAGE, 3}, {RoadmapScreen.TAB_ENDGAME}, {RoadmapScreen.TAB_BANK}, {RoadmapScreen.TAB_CRAFT},
         {RoadmapScreen.TAB_SEARCH}, {RoadmapScreen.TAB_SETTINGS, RoadmapScreen.TAB_AI}};
     /** Each entry's name as a language key. */
     static final String[] RAIL_NAMES = {"wynnlabs.screen.rail_home", "wynnlabs.screen.tab_today",

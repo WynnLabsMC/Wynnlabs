@@ -372,11 +372,18 @@ public final class Today {
     }
 
     /** Every character's last saved day (the current one live), current character first. */
+    /** The J menu preview: the days to show instead of the game's (null: the game's). */
+    public static volatile List<Day> previewDays;
+
     public static List<Day> all(Minecraft mc) {
+        if (previewDays != null) {
+            return previewDays;
+        }
         List<Day> out = new ArrayList<>();
         if (mc.player != null && !Profile.id().isEmpty()) {
             out.add(current(mc));
         }
+        List<Day> others = new ArrayList<>();
         Path root = Dirs.config().resolve("characters");
         try (var dirs = Files.list(root)) {
             for (Path dir : dirs.toList()) {
@@ -384,18 +391,25 @@ public final class Today {
                 if (id.equals(Profile.id()) || !Files.exists(dir.resolve("today.json"))) {
                     continue;
                 }
-                var o = JsonParser.parseString(Files.readString(dir.resolve("today.json"))).getAsJsonObject();
-                List<Objective> objs = new ArrayList<>();
-                o.getAsJsonArray("objectives").forEach(e -> {
-                    var j = e.getAsJsonObject();
-                    objs.add(new Objective(j.get("goal").getAsString(), j.get("score").getAsInt(), j.get("max").getAsInt()));
-                });
-                out.add(new Day(id, o.get("class").getAsString(), o.get("level").getAsInt(), o.get("date").getAsString(),
-                        objs, o.has("reward") ? o.get("reward").getAsBoolean() : null, o.get("tickets").getAsInt(),
-                        o.get("seen").getAsLong()));
+                try {
+                    var o = JsonParser.parseString(Files.readString(dir.resolve("today.json"))).getAsJsonObject();
+                    List<Objective> objs = new ArrayList<>();
+                    o.getAsJsonArray("objectives").forEach(e -> {
+                        var j = e.getAsJsonObject();
+                        objs.add(new Objective(j.get("goal").getAsString(), j.get("score").getAsInt(), j.get("max").getAsInt()));
+                    });
+                    others.add(new Day(id, o.get("class").getAsString(), o.get("level").getAsInt(), o.get("date").getAsString(),
+                            objs, o.has("reward") ? o.get("reward").getAsBoolean() : null,
+                            o.has("tickets") ? o.get("tickets").getAsInt() : 0, o.has("seen") ? o.get("seen").getAsLong() : 0));
+                } catch (Exception ignored) {
+                    // one unreadable character file must not hide the others
+                }
             }
         } catch (Exception ignored) {
         }
+        // the other characters, the one played last first
+        others.sort(java.util.Comparator.comparingLong(Day::seen).reversed());
+        out.addAll(others);
         return out;
     }
 

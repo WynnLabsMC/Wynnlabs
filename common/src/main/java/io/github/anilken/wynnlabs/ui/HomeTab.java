@@ -23,7 +23,7 @@ import java.util.List;
  * the spells beside it (the first steps' row on top while any is open). Above it all the "Next"
  * line ({@link HomeNext}); while a menu the mod reads is unopened, the "First steps" card
  * ({@link HomeSteps}) sits under the stats. The tiles that were here are on the Today tab
- * ({@link TodayNext}).
+ * (the Today tab once had them).
  *
  * <p>{@link RoadmapScreen} keeps the band, the level buttons, the clicks and the tooltips: it
  * hands this frame's slots in ({@link In}) and takes the areas back through {@link Host}. Only

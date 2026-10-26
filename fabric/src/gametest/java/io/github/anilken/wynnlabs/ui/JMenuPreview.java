@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -59,7 +59,7 @@ public class JMenuPreview implements FabricClientGameTest {
             });
             SearchPreview.loadIndex();
             // straight on the screen being checked: a filtered run never draws Home first
-            int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("quests") ? 2
+            int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("today") ? 1 : part.equals("quests") ? 2
                     : part.equals("settings") ? 5 : part.equals("crafting") ? 10 : 0;
             ctx.setScreen(() -> RoadmapScreen.on(first));
             ctx.waitForScreen(RoadmapScreen.class);
@@ -228,8 +228,64 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).settings.closePopup());
     }
 
+    /**
+     * -PpreviewOnly=today: the Today tab with two other characters' days and a last session written
+     * where the game keeps them (the preview's own config folder), so it is not empty.
+     */
+    private static void todayShots(ClientGameTestContext ctx, Path out) throws Exception {
+        String date = io.github.anilken.wynnlabs.coach.Today.utcDate();
+        long now = System.currentTimeMillis();
+        java.util.function.BiFunction<int[], Integer, java.util.List<io.github.anilken.wynnlabs.coach.Today.Objective>> objs = (s, n) ->
+                java.util.List.of(new io.github.anilken.wynnlabs.coach.Today.Objective("Slay 100 mobs", s[0], 100),
+                        new io.github.anilken.wynnlabs.coach.Today.Objective("Gather 64 resources", s[1], 64),
+                        new io.github.anilken.wynnlabs.coach.Today.Objective("Finish a dungeon", s[2], 1));
+        // this character and 14 others: some done, some partly, some not played for a week
+        java.util.List<io.github.anilken.wynnlabs.coach.Today.Day> days = new java.util.ArrayList<>();
+        days.add(new io.github.anilken.wynnlabs.coach.Today.Day("me", "SHAMAN", 44, date, objs.apply(new int[] {40, 64, 0}, 0), true, 2, now));
+        String[] cls = {"MAGE", "ARCHER", "WARRIOR", "ASSASSIN", "SHAMAN"};
+        int[][] alts = {{71, 3, 5}, {102, 1, 20}, {88, 0, 30}, {64, 2, 3}, {106, 3, 50}, {33, 0, 70}, {12, 0, 150}, {105, 3, 9},
+            {97, 1, 26}, {21, -1, 400}, {106, 2, 12}, {54, 0, 200}, {77, 3, 40}, {8, -1, 900}};
+        for (int k = 0; k < alts.length; k++) {
+            int[] a = alts[k];
+            int[] sc = a[1] < 0 ? new int[] {0, 0, 0} : new int[] {a[1] >= 1 ? 100 : 30, a[1] >= 2 ? 64 : 10, a[1] >= 3 ? 1 : 0};
+            String d = a[2] > 48 ? java.time.LocalDate.parse(date).minusDays(a[2] / 24).toString() : date;
+            days.add(new io.github.anilken.wynnlabs.coach.Today.Day("alt" + k, cls[k % cls.length], a[0], d, a[1] < 0 ? java.util.List.of()
+                    : objs.apply(sc, 0), null, 0, now - a[2] * 3_600_000L));
+        }
+        Path me = io.github.anilken.wynnlabs.core.Profile.dir();
+        Files.createDirectories(me);
+        Files.writeString(me.resolve("last-session.json"), "{\"start\":" + (now - 26 * 3_600_000L) + ",\"end\":" + (now - 24 * 3_600_000L)
+                + ",\"levels\":0.62,\"xp\":184000,\"emeralds\":2350,\"deaths\":1}");
+        ctx.runOnClient(mc -> {
+            io.github.anilken.wynnlabs.coach.Today.previewDays = days;
+            set(mc.screen, "tab", 1);
+        });
+        ctx.waitTicks(70);                         // the tab reads its files every three seconds
+        shot(ctx, out, "today-now");
+        // the "+N" chip's list of every character
+        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).today.action("#qtodayothers"));
+        ctx.waitTicks(3);
+        shot(ctx, out, "today-others");
+        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).today.closePopup());
+        // nothing read today: the empty state
+        ctx.runOnClient(mc -> io.github.anilken.wynnlabs.coach.Today.previewDays = java.util.List.of());
+        ctx.waitTicks(50);                         // the days are read again every two seconds
+        shot(ctx, out, "today-empty");
+        // the tree's rail entry with its new strip: Ağaç · Hasar · Ölümler, on Hasar
+        ctx.runOnClient(mc -> {
+            io.github.anilken.wynnlabs.coach.Today.previewDays = null;
+            set(mc.screen, "tab", RoadmapScreen.TAB_DAMAGE);
+        });
+        ctx.waitTicks(5);
+        shot(ctx, out, "today-tree-strip");
+    }
+
     /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
     private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
+        if (part.equals("today")) {
+            todayShots(ctx, out);
+            return;
+        }
         if (part.equals("settings")) {
             settingsShots(ctx, out);
             return;
