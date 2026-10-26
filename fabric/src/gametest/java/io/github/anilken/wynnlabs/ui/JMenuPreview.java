@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -178,8 +178,41 @@ public class JMenuPreview implements FabricClientGameTest {
         }
     }
 
+    /**
+     * -PpreviewOnly=settings: the settings' pages (a category with a row picked, the rules, prices
+     * and data, the look, About), a search and the changed settings.
+     */
+    private static void settingsShots(ClientGameTestContext ctx, Path out) throws Exception {
+        ctx.runOnClient(mc -> set(mc.screen, "tab", RoadmapScreen.TAB_SETTINGS));
+        int[][] pages = {{3, 1}, {7, 1}, {8, 1}, {1, 2}, {0, 0}};
+        String[] names = {"glow", "rules", "data", "look", "about"};
+        for (int i = 0; i < pages.length; i++) {
+            int[] p = pages[i];
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).settings.previewSettings(p[0], p[1], false));
+            ctx.waitTicks(3);
+            shot(ctx, out, "settings-" + names[i]);
+        }
+        ctx.runOnClient(mc -> {
+            Field f = SettingsTab.class.getDeclaredField("searchBox");
+            f.setAccessible(true);
+            ((net.minecraft.client.gui.components.EditBox) f.get(((RoadmapScreen) mc.screen).settings)).setValue("parla");
+        });
+        ctx.waitTicks(3);
+        shot(ctx, out, "settings-search");
+        ctx.runOnClient(mc -> {
+            ((RoadmapScreen) mc.screen).settings.previewSettings(3, -1, false);
+            ((RoadmapScreen) mc.screen).settings.showChanged = true;
+        });
+        ctx.waitTicks(3);
+        shot(ctx, out, "settings-changed");
+    }
+
     /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
     private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
+        if (part.equals("settings")) {
+            settingsShots(ctx, out);
+            return;
+        }
         if (part.equals("home")) {
             ctx.runOnClient(mc -> set(mc.screen, "tab", 0));
             ctx.waitTicks(3);

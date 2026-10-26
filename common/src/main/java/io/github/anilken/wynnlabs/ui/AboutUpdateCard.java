@@ -129,9 +129,15 @@ final class AboutUpdateCard extends MenuPaint {
         int bx = x + w - 8;
         int cardH = row ? 58 : 40;
         boolean lit = newer || phase == UpdateDownload.Phase.READY;
-        Kit.card(g, x, y, w, cardH, lit ? Theme.GOLD_DEEP : 0, lit);
         if (lit) {
-            Kit.outline(g, x - 1, y - 1, w + 2, cardH + 2, Theme.GOLD_DEEP);
+            // a new version: a gold wash with a one-pixel gold edge, as a notice
+            g.fill(x, y, x + w, y + cardH, LIT_FILL);
+            Kit.hair(g, x, y, w, 1, Theme.GOLD_DEEP);
+            Kit.hair(g, x, y + cardH - 1, w, 1, Theme.GOLD_DEEP);
+            Kit.hair(g, x, y, 1, cardH, Theme.GOLD_DEEP);
+            Kit.hair(g, x + w - 1, y, 1, cardH, Theme.GOLD_DEEP);
+        } else {
+            Kit.softCard(g, x, y, w, cardH);
         }
         Art.icon(g, icon, x + 8, y + 9, 12, Theme.paperRgb(iconColour));
         if (!row && !buttons.isEmpty()) {
@@ -162,6 +168,8 @@ final class AboutUpdateCard extends MenuPaint {
         }
         return cardH;
     }
+
+    private static final int LIT_FILL = 0xFFF4E2A8;
 
     /** One button; {@code alignRight}: {@code x} is its right edge. Returns its width. */
     private int cardButton(GuiGraphics g, String[] b, boolean main, boolean litCard, int x, int y, int mx, int my,

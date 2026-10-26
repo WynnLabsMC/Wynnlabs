@@ -50,7 +50,6 @@ wynnlabs.quests.reward_level_share      inside "( )" after the XP
 wynnlabs.quests.reward_no_gain          inside "( )" after a reward's name
 wynnlabs.results.before                 after "Equip order: "
 wynnlabs.settings.key_builtin           after "Wynnventory key: "
-wynnlabs.settings.key_none              after "Wynnventory key: "
 wynnlabs.vault.status_unknown           inside "The open menu is not a bank: …"
 wynnlabs.wear.cannot_head               " does not work: …" after the items' names
 wynnlabs.wear.head                      " does not work: …" after the items' names

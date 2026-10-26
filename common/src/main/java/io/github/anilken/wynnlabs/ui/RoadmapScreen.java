@@ -351,7 +351,7 @@ public final class RoadmapScreen extends Screen {
      * holds its pills, so its hint is drawn under its aspect list instead.
      */
     private static final String[] TAB_HINT = {"", "wynnlabs.screen.hint_today", "wynnlabs.screen.hint_quests",
-        "wynnlabs.screen.hint_deaths", "wynnlabs.screen.hint_bank", "wynnlabs.screen.hint_settings", "wynnlabs.screen.hint_ai",
+        "wynnlabs.screen.hint_deaths", "wynnlabs.screen.hint_bank", "", "wynnlabs.screen.hint_ai",
         "wynnlabs.screen.hint_damage", "wynnlabs.screen.hint_discoveries", "wynnlabs.screen.hint_tree", "",
         "wynnlabs.screen.hint_endgame", ""};
 
@@ -782,7 +782,15 @@ public final class RoadmapScreen extends Screen {
     /** Typing, except the search key's own character right after it opened the tab. */
     @Override
     public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
-        return SearchKey.swallow() || super.charTyped(event);
+        if (SearchKey.swallow()) {
+            return true;
+        }
+        // "/" on the settings while nothing is being typed: their search box
+        if (tab == TAB_SETTINGS && event.codepoint() == '/'
+                && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox b && b.isFocused())) {
+            return settings.slashTyped();
+        }
+        return super.charTyped(event);
     }
 
     /** Esc: back to the screen the search key was pressed on, when there is one. */
