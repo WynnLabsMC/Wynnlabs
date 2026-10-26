@@ -76,15 +76,11 @@ final class EndgameAspectList extends EndgamePanel {
                 L.t("wynnlabs.endgame.f_owned", owned), L.t("wynnlabs.endgame.f_pool", inPool)};
             int cx = x;
             for (int i = 0; i < names.length; i++) {
-                int bw = Kit.Ui.btnW(tab.font, names[i]);
+                int bw = Ui.chipWidth(tab.font, names[i]);
                 if (cx + bw > x + w - crw) {
                     break;
                 }
-                boolean on = tab.filter == i;
-                boolean hover = mx >= cx && mx < cx + bw && my >= ry && my < ry + 14;
-                int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
-                Kit.button(g, cx, ry, bw, 14, state);
-                g.drawString(tab.font, names[i], cx + Kit.Ui.BTN_PAD, ry + 3, Kit.buttonText(state), false);
+                Ui.chip(g, tab.font, names[i], cx, ry, bw, tab.filter == i, false, false, mx, my);
                 int f = i;
                 tab.acts.add(new Act(cx, ry, bw, 14, () -> {
                     tab.filter = f;
@@ -179,7 +175,24 @@ final class EndgameAspectList extends EndgamePanel {
     }
 
     private int rowH(RankedAspect a, boolean large) {
-        return large && a.rank() > 0 ? 22 : 14;
+        // the picked aspect's row grows by a line: where it drops this week, the next tier's copies
+        return (large && a.rank() > 0 ? 24 : 16) + (a.aspect().name().equals(tab.pinned) ? Type.META.lineHeight + Theme.SP_1 : 0);
+    }
+
+    /** "Bu hafta: The Canyon Colossus · Tier 2 için 15 kopya" for the picked aspect. */
+    private String pickedLine(RankedAspect a) {
+        java.util.List<String> f = new java.util.ArrayList<>();
+        java.util.List<String> held = RaidPool.raidsHolding(a.aspect().name());
+        f.add(held == null || held.isEmpty() ? L.t("wynnlabs.endgame.picked_not_this_week")
+                : L.t("wynnlabs.endgame.picked_this_week", String.join(", ", held)));
+        AspectEntry e = a.aspect();
+        int owned = Math.max(0, a.ownedTier());
+        if (a.ownedTier() >= e.tiers()) {
+            f.add(L.t("wynnlabs.endgame.tier_max"));
+        } else if (owned < e.thresholds().size()) {
+            f.add(L.n("wynnlabs.endgame.tier_next", e.thresholds().get(owned), owned + 1, e.thresholds().get(owned)));
+        }
+        return String.join(" · ", f);
     }
 
     private int rowH(Line l, boolean large) {
@@ -271,45 +284,50 @@ final class EndgameAspectList extends EndgamePanel {
         String name = a.aspect().name();
         boolean lit = name.equals(tab.pinned);
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
-        Kit.row(g, x, y, w, h, index, lit || hover);
         if (lit) {
-            g.fill(x + 2, y, x + w, y + h, 0x60F6E3A8);
+            Kit.rowLit(g, x, y, w, h);
+        } else if (hover) {
+            g.fill(x, y, x + w, y + h, Theme.CARD_HOVER);            // plain rows, the hovered one washed
         }
-        int ty = y + 3;
+        int ty = y + 4;                                 // the text on the 16 px row, the 12 px picture centred on it
         int colour = tierColour(a.aspect().rarity());
         if (a.rank() > 0) {
             String n = String.valueOf(a.rank());
             int bw = Math.max(10, tab.font.width(n) + 3);
-            g.fill(x + 3, y + 2, x + 3 + bw, y + 12, Theme.BRASS);
+            g.fill(x + 3, y + 3, x + 3 + bw, y + 13, Theme.BRASS);
             Kit.text(g, tab.font, n, x + 3 + (bw - tab.font.width(n) + 1) / 2, ty, Theme.INK);
         }
-        aspectGlyph(g, a.aspect(), x + 16, y + 1, 12);
+        aspectGlyph(g, a.aspect(), x + 16, y + 2, 12);
         // from the right: pips, the equipped dot, the pool tag; the name gets what is left
         int pw = a.ownedTier() < 0 ? tab.font.width("?") : pipsW(a.aspect().tiers());
         int px = x + w - 2 - pw;
         if (a.ownedTier() < 0) {
             Kit.text(g, tab.font, "?", px, ty, Theme.INK_3);
         } else {
-            pips(g, px, y + 4, a.aspect().tiers(), a.ownedTier(), colour);
+            pips(g, px, y + 5, a.aspect().tiers(), a.ownedTier(), colour);
         }
         int rx = px - 4;
         if (a.equipped()) {
-            g.fill(rx - 4, y + 5, rx, y + 9, Theme.GOLD_DEEP);
-            Kit.outline(g, rx - 5, y + 4, 6, 6, Theme.GOLD_EDGE);
+            g.fill(rx - 4, y + 6, rx, y + 10, Theme.GOLD_DEEP);
+            Kit.outline(g, rx - 5, y + 5, 6, 6, Theme.GOLD_EDGE);
             rx -= 9;
         }
         String tg = tagText(name);
         if (tg != null) {
             int tw = Kit.Ui.tagW(tab.font, tg);
-            tag(g, tg, rx - tw, y + 2);
+            tag(g, tg, rx - tw, y + 3);
             rx -= tw + 4;
         }
         int nx = x + 31;                                // 3 px clear of the 12 px icon
         Kit.text(g, tab.font, lit ? boldFit(name, rx - nx) : Component.literal(fit(name, rx - nx)), nx, ty, colour);
-        if (large && h > 14) {
-            ink(g, fit(a.reason(), x + w - 2 - nx), nx, y + 13, Theme.INK_3);
+        int extra = lit ? Type.META.lineHeight + Theme.SP_1 : 0;
+        if (large && h - extra > 16) {
+            ink(g, fit(a.reason(), x + w - 2 - nx), nx, y + 14, Theme.INK_3);
         }
-        tab.acts.add(new Act(x, y, w, h, () -> tab.pinned = name, name));
+        if (lit) {
+            Type.META.draw(g, tab.font, Type.META.fit(tab.font, pickedLine(a), x + w - 2 - nx), nx, y + h - extra, Theme.INK_2);
+        }
+        tab.acts.add(new Act(x, y, w, h, () -> tab.pinned = lit ? null : name, name));
         tab.tips.add(new Tip(x, y, w, h, aspectTip(a)));
     }
 

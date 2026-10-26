@@ -209,52 +209,6 @@ final class EndgameRecentRuns extends EndgamePanel {
         tab.tips.add(new Tip(x, y - 1, w, 11, totalsTip(t)));
     }
 
-    /** The compact lootrun section: the last lootruns with time and pulls, then the totals. */
-    void compactLootruns(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        int pullsR = x + w;
-        int timeR = pullsR - 50;
-        int markX = timeR - 46;
-        Kit.section(g, tab.font, L.t("wynnlabs.endgame.recent_lootruns"), x, y, markX - 8 - x);
-        right(g, L.t("wynnlabs.endgame.col_time"), timeR, y, Theme.INK_3);
-        right(g, L.t("wynnlabs.endgame.col_pulls"), pullsR, y, Theme.INK_3);
-        int ry = y + 11;
-        int foot = y + h - 10;
-        if (tab.d.lootruns().isEmpty()) {
-            ink(g, fit(L.t("wynnlabs.endgame.lootrun_empty"), w), x, ry + 2, Theme.INK_3);
-        }
-        int rowH = 12;
-        for (int i = 0; i < tab.d.lootruns().size() && ry + rowH <= foot - 2; i++) {
-            LootrunRun r = tab.d.lootruns().get(i);
-            boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + rowH;
-            Kit.row(g, x, ry, w, rowH, i, hover);
-            int ty = ry + 2;
-            int nameW = markX - 6 - x;
-            if (r.mythic() != null) {
-                int mw = Math.min(tab.font.width(r.mythic()), nameW / 2);
-                String nf = fit(r.camp(), nameW - mw - ROW_ICON - 6);
-                ink(g, nf, x + 2, ty, Theme.INK);
-                int gx = x + 2 + tab.font.width(nf) + 3;
-                mythicGlyph(g, gx, ty - 1, ROW_ICON);
-                ink(g, fit(r.mythic(), markX - 4 - gx - ROW_ICON - 2), gx + ROW_ICON + 2, ty, Theme.TIER_MYTHIC);
-            } else {
-                ink(g, fit(r.camp(), nameW), x + 2, ty, Theme.INK);
-            }
-            Art.icon(g, r.completed() ? "check" : "x", markX, ty, 8, r.completed() ? Theme.GOOD : Theme.BAD);
-            right(g, time(r.durationS() < 0 ? -1 : r.durationS() * 1000L), timeR, ty, Theme.INK);
-            right(g, r.completed() ? String.valueOf(r.pulls()) : "-", pullsR, ty, r.completed() ? Theme.INK : Theme.INK_3);
-            tab.tips.add(new Tip(x, ry, w, rowH, lootrunTip(r)));
-            ry += rowH;
-        }
-        String t = "";
-        LootrunTotals tt = tab.d.totals();
-        if (tab.d.lootUp() && tt.runs() > 0) {
-            t = L.n("wynnlabs.endgame.totals_short", tt.runs(), tt.runs(), Math.max(0, tt.completionPct()),
-                    tt.pullsPerCompleted() < 0 ? "-" : String.valueOf(Math.round(tt.pullsPerCompleted())));
-            ink(g, fit(t, w), x, foot, Theme.INK_3);
-            tab.tips.add(new Tip(x, foot - 1, w, 11, totalsTip(tt)));
-        }
-    }
-
     private List<Component> raidRunTip(RaidRun r) {
         List<Component> t = new ArrayList<>();
         t.add(title(r.raid(), ChatFormatting.GOLD));

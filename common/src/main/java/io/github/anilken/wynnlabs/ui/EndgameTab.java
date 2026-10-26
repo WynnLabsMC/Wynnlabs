@@ -1,9 +1,11 @@
 package io.github.anilken.wynnlabs.ui;
 
+import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.endgame.AspectBook;
 import io.github.anilken.wynnlabs.endgame.ItemIcons;
 import io.github.anilken.wynnlabs.endgame.LootrunLog;
+import io.github.anilken.wynnlabs.endgame.PoolView;
 import io.github.anilken.wynnlabs.endgame.RaidLog;
 import io.github.anilken.wynnlabs.endgame.RaidPool;
 import io.github.anilken.wynnlabs.endgame.WynnventoryPools;
@@ -18,23 +20,18 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The J menu's Endgame tab (openspec endgame-tab, design decision 2): the dry card and the
- * aspect card on top, then raids, the recent-runs feed and the aspect list; side by side at the
- * standard size, three columns when large, one section at a time behind the cards when compact.
- * It only reads {@link RaidLog}, {@link RaidPool}, {@link LootrunLog} and {@link AspectBook};
- * its view state (compact section, aspect filter, picked aspect, list scroll) lives here while
- * the game runs and is never saved. Nothing in it acts in the game. {@code RoadmapScreen} only
- * routes to it, as for {@link CraftingTab}.
+ * The J menu's Endgame tab (the approved build/endgame-mockup/index.html): one page, "Bu hafta
+ * senin için" on top (the raid that drops the most aspects you lack, the camp with the most
+ * mythics), then this week's raids, lootrun camps and your aspects; a raid's or camp's pool and the
+ * Kayıt (this session, pulls since a mythic, every run) open in a drawer over it. It only reads
+ * {@link RaidLog}, {@link RaidPool}, {@link LootrunLog} and {@link AspectBook}; its view state lives
+ * here while the game runs and is never saved. Nothing in it acts in the game. {@code RoadmapScreen}
+ * only routes to it, as for {@link CraftingTab}.
  *
- * <p>The tab holds the view state and the frame (font, clock, data, click and hover areas), lays
- * the page out and routes input; its parts are drawn by the panels: {@link EndgameTitleBar},
- * {@link EndgameCards}, {@link EndgameRaids}, {@link EndgameRecentRuns}, {@link EndgameAspectList}
- * and {@link EndgamePoolsView}. What it reads is {@link EndgameData}; the preview's fake data is
- * {@link EndgamePreviewData}.
- *
- * <p>API contract of group 1 (design.md, "API contract"): the signatures below stay as they
- * are; group 5 fills the bodies, wires the tab into RoadmapScreen and LayoutMatrix, and may add
- * private helpers.
+ * <p>The parts are drawn by the panels: {@link EndgameTitleBar} (the session chip), {@link EndgameWeek}
+ * (the card, the raids, the camps), {@link EndgameAspectList}, {@link EndgamePoolsView} (a pool) and
+ * {@link EndgameLog} (the Kayıt, with {@link EndgameRaids} and {@link EndgameRecentRuns}). What it
+ * reads is {@link EndgameData}; the preview's fake data is {@link EndgamePreviewData}.
  */
 public final class EndgameTab {
 
@@ -91,11 +88,27 @@ public final class EndgameTab {
 
     // the panels
     private final EndgameTitleBar titleBar = new EndgameTitleBar(this);
-    private final EndgameCards cards = new EndgameCards(this);
+    private final EndgameWeek week = new EndgameWeek(this);
     private final EndgameRaids raids = new EndgameRaids(this);
     private final EndgameRecentRuns runs = new EndgameRecentRuns(this);
+    private final EndgameLog log = new EndgameLog(this, raids, runs);
     final EndgameAspectList aspectList = new EndgameAspectList(this);
-    private final EndgamePoolsView pools = new EndgamePoolsView(this);
+    final EndgamePoolsView pools = new EndgamePoolsView(this);
+
+    // the drawer: a raid's or camp's pool, or the Kayıt (made with the menu on its first opening)
+    private UiDrawer drawer;
+    /** What the drawer shows: {@link #D_POOL} or {@link #D_LOG}; and, for a pool, which. */
+    private int drawerKind;
+    static final int D_POOL = 1;
+    static final int D_LOG = 2;
+    private boolean drawerRaid;
+    private String drawerRegion;
+    /** The drawer's own click and hover areas start here in {@link #acts} and {@link #tips}. */
+    private int drawerActs;
+    private int drawerTips;
+    private final List<int[]> drawerBoxes = new ArrayList<>();
+    private boolean compactNow;
+    private boolean largeNow;
 
     private EndgameTab() {}
 
@@ -142,85 +155,92 @@ public final class EndgameTab {
         // the panel's rail tells the size: an icon rail when compact, a wide panel when large
         boolean compact = x - frame[0] - 12 < MenuLayout.RAIL;
         boolean large = !compact && (frame[2] > 640 || frame[3] > 344);
-        titleBar.pills(g, x, titleY, w, compact, mx, my);
-        if (view == VIEW_POOLS) {
-            pools.drawPools(g, x, y, w, h, compact, large, mx, my);
-        } else if (compact) {
-            drawCompact(g, x, y, w, h, mx, my);
-        } else if (large) {
-            drawLarge(g, x, y, w, h, mx, my);
+        compactNow = compact;
+        largeNow = large;
+        boolean open = drawerOpen();
+        // an open drawer owns the mouse: the page draws as if the mouse were away
+        int pmx = open ? -1 : mx;
+        int pmy = open ? -1 : my;
+        titleBar.chip(g, x, titleY, w, compact, pmx, pmy);
+        if (compact) {
+            week.compact(g, x, y, w, h, pmx, pmy);
         } else {
-            drawStandard(g, x, y, w, h, mx, my);
+            week.wide(g, x, y, w, h, large, pmx, pmy);
+        }
+        drawerActs = acts.size();
+        drawerTips = tips.size();
+        drawerBoxes.clear();
+        if (open) {
+            g.nextStratum();
+            drawer.page(x, y, w, h);
+            drawer.draw(g, mx, my, drawerBoxes);
+            // what scrolled out of the drawer's body takes no click and shows no tooltip
+            int[] b = drawer.body;
+            if (b != null && drawerKind == D_LOG) {
+                acts.subList(drawerActs, acts.size()).removeIf(a -> a.y() + a.h() <= b[1] || a.y() >= b[1] + b[3]);
+                tips.subList(drawerTips, tips.size()).removeIf(t -> t.y() + t.h() <= b[1] || t.y() >= b[1] + b[3]);
+            }
         }
         tooltip(g, mx, my, screenW);
     }
 
-    /** Standard: two columns, each topped by its card (dry over raids and runs, aspect over the list). */
-    private void drawStandard(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        int gap = 10;
-        int lw = (w - gap) / 2;
-        int rx = x + lw + gap;
-        int rw = w - lw - gap;
-        int cardH = 54;
-        cards.dryCard(g, x, y, lw, cardH, false, mx, my);
-        cards.aspectCard(g, rx, y, rw, cardH, false, mx, my);
-        int top = y + cardH + 8;
-        int ly = raids.raids(g, x, top, lw, 12, false, false, mx, my);
-        runs.feed(g, x, ly + 4, lw, y + h - ly - 4, false, mx, my);
-        aspectList.aspects(g, rx, top, rw, y + h - top, false, false, mx, my);
+    // ---- the drawer ----
+
+    private boolean drawerOpen() {
+        return drawer != null && drawer.showing() && drawerKind != 0;
     }
 
-    /** Large: the same band of cards over three columns (raids, recent runs, aspects) with more detail. */
-    private void drawLarge(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        int gap = 10;
-        int c1 = (w - 2 * gap) * 36 / 100;
-        int c2 = (w - 2 * gap) * 32 / 100;
-        int c3 = w - 2 * gap - c1 - c2;
-        int x2 = x + c1 + gap;
-        int x3 = x2 + c2 + gap;
-        int cardH = 66;
-        cards.dryCard(g, x, y, c1 + gap + c2, cardH, true, mx, my);
-        cards.aspectCard(g, x3, y, c3, cardH, true, mx, my);
-        int top = y + cardH + 8;
-        int ry = raids.raids(g, x, top, c1, 13, true, false, mx, my);
-        cards.dryLines(g, x, ry + 4, c1, false);
-        runs.feed(g, x2, top, c2, y + h - top, true, mx, my);
-        aspectList.aspects(g, x3, top, c3, y + h - top, true, false, mx, my);
-    }
-
-    /** Compact: the three small cards are the section switch; the lit card's section uses the full width. */
-    private void drawCompact(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        int gap = 6;
-        int cw = (w - 2 * gap) / 3;
-        int ch = 30;
-        for (int i = 0; i < 3; i++) {
-            int cx = x + i * (cw + gap);
-            int ew = i == 2 ? w - 2 * (cw + gap) : cw;
-            cards.smallCard(g, i, cx, y, ew, ch, mx, my);
+    /** The menu the drawer belongs to (the screen open now), made the first time. */
+    private UiDrawer drawer() {
+        if (drawer == null && net.minecraft.client.Minecraft.getInstance().screen instanceof RoadmapScreen rs) {
+            drawer = new UiDrawer(rs);
         }
-        int sy = y + ch + 8;
-        int sh = h - ch - 8;
-        switch (section) {
-            case SEC_LOOTRUNS -> {
-                int ly = cards.lootDryLine(g, x, sy, w);
-                if (!d.p().camps().isEmpty()) {
-                    ly += 12 * runs.mythicLine(g, x, ly, w, 1, true);
-                }
-                runs.compactLootruns(g, x, ly + 2, w, y + h - ly - 2, mx, my);
-            }
-            case SEC_ASPECTS -> aspectList.aspects(g, x, sy, w, sh, false, true, mx, my);
-            default -> {
-                int ly = cards.dryLines(g, x, sy, w, true);
-                raids.raids(g, x, ly + 2, w, 12, false, true, mx, my);
-            }
-        }
+        return drawer;
     }
 
-    /** Opens Havuzlar on this sub-tab at this region (the links from Özet). */
-    void openPools(int tab, String region) {
+    /** Opens a raid's or camp's pool in the drawer (a row, the card's "Havuzu gör ›"). */
+    void openPool(boolean raid, String region) {
+        if (drawer() == null) {
+            return;
+        }
+        drawerKind = D_POOL;
+        drawerRaid = raid;
+        drawerRegion = region;
         view = VIEW_POOLS;
-        poolTab = tab;
-        pick(tab == TAB_RAIDS, region);
+        poolTab = raid ? TAB_RAIDS : TAB_CAMPS;
+        pick(raid, region);
+        PoolView.Region r = pools.best(raid, region);
+        String title = r == null ? L.t(raid ? "wynnlabs.endgame.raids" : "wynnlabs.endgame.camps") : EndgamePoolsView.regionName(r);
+        drawer.showWide(title, (g, x, y, w, top, bottom, mx, my) -> {
+            pools.regionPane(g, drawerRaid, drawerRegion, x, y, w, bottom - top, compactNow, largeNow, mx, my);
+            return bottom - top;
+        });
+    }
+
+    /** Opens the Kayıt: this session, the pulls since a mythic, every raid, the recent runs. */
+    void openLog() {
+        if (drawer() == null) {
+            return;
+        }
+        drawerKind = D_LOG;
+        view = VIEW_SUMMARY;
+        drawer.show(L.t("wynnlabs.endgame.log_title"), log::draw);
+    }
+
+    /** Closes the drawer (a click outside it, its ✕, Esc); true when one was open. */
+    boolean closeDrawer() {
+        if (!drawerOpen()) {
+            return false;
+        }
+        drawer.close();
+        drawerKind = 0;
+        view = VIEW_SUMMARY;
+        return true;
+    }
+
+    /** Opens Havuzlar on this sub-tab at this region (the links from Özet): now its pool in the drawer. */
+    void openPools(int tab, String region) {
+        openPool(tab == TAB_RAIDS, region);
     }
 
     /** Lights this region and starts its lists at the top. */
@@ -243,7 +263,7 @@ public final class EndgameTab {
 
     private void tooltip(GuiGraphics g, int mx, int my, int screenW) {
         List<Component> tip = null;
-        for (int i = tips.size() - 1; i >= 0; i--) {
+        for (int i = tips.size() - 1; i >= (drawerOpen() ? drawerTips : 0); i--) {
             if (tips.get(i).in(mx, my)) {
                 tip = tips.get(i).lines();
                 break;
@@ -258,18 +278,41 @@ public final class EndgameTab {
     // =====================================================================================
     // input
 
-    /** A click on the page: true when the tab used it (section card, filter chip, pool line, aspect row, "↺"). */
+    /**
+     * A click on the page: true when the tab used it. With the drawer open it owns the mouse:
+     * inside, its ✕, its bar and its own areas; outside, the click only closes it.
+     */
     boolean mouseClicked(double mx, double my, int button) {
         if (button != 0) {
             return false;
         }
-        if (view == VIEW_POOLS ? pools.barPressed(mx, my) : listBar.mouseClicked(mx, my)) {
-            if (view != VIEW_POOLS) {
-                listScroll = listBar.offset();
+        if (drawerOpen()) {
+            boolean inside = drawerBoxes.stream().anyMatch(b -> mx >= b[0] && mx < b[0] + b[2] && my >= b[1] && my < b[1] + b[3]);
+            if (!inside) {
+                closeDrawer();
+                return true;
+            }
+            var ev = new net.minecraft.client.input.MouseButtonEvent(mx, my, new net.minecraft.client.input.MouseButtonInfo(button, 0));
+            if (drawer.clicked(ev) || pools.barPressed(mx, my)) {
+                if (!drawer.showing()) {
+                    drawerKind = 0;
+                    view = VIEW_SUMMARY;
+                }
+                return true;
+            }
+            for (int i = acts.size() - 1; i >= drawerActs; i--) {
+                if (acts.get(i).in(mx, my)) {
+                    acts.get(i).run().run();
+                    return true;
+                }
             }
             return true;
         }
-        for (int i = acts.size() - 1; i >= 0; i--) {
+        if (listBar.mouseClicked(mx, my)) {
+            listScroll = listBar.offset();
+            return true;
+        }
+        for (int i = drawerActs - 1; i >= 0; i--) {
             EndgamePanel.Act a = acts.get(i);
             if (a.in(mx, my)) {
                 a.run().run();
@@ -281,6 +324,9 @@ public final class EndgameTab {
 
     /** A drag with a list's bar held; true while one is. */
     boolean barDragged(double my) {
+        if (drawer != null && drawer.drag(0, my)) {
+            return true;
+        }
         if (pools.barDragged(my)) {
             return true;
         }
@@ -292,14 +338,20 @@ public final class EndgameTab {
     }
 
     void barReleased() {
+        if (drawer != null) {
+            drawer.release();
+        }
         pools.barReleased();
         listBar.mouseReleased();
     }
 
-    /** The wheel over the page: scrolls the list under the mouse; true when it did. */
+    /** The wheel: over the drawer its lists (a pool's columns) or its body; over the page the aspect list. */
     boolean mouseScrolled(double mx, double my, double v) {
-        if (view == VIEW_POOLS) {
-            return pools.mouseScrolled(mx, my, v);
+        if (drawerOpen()) {
+            if (!pools.mouseScrolled(mx, my, v)) {
+                drawer.scrolled(mx, my, v);
+            }
+            return true;
         }
         int[] r = listRect;
         if (r == null || mx < r[0] || mx >= r[0] + r[2] || my < r[1] || my >= r[1] + r[3] || listScrollMax <= 0) {
@@ -320,6 +372,7 @@ public final class EndgameTab {
 
     /** The menu was closed (view state is kept for the next opening). */
     void closed() {
+        closeDrawer();                                  // the menu reopens on the page, the drawer closed
         d = null;                                       // read afresh on the next opening
         ItemIcons.clear();                              // the pack may change before the next opening
     }
@@ -376,17 +429,18 @@ public final class EndgameTab {
         return mythicRect;
     }
 
-    /** For the preview: Havuzlar on this sub-tab at this region (null: as remembered), or Özet when {@code tab} is negative. */
+    /** For the preview: a pool in the drawer on this sub-tab at this region (null: the best), or none when {@code tab} is negative. */
     public void previewPools(int tab, String region) {
         if (tab < 0) {
-            view = VIEW_SUMMARY;
+            closeDrawer();
             return;
         }
-        view = VIEW_POOLS;
-        poolTab = tab;
-        if (region != null) {
-            pick(tab == TAB_RAIDS, region);
-        }
+        openPool(tab == TAB_RAIDS, region);
+    }
+
+    /** For the preview: the Kayıt drawer. */
+    void previewLog() {
+        openLog();
     }
 
     /** For the preview: where an item row was drawn last frame {x, y, w, h} (a shiny one: its name and "*"); null when not drawn. */

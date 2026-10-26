@@ -54,6 +54,12 @@ final class UiDrawer implements MenuTab.Popup {
         }
     }
 
+    /** The parchment's own edge inside the page panel (its torn border): the drawer keeps clear of it. */
+    private static final int PAPER_EDGE = 4;
+
+    /** A wider drawer (a pool's columns): 74% of the page instead of 62%. */
+    private boolean wide;
+
     /** The share of the body the side takes beside the content, in percent. */
     static final int SIDE_SHARE = 46;
 
@@ -84,11 +90,18 @@ final class UiDrawer implements MenuTab.Popup {
 
     /** Opens on {@code content} with {@code side} pinned beside it. */
     void show(String title, Content content, Side side) {
+        this.wide = false;
         this.title = title;
         this.content = content;
         this.side = side;
         open = true;
         scroll = 0;
+    }
+
+    /** Opens wide (74% of the page): for content in columns. */
+    void showWide(String title, Content content) {
+        show(title, content, null);
+        wide = true;
     }
 
     boolean showing() {
@@ -132,12 +145,20 @@ final class UiDrawer implements MenuTab.Popup {
         int py = page[1];
         int pw = page[2];
         int ph = page[3];
-        g.fill(px - Theme.SP_6, py - Theme.SP_6, px + pw + Theme.SP_6, py + ph + Theme.SP_4, 0x40201810);
+        // the dim: the whole parchment of the page, title row included, one rectangle (the rail and
+        // the frame stay as they are); the drawer sits inside it SP_4 from its inner edge
+        int[] pp = menu.pagePanel != null ? menu.pagePanel : new int[] {px - Theme.SP_6, py - Theme.SP_6, pw + 2 * Theme.SP_6, ph + Theme.SP_6 + Theme.SP_4};
+        g.fill(pp[0], pp[1], pp[0] + pp[2], pp[1] + pp[3], 0x66201810);
         boolean narrow = menu.layout.compact();
-        int dw = narrow ? pw : pw * (side != null && side.shown() ? 74 : 62) / 100;
-        int dx = px + pw - dw;
-        int dy = py - Theme.SP_4;
-        int dh = ph + Theme.SP_4;
+        int edge = PAPER_EDGE + Theme.SP_4;
+        int dw = narrow ? pp[2] - 2 * edge : Math.min(pp[2] - 2 * edge, pw * (wide || side != null && side.shown() ? 74 : 62) / 100);
+        int dx = pp[0] + pp[2] - edge - dw;
+        int dy = pp[1] + edge;
+        int dh = pp[3] - 2 * edge;
+        // a soft shadow on the dimmed page, then an opaque body under the card (its sprite is a touch
+        // translucent: a lit row of the page must not show through), then the card
+        Kit.windowShadow(g, dx, dy, dw, dh);
+        g.fill(dx + 4, dy + 4, dx + dw - 4, dy + dh - 3, 0xFFEADCB4);
         Kit.softCard(g, dx, dy, dw, dh);
         panel = new int[] {dx, dy, dw, dh};
         boxes.add(panel);

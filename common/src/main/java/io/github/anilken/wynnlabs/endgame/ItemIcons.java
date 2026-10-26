@@ -49,8 +49,6 @@ public final class ItemIcons {
     private static final Identifier PACK_PROBE =
             Identifier.withDefaultNamespace("models/item/wynn/template/ability_tree/aspect.json");
     private static final String SHINY_LAYER = "wynn/gui/layer/shiny";
-    /** The {@code PAPER} wash over a dimmed icon (another class's aspect). */
-    private static final int WASH = 0x99000000 | (Theme.PAPER & 0xFFFFFF);
 
     /** Base item + model key → stack ({@link ItemStack#EMPTY} when it cannot be built). Client thread only. */
     private static final Map<String, ItemStack> STACKS = new HashMap<>();
@@ -63,7 +61,12 @@ public final class ItemIcons {
     public static Drawn draw(GuiGraphics g, PoolItem item, Klass aspectClass, int x, int y, int size, boolean dim) {
         PoolIcons.Ref ref = PoolIcons.resolve(item, aspectClass);
         Drawn drawn = Drawn.GLYPH;
-        ItemStack stack = packLoaded() ? stack(ref) : ItemStack.EMPTY;
+        // gear, tomes and charms: the item Wynntils builds for its guides (its real model, as the
+        // bank and Ara show it); then the model table's item; then a texture; then a glyph
+        ItemStack stack = guide(item);
+        if (stack.isEmpty()) {
+            stack = packLoaded() ? stack(ref) : ItemStack.EMPTY;
+        }
         if (!stack.isEmpty()) {
             if (size == 16) {
                 g.renderItem(stack, x, y);
@@ -83,9 +86,7 @@ public final class ItemIcons {
         if (item != null && item.shiny()) {
             shinyMark(g, x, y, size);
         }
-        if (dim) {
-            g.fill(x, y, x + size, y + size, WASH);
-        }
+        // another class's item: its name is faded; no wash over the picture (it showed as a light box)
         if (LayoutCheck.on()) {
             LayoutCheck.record(g.pose(), x, y, size, size, "icon/" + (item == null ? "?" : item.name()), false);
         }
@@ -113,6 +114,35 @@ public final class ItemIcons {
     public static void clear() {
         STACKS.clear();
         pack = null;
+    }
+
+    // ---- source 0: Wynntils' own item for its guides ----
+
+    /** The guide item Wynntils builds for gear, a tome or a charm by its name; empty for other kinds or without Wynntils. */
+    private static ItemStack guide(PoolItem item) {
+        if (item == null || item.name().isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        String t = item.itemType();
+        io.github.anilken.wynnlabs.search.Kind kind = t.contains("Gear") ? io.github.anilken.wynnlabs.search.Kind.GEAR
+                : t.contains("Tome") ? io.github.anilken.wynnlabs.search.Kind.TOME
+                : t.contains("Charm") ? io.github.anilken.wynnlabs.search.Kind.CHARM : null;
+        if (kind == null) {
+            return ItemStack.EMPTY;
+        }
+        String key = "guide|" + kind + "|" + item.name();
+        ItemStack s = STACKS.get(key);
+        if (s == null) {
+            try {
+                s = io.github.anilken.wynnlabs.game.GameState.current().running()
+                        ? io.github.anilken.wynnlabs.game.WynntilsItems.guideStack(kind, item.name()) : null;
+            } catch (LinkageError e) {
+                s = null;                               // Wynntils changed: the other sources
+            }
+            s = s == null ? ItemStack.EMPTY : s;
+            STACKS.put(key, s);
+        }
+        return s;
     }
 
     // ---- source 1: the game's own item ----

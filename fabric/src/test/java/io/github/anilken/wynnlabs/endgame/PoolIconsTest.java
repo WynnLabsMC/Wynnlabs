@@ -267,4 +267,19 @@ class PoolIconsTest {
         assertEquals("", r.texture());
         assertEquals('?', r.glyphLetter());
     }
+
+    @Test
+    void aGrootslangsTomeNamedForItselfFindsItsFamily() {
+        // Wynnventory's Nest of the Grootslangs pool names each tome's own icon, which the table does not know
+        io.github.anilken.wynnlabs.model.PoolItem countering = new io.github.anilken.wynnlabs.model.PoolItem(
+                "Tome of Countering Expertise II", "TomeItem", io.github.anilken.wynnlabs.model.Tier.FABLED, "EXPERTISE_TOME", 1,
+                "attribute", "tome.tomeOfCounteringExpertiseIi", false, "", 0);
+        assertEquals("tome.utility", PoolIcons.resolve(countering, Klass.NONE).modelKey());
+        io.github.anilken.wynnlabs.model.PoolItem faerie = new io.github.anilken.wynnlabs.model.PoolItem(
+                "Faerie's Tome of Mysticism II", "TomeItem", io.github.anilken.wynnlabs.model.Tier.MYTHIC, "MYSTICISM_TOME", 1,
+                "attribute", "tome.faeriesTomeOfMysticismIi", false, "", 0);
+        assertEquals("tome.mana", PoolIcons.resolve(faerie, Klass.NONE).modelKey());
+        assertEquals("tome.armour", PoolIcons.tomeFamily("ARMOUR_TOME"));
+        assertEquals("", PoolIcons.tomeFamily("SOMETHING_NEW"));
+    }
 }

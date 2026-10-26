@@ -226,7 +226,28 @@ final class PoolIcons {
         if (!own.isEmpty() && !out.contains(own)) {
             out.add(own);
         }
+        // a tome whose icon names the tome itself ("tome.bloomingTomeOfDefensiveMasteryIi", as
+        // Wynnventory now sends for some raids) and not its family: the family from its subtype
+        String family = kind == Kind.TOME ? tomeFamily(i.subtype()) : "";
+        if (!family.isEmpty() && !out.contains(family)) {
+            out.add(family);
+        }
         return out;
+    }
+
+    /** "ARMOUR_TOME" → "tome.armour", "EXPERTISE_TOME" → "tome.utility"; "" for a subtype it does not know. */
+    static String tomeFamily(String subtype) {
+        String s = subtype == null ? "" : subtype.toUpperCase(Locale.ROOT);
+        return switch (s) {
+            case "WEAPON_TOME" -> "tome.weapon";
+            case "ARMOUR_TOME", "ARMOR_TOME" -> "tome.armour";
+            case "MYSTICISM_TOME", "MANA_TOME" -> "tome.mana";
+            case "MARATHON_TOME", "MOVEMENT_TOME" -> "tome.movement";
+            case "EXPERTISE_TOME", "RAID_TOME", "UTILITY_TOME" -> "tome.utility";
+            case "LOOTRUN_TOME" -> "tome.lootrun";
+            case "GUILD_TOME" -> "tome.guild";
+            default -> "";
+        };
     }
 
     /** A model key from the item itself (no usable icon): an aspect's class, a rune, ward, augment, key or charm by name. */

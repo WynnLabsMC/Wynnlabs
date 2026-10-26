@@ -94,6 +94,8 @@ public final class RoadmapScreen extends Screen {
     final AiTab ai = new AiTab(this);
     public final TreeTab tree = new TreeTab(this);
     final SearchTab search = new SearchTab(this);
+    /** The page's parchment this frame {x, y, w, h}: what an open drawer dims. */
+    int[] pagePanel;
     /** The archetype list the archetype buttons open (home, tree, settings). */
     final ArchetypePicker archPicker = new ArchetypePicker(this);
     /** The tabs by number (null for the Crafting and Endgame tabs, which are their own singletons). */
@@ -517,6 +519,7 @@ public final class RoadmapScreen extends Screen {
         Kit.railPlain(g, x0, y0, railW(), h, railW());
         // the page: content keeps 10px from the parchment's sides (14 at the top, 8 at the bottom)
         Kit.paper(g, x0 + railW() + 2, y0 + 2, w - railW() - 4, h - 4);
+        pagePanel = new int[] {x0 + railW() + 2, y0 + 2, w - railW() - 4, h - 4};      // a drawer dims exactly this
 
         // the damage (7) and the deaths (3) live on the tree page: their targets open it with that drawer
         if (tab == 3 || tab == TAB_DAMAGE) {
@@ -707,6 +710,10 @@ public final class RoadmapScreen extends Screen {
             return true;
         }
         if (archPicker.keyPressed(event.key())) {
+            return true;
+        }
+        // the Endgame page's drawer: Esc closes it, not the menu
+        if (tab == TAB_ENDGAME && event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && EndgameTab.INSTANCE.closeDrawer()) {
             return true;
         }
         // an open popup takes the keys: up, down and Enter move and pick, Esc closes it (not the menu)

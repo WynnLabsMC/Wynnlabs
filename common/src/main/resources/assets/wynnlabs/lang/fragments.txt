@@ -144,3 +144,14 @@ wynnlabs.quests.mini_or  a part of a line in the mini-quest pane
 wynnlabs.quests.mini_req_combat  a part of a line in the mini-quest pane
 wynnlabs.quests.mini_req_prof  a part of a line in the mini-quest pane
 wynnlabs.quests.mini_price_tip  a part of a line in the mini-quest pane
+wynnlabs.endgame.since_loot  a part of a line on the Endgame page
+wynnlabs.endgame.since_raid  a part of a line on the Endgame page
+wynnlabs.endgame.since_tome  a part of a line on the Endgame page
+wynnlabs.endgame.log_dry_loot  a part of a line on the Endgame page
+wynnlabs.endgame.log_dry_raid  a part of a line on the Endgame page
+wynnlabs.endgame.log_dry_tome  a part of a line on the Endgame page
+wynnlabs.endgame.pool_age  a part of a line on the Endgame page
+wynnlabs.endgame.row_best  a part of a line on the Endgame page
+wynnlabs.endgame.row_no_runs  a part of a line on the Endgame page
+wynnlabs.endgame.session_streak  a part of a line on the Endgame page
+wynnlabs.endgame.week_nothing_new  a part of a line on the Endgame page

@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today", "tree", "search", "bank").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -61,7 +61,7 @@ public class JMenuPreview implements FabricClientGameTest {
             // straight on the screen being checked: a filtered run never draws Home first
             int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("today") ? 1 : part.equals("tree") ? RoadmapScreen.TAB_TREE : part.equals("quests") ? 2
                     : part.equals("settings") ? 5 : part.equals("crafting") ? 10 : part.equals("bank") ? RoadmapScreen.TAB_BANK
-                    : part.equals("search") ? RoadmapScreen.TAB_SEARCH : 0;
+                    : part.equals("search") ? RoadmapScreen.TAB_SEARCH : part.equals("endgame") ? RoadmapScreen.TAB_ENDGAME : 0;
             ctx.setScreen(() -> RoadmapScreen.on(first));
             ctx.waitForScreen(RoadmapScreen.class);
             ctx.getInput().setCursorPos(2, 2);      // the window's corner: no tooltip over the menu
@@ -333,6 +333,43 @@ public class JMenuPreview implements FabricClientGameTest {
         System.out.println("[wynnlabs-layout] " + name + " at " + PreviewSize.WIDTH + "x" + PreviewSize.HEIGHT + ": no text over text");
     }
 
+    /** -PpreviewOnly=endgame: the Endgame page with its preview data, each drawer open (a raid's pool, a camp's, the log), a picked aspect, the empty state. */
+    private static void endgameShots(ClientGameTestContext ctx, Path out) throws Exception {
+        ctx.runOnClient(mc -> {
+            EndgameTab.preview();
+            set(mc.screen, "tab", RoadmapScreen.TAB_ENDGAME);
+        });
+        ctx.waitTicks(10);
+        shot(ctx, out, "endgame-page");
+        ctx.runOnClient(mc -> EndgameTab.INSTANCE.previewPools(EndgameTab.TAB_RAIDS, null));
+        ctx.waitTicks(5);
+        shot(ctx, out, "endgame-drawer-raid");
+        ctx.runOnClient(mc -> EndgameTab.INSTANCE.previewPools(EndgameTab.TAB_CAMPS, null));
+        ctx.waitTicks(5);
+        shot(ctx, out, "endgame-drawer-camp");
+        ctx.runOnClient(mc -> {
+            EndgameTab.INSTANCE.previewPools(-1, null);
+            EndgameTab.INSTANCE.previewLog();
+        });
+        ctx.waitTicks(5);
+        shot(ctx, out, "endgame-drawer-log");
+        ctx.runOnClient(mc -> {
+            EndgameTab.INSTANCE.previewPools(-1, null);
+            EndgameTab.INSTANCE.previewSection(EndgameTab.SEC_ASPECTS);
+            EndgameTab.INSTANCE.previewPick("Aspect of Damnation");
+        });
+        ctx.waitTicks(5);
+        shot(ctx, out, "endgame-aspect-picked");
+        ctx.runOnClient(mc -> {
+            EndgameTab.INSTANCE.previewPick(null);
+            EndgameTab.INSTANCE.previewSection(EndgameTab.SEC_RAIDS);
+            EndgameTab.previewEmpty();
+        });
+        ctx.waitTicks(5);
+        shot(ctx, out, "endgame-empty");
+        ctx.runOnClient(mc -> EndgameTab.preview());
+    }
+
     /** The tests' excerpt of the wiki's Mini-Quest page (the run's folder is fabric/run or fabric). */
     private static String miniPage() {
         for (String dir : new String[] {"src/test/resources/wiki/mini-quest.txt", "../src/test/resources/wiki/mini-quest.txt"}) {
@@ -361,6 +398,10 @@ public class JMenuPreview implements FabricClientGameTest {
 
     /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
     private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
+        if (part.equals("endgame")) {
+            endgameShots(ctx, out);
+            return;
+        }
         if (part.equals("search") || part.equals("bank")) {
             boolean bank = part.equals("bank");
             if (bank) {
