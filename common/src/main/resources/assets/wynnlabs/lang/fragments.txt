@@ -46,7 +46,6 @@ wynnlabs.pick.budget_none               after "Budget: " and inside "( )"
 wynnlabs.profile.levelup_build_skills   after "+3 skill points → "
 wynnlabs.quests.reward_at_level         after a reward's name
 wynnlabs.quests.reward_gain             after a reward's name
-wynnlabs.quests.reward_level_share      inside "( )" after the XP
 wynnlabs.quests.reward_no_gain          inside "( )" after a reward's name
 wynnlabs.results.before                 after "Equip order: "
 wynnlabs.settings.key_builtin           after "Wynnventory key: "
@@ -128,3 +127,4 @@ wynnlabs.guide.key_part  after the left/right arrows in the guide footer
 wynnlabs.home.hud_health_label  after the health value on the Home card ("1927 effective health")
 wynnlabs.home.hud_casts_label  after the casts value on the Home card
 wynnlabs.home.hud_spell_label  after the spell damage value on the Home card
+wynnlabs.quests.share  after the other facts of a quest ("Lv 43 · Wynn · seviyenin %11'i")

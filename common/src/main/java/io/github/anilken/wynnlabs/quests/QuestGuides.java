@@ -51,15 +51,11 @@ public final class QuestGuides {
     }
 
     /**
-     * A quest's name as the player reads it: in Turkish the name the game shows with the
-     * WynnChaYuan translation (tr.json's "name"), else the English one. Lookups stay English.
+     * A quest's name as the player reads it: the game's English name in every language (quest,
+     * item and place names stay English); the guides' Turkish titles are not shown.
      */
     public static String title(String quest) {
-        if (quest == null) {
-            return "";
-        }
-        Guide g = L.code().startsWith("tr") ? find(quest) : null;
-        return g != null && g.title() != null && !g.title().isBlank() ? g.title() : quest;
+        return quest == null ? "" : quest;
     }
 
     private static Map<String, Guide> english() {

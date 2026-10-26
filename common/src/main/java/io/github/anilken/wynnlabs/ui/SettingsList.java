@@ -232,12 +232,9 @@ final class SettingsList extends MenuPaint {
             }
         }
         menu.hits.subList(h0, menu.hits.size()).removeIf(hb -> hb.y() < y || hb.y() + hb.h() > y + h);
-        if (tab.settingsScrollMax > 0) {
-            int thumb = Math.max(12, h * h / total);
-            int ty = y + (h - thumb) * tab.settingsScroll / tab.settingsScrollMax;
-            Kit.hair(g, x + w - 2, y, 1, h, Theme.LINE);
-            g.fill(x + w - 3, ty, x + w, ty + thumb, Theme.INK_3);
-        }
+        // where in the list you are: a thin bar at the right, dragged or clicked
+        tab.settingsBar.place(x + w - ScrollBar.W, y, h, h, total, tab.settingsScroll);
+        tab.settingsBar.drawThin(g, mx, my);
     }
 
     private int height(Item it, int w, boolean first, boolean compact) {

@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -211,6 +211,60 @@ public class JMenuPreview implements FabricClientGameTest {
     private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
         if (part.equals("settings")) {
             settingsShots(ctx, out);
+            return;
+        }
+        if (part.equals("quests")) {
+            // -PpreviewOnly=quests: the quests tab on the recorded quest book (the fixture's quests put
+            // in as if read from the content book, Jungle Fever started)
+            java.util.List<QuestBook.Entry> book = FixtureState.load(Fixtures.root().resolve(
+                    System.getProperty("wynnlabs.previewFixture", "shaman-44"))).quests();
+            ctx.runOnClient(mc -> {
+                for (QuestBook.Entry e : book) {
+                    QuestBook.put(e);
+                }
+                QuestBook.put(new QuestBook.Entry("Jungle Fever", "STARTED", 48, "Medium", 0, true,
+                        "Infiltrate Almuj's Secret Emerald Labyrinth at [1019, 84, -1976] underground and find the Banker",
+                        1019, 84, -1976, null, System.currentTimeMillis(), "QUEST", "Medium"));
+                set(mc.screen, "tab", 2);
+            });
+            // the guide of the quest you are on, its places, a quest not started, the order menu, nothing read
+            String[][] views = {{"Jungle Fever", "0", "quests-tab"}, {"Jungle Fever", "3", "quests-points"},
+                {"Underice", "0", "quests-underice"}, {"Underice", "3", "quests-underice-points"}};
+            for (String[] v : views) {
+                ctx.runOnClient(mc -> {
+                    QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
+                    q.questSelected = v[0];
+                    q.questDetailTab = Integer.parseInt(v[1]);
+                    q.filterOpen = false;
+                });
+                ctx.waitTicks(10);
+                shot(ctx, out, v[2]);
+            }
+            // the tab's draw time with the caches off (every value worked out each frame) and on
+            for (String[] v : new String[][] {{"Jungle Fever", "0"}, {"Jungle Fever", "3"}}) {
+                for (boolean cached : new boolean[] {false, true}) {
+                    ctx.runOnClient(mc -> {
+                        QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
+                        q.questSelected = v[0];
+                        q.questDetailTab = Integer.parseInt(v[1]);
+                        QuestsCache.measure(cached);
+                    });
+                    ctx.waitTicks(60);
+                    ctx.runOnClient(mc -> System.out.printf("[wynnlabs-perf] quests %s view=%s cached=%s: %d frames, %.3f ms a frame%n",
+                            v[0], v[1], cached, QuestsCache.frames, QuestsCache.nanos / 1e6 / Math.max(1, QuestsCache.frames)));
+                }
+            }
+            ctx.runOnClient(mc -> QuestsCache.measure(true));
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).questsTab.filterOpen = true);
+            ctx.waitTicks(3);
+            shot(ctx, out, "quests-menu");
+            ctx.runOnClient(mc -> {
+                ((RoadmapScreen) mc.screen).questsTab.filterOpen = false;
+                QuestBook.previewHidden(true);
+            });
+            ctx.waitTicks(3);
+            shot(ctx, out, "quests-empty");
+            ctx.runOnClient(mc -> QuestBook.previewHidden(false));
             return;
         }
         if (part.equals("home")) {

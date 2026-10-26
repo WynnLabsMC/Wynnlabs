@@ -53,6 +53,9 @@ final class GuideScreen extends Screen {
     /** The steps' scroll (px), the stage list's (rows); the keys moved the stage: the list follows. */
     int scroll;
     int listScroll;
+    /** The stage list's and the rows' scroll bars: dragged, clicked or wheeled. */
+    final ScrollBar railBar = new ScrollBar();
+    final ScrollBar paneBar = new ScrollBar();
     boolean follow = true;
     /** Where the stage list ends: the wheel scrolls the list left of it and the stage right of it. */
     int split;
@@ -370,6 +373,27 @@ final class GuideScreen extends Screen {
     }
 
     @Override
+    public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
+        MouseButtonEvent e = MenuScale.event(event);
+        if (railBar.mouseDragged(e.y())) {
+            listScroll = railBar.offset();
+            return true;
+        }
+        if (paneBar.mouseDragged(e.y())) {
+            scroll = paneBar.offset();
+            return true;
+        }
+        return super.mouseDragged(event, dx, dy);
+    }
+
+    @Override
+    public boolean mouseReleased(MouseButtonEvent event) {
+        railBar.mouseReleased();
+        paneBar.mouseReleased();
+        return super.mouseReleased(event);
+    }
+
+    @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         event = MenuScale.event(event);
         int[] cr = closeRect;
@@ -379,6 +403,14 @@ final class GuideScreen extends Screen {
         }
         if (zoom != null) {
             zoom = null;
+            return true;
+        }
+        if (views != null && railBar.mouseClicked(event.x(), event.y())) {
+            listScroll = railBar.offset();
+            return true;
+        }
+        if (views != null && paneBar.mouseClicked(event.x(), event.y())) {
+            scroll = paneBar.offset();
             return true;
         }
         for (Object[] tap : List.copyOf(taps)) {

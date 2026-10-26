@@ -38,6 +38,15 @@ abstract class MenuTab extends MenuPaint {
         return 0;
     }
 
+    /** A drag with the button held (a scroll bar's thumb follows it); true when the tab took it. */
+    boolean barDragged(double x, double y) {
+        return false;
+    }
+
+    /** The mouse button let go: a scroll bar's drag ends. */
+    void barReleased() {
+    }
+
     /** A click on the page (logical pixels); true when the tab took it. */
     boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         return false;

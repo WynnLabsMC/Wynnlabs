@@ -95,12 +95,12 @@ class QuestGuideTest {
     }
 
     @Test
-    void titleInThePlayersLanguage() throws Exception {
+    void titleStaysEnglishInEveryLanguage() throws Exception {
         english();
         assertEquals("Jungle Fever", QuestGuides.title("Jungle Fever"));
         FixtureState.load(Fixtures.root().resolve("shaman-44")).install("tr");
         QuestGuides.reset();
-        assertEquals("Orman Humması", QuestGuides.title("Jungle Fever"));
+        assertEquals("Jungle Fever", QuestGuides.title("Jungle Fever"), "quest names stay English in Turkish too");
         assertEquals("Some Unknown Quest", QuestGuides.title("Some Unknown Quest"), "no guide: the English name");
     }
 

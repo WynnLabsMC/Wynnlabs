@@ -1302,6 +1302,57 @@ public final class Wyn {
         }, false);
     }
 
+    // ---- the quests tab's map: Wynntils' own map tiles and place names ----
+
+    /** A place name on Wynntils' map: its name, where, and its layer (0 province, 1 city, 2 town or place). */
+    public record MapLabel(String name, int x, int z, int layer) {}
+
+    /**
+     * Whether Wynntils has map tiles for the world box x0..x1, z0..z1. Wynntils downloads its map
+     * at start-up into its cache; the player never has to open the map. False without Wynntils.
+     */
+    public static boolean hasMap(float x0, float z0, float x1, float z1) {
+        return guard(Feature.WAYPOINTS, () -> !com.wynntils.core.components.Services.Map
+                .getMapsForBoundingBox(new com.wynntils.utils.type.BoundingBox(x0, z0, x1, z1)).isEmpty(), false);
+    }
+
+    /**
+     * Draws Wynntils' map tiles for the world box x0..x1, z0..z1 with its top left at (sx, sy) in the
+     * current pose, {@code scale} gui units a block, through Wynntils' own renderer; false when none.
+     */
+    public static boolean drawMap(net.minecraft.client.gui.GuiGraphics g, float x0, float z0, float x1, float z1,
+            float sx, float sy, float scale, int tint) {
+        return guard(Feature.WAYPOINTS, () -> {
+            var box = new com.wynntils.utils.type.BoundingBox(x0, z0, x1, z1);
+            var tiles = com.wynntils.core.components.Services.Map.getMapsForBoundingBox(box);
+            var colour = new com.wynntils.utils.colors.CustomColor((tint >> 16) & 255, (tint >> 8) & 255, tint & 255, 255);
+            for (var t : tiles) {
+                // the part of the tile inside the box, drawn tinted (the map's dark wash on the tiles themselves)
+                float tx0 = Math.max(x0, t.getX1());
+                float tz0 = Math.max(z0, t.getZ1());
+                float tx1 = Math.min(x1, t.getX2() + 1f);
+                float tz1 = Math.min(z1, t.getZ2() + 1f);
+                if (tx0 >= tx1 || tz0 >= tz1) {
+                    continue;
+                }
+                com.wynntils.utils.render.RenderUtils.drawTexturedRect(g, t.identifier(), colour,
+                        sx + (tx0 - x0) * scale, sy + (tz0 - z0) * scale, (tx1 - tx0) * scale, (tz1 - tz0) * scale,
+                        tx0 - t.getX1(), tz0 - t.getZ1(), tx1 - tx0, tz1 - tz0, t.getTextureWidth(), t.getTextureHeight());
+            }
+            return !tiles.isEmpty();
+        }, false);
+    }
+
+    /** Wynntils' place names inside the world box (provinces, cities, towns), largest first. */
+    public static List<MapLabel> mapLabels(float x0, float z0, float x1, float z1) {
+        return guard(Feature.WAYPOINTS, () -> com.wynntils.core.components.Services.Poi.getLabelPois()
+                .map(p -> p.getLabel())
+                .filter(l -> l.getX() >= x0 && l.getX() <= x1 && l.getZ() >= z0 && l.getZ() <= z1)
+                .map(l -> new MapLabel(l.getName(), l.getX(), l.getZ(), l.getLayer().ordinal()))
+                .sorted(java.util.Comparator.comparingInt(MapLabel::layer))
+                .toList(), List.of());
+    }
+
     // ---- the search tab: Wynntils' map and guide screens ----
 
     /** Opens Wynntils' full map centred on (x, z), in place of the open screen; false when unavailable. */

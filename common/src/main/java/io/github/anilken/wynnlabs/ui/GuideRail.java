@@ -53,12 +53,9 @@ final class GuideRail {
             int stage = i;
             s.tap(x, ry, w, ROW, () -> s.pick(stage));
         }
-        if (n > fit) {
-            // where in the list you are: a thin bar along the rail's right edge
-            int barTop = top + (bottom - top) * s.listScroll / n;
-            int barH = Math.max(6, (bottom - top) * fit / n);
-            g.fill(x + w + Theme.SP_1, barTop, x + w + Theme.SP_1 + 2, Math.min(bottom, barTop + barH), Theme.LINE);
-        }
+        // where in the list you are: a thin bar along the rail's right edge, dragged or clicked
+        s.railBar.place(x + w + Theme.SP_1, top, bottom - top, fit, n, s.listScroll);
+        s.railBar.drawThin(g, mx, my);
     }
 
     /** The whole label when it fits, else its first clause (before ", ", " (" or "; "), "…" last. */

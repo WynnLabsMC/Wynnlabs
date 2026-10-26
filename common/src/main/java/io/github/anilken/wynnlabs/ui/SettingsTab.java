@@ -98,7 +98,28 @@ final class SettingsTab extends MenuTab {
      * A click on the settings, AI or damage tab: the boxes, then the switches, chips and buttons
      * this frame drew ({@link RoadmapScreen#toggles}). True when one took it.
      */
+    /** The settings list's scroll bar: dragged, clicked or wheeled. */
+    final ScrollBar settingsBar = new ScrollBar();
+
+    @Override
+    boolean barDragged(double x, double y) {
+        if (settingsBar.mouseDragged(y)) {
+            settingsScroll = settingsBar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    void barReleased() {
+        settingsBar.mouseReleased();
+    }
+
     boolean toggleClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (menu.tab() == RoadmapScreen.TAB_SETTINGS && settingsListRect != null && settingsBar.mouseClicked(event.x(), event.y())) {
+            settingsScroll = settingsBar.offset();
+            return true;
+        }
         double ex = event.x();
         double ey = event.y();
         boolean here = menu.tab() == RoadmapScreen.TAB_SETTINGS;

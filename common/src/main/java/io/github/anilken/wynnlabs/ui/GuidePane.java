@@ -131,12 +131,9 @@ final class GuidePane {
         }
         s.clip = null;
         g.disableScissor();
-        if (total > box) {
-            // where in the stage you are: a thin bar on the right edge
-            int barTop = areaTop + box * s.scroll / total;
-            int barH = Math.max(6, box * box / total);
-            g.fill(x + w + Theme.SP_2, barTop, x + w + Theme.SP_2 + 2, Math.min(areaBottom, barTop + barH), Theme.LINE);
-        }
+        // where in the stage you are: a thin bar on the right edge, dragged or clicked
+        s.paneBar.place(x + w + Theme.SP_2, areaTop, box, box, total, s.scroll);
+        s.paneBar.drawThin(g, mx, my);
         if (!pics.isEmpty()) {
             pictures(s, g, font, mx, my, x, areaBottom + Theme.SP_5, w, th, pics);
         }

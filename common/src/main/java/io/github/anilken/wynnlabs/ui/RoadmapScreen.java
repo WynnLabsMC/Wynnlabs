@@ -157,7 +157,7 @@ public final class RoadmapScreen extends Screen {
     protected void init() {
         UiFont.apply(this);                     // Inter instead of the pixel font (setting: webFont)
         WynnTex.clear();                        // the pack may have changed since last time
-        for (MenuTab t : new MenuTab[] {bank, tree, settings, search}) {
+        for (MenuTab t : new MenuTab[] {bank, tree, settings, search, questsTab}) {
             for (net.minecraft.client.gui.components.EditBox b : t.init()) {
                 addWidget(b);
             }
@@ -350,7 +350,7 @@ public final class RoadmapScreen extends Screen {
      * Each tab's hint as a language key ("" for none), by tab number. The Endgame tab's title line
      * holds its pills, so its hint is drawn under its aspect list instead.
      */
-    private static final String[] TAB_HINT = {"", "wynnlabs.screen.hint_today", "wynnlabs.screen.hint_quests",
+    private static final String[] TAB_HINT = {"", "wynnlabs.screen.hint_today", "",
         "wynnlabs.screen.hint_deaths", "wynnlabs.screen.hint_bank", "", "wynnlabs.screen.hint_ai",
         "wynnlabs.screen.hint_damage", "wynnlabs.screen.hint_discoveries", "wynnlabs.screen.hint_tree", "",
         "wynnlabs.screen.hint_endgame", ""};
@@ -679,6 +679,9 @@ public final class RoadmapScreen extends Screen {
         if (tab == TAB_SEARCH && search.mouseDragged(e.x(), e.y())) {
             return true;
         }
+        if (pages[tab] != null && pages[tab].barDragged(e.x(), e.y())) {
+            return true;                                // a list's scroll bar thumb follows the mouse
+        }
         if (tab == TAB_CRAFT && CraftingTab.INSTANCE.mouseDragged(e.x(), e.y())) {
             return true;                                // the probability slider follows the mouse
         }
@@ -691,6 +694,9 @@ public final class RoadmapScreen extends Screen {
         BuildWindow.INSTANCE.mouseReleased();
         home.statsReleased();
         search.mouseReleased();
+        if (pages[tab] != null) {
+            pages[tab].barReleased();
+        }
         return super.mouseReleased(MenuScale.event(event));
     }
 
@@ -786,9 +792,9 @@ public final class RoadmapScreen extends Screen {
             return true;
         }
         // "/" on the settings while nothing is being typed: their search box
-        if (tab == TAB_SETTINGS && event.codepoint() == '/'
+        if ((tab == TAB_SETTINGS || tab == 2) && event.codepoint() == '/'
                 && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox b && b.isFocused())) {
-            return settings.slashTyped();
+            return tab == 2 ? questsTab.slashTyped() : settings.slashTyped();
         }
         return super.charTyped(event);
     }
@@ -807,6 +813,16 @@ public final class RoadmapScreen extends Screen {
      * A click on one of this frame's shared click areas, any tab: a discovery's or a quest's
      * action, a quest to track, a guide, a place for the compass, or text to copy.
      */
+    /** A click a page held back (a press on a map that did not pan): this frame's click areas take it now. */
+    boolean replayClick(MouseButtonEvent event) {
+        for (MenuHit h : List.copyOf(hits)) {
+            if (hitClicked(h, event)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean hitClicked(MenuHit h, MouseButtonEvent event) {
         double ex = event.x();
         double ey = event.y();

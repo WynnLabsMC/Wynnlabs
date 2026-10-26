@@ -15,6 +15,8 @@ final class ScrollBar {
     static final int W = 6;
     /** The thumb's shortest length. */
     static final int MIN_THUMB = 10;
+    /** How wide the bar takes clicks: never less than SP_3, whatever its look (every bar is draggable). */
+    static final int HIT = Math.max(W, Theme.SP_3);
 
     private int x;
     private int y;
@@ -140,9 +142,26 @@ final class ScrollBar {
         g.fill(sx - (hover || dragging ? 1 : 0), ty, sx + 2, ty + thumbH(), dragging ? Theme.GOLD_DEEP : Theme.WOOD);
     }
 
+    /**
+     * The parchment lists' look: a one-pixel track and a thin thumb at the right of the bar's box,
+     * wider and gold while hovered or dragged; the whole {@link #HIT} still takes the clicks.
+     */
+    void drawThin(GuiGraphics g, int mx, int my) {
+        if (!shown()) {
+            return;
+        }
+        int sx = x + W - 3;
+        Kit.hair(g, sx + 1, y, 1, h, Theme.LINE);
+        int ty = thumbTop();
+        int th = thumbH();
+        boolean hover = mx >= x + W - HIT && mx < x + W && my >= y && my < y + h;
+        int tw = hover || dragging ? 4 : 2;
+        g.fill(sx + 2 - tw, ty, sx + 2, ty + th, dragging ? Theme.GOLD_DEEP : hover ? Theme.INK_2 : Theme.INK_3);
+    }
+
     /** A press: on the thumb it starts a drag, on the track it pages. True when the bar took it. */
     boolean mouseClicked(double mx, double my) {
-        if (!shown() || mx < x || mx >= x + W || my < y || my >= y + h) {
+        if (!shown() || mx < x + W - HIT || mx >= x + W || my < y || my >= y + h) {
             return false;
         }
         int ty = thumbTop();
