@@ -189,6 +189,13 @@ final class CraftPreview {
             CraftPlanPanel.previewXp = null;
             CraftingTab.INSTANCE.view = 0;
         });
+        // the shared dropdown on the crafting tab: the item type's and the level's lists
+        for (String d : List.of("TYPE", "LEVEL")) {
+            ctx.runOnClient(mc -> CraftingTab.INSTANCE.toggle(CraftingTab.Drop.valueOf(d), -1, new int[] {150, 70, 110, 12}));
+            ctx.waitTicks(3);
+            shot.accept("craft-drop-" + d.toLowerCase(java.util.Locale.ROOT));
+            ctx.runOnClient(mc -> CraftingTab.INSTANCE.open = CraftingTab.Drop.NONE);
+        }
     }
 
     static void set(Object o, String field, Object value) throws ReflectiveOperationException {

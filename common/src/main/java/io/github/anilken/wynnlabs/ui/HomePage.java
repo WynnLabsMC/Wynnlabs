@@ -80,13 +80,44 @@ public final class HomePage extends MenuTab {
 
     // ---- the popups: the goal list, the stats' compare list ----
 
+    /** The popups as the menu's one hook (the methods below). */
+    private final Popup popups = new Popup() {
+        @Override
+        public boolean open() {
+            return popupOpenImpl();
+        }
+
+        @Override
+        public void draw(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+            drawPopupImpl(g, mx, my, boxes);
+        }
+
+        @Override
+        public void close() {
+            closePopupImpl();
+        }
+
+        @Override
+        public boolean clicked(MouseButtonEvent event) {
+            return popupClickedImpl(event);
+        }
+
+        @Override
+        public boolean key(int key) {
+            return popupKeyImpl(key);
+        }
+    };
+
     @Override
-    boolean popupOpen() {
+    Popup popup() {
+        return popups;
+    }
+
+    private boolean popupOpenImpl() {
         return goalOpen || stats != null && stats.picker.open();
     }
 
-    @Override
-    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+    private void drawPopupImpl(GuiGraphics g, int mx, int my, List<int[]> boxes) {
         int[] b = drawGoalList(g, mx, my);
         if (b != null) {
             boxes.add(b);
@@ -96,25 +127,33 @@ public final class HomePage extends MenuTab {
             boxes.add(b);
         }
         if (boxes.isEmpty()) {
-            closePopup();
+            closePopupImpl();
         }
     }
 
-    @Override
-    void closePopup() {
+    private void closePopupImpl() {
         goalOpen = false;
         if (stats != null) {
             stats.picker.close();
         }
     }
 
-    @Override
-    boolean popupClicked(MouseButtonEvent event) {
+    private boolean popupClickedImpl(MouseButtonEvent event) {
         if (stats != null && stats.picker.open()) {
             stats.picker.close();               // a row's own click area still picks
             return false;
         }
         return goalClicked(event.x(), event.y());
+    }
+
+    void pickGoal(int i) {
+        goalOpen = false;
+        String goal = Setup.GOALS.get(i);
+        if (!goal.equals(Setup.goal())) {
+            Setup.setGoal(goal);
+            menu.flash(L.t("wynnlabs.home.goal_set", Setup.goalName(goal)));
+            menu.rebuildMap();                 // rebuilt in the background, picked up when ready
+        }
     }
 
     /** A click while the goal list is open: it closes, and a row picks that goal. True when the click is used up. */
@@ -125,12 +164,7 @@ public final class HomePage extends MenuTab {
         goalOpen = false;
         for (int[] r : goalRows) {
             if (in(ex, ey, r)) {
-                String goal = Setup.GOALS.get(r[4]);
-                if (!goal.equals(Setup.goal())) {
-                    Setup.setGoal(goal);
-                    menu.flash(L.t("wynnlabs.home.goal_set", Setup.goalName(goal)));
-                    menu.rebuildMap();                 // rebuilt in the background, picked up when ready
-                }
+                pickGoal(r[4]);
                 return true;
             }
         }
@@ -275,6 +309,7 @@ public final class HomePage extends MenuTab {
             stats().source.flip();             // your numbers, or the other build's
         } else if (c.startsWith("#qgoal:")) {
             goalOpen = true;                    // the list opens; a row picks the goal
+            goalMenu.reset();
         } else if (c.startsWith("#qrefresh:") || c.startsWith("#qbuild:")) {
             Roadmap.forceRefresh();
             menu.refreshAsked = true;
@@ -361,40 +396,45 @@ public final class HomePage extends MenuTab {
     private final List<int[]> goalRows = new ArrayList<>();     // x, y, w, h, index in Setup.GOALS
 
     /** One row per goal: its name and what it weighs, the current one marked, the hovered one lit (when the list is open). */
+    private final UiMenu.State goalMenu = new UiMenu.State();
+
     private int[] drawGoalList(GuiGraphics g, int mx, int my) {
         if (!goalOpen || goalAnchor == null) {
             return null;
         }
         goalRows.clear();
-        int rowH = 20;
-        int w = 0;
-        for (String goal : Setup.GOALS) {
-            w = Math.max(w, Math.max(font().width(Setup.goalName(goal)) + 10, font().width(L.t(goalDesc(goal)))));
+        return UiMenu.draw(g, font(), UiMenu.Spec.under(goalAnchor, menu.width, menu.height), goalMenu, goalItems(), mx, my,
+                r -> goalRows.add(new int[] {r.x(), r.y(), r.w(), r.h(), Integer.parseInt(r.item().id())}));
+    }
+
+    private boolean popupKeyImpl(int key) {
+        if (!goalOpen && stats != null && stats.picker.open()) {
+            UiMenu.Item it = stats.picker.list.key(key);
+            if (it != null) {
+                stats.picker.close();
+                menu.runAction(it.id());
+            }
+            return true;
         }
-        w += 16;
-        // its right edge on the button's, and never past the panel's left side
-        int x = Math.max((menu.width - menu.panelW()) / 2 + menu.railW() + 6, goalAnchor[0] + goalAnchor[2] - w);
-        int y = goalAnchor[1] + goalAnchor[3] + 2;
-        int h = Setup.GOALS.size() * rowH + 6;
-        g.nextStratum();                            // over the menu's own text and items
-        int[] b = {x, y, w, h};
-        Kit.card(g, x, y, w, h, 0);
+        if (!goalOpen) {
+            return false;
+        }
+        UiMenu.Item it = goalMenu.key(key);
+        if (it != null) {
+            pickGoal(Integer.parseInt(it.id()));
+        }
+        return true;
+    }
+
+    /** The goals as dropdown rows: the name, what it weighs under it, the current one chosen (the home and the settings). */
+    static List<UiMenu.Item> goalItems() {
         String now = Setup.goal();
+        List<UiMenu.Item> items = new ArrayList<>();
         for (int i = 0; i < Setup.GOALS.size(); i++) {
             String goal = Setup.GOALS.get(i);
-            int ry = y + 3 + i * rowH;
-            boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + rowH;
-            boolean on = goal.equals(now);
-            Kit.row(g, x + 2, ry, w - 4, rowH - 1, i, hover || on);
-            Component name = Component.literal(Setup.goalName(goal)).withStyle(UiFont::bold);
-            if (on) {
-                Art.icon(g, "check", x + 7, ry + 2, 8, Theme.paperRgb(Theme.INK));
-            }
-            ink(g, name, x + 7 + (on ? 10 : 0), ry + 2, on ? Theme.INK : Theme.INK_2);
-            ink(g, L.t(goalDesc(goal)), x + 7, ry + 11, MUTED);
-            goalRows.add(new int[] {x + 2, ry, w - 4, rowH, i});
+            items.add(UiMenu.Item.of(String.valueOf(i), null, Setup.goalName(goal), null, goal.equals(now)).sub(L.t(goalDesc(goal))));
         }
-        return b;
+        return items;
     }
 
     private static String goalDesc(String goal) {

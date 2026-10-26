@@ -49,6 +49,7 @@ final class StatsPicker extends HomePart {
     void toggle() {
         open = !closedNow;
         closedNow = false;
+        list.reset();
     }
 
     /**
@@ -101,29 +102,19 @@ final class StatsPicker extends HomePart {
         if (!open || at == null) {
             return null;
         }
-        List<String[]> opts = source.options();
-        int w = at[2];
-        for (String[] o : opts) {
-            w = Math.max(w, width(o[1], false) + 18);
-        }
-        int x = at[0] + at[2] - w;
-        int y = at[1] + 1;
-        int h = opts.size() * ROW_H + 4;
-        g.fill(x - 1, y - 1, x + w + 1, y + h + 1, Theme.LINE);
-        g.fill(x, y, x + w, y + h, Theme.CARD);
         String chosen = source.choice();
-        for (int i = 0; i < opts.size(); i++) {
-            String[] o = opts.get(i);
-            int ry = y + 2 + i * ROW_H;
-            boolean hov = mx >= x && mx < x + w && my >= ry && my < ry + ROW_H;
-            boolean on = o[0].equals(chosen);
-            Kit.row(g, x + 1, ry, w - 2, ROW_H, i, hov || on);
-            if (on) {
-                Art.icon(g, "check", x + 4, ry + 2, 8, Theme.GOOD);
-            }
-            ink(g, fit(o[1], w - 18), x + 14, ry + 2, Theme.INK);
-            host.area(x, ry, w, ROW_H, null, null, "#qstatsset:" + o[0]);
+        List<UiMenu.Item> items = new java.util.ArrayList<>();
+        for (String[] o : source.options()) {
+            items.add(UiMenu.Item.of("#qstatsset:" + o[0], null, o[1], null, o[0].equals(chosen)));
         }
-        return new int[] {x - 1, y - 1, w + 2, h + 2};
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        int sw = mc.screen == null ? 10_000 : mc.screen.width;
+        int sh = mc.screen == null ? 10_000 : mc.screen.height;
+        int[] anchor = {at[0], at[1] - Ui.CHIP_H, at[2], Ui.CHIP_H};
+        return UiMenu.draw(g, UiFont.get(), UiMenu.Spec.under(anchor, sw, sh), list, items, mx, my,
+                r -> host.area(r.x(), r.y(), r.w(), r.h(), null, null, r.item().id()));
     }
+
+    /** The list's scroll and keys. */
+    final UiMenu.State list = new UiMenu.State();
 }

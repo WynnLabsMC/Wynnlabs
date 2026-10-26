@@ -3,6 +3,8 @@ package io.github.anilken.wynnlabs.ui;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.quests.QuestBook;
+import io.github.anilken.wynnlabs.quests.Waypoints;
+import io.github.anilken.wynnlabs.quests.QuestGuides;
 import io.github.anilken.wynnlabs.quests.QuestTrail;
 import io.github.anilken.wynnlabs.quests.QuestWiki;
 
@@ -107,5 +109,34 @@ final class QuestsData {
         }
         double d = Math.hypot(p.getX() - at[0], p.getZ() - at[2]);
         return d >= 1000 ? String.format(Locale.ROOT, "%.1f km", d / 1000) : Math.round(d) + " m";
+    }
+
+    /**
+     * The quest's places on the map and compass, queued: every one from the stage you are on, or
+     * only that stage's ({@code stageOnly}); the start when the wiki has none.
+     */
+    static void pin(RoadmapScreen menu, String name, boolean stageOnly) {
+        QuestWiki.Info info = QuestWiki.get(name);
+        int cur = Math.max(0, QuestsData.stage(name, info));
+        List<int[]> pts = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        if (info != null) {
+            List<QuestWiki.Place> all = QuestTrail.places(name, info, 0);
+            List<String> nums = QuestsData.pointNumbers(all);
+            for (int i = 0; i < all.size(); i++) {
+                int st = all.get(i).stage();
+                if (stageOnly ? st == cur : st >= cur) {
+                    pts.add(all.get(i).at());
+                    labels.add(nums.get(i) + " " + all.get(i).what());
+                }
+            }
+        }
+        QuestBook.Entry q = QuestsData.entry(name);
+        if (pts.isEmpty() && !stageOnly && q != null && q.x() != null) {
+            pts.add(new int[] {q.x(), q.y(), q.z()});
+            labels.add(L.t("wynnlabs.quests.pin_start", QuestGuides.title(name)));
+        }
+        int n = Waypoints.showAll(pts, labels);
+        menu.flash(n > 0 ? L.n("wynnlabs.quests.pins_added", n) : L.t("wynnlabs.quests.no_coords"));
     }
 }

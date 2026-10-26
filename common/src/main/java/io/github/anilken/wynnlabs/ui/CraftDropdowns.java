@@ -30,11 +30,12 @@ final class CraftDropdowns extends CraftPanel {
         super(tab);
     }
 
-    private static final List<String> TYPE_COL_A = List.of("#armour", "helmet", "chestplate", "leggings", "boots",
-            "#accessory", "ring", "bracelet", "necklace");
-
-    private static final List<String> TYPE_COL_B = List.of("#weapon", "spear", "dagger", "bow", "wand", "relik",
+    /** The types in the list's order, a "#group" starting each group. */
+    private static final List<String> TYPE_ORDER = List.of("#armour", "helmet", "chestplate", "leggings", "boots",
+            "#accessory", "ring", "bracelet", "necklace", "#weapon", "spear", "dagger", "bow", "wand", "relik",
             "#consumable", "potion", "scroll", "food");
+
+
 
     void drawDrop(GuiGraphics g, int mx, int my, float pt) {
         if (tab.open == Drop.NONE || tab.openAnchor == null) {
@@ -64,84 +65,60 @@ final class CraftDropdowns extends CraftPanel {
         return Math.max(4, tab.openAnchor[1] - h - 2);
     }
 
+    /** The shared dropdown under the open field: its rows become this tab's clicks, the scroll its drop scroll. */
+    private void menu(GuiGraphics g, List<UiMenu.Item> items, int mx, int my, java.util.function.Consumer<UiMenu.Item> pick) {
+        UiMenu.State st = tab.dropMenu;
+        st.scroll = tab.dropScroll;
+        int[] box = UiMenu.draw(g, UiFont.get(), UiMenu.Spec.under(tab.openAnchor, tab.screen.width, tab.screen.height), st, items, mx, my,
+                r -> tab.overlay.add(new Act(r.x(), r.y(), r.w(), r.h(), () -> pick.accept(r.item()), null, r.item().tip())));
+        tab.dropScroll = st.scroll;
+        tab.overlayBox = box;
+    }
+
     private void dropTypes(GuiGraphics g, int mx, int my) {
-        int colW = 92;
-        int rowH = 12;
-        int rows = Math.max(TYPE_COL_A.size(), TYPE_COL_B.size());
-        int w = 2 * colW + 8;
-        int h = rows * rowH + 8;
-        int x = dropX(w);
-        int y = dropY(h);
-        Kit.card(g, x, y, w, h, 0);
-        tab.overlayBox = new int[] {x, y, w, h};
         java.util.Set<String> ready = new java.util.HashSet<>();
         for (WhatCanICraft.Entry e : tab.sectionsPanel.what) {
             if (e.craftable()) {
                 ready.add(e.type());
             }
         }
-        List<List<String>> cols = List.of(TYPE_COL_A, TYPE_COL_B);
-        for (int c = 0; c < 2; c++) {
-            int cx = x + 4 + c * (colW + 2);
-            int ry = y + 4;
-            for (String t : cols.get(c)) {
-                if (t.startsWith("#")) {
-                    text(g, L.t("wynnlabs.craft.group." + t.substring(1)), cx + 2, ry + 2, Theme.INK_3);
-                } else {
-                    boolean on = t.equals(tab.type);
-                    boolean hover = in(mx, my, cx, ry, colW, rowH);
-                    Kit.row(g, cx, ry, colW, rowH, 0, on || hover);
-                    Art.icon(g, typeIcon(t), cx + 6, ry + 2, 8, Theme.paperRgb(on ? Theme.INK : Theme.INK_2));
-                    text(g, typeName(t), cx + 18, ry + 2, on ? Theme.INK : Theme.INK_2);
-                    if (ready.contains(t)) {
-                        Art.icon(g, "check", cx + colW - 10, ry + 2, 8, Theme.paperRgb(Theme.GOOD));
-                    }
-                    String pick = t;
-                    tab.overlay.add(new Act(cx, ry, colW, rowH, () -> {
-                        if (!pick.equals(tab.type)) {
-                            tab.type = pick;
-                            tab.minLevel = tab.bestBracket(pick).minLevel();
-                            Arrays.fill(tab.slots, null);
-                        }
-                        tab.open = Drop.NONE;
-                    }, null, null));
-                }
-                ry += rowH;
+        UiMenu.Items items = new UiMenu.Items();
+        for (String t : TYPE_ORDER) {
+            if (t.startsWith("#")) {
+                items.divide();
+                continue;
             }
+            List<net.minecraft.network.chat.Component> tip = ready.contains(t) ? List.of(L.c("wynnlabs.craft.type_ready")) : null;
+            items.add(UiMenu.Item.of(t, typeIcon(t), typeName(t), ready.contains(t) ? L.t("wynnlabs.craft.type_ready_short") : null, t.equals(tab.type)).tip(tip));
         }
+        menu(g, items.list, mx, my, it -> {
+            String pick = it.id();
+            if (!pick.equals(tab.type)) {
+                tab.type = pick;
+                tab.minLevel = tab.bestBracket(pick).minLevel();
+                Arrays.fill(tab.slots, null);
+            }
+            tab.open = Drop.NONE;
+        });
     }
 
     private void dropLevels(GuiGraphics g, int mx, int my) {
         List<CraftData.Recipe> rs = CraftData.ofType(tab.type);
-        int rowH = 12;
-        int shown = Math.min(12, rs.size());
-        int w = 96;
-        int h = shown * rowH + 6;
-        int x = dropX(w);
-        int y = dropY(h);
-        Kit.card(g, x, y, w, h, 0);
-        tab.overlayBox = new int[] {x, y, w, h};
-        tab.dropScroll = Math.max(0, Math.min(tab.dropScroll, rs.size() - shown));
         int lv = tab.level(rs.get(0).profession());
-        for (int i = 0; i < shown; i++) {
-            CraftData.Recipe r = rs.get(tab.dropScroll + i);
-            int ry = y + 3 + i * rowH;
-            boolean on = r.minLevel() == tab.minLevel;
-            boolean hover = in(mx, my, x + 2, ry, w - 4, rowH);
-            Kit.row(g, x + 2, ry, w - 4, rowH, i, on || hover);
+        List<UiMenu.Item> items = new ArrayList<>();
+        for (CraftData.Recipe r : rs) {
             boolean locked = r.minLevel() > lv;
+            UiMenu.Item it = UiMenu.Item.of(String.valueOf(r.minLevel()), locked ? "lock" : null, r.bracket(), null, r.minLevel() == tab.minLevel);
             if (locked) {
-                Art.icon(g, "lock", x + 6, ry + 2, 8, Theme.paperRgb(Theme.INK_3));
+                it = it.asDim().tip(List.of(L.c("wynnlabs.craft.locked_recipe",
+                        Professions.name(r.profession().toUpperCase(Locale.ROOT)), r.minLevel(), lv)));
             }
-            text(g, r.bracket(), x + 17, ry + 2, locked ? Theme.INK_3 : Theme.INK);
-            int pick = r.minLevel();
-            tab.overlay.add(new Act(x + 2, ry, w - 4, rowH, () -> {
-                tab.minLevel = pick;
-                tab.open = Drop.NONE;
-            }, null, locked ? List.of(L.c("wynnlabs.craft.locked_recipe",
-                    Professions.name(r.profession().toUpperCase(Locale.ROOT)), r.minLevel(), lv)) : null));
+            items.add(it);
         }
-        scrollMarks(g, x + w - 3, y, h, tab.dropScroll, rs.size(), shown);
+        menu(g, items, mx, my, it -> {
+            tab.minLevel = Integer.parseInt(it.id());
+            tab.open = Drop.NONE;
+        });
     }
 
     private void scrollMarks(GuiGraphics g, int x, int y, int h, int first, int total, int shown) {
@@ -269,27 +246,18 @@ final class CraftDropdowns extends CraftPanel {
     private void dropGoal(GuiGraphics g, int mx, int my) {
         List<String> ids = idsForProfession();
         ids.removeAll(tab.weights.keySet());
-        int rowH = 11;
-        int shown = Math.min(14, Math.max(1, ids.size()));
-        int w = 150;
-        int h = shown * rowH + 6;
-        int x = dropX(w);
-        int y = dropY(h);
-        Kit.card(g, x, y, w, h, 0);
-        tab.overlayBox = new int[] {x, y, w, h};
-        tab.dropScroll = Math.max(0, Math.min(tab.dropScroll, ids.size() - shown));
-        for (int i = 0; i < shown && tab.dropScroll + i < ids.size(); i++) {
-            String id = ids.get(tab.dropScroll + i);
-            int ry = y + 3 + i * rowH;
-            boolean hover = in(mx, my, x + 2, ry, w - 4, rowH);
-            Kit.row(g, x + 2, ry, w - 4, rowH, i, hover);
-            text(g, fit(tab.statName(id), w - 12), x + 6, ry + 2, Theme.INK);
-            tab.overlay.add(new Act(x + 2, ry, w - 4, rowH, () -> {
-                tab.weights.put(id, 1.0);
-                tab.open = Drop.NONE;
-            }, null, null));
+        List<UiMenu.Item> items = new ArrayList<>();
+        for (String id : ids) {
+            items.add(UiMenu.Item.of(id, null, tab.statName(id), null, false));
         }
-        scrollMarks(g, x + w - 3, y, h, tab.dropScroll, ids.size(), shown);
+        if (items.isEmpty()) {
+            tab.open = Drop.NONE;
+            return;
+        }
+        menu(g, items, mx, my, it -> {
+            tab.weights.put(it.id(), 1.0);
+            tab.open = Drop.NONE;
+        });
     }
 
     private void dropConditions(GuiGraphics g, int mx, int my) {

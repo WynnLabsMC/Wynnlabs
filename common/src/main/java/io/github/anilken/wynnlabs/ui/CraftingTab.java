@@ -82,6 +82,8 @@ public final class CraftingTab {
     int openSlot = -1;
     int[] openAnchor;
     int dropScroll;
+    /** The open list's dropdown state (its scroll bar, the keys' row). */
+    final UiMenu.State dropMenu = new UiMenu.State();
     int scroll;
     private int scrollMax;
     boolean foldWhat;
@@ -421,6 +423,8 @@ public final class CraftingTab {
             return;
         }
         open = d;
+        dropMenu.reset();
+        dropScroll = 0;
         openSlot = slot;
         openAnchor = anchor;
         dropScroll = 0;
@@ -458,10 +462,14 @@ public final class CraftingTab {
 
     /** A drag in the tab: moves the slider's knob while it is held; true when it did. */
     boolean mouseDragged(double mx, double my) {
+        if (open != Drop.NONE && dropMenu.drag(my)) {
+            return true;
+        }
         return sectionsPanel.mouseDragged(mx, my);
     }
 
     void mouseReleased() {
+        dropMenu.release();
         sectionsPanel.mouseReleased();
     }
 
@@ -482,6 +490,9 @@ public final class CraftingTab {
 
     boolean mouseClicked(double mx, double my, int button) {
         sectionsPanel.lastX = mx;
+        if (overlayBox != null && open != Drop.NONE && dropMenu.press(mx, my)) {
+            return true;                            // the list's scroll bar
+        }
         if (overlayBox != null) {
             Runnable r = target(overlay, mx, my, button);
             if (r != null) {

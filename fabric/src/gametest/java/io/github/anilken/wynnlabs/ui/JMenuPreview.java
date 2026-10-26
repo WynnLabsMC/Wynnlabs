@@ -205,6 +205,24 @@ public class JMenuPreview implements FabricClientGameTest {
         });
         ctx.waitTicks(3);
         shot(ctx, out, "settings-changed");
+        // the goal row's dropdown, open under its chip
+        ctx.runOnClient(mc -> {
+            ((RoadmapScreen) mc.screen).settings.showChanged = false;
+            ((RoadmapScreen) mc.screen).settings.previewSettings(6, 3, false);
+        });
+        ctx.waitTicks(3);
+        ctx.runOnClient(mc -> {
+            for (Object[] t : ((RoadmapScreen) mc.screen).toggles) {
+                if ("#goal".equals(t[1])) {
+                    Field f = SettingsGoalMenu.class.getDeclaredField("at");
+                    f.setAccessible(true);
+                    f.set(((RoadmapScreen) mc.screen).settings.goalMenu, t[0]);
+                }
+            }
+        });
+        ctx.waitTicks(3);
+        shot(ctx, out, "settings-goal-menu");
+        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).settings.closePopup());
     }
 
     /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
@@ -302,6 +320,16 @@ public class JMenuPreview implements FabricClientGameTest {
             ctx.waitTicks(3);
             shot(ctx, out, "jmenu-stale");
             ctx.runOnClient(mc -> HomeTab.previewRoad = null);
+            // the shared dropdowns on the home: the goal list, the archetype list
+            ctx.runOnClient(mc -> flag(((RoadmapScreen) mc.screen).home, "goalOpen", true));
+            ctx.waitTicks(3);
+            shot(ctx, out, "jmenu-goals");
+            ctx.runOnClient(mc -> flag(((RoadmapScreen) mc.screen).home, "goalOpen", false));
+            ctx.waitTicks(2);                          // a frame without the popup: the chip's click area is back
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).archPicker.openAt("#qarch:"));
+            ctx.waitTicks(3);
+            shot(ctx, out, "jmenu-archetypes");
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).archPicker.close());
             optionShots(ctx, out);
             return;
         }

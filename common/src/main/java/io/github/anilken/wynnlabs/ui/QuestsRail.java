@@ -190,8 +190,7 @@ final class QuestsRail extends MenuPaint {
         chip = null;
         if (tab.questType.quest()) {
             String name = L.t(QuestAdvisor.FILTER_NAMES[filterIndex()]);
-            int cw = Ui.iconChipWidth(font(), null, name, true);
-            Ui.iconChip(g, font(), null, name, true, cx, y, cw, tab.filterOpen, mx, my);
+            int cw = UiMenu.chip(g, font(), null, name, cx, y, tab.filterOpen, mx, my);
             menu.hits.add(new MenuHit(cx, y, cw, Ui.CHIP_H, null, null, "#qmenu"));
             chip = new int[] {cx, y, cw, Ui.CHIP_H};
             cx += cw + Theme.SP_2;
@@ -244,8 +243,10 @@ final class QuestsRail extends MenuPaint {
             Art.icon(g, "check", mark, Type.BODY.onCaps(ty, 8), 8, Theme.GOOD);
         } else if (started) {
             Art.icon(g, "player-play", mark, Type.BODY.onCaps(ty, 8), 8, Theme.LINK);
-        } else if (q != null && "MINI_QUEST".equals(q.type())) {
-            Art.icon(g, "target", mark, Type.BODY.onCaps(ty, 8), 8, Theme.INK_3);
+        } else {
+            // every row its kind's icon, as in the kind menu (a tick or ▷ in its place when done or started)
+            ContentType kind = q != null && "MINI_QUEST".equals(q.type()) ? ContentType.MINI_QUEST : ContentType.QUEST;
+            Art.icon(g, kind.icon, mark, Type.BODY.onCaps(ty, 8), 8, picked ? Theme.INK : Theme.INK_3);
         }
         // the right column: the stage you are on, the distance, or the levels still to go
         String right = "";
@@ -341,47 +342,14 @@ final class QuestsRail extends MenuPaint {
             return null;
         }
         Map<String, List<QuestAdvisor.Suggestion>> lists = tab.lists();
-        List<QuestAdvisor.Suggestion> plan = plan(lists);
-        String planLabel = L.t("wynnlabs.quests.plan_action", plan.size());
-        int w = Type.BODY.width(font(), planLabel) + 2 * Theme.SP_3 + 8 + Theme.SP_2;
-        for (String n : QuestAdvisor.FILTER_NAMES) {
-            w = Math.max(w, Type.BODY.width(font(), L.t(n)) + 60);
-        }
-        int rows = QuestAdvisor.FILTERS.length;
-        int h = Theme.SP_2 + rows * ROW + (plan.isEmpty() ? 0 : Theme.SP_2 + 1 + Theme.SP_2 + ROW) + Theme.SP_2;
-        int x = chip[0];
-        int y = chip[1] + chip[3] + Theme.SP_1;
-        int[] r = {x, y, w, h};
-        Kit.softCard(g, x, y, w, h);
-        int ry = y + Theme.SP_2;
-        for (int i = 0; i < rows; i++) {
+        UiMenu.Items items = new UiMenu.Items();
+        for (int i = 0; i < QuestAdvisor.FILTERS.length; i++) {
             String f = QuestAdvisor.FILTERS[i];
-            boolean on = f.equals(tab.questFilter);
-            boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + ROW;
-            if (hover) {
-                g.fill(x + 1, ry, x + w - 1, ry + ROW, Theme.CARD_HOVER);
-            }
-            int ty = ry + Theme.SP_2;
-            if (on) {
-                Art.icon(g, "check", x + Theme.SP_3, Type.BODY.onCaps(ty, 8), 8, Theme.GOOD);
-            }
-            (on ? Type.LABEL : Type.BODY).draw(g, font(), L.t(QuestAdvisor.FILTER_NAMES[i]), x + Theme.SP_3 + 8 + Theme.SP_2, ty);
-            String n = String.valueOf(lists.getOrDefault(f, List.of()).size());
-            Type.META.drawRight(g, font(), n, x + w - Theme.SP_3, ty + 1, Theme.INK_3);
-            menu.hits.add(new MenuHit(x, ry, w, ROW, null, null, "#qfilter:" + f));
-            ry += ROW;
+            items.add(UiMenu.Item.of("#qfilter:" + f, null, L.t(QuestAdvisor.FILTER_NAMES[i]),
+                    String.valueOf(lists.getOrDefault(f, List.of()).size()), f.equals(tab.questFilter)));
         }
+        List<QuestAdvisor.Suggestion> plan = plan(lists);
         if (!plan.isEmpty()) {
-            ry += Theme.SP_2;
-            Kit.hair(g, x + Theme.SP_3, ry, w - 2 * Theme.SP_3, 1, Theme.LINE);
-            ry += 1 + Theme.SP_2;
-            int ty = ry + Theme.SP_2;
-            boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + ROW;
-            if (hover) {
-                g.fill(x + 1, ry, x + w - 1, ry + ROW, Theme.CARD_HOVER);
-            }
-            Art.icon(g, "route", x + Theme.SP_3, Type.BODY.onCaps(ty, 8), 8, Theme.LINK);
-            Type.LINK.draw(g, font(), planLabel, x + Theme.SP_3 + 8 + Theme.SP_2, ty);
             List<Component> tip = new ArrayList<>();
             tip.add(L.c("wynnlabs.quests.plan_tip").withStyle(ChatFormatting.GRAY));
             int minutes = 0;
@@ -395,9 +363,11 @@ final class QuestsRail extends MenuPaint {
                 cmd.append(s.quest().name()).append('\n');
             }
             tip.add(L.c("wynnlabs.quests.plan_sum", minutes, tab.share(xp)).withStyle(ChatFormatting.GREEN));
-            menu.hits.add(new MenuHit(x, ry, w, ROW, null, tip, cmd.toString()));
+            items.divide().add(UiMenu.Item.of(cmd.toString(), null, L.t("wynnlabs.quests.plan_action", plan.size()), null, false)
+                    .asLink().tip(tip));
         }
-        return r;
+        return UiMenu.draw(g, font(), UiMenu.Spec.under(chip, menu.width, menu.height), tab.orderMenu, items.list, mx, my,
+                r -> menu.hits.add(new MenuHit(r.x(), r.y(), r.w(), r.h(), null, r.item().tip(), r.item().id())));
     }
 
     /** This session's plan: the best safe quests near each other, nearest first, for about an hour. */

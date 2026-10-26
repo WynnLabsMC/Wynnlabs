@@ -75,30 +75,62 @@ abstract class MenuTab extends MenuPaint {
     // ---- popups: an open one owns the mouse ----
 
     /**
-     * Whether a popup of this tab is open (a menu under a chip, a list over the page). While one
-     * is, the screen draws the page with the mouse away (no hover, no tooltips, no click areas),
-     * then {@link #drawPopup} with the real mouse; a click outside it only closes it
-     * ({@link #closePopup}) and the wheel never reaches the page under it.
+     * A tab's popups (menus under a chip, a list over the page) as one object. While one is open
+     * the screen draws the page with the mouse away (no hover, no tooltips, no click areas), then
+     * {@link #draw} with the real mouse; a click outside only closes it ({@link #close}), the wheel
+     * and the keys go to it, never to the page under it.
      */
-    boolean popupOpen() {
-        return false;
+    interface Popup {
+        boolean open();
+
+        /** Draws the open popups; adds each one's box to {@code boxes}. */
+        void draw(GuiGraphics g, int mx, int my, List<int[]> boxes);
+
+        /** A click outside every popup (or Esc): they close, nothing else happens. */
+        void close();
+
+        /** A click inside a popup before its click areas get it (a scroll bar); true when taken. */
+        default boolean clicked(MouseButtonEvent event) {
+            return false;
+        }
+
+        /** The wheel over an open popup. */
+        default void scrolled(double x, double y, double v) {
+        }
+
+        /** Up, down, Enter while open; true when taken. */
+        default boolean key(int key) {
+            return false;
+        }
     }
 
-    /** Draws the open popups over the page with the real mouse; adds each one's box to {@code boxes}. */
-    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+    /** This tab's popups, or null when it has none. */
+    Popup popup() {
+        return null;
     }
 
-    /** A click outside every popup: they close, nothing else happens. */
-    void closePopup() {
+    final boolean popupOpen() {
+        return popup() != null && popup().open();
     }
 
-    /** A click inside a popup before its click areas get it (a scroll bar in it); true when taken. */
-    boolean popupClicked(MouseButtonEvent event) {
-        return false;
+    final void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+        popup().draw(g, mx, my, boxes);
     }
 
-    /** The wheel over an open popup (the page under it never scrolls). */
-    void popupScrolled(double x, double y, double v) {
+    final void closePopup() {
+        popup().close();
+    }
+
+    final boolean popupClicked(MouseButtonEvent event) {
+        return popup().clicked(event);
+    }
+
+    final void popupScrolled(double x, double y, double v) {
+        popup().scrolled(x, y, v);
+    }
+
+    final boolean popupKey(int key) {
+        return popup().key(key);
     }
 
     /** A key press the menu did not take first; true when the tab took it. */

@@ -159,8 +159,7 @@ final class QuestsTypes extends MenuPaint {
     /** The type chip at x, y; returns its width. */
     int chip(GuiGraphics g, int x, int y, int mx, int my) {
         ContentType t = tab.questType;
-        int cw = Ui.iconChipWidth(font(), t.icon, t.shown, true);
-        Ui.iconChip(g, font(), t.icon, t.shown, true, x, y, cw, tab.typeOpen, mx, my);
+        int cw = UiMenu.chip(g, font(), t.icon, t.shown, x, y, tab.typeOpen, mx, my);
         menu.hits.add(new MenuHit(x, y, cw, Ui.CHIP_H, null, null, "#qtypes"));
         chip = new int[] {x, y, cw, Ui.CHIP_H};
         return cw;
@@ -171,43 +170,16 @@ final class QuestsTypes extends MenuPaint {
         if (chip == null) {
             return null;
         }
-        // rows as tall as the window lets them be (a small window: down to a body line), never past its foot
-        int fixed = 2 * Theme.SP_2 + BREAK_AFTER.size() * (2 * Theme.SP_1 + 1);
-        int room = menu.height - Theme.SP_5 - (chip[1] + chip[3] + Theme.SP_1) - fixed;
-        int row = Math.max(Type.BODY.lineHeight, Math.min(QuestsRail.ROW, room / ContentType.values().length));
-        int w = 0;
+        UiMenu.Items items = new UiMenu.Items();
         for (ContentType t : ContentType.values()) {
-            w = Math.max(w, Type.LABEL.width(font(), t.shown));
-        }
-        w += 2 * Theme.SP_3 + 8 + Theme.SP_2 + Theme.SP_5 + Type.META.width(font(), "000");
-        int gap = 2 * Theme.SP_1 + 1;
-        int h = 2 * Theme.SP_2 + ContentType.values().length * row + BREAK_AFTER.size() * gap;
-        int x = chip[0];
-        int y = chip[1] + chip[3] + Theme.SP_1;
-        int[] r = {x, y, w, h};
-        Kit.softCard(g, x, y, w, h);
-        int ry = y + Theme.SP_2;
-        for (ContentType t : ContentType.values()) {
-            boolean on = t == tab.questType;
-            boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + row;
-            if (on) {
-                Kit.rowLit(g, x + Theme.SP_1, ry, w - 2 * Theme.SP_1, row);
-            } else if (hover) {
-                g.fill(x + 1, ry, x + w - 1, ry + row, Theme.CARD_HOVER);
-            }
-            int ty = ry + (row - Type.BODY.lineHeight) / 2;
-            Art.icon(g, t.icon, x + Theme.SP_3, Type.BODY.onCaps(ty, 8), 8, on ? Theme.INK : Theme.INK_3);
-            (on ? Type.LABEL : Type.BODY).draw(g, font(), t.shown, x + Theme.SP_3 + 8 + Theme.SP_2, ty);
             List<Component> tip = t == ContentType.SECRET_DISCOVERY ? List.of(L.c("wynnlabs.content.secret_tab").withStyle(ChatFormatting.GRAY)) : null;
-            Type.META.drawRight(g, font(), String.valueOf(count(t)), x + w - Theme.SP_3, ty + 1, Theme.INK_3);
-            menu.hits.add(new MenuHit(x, ry, w, row, null, tip, "#qtype:" + t.name()));
-            ry += row;
+            items.add(UiMenu.Item.of("#qtype:" + t.name(), t.icon, t.shown, String.valueOf(count(t)), t == tab.questType).tip(tip));
             if (BREAK_AFTER.contains(t)) {
-                Kit.hair(g, x + Theme.SP_3, ry + Theme.SP_1, w - 2 * Theme.SP_3, 1, Theme.LINE);
-                ry += gap;
+                items.divide();
             }
         }
-        return r;
+        return UiMenu.draw(g, font(), UiMenu.Spec.under(chip, menu.width, menu.height).rows(ContentType.values().length), tab.typeMenu,
+                items.list, mx, my, r -> menu.hits.add(new MenuHit(r.x(), r.y(), r.w(), r.h(), null, r.item().tip(), r.item().id())));
     }
 
     // ---- a row of a non-quest kind ----
@@ -229,7 +201,7 @@ final class QuestsTypes extends MenuPaint {
         if (l.done()) {
             Art.icon(g, "check", mark, Type.BODY.onCaps(ty, 8), 8, Theme.GOOD);
         } else {
-            Art.icon(g, l.type().icon, mark, Type.BODY.onCaps(ty, 8), 8, Theme.INK_3);
+            Art.icon(g, l.type().icon, mark, Type.BODY.onCaps(ty, 8), 8, picked ? Theme.INK : Theme.INK_3);
         }
         String right = "";
         int level = Wyn.level();
@@ -284,6 +256,7 @@ final class QuestsTypes extends MenuPaint {
     boolean action(String c) {
         if (c.equals("#qtypes")) {
             tab.typeOpen = !tab.typeOpen;
+            tab.typeMenu.reset();
             tab.filterOpen = false;
         } else if (c.startsWith("#qtype:")) {
             tab.typeOpen = false;

@@ -134,15 +134,14 @@ final class SearchTab extends MenuTab {
         }
         // the box and the sort on one line
         String sortLabel = L.t(SORTS[sort.ordinal()]);
-        int sortW = font().width(sortLabel) + 24;
+        int sortW = Ui.iconChipWidth(font(), null, sortLabel, true);
         textBox(g, box, x, y, w - sortW - 6, "wynnlabs.search.box_hint", mx, my, pt);
         int sx = x + w - sortW;
-        boolean sortHover = mx >= sx && mx < sx + sortW && my >= y - 1 && my < y + 13;
-        int st = sortOpen ? Kit.ON : sortHover ? Kit.HOVER : Kit.REST;
-        Kit.button(g, sx, y - 1, sortW, 14, st);
-        onWood(g, sortLabel, sx + 6, y + 2, st);
-        Art.icon(g, "chevron-down", sx + sortW - 12, y + 2, 8, Kit.buttonText(st));
-        click(sx, y - 1, sortW, 14, () -> sortOpen = !sortOpen);
+        UiMenu.chip(g, font(), null, sortLabel, sx, y - 1, sortOpen, mx, my);
+        click(sx, y - 1, sortW, Ui.CHIP_H, () -> {
+            sortOpen = !sortOpen;
+            sortMenu.reset();
+        });
 
         SearchQuery q = query();
         SearchQuery.Result result = submit(q, index);
@@ -165,34 +164,63 @@ final class SearchTab extends MenuTab {
         card.draw(g, x + listW + 8, bodyY, cardW, bodyH, mx, my);
         // the keys, at the foot of the page
         ink(g, fit(L.t("wynnlabs.search.footer"), w), x, y + h - 9, FAINT);
-        sortAt = new int[] {sx, y + 14, sortW};     // its list: the popup, drawn over the page by drawPopup
+        sortAt = new int[] {sx, y - 1, sortW, Ui.CHIP_H};     // its list: the popup, drawn over the page by drawPopup
     }
 
     // ---- the sort's list: a popup that owns the mouse ----
 
     private int[] sortAt;
 
+    /** The popups as the menu's one hook (the methods below). */
+    private final Popup popups = new Popup() {
+        @Override
+        public boolean open() {
+            return popupOpenImpl();
+        }
+
+        @Override
+        public void draw(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+            drawPopupImpl(g, mx, my, boxes);
+        }
+
+        @Override
+        public void close() {
+            closePopupImpl();
+        }
+
+        @Override
+        public boolean clicked(MouseButtonEvent event) {
+            return popupClickedImpl(event);
+        }
+
+        @Override
+        public boolean key(int key) {
+            return popupKeyImpl(key);
+        }
+    };
+
     @Override
-    boolean popupOpen() {
+    Popup popup() {
+        return popups;
+    }
+
+    private boolean popupOpenImpl() {
         return sortOpen;
     }
 
-    @Override
-    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+    private void drawPopupImpl(GuiGraphics g, int mx, int my, List<int[]> boxes) {
         if (sortAt == null) {
             sortOpen = false;
             return;
         }
-        boxes.add(sortList(g, sortAt[0], sortAt[1], sortAt[2], mx, my));
+        boxes.add(sortList(g, sortAt, mx, my));
     }
 
-    @Override
-    void closePopup() {
+    private void closePopupImpl() {
         sortOpen = false;
     }
 
-    @Override
-    boolean popupClicked(MouseButtonEvent event) {
+    private boolean popupClickedImpl(MouseButtonEvent event) {
         for (int i = clicks.size() - 1; i >= 0; i--) {
             Click c = clicks.get(i);
             if (in(event.x(), event.y(), c.rect())) {
@@ -256,28 +284,30 @@ final class SearchTab extends MenuTab {
     }
 
     /** The sort's list, open under its button, over everything else. */
-    private int[] sortList(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        int lw = w;
-        for (String s : SORTS) {
-            lw = Math.max(lw, font().width(L.t(s)) + 16);
-        }
-        int lx = x + w - lw;
-        Kit.card(g, lx, y, lw, SORTS.length * 14 + 4, 0);
+    private final UiMenu.State sortMenu = new UiMenu.State();
+
+    /** The sort's list under its chip: the shared dropdown. */
+    private int[] sortList(GuiGraphics g, int[] anchor, int mx, int my) {
+        List<UiMenu.Item> items = new java.util.ArrayList<>();
         for (int i = 0; i < SORTS.length; i++) {
-            int ry = y + 2 + i * 14;
-            boolean hover = mx >= lx && mx < lx + lw && my >= ry && my < ry + 14;
-            if (hover || i == sort.ordinal()) {
-                g.fill(lx + 2, ry, lx + lw - 2, ry + 14, i == sort.ordinal() ? Theme.SELECTED : Theme.CARD_HOVER);
-            }
-            ink(g, L.t(SORTS[i]), lx + 8, ry + 3, Theme.INK);
-            int pick = i;
-            click(lx, ry, lw, 14, () -> {
-                sort = SearchQuery.Sort.values()[pick];
-                sortOpen = false;
-                results.scroll = 0;
-            });
+            items.add(UiMenu.Item.of(String.valueOf(i), null, L.t(SORTS[i]), null, i == sort.ordinal()));
         }
-        return new int[] {lx, y, lw, SORTS.length * 14 + 4};
+        return UiMenu.draw(g, font(), UiMenu.Spec.under(anchor, menu.width, menu.height), sortMenu, items, mx, my,
+                r -> click(r.x(), r.y(), r.w(), r.h(), () -> pickSort(Integer.parseInt(r.item().id()))));
+    }
+
+    private void pickSort(int i) {
+        sort = SearchQuery.Sort.values()[i];
+        sortOpen = false;
+        results.scroll = 0;
+    }
+
+    private boolean popupKeyImpl(int key) {
+        UiMenu.Item it = sortMenu.key(key);
+        if (it != null) {
+            pickSort(Integer.parseInt(it.id()));
+        }
+        return true;
     }
 
     // ---- the query ----

@@ -7,8 +7,6 @@ import io.github.anilken.wynnlabs.quests.ContentType;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.quests.QuestGuides;
-import io.github.anilken.wynnlabs.quests.QuestTrail;
-import io.github.anilken.wynnlabs.quests.QuestWiki;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 
 import net.minecraft.ChatFormatting;
@@ -38,6 +36,7 @@ final class QuestsTab extends MenuTab {
         points = new QuestsPointsPane(menu, this);
         place = new QuestsPlacePane(menu, this);
         types = new QuestsTypes(menu, this);
+        popups = new QuestsPopups(menu, this);
         map = new QuestMap(menu);
     }
 
@@ -46,6 +45,7 @@ final class QuestsTab extends MenuTab {
     final QuestsPointsPane points;
     final QuestsPlacePane place;
     final QuestsTypes types;
+    final QuestsPopups popups;
     final QuestMap map;
     /** The list's and the places' scroll bars: dragged, clicked or wheeled. */
     final ScrollBar railBar = new ScrollBar();
@@ -62,6 +62,9 @@ final class QuestsTab extends MenuTab {
     ContentType pickedType;
     /** The kind menu open. */
     boolean typeOpen;
+    /** The kind and order menus' state (scroll, the keys' row). */
+    final UiMenu.State typeMenu = new UiMenu.State();
+    final UiMenu.State orderMenu = new UiMenu.State();
     /** The pane: 0 the guide, 3 the places ("Noktalar"); the numbers the preview and dev tools set. */
     int questDetailTab;
     int railScroll;
@@ -125,6 +128,9 @@ final class QuestsTab extends MenuTab {
 
     @Override
     boolean barDragged(double x, double y) {
+        if (typeMenu.drag(y) || orderMenu.drag(y)) {
+            return true;
+        }
         if (map.drag(x, y)) {
             return true;
         }
@@ -141,6 +147,8 @@ final class QuestsTab extends MenuTab {
 
     @Override
     void barReleased() {
+        typeMenu.release();
+        orderMenu.release();
         MouseButtonEvent click = map.release();
         if (click != null) {
             menu.replayClick(click);
@@ -207,6 +215,7 @@ final class QuestsTab extends MenuTab {
             searchBox.setValue("");
         } else if (c.equals("#qmenu")) {
             filterOpen = !filterOpen;
+            orderMenu.reset();
             typeOpen = false;
         } else if (c.equals("#qlist")) {
             listOpen = !listOpen;
@@ -248,9 +257,9 @@ final class QuestsTab extends MenuTab {
             int n = Waypoints.clearAll();
             menu.flash(L.n("wynnlabs.quests.pins_cleared", n));
         } else if (c.startsWith("#qpins:")) {
-            pin(c.substring(7), false);
+            QuestsData.pin(menu, c.substring(7), false);
         } else if (c.startsWith("#qpinstage:")) {
-            pin(c.substring(11), true);
+            QuestsData.pin(menu, c.substring(11), true);
         } else if (c.startsWith("#qplan:")) {
             filterOpen = false;
             List<int[]> pts = new ArrayList<>();
@@ -269,35 +278,6 @@ final class QuestsTab extends MenuTab {
             return false;
         }
         return true;
-    }
-
-    /**
-     * The quest's places on the map and compass, queued: every one from the stage you are on, or
-     * only that stage's ({@code stageOnly}); the start when the wiki has none.
-     */
-    private void pin(String name, boolean stageOnly) {
-        QuestWiki.Info info = QuestWiki.get(name);
-        int cur = Math.max(0, QuestsData.stage(name, info));
-        List<int[]> pts = new ArrayList<>();
-        List<String> labels = new ArrayList<>();
-        if (info != null) {
-            List<QuestWiki.Place> all = QuestTrail.places(name, info, 0);
-            List<String> nums = QuestsData.pointNumbers(all);
-            for (int i = 0; i < all.size(); i++) {
-                int st = all.get(i).stage();
-                if (stageOnly ? st == cur : st >= cur) {
-                    pts.add(all.get(i).at());
-                    labels.add(nums.get(i) + " " + all.get(i).what());
-                }
-            }
-        }
-        QuestBook.Entry q = QuestsData.entry(name);
-        if (pts.isEmpty() && !stageOnly && q != null && q.x() != null) {
-            pts.add(new int[] {q.x(), q.y(), q.z()});
-            labels.add(L.t("wynnlabs.quests.pin_start", QuestGuides.title(name)));
-        }
-        int n = Waypoints.showAll(pts, labels);
-        menu.flash(n > 0 ? L.n("wynnlabs.quests.pins_added", n) : L.t("wynnlabs.quests.no_coords"));
     }
 
     // ---- the data the parts share ----
@@ -452,8 +432,8 @@ final class QuestsTab extends MenuTab {
             }
         }
         // the popups (the list over the pane, the order and kind menus) come after, from drawPopup
-        overlayAt = new int[] {x, py, w, y + h - py};
-        overlayRows = rows;
+        popups.overlayAt = new int[] {x, py, w, y + h - py};
+        popups.overlayRows = rows;
     }
 
     /** Nothing read yet: an info notice with "Read with Wynntils" in it, the manual way under it. */
@@ -472,55 +452,18 @@ final class QuestsTab extends MenuTab {
         Type.META.draw(g, font(), Type.META.fit(font(), L.t("wynnlabs.quests.empty_manual"), nw), nx, ny + nh + Theme.SP_3, Theme.INK_3);
     }
 
-    // ---- the popups: the list over the pane (compact), the order and kind menus ----
-
-    private int[] overlayAt;
-    private List<QuestsRail.Row> overlayRows = List.of();
+    // ---- the popups (QuestsPopups): the list over the pane (compact), the order and kind menus ----
 
     @Override
-    boolean popupOpen() {
-        return filterOpen || typeOpen || listOpen && menu.layout.compact();
+    Popup popup() {
+        return popups;
     }
 
-    @Override
-    void drawPopup(GuiGraphics g, int mx, int my, List<int[]> boxes) {
-        if (listOpen && menu.layout.compact() && overlayAt != null) {
-            boxes.add(rail.overlay(g, overlayAt[0], overlayAt[1], overlayAt[2], overlayAt[3], overlayRows, mx, my));
-        }
-        int[] b = filterOpen ? rail.menu(g, mx, my) : null;
-        if (b != null) {
-            boxes.add(b);
-        }
-        b = typeOpen ? types.menu(g, mx, my) : null;
-        if (b != null) {
-            boxes.add(b);
-        }
-        if (boxes.isEmpty()) {
-            closePopup();                           // nothing to show it under (no chip this frame)
-        }
-    }
-
-    @Override
-    void closePopup() {
+    /** The popups close: the menus and the compact list. */
+    void closeMenus() {
         filterOpen = false;
         typeOpen = false;
         listOpen = false;
-    }
-
-    @Override
-    boolean popupClicked(MouseButtonEvent event) {
-        if (listOpen && railRect != null && in(event.x(), event.y(), railRect) && railBar.mouseClicked(event.x(), event.y())) {
-            railScroll = railBar.offset();
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    void popupScrolled(double x, double y, double v) {
-        if (listOpen && railRect != null && in(x, y, railRect)) {
-            railScroll = Math.max(0, railScroll - (int) Math.signum(v));
-        }
     }
 
     /** The rail: a pin while a quest is tracked. */

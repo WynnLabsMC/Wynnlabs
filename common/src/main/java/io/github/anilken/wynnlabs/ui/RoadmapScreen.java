@@ -468,7 +468,7 @@ public final class RoadmapScreen extends Screen {
 
         // an open popup owns the mouse: everything under it draws as if the mouse were away
         MenuTab page = tab == TAB_CRAFT || tab == TAB_ENDGAME ? null : pages[tab];
-        boolean popup = page != null && page.popupOpen();
+        boolean popup = page != null && page.popupOpen() || archPicker.isOpen();
         int realX = mx;
         int realY = my;
         if (popup) {
@@ -518,9 +518,14 @@ public final class RoadmapScreen extends Screen {
             mx = realX;
             my = realY;
             g.nextStratum();                            // over the page's text and items
-            page.drawPopup(g, mx, my, popupBoxes);
+            if (page != null && page.popupOpen()) {
+                page.drawPopup(g, mx, my, popupBoxes);
+            }
+            int[] arch = archPicker.draw(g, mx, my);
+            if (arch != null) {
+                popupBoxes.add(arch);
+            }
         }
-        archPicker.draw(g, mx, my);
         // the build window over the home: what is under it neither shows a tooltip nor takes a click
         if (tab == 0 && BuildWindow.INSTANCE.isOpen()) {
             hits.clear();
@@ -647,6 +652,17 @@ public final class RoadmapScreen extends Screen {
         if (archPicker.keyPressed(event.key())) {
             return true;
         }
+        // an open popup takes the keys: up, down and Enter move and pick, Esc closes it (not the menu)
+        MenuTab popupPage = tab == TAB_CRAFT || tab == TAB_ENDGAME ? null : pages[tab];
+        if (popupPage != null && popupPage.popupOpen()) {
+            if (event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+                popupPage.closePopup();
+                return true;
+            }
+            if (popupPage.popupKey(event.key())) {
+                return true;
+            }
+        }
         // the build window first: Esc closes a rename or the window, never the menu
         if (tab == 0 && BuildWindow.INSTANCE.keyPressed(event.key())) {
             return true;
@@ -686,6 +702,9 @@ public final class RoadmapScreen extends Screen {
         }
         double f = MenuScale.factor();
         MouseButtonEvent e = MenuScale.event(event);
+        if (archPicker.drag(e.y())) {
+            return true;                                // the archetype list's scroll bar
+        }
         if (tab == 0 && BuildWindow.INSTANCE.mouseDragged(e.x(), e.y())) {
             return true;                                // a build window scrollbar's thumb follows the mouse
         }
@@ -707,6 +726,7 @@ public final class RoadmapScreen extends Screen {
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
         CraftingTab.INSTANCE.mouseReleased();
+        archPicker.release();
         BuildWindow.INSTANCE.mouseReleased();
         home.statsReleased();
         search.mouseReleased();
@@ -857,6 +877,15 @@ public final class RoadmapScreen extends Screen {
         return false;
     }
 
+    /** A popup row picked with the keyboard: its action as if its area were clicked. */
+    void runAction(String action) {
+        if (action == null) {
+            return;
+        }
+        MouseButtonEvent at = new MouseButtonEvent(0.5, 0.5, new net.minecraft.client.input.MouseButtonInfo(0, 0));
+        hitClicked(new MenuHit(0, 0, 1, 1, null, null, action), at);
+    }
+
     private boolean hitClicked(MenuHit h, MouseButtonEvent event) {
         double ex = event.x();
         double ey = event.y();
@@ -933,7 +962,13 @@ public final class RoadmapScreen extends Screen {
         }
         x = MenuScale.at(x);
         y = MenuScale.at(y);
-        archPicker.close();                         // the page moves under it
+        if (archPicker.isOpen()) {
+            int[] b = archPicker.box();
+            if (b != null && MenuPaint.in(x, y, b)) {
+                archPicker.wheel(v);
+            }
+            return true;                                // never the page under it
+        }
         if (tab == 0 && BuildWindow.INSTANCE.isOpen()) {
             return BuildWindow.INSTANCE.mouseScrolled(x, y, v);
         }

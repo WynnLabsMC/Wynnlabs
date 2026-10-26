@@ -214,7 +214,7 @@ final class SettingsTab extends MenuTab {
         } else if ("#archetype".equals(id)) {
             menu.archPicker.open(rect);
         } else if ("#goal".equals(id)) {
-            Setup.cycleGoal();
+            goalMenu.open(rect);           // the goal list opens under its chip; a row picks it
         } else {
             Settings.toggle(id);
             if ("webFont".equals(id)) {
@@ -228,6 +228,15 @@ final class SettingsTab extends MenuTab {
         if (settingsListRect != null && in(x, y, settingsListRect)) {
             settingsScroll = Math.max(0, Math.min(settingsScrollMax, settingsScroll - 28 * (int) Math.signum(v)));
         }
+    }
+
+    // ---- the goal's dropdown (SettingsGoalMenu): a popup that owns the mouse ----
+
+    final SettingsGoalMenu goalMenu = new SettingsGoalMenu(menu);
+
+    @Override
+    Popup popup() {
+        return goalMenu;
     }
 
     /** Enter in the rule box or the key box saves it; Esc in the search box empties it. */
@@ -469,8 +478,6 @@ final class SettingsTab extends MenuTab {
         ruleBox.setFocused(false);
         menu.setFocused(null);
     }
-
-
 
     // ---- the Wynnventory key (drawn by SettingsPages) ----
 
