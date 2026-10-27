@@ -171,3 +171,4 @@ wynnlabs.box.rank_few_numbers       the numbers after the roll answer's bold hea
 wynnlabs.box.rank_suggest           the price after the roll answer's bold head
 wynnlabs.box.stats_range            "lowest … highest" at the right of a stats heading
 wynnlabs.screen.ago_now             "just now" inside "Updated %s" and the like
+wynnlabs.about.unbound              "unbound" in a keycap on the About page

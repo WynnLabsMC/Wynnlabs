@@ -22,10 +22,12 @@ import java.util.Locale;
 import java.util.function.BiConsumer;
 
 /**
- * The update window, opened from the chat line's [Update] or the About page: the new and the
- * current version, a short summary or the release notes (scrollable), the download's progress
- * and the actions Update, Update &amp; exit, Ignore now, Ignore this version, Changelog and Back.
- * Nothing here talks to the game server; the download is GitHub only ({@link UpdateDownload}).
+ * The update window, opened from the chat line's [Details] or the About page: a soft card with
+ * the new version and yours, Summary / Changes as chip tabs (what Update does in three steps, or
+ * the release notes, scrollable), the download's state over the foot, and the foot itself: Not
+ * now and Skip this version on the left, Update (gold) and Update &amp; exit on the right, or Quit
+ * now once the jar is ready. ✕ and Esc close it. Nothing here talks to the game server; the
+ * download is GitHub only ({@link UpdateDownload}).
  */
 public final class UpdateScreen extends Screen {
 
@@ -41,9 +43,6 @@ public final class UpdateScreen extends Screen {
     private record Hit(int x, int y, int w, int h, Runnable action) {}
 
     private final List<Hit> hits = new ArrayList<>();
-    private int[] closeRect;
-    private int bodyTop;
-    private int bodyH;
 
     public UpdateScreen(Screen parent, boolean changelog) {
         super(L.c("wynnlabs.update.screen_title"));
@@ -108,91 +107,159 @@ public final class UpdateScreen extends Screen {
     private void draw(GuiGraphics g, int mx, int my, float pt) {
         super.render(g, mx, my, pt);
         hits.clear();
+        tip = null;
         UpdateCheck.State s = UpdateCheck.state();
-        int w = Math.min(width - 20, 340);
-        int h = Math.min(height - 20, 210);
-        int x = (width - w) / 2;
-        int y = (height - h) / 2;
-        Kit.window(g, x - 5, y - 5, w + 10, h + 10);
-        Kit.paper(g, x, y, w, h);
-        int[] cr = closeRect;
-        closeRect = Kit.closeOutside(g, width, x, y, w, cr != null && in(mx, my, cr));
-        int in = x + 10;
-        int iw = w - 20;
+        int ww = Math.min(width - 16, 400);
+        int wh = Math.min(height - 16, 250);
+        int wx = (width - ww) / 2;
+        int wy = (height - wh) / 2;
+        g.fill(0, 0, width, height, 0x55201810);
+        Kit.windowShadow(g, wx, wy, ww, wh);
+        g.fill(wx + 4, wy + 4, wx + ww - 4, wy + wh - 3, 0xFFEADCB4);
+        Kit.softCard(g, wx, wy, ww, wh);
+        int x = wx + Theme.SP_5;
+        int y = wy + Theme.SP_5;
+        int w = ww - 2 * Theme.SP_5;
+        int bottom = wy + wh - Theme.SP_5;
         boolean newer = s.status() == UpdateCheck.Status.NEWER;
-        String mine = vName(s.own());
+        // the title row: the state's tile, the version, the close button
+        int tile = 22;
+        Art.box(g, x, y, tile, tile, 6, 0xFFF6E7B8, Theme.GOLD_DEEP);
+        Art.icon(g, newer ? "arrow-up" : "check", x + 6, y + 6, 10, newer ? Theme.GOLD_DEEP : Theme.GOOD);
+        int cx = x + w - (Ui.CHIP_H + 2);
+        if (Ui.iconButton(g, "x", cx, y, false, mx, my)) {
+            tip = List.of(L.c("wynnlabs.update.close"));
+        }
+        hits.add(new Hit(cx, y, Ui.CHIP_H + 2, Ui.CHIP_H, this::onClose));
+        int tx = x + tile + Theme.SP_3;
         String title = newer ? L.t("wynnlabs.update.screen_newer", s.latest()) : L.t("wynnlabs.about.uptodate_title");
-        Kit.text(g, font, Component.literal(fit(title, iw)).withStyle(UiFont::bold), in, y + 12, Theme.paperRgb(Theme.INK));
+        Type.HEADING.draw(g, font, Type.HEADING.fit(font, title, cx - Theme.SP_3 - tx), tx, y - 1, Theme.INK);
+        String mine = vName(s.own());
         String sub = s.published() > 0 ? L.t("wynnlabs.about.newer_sub", mine, MenuPaint.ago(s.published()))
                 : L.t("wynnlabs.about.newer_sub_nodate", mine);
-        ink(g, fit(sub, iw), in, y + 24, Theme.INK_2);
-        Kit.hair(g, in, y + 36, iw, 1, Theme.LINE);
-
-        // the buttons first (they may wrap), so the body knows how much room is left
-        List<Object[]> acts = actions(s, newer);
-        int rows = rowsNeeded(acts, iw);
-        int buttonsY = y + h - 10 - rows * 18 + 4;
-        int statusY = buttonsY - 16;
-        bodyTop = y + 42;
-        bodyH = statusY - 4 - bodyTop;
+        if (newer && s.asset() != null) {
+            sub += " · " + mb(s.asset().size()) + " MB";
+        }
+        Type.META.draw(g, font, Type.META.fit(font, sub, cx - Theme.SP_3 - tx), tx, y + Type.HEADING.lineHeight, Theme.INK_3);
+        y += tile + Theme.SP_4;
+        // Özet / Değişiklikler as chip tabs
+        if (newer) {
+            String[][] tabs = {{"list-check", L.t("wynnlabs.update.summary_button")}, {"script", L.t("wynnlabs.update.changelog")}};
+            int tbx = x;
+            for (int i = 0; i < 2; i++) {
+                int tw = Ui.iconChipWidth(font, tabs[i][0], tabs[i][1], false);
+                Ui.iconChip(g, font, tabs[i][0], tabs[i][1], false, tbx, y, tw, changelog == (i == 1), mx, my);
+                boolean notes = i == 1;
+                hits.add(new Hit(tbx, y, tw, Ui.CHIP_H, () -> changelog = notes));
+                tbx += tw + Theme.SP_2;
+            }
+            y += Ui.CHIP_H + Theme.SP_3;
+        }
+        Kit.hair(g, x, y, w, 1, Theme.LINE);
+        y += 1 + Theme.SP_4;
+        // the foot: the state over the buttons, the one main action on the right
+        int footY = bottom - Ui.BUTTON_H;
+        int statusH = drawStatus(g, s, x, footY - Theme.SP_3, w);
+        int footLine = footY - Theme.SP_3 - statusH - (statusH > 0 ? Theme.SP_3 : 0);
+        Kit.hair(g, x, footLine, w, 1, 0x40A08A5A);
+        drawFoot(g, s, newer, x, footY, w, mx, my);
+        int bodyBottom = footLine - Theme.SP_3;
         if (changelog && newer) {
-            drawNotes(g, s, in, bodyTop, iw, bodyH, mx, my);
+            drawNotes(g, s, x, y, w, bodyBottom - y, mx, my);
         } else {
-            drawSummary(g, s, newer, in, bodyTop, iw);
+            notesBar.place(0, 0, 0, 1, 1, 0);
+            drawSummary(g, s, newer, x, y, w);
         }
-        drawStatus(g, s, in, statusY, iw);
-        drawButtons(g, acts, in, buttonsY, iw, mx, my);
+        if (tip != null) {
+            Glossary.draw(g, font, tip, mx, my, width);
+        }
     }
 
-    /** What pressing Update will do, or why no download fits. */
+    private List<Component> tip;
+
+    private static String mb(long bytes) {
+        return String.format(Locale.ROOT, "%.1f", bytes / 1048576.0);
+    }
+
+    /** What pressing Update does, as three short steps, or why no download fits. */
     private void drawSummary(GuiGraphics g, UpdateCheck.State s, boolean newer, int x, int y, int w) {
-        String text;
-        if (!newer) {
-            text = L.t("wynnlabs.update.nothing_new");
-        } else if (s.asset() == null) {
-            text = L.t("wynnlabs.update.no_fit", loaderLabel());
-        } else {
-            text = L.t("wynnlabs.update.summary", loaderLabel(), String.format(Locale.ROOT, "%.1f", s.asset().size() / 1048576.0));
+        if (!newer || s.asset() == null) {
+            String text = !newer ? L.t("wynnlabs.update.nothing_new") : L.t("wynnlabs.update.no_fit", loaderLabel());
+            Type.BODY.drawWrapped(g, font, text, x, y, w, 4, Theme.INK_2);
+            return;
         }
+        String[] steps = {L.t("wynnlabs.update.step1", loaderLabel(), mb(s.asset().size())), L.t("wynnlabs.update.step2"),
+            L.t("wynnlabs.update.step3")};
         int ly = y;
-        for (String line : wrap(text, w, 6)) {
-            ink(g, line, x, ly, Theme.INK);
-            ly += 10;
+        for (int i = 0; i < steps.length; i++) {
+            int dot = 11;
+            int dy = Type.BODY.onCaps(ly, dot);
+            Kit.pill(g, x, dy, dot, dot, false, false);
+            String n = String.valueOf(i + 1);
+            Type.META.draw(g, font, n, x + (dot - Type.META.width(font, n) + 1) / 2, Type.META.yIn(dy, dot), Theme.INK_2);
+            ly = Type.BODY.drawWrapped(g, font, steps[i], x + dot + Theme.SP_3, ly, w - dot - Theme.SP_3, 2, Theme.INK_2) + Theme.SP_2;
         }
-        if (newer && UpdatePrefs.ignoredVersion(s.latest())) {
-            ink(g, fit(L.t("wynnlabs.update.ignored_note"), w), x, ly + 4, Theme.INK_3);
+        Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.update.keeps"), w), x, ly + Theme.SP_1, Theme.INK_3);
+        if (UpdatePrefs.ignoredVersion(s.latest())) {
+            Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.update.ignored_note"), w), x,
+                    ly + Theme.SP_1 + Type.META.lineHeight + Theme.SP_1, Theme.INK_3);
         }
     }
 
-    /** The release notes as plain lines, scrolled by the wheel. */
+    /** The release notes: sections as LABEL, items as bullets, scrolled by the wheel and the bar. */
     private void drawNotes(GuiGraphics g, UpdateCheck.State s, int x, int y, int w, int h, int mx, int my) {
-        notesBar.place(0, 0, 0, 1, 1, 0);
         if (notes == null || !s.latest().equals(notesFor)) {
             notes = ReleaseNotes.lines(s.notes());
             notesFor = s.latest();
             scroll = 0;
+            noteLines = null;
         }
-        List<Component> lines = new ArrayList<>();
-        for (ReleaseNotes.Line l : notes) {
-            String prefix = l.bullet() ? "• " : "";
-            for (String part : wrap(prefix + l.text(), w - ScrollBar.W - Theme.SP_2, 4)) {
-                lines.add(l.heading() ? Component.literal(part).withStyle(UiFont::bold) : Component.literal(part));
+        int tw = w - ScrollBar.W - Theme.SP_3;
+        if (noteLines == null || noteW != tw) {
+            noteLines = new ArrayList<>();
+            for (ReleaseNotes.Line l : notes) {
+                List<String> parts = new ArrayList<>();
+                if (l.heading()) {
+                    parts.add(l.text());
+                } else {
+                    for (var seq : font.getSplitter().splitLines(Type.BODY.of(l.text()), tw - (l.bullet() ? 10 : 0),
+                            net.minecraft.network.chat.Style.EMPTY)) {
+                        parts.add(seq.getString());
+                    }
+                }
+                for (int i = 0; i < parts.size(); i++) {
+                    noteLines.add(new Object[] {parts.get(i), l.heading(), l.bullet() && i == 0, l.bullet()});
+                }
             }
+            noteW = tw;
         }
-        if (lines.isEmpty()) {
-            ink(g, L.t("wynnlabs.update.no_notes"), x, y, Theme.INK_3);
+        if (noteLines.isEmpty()) {
+            Type.MUTED.draw(g, font, L.t("wynnlabs.update.no_notes"), x, y, Theme.INK_3);
             return;
         }
-        int visible = Math.max(1, h / 10);
-        scroll = Math.max(0, Math.min(scroll, lines.size() - visible));
+        int lineH = Type.BODY.lineHeight + Theme.SP_1;
+        int visible = Math.max(1, h / lineH);
+        scroll = Math.max(0, Math.min(scroll, noteLines.size() - visible));
         g.enableScissor(x, y, x + w, y + h);
-        for (int i = 0; i < visible && scroll + i < lines.size(); i++) {
-            Kit.text(g, font, lines.get(scroll + i), x, y + i * 10, Theme.paperRgb(Theme.INK));
+        for (int i = 0; i < visible && scroll + i < noteLines.size(); i++) {
+            Object[] l = noteLines.get(scroll + i);
+            int ly = y + i * lineH;
+            if ((Boolean) l[1]) {
+                Type.LABEL.draw(g, font, (String) l[0], x, ly, Theme.INK);
+            } else {
+                if ((Boolean) l[2]) {
+                    Art.icon(g, "circle-dot", x, Type.BODY.onCaps(ly, 6), 6, Theme.INK_3);
+                }
+                Type.BODY.draw(g, font, (String) l[0], x + ((Boolean) l[3] ? 10 : 0), ly, Theme.INK_2);
+            }
         }
         g.disableScissor();
-        notesBar.place(x + w - ScrollBar.W, y, h, visible, lines.size(), scroll);
+        notesBar.place(x + w - ScrollBar.W, y, h, visible, noteLines.size(), scroll);
         notesBar.draw(g, mx, my);
     }
+
+    private List<Object[]> noteLines;
+    private int noteW;
 
     /** The release notes' bar (offsets in lines). */
     private final ScrollBar notesBar = new ScrollBar();
@@ -212,94 +279,91 @@ public final class UpdateScreen extends Screen {
         return super.mouseReleased(event);
     }
 
-    /** The download's progress, the ready note or why it failed. */
-    private void drawStatus(GuiGraphics g, UpdateCheck.State s, int x, int y, int w) {
+    /** The download's progress, the ready note or why it failed, ending at {@code bottom}; returns its height. */
+    private int drawStatus(GuiGraphics g, UpdateCheck.State s, int x, int bottom, int w) {
         if (s.latest() == null || !s.latest().equals(UpdateDownload.tag())) {
-            return;
+            return 0;
         }
+        int y = bottom - Type.BODY.lineHeight;
         switch (UpdateDownload.phase()) {
             case DOWNLOADING -> {
                 double f = UpdateDownload.progress();
-                String pct = L.t("wynnlabs.box.pct", (int) Math.round(f * 100));
-                int pw = font.width(pct) + 6;
-                Kit.tealBar(g, x, y + 2, w - pw, 7, f, true);
-                ink(g, pct, x + w - pw + 6, y + 1, Theme.INK_2);
+                String t = L.t("wynnlabs.box.pct", (int) Math.round(f * 100))
+                        + (s.asset() == null ? "" : " · " + mb((long) (s.asset().size() * f)) + " / " + mb(s.asset().size()) + " MB");
+                int pw = Type.META.width(font, t) + Theme.SP_3;
+                AboutUpdateCard.bar(g, x, Type.BODY.onCaps(y, 6), w - pw, f);
+                Type.META.drawRight(g, font, t, x + w, y + 1, Theme.INK_3);
             }
-            case READY -> ink(g, fit(L.t("wynnlabs.update.ready", s.latest()), w), x, y + 1, Theme.GOOD);
-            case FAILED -> ink(g, fit(UpdateCheck.failText(UpdateDownload.failure()), w), x, y + 1, Theme.BAD);
-            default -> { }
+            case READY -> {
+                Art.icon(g, "check", x, Type.BODY.onCaps(y, 8), 8, Theme.GOOD);
+                Type.BODY.draw(g, font, Type.BODY.fit(font, L.t("wynnlabs.update.ready", s.latest()), w - 11), x + 11, y, Theme.GOOD);
+            }
+            case FAILED -> {
+                Art.icon(g, "alert-triangle", x, Type.BODY.onCaps(y, 8), 8, Theme.BAD);
+                Type.BODY.draw(g, font, Type.BODY.fit(font, UpdateCheck.failText(UpdateDownload.failure()), w - 11), x + 11, y, Theme.BAD);
+            }
+            default -> {
+                return 0;
+            }
         }
+        return Type.BODY.lineHeight;
     }
 
-    /** {label, action, primary, enabled} for each button, in order. */
-    private List<Object[]> actions(UpdateCheck.State s, boolean newer) {
-        List<Object[]> out = new ArrayList<>();
-        boolean busy = UpdateDownload.phase() == UpdateDownload.Phase.DOWNLOADING;
-        boolean ready = UpdateDownload.phase() == UpdateDownload.Phase.READY && s.latest() != null
-                && s.latest().equals(UpdateDownload.tag());
-        if (newer && s.asset() != null) {
-            out.add(new Object[] {L.t("wynnlabs.update.update"), (Runnable) () -> UpdateDownload.start(s.asset(), s.latest(), false),
-                    true, !busy && !ready});
-            out.add(new Object[] {L.t("wynnlabs.update.update_exit"), (Runnable) () -> {
-                exitWhenReady = true;
-                UpdateDownload.start(s.asset(), s.latest(), false);
-            }, false, !busy && !exitWhenReady});
-        } else if (newer) {
-            out.add(new Object[] {L.t("wynnlabs.about.open_github"), (Runnable) () -> openPage(s.url()), true, true});
-        }
+    /** Geç and Atla on the left; on the right Update (gold) and Update &amp; exit, or Quit now once ready. */
+    private void drawFoot(GuiGraphics g, UpdateCheck.State s, boolean newer, int x, int y, int w, int mx, int my) {
+        int cy = y + (Ui.BUTTON_H - Ui.CHIP_H) / 2;
+        int lx = x;
         if (newer) {
-            out.add(new Object[] {L.t("wynnlabs.update.ignore_now"), (Runnable) () -> {
+            String later = L.t("wynnlabs.update.ignore_now");
+            int lw = Ui.iconChipWidth(font, null, later, false);
+            Ui.iconChip(g, font, null, later, false, lx, cy, lw, false, mx, my);
+            hits.add(new Hit(lx, cy, lw, Ui.CHIP_H, () -> {
                 UpdatePrefs.ignoreNow();
                 onClose();
-            }, false, true});
+            }));
+            lx += lw + Theme.SP_2;
             if (!UpdatePrefs.ignoredVersion(s.latest())) {
-                out.add(new Object[] {L.t("wynnlabs.update.ignore_version"), (Runnable) () -> {
+                String skip = L.t("wynnlabs.update.ignore_version");
+                int sw = Ui.iconChipWidth(font, null, skip, false);
+                Ui.iconChip(g, font, null, skip, false, lx, cy, sw, false, mx, my);
+                hits.add(new Hit(lx, cy, sw, Ui.CHIP_H, () -> {
                     UpdatePrefs.ignore(s.latest());
                     onClose();
-                }, false, true});
+                }));
             }
-            out.add(new Object[] {L.t(changelog ? "wynnlabs.update.summary_button" : "wynnlabs.update.changelog"),
-                    (Runnable) () -> changelog = !changelog, false, true});
         }
-        out.add(new Object[] {L.t("wynnlabs.update.back"), (Runnable) this::onClose, false, true});
-        return out;
+        boolean busy = UpdateDownload.phase() == UpdateDownload.Phase.DOWNLOADING;
+        boolean ready = UpdateDownload.phase() == UpdateDownload.Phase.READY && s.latest() != null && s.latest().equals(UpdateDownload.tag());
+        int rx = x + w;
+        if (ready) {
+            rx -= gold(g, L.t("wynnlabs.about.quit_now"), "player-play", rx, y, mx, my, () -> minecraft.stop());
+        } else if (busy) {
+            Type.META.drawRight(g, font, L.t("wynnlabs.update.downloading_short"), rx, Type.META.yIn(y, Ui.BUTTON_H), Theme.INK_3);
+        } else if (newer && s.asset() != null) {
+            rx -= gold(g, L.t("wynnlabs.update.update"), "arrow-down", rx, y, mx, my,
+                    () -> UpdateDownload.start(s.asset(), s.latest(), false)) + Theme.SP_2;
+            if (!exitWhenReady) {
+                String t = L.t("wynnlabs.update.update_exit");
+                int tw = Ui.iconChipWidth(font, null, t, false);
+                if (rx - tw > lx + Theme.SP_4) {
+                    Ui.iconChip(g, font, null, t, false, rx - tw, cy, tw, false, mx, my);
+                    hits.add(new Hit(rx - tw, cy, tw, Ui.CHIP_H, () -> {
+                        exitWhenReady = true;
+                        UpdateDownload.start(s.asset(), s.latest(), false);
+                    }));
+                }
+            }
+        } else if (newer) {
+            gold(g, L.t("wynnlabs.about.open_github"), "arrow-up-right", rx, y, mx, my, () -> openPage(s.url()));
+        }
     }
 
-    private int rowsNeeded(List<Object[]> acts, int w) {
-        int rows = 1;
-        int bx = 0;
-        for (Object[] a : acts) {
-            int bw = font.width((String) a[0]) + 14;
-            if (bx > 0 && bx + bw > w) {
-                rows++;
-                bx = 0;
-            }
-            bx += bw + 4;
-        }
-        return rows;
-    }
-
-    private void drawButtons(GuiGraphics g, List<Object[]> acts, int x, int y, int w, int mx, int my) {
-        int bx = x;
-        int by = y;
-        for (Object[] a : acts) {
-            String label = (String) a[0];
-            boolean primary = (Boolean) a[2];
-            boolean enabled = (Boolean) a[3];
-            int bw = font.width(label) + 14;
-            if (bx > x && bx + bw > x + w) {
-                bx = x;
-                by += 18;
-            }
-            boolean hover = enabled && mx >= bx && mx < bx + bw && my >= by && my < by + 14;
-            int st = primary && enabled ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
-            Kit.button(g, bx, by, bw, 14, st);
-            g.drawString(font, label, bx + 7, by + 3, enabled ? Kit.buttonText(st) : Theme.CREAM_DIM, false);
-            if (enabled) {
-                hits.add(new Hit(bx, by, bw, 14, (Runnable) a[1]));
-            }
-            bx += bw + 4;
-        }
+    /** The one gold button, its right edge at {@code right}; returns its width. */
+    private int gold(GuiGraphics g, String label, String icon, int right, int y, int mx, int my, Runnable action) {
+        int bw = Ui.iconButtonLabelWidth(font, label);
+        Ui.iconButtonLabel(g, font, icon, label, right - bw, y, bw, mx, my);
+        hits.add(new Hit(right - bw, y, bw, Ui.BUTTON_H, action));
+        return bw;
     }
 
     /** A GitHub page in the browser, after the game's "open this link?" prompt. */
@@ -325,36 +389,6 @@ public final class UpdateScreen extends Screen {
         }
     }
 
-    // ---- text on paper ----
-
-    private void ink(GuiGraphics g, String s, int x, int y, int colour) {
-        Kit.text(g, font, s, x, y, Theme.paperRgb(colour));
-    }
-
-    private String fit(String s, int w) {
-        if (font.width(s) <= w) {
-            return s;
-        }
-        return font.plainSubstrByWidth(s, Math.max(0, w - font.width("…"))) + "…";
-    }
-
-    /** {@code text} in lines of at most {@code w} px, at most {@code max} of them (the last cut with "…"). */
-    private List<String> wrap(String text, int w, int max) {
-        List<String> out = new ArrayList<>();
-        for (var seq : font.getSplitter().splitLines(text, w, net.minecraft.network.chat.Style.EMPTY)) {
-            if (out.size() == max) {
-                out.set(max - 1, fit(out.get(max - 1) + "…", w));
-                break;
-            }
-            out.add(seq.getString());
-        }
-        return out;
-    }
-
-    private static boolean in(double x, double y, int[] r) {
-        return x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3];
-    }
-
     // ---- input ----
 
     @Override
@@ -362,10 +396,6 @@ public final class UpdateScreen extends Screen {
         event = MenuScale.event(event);
         double ex = event.x();
         double ey = event.y();
-        if (closeRect != null && in(ex, ey, closeRect)) {
-            onClose();
-            return true;
-        }
         if (changelog && notesBar.mouseClicked(ex, ey)) {
             scroll = notesBar.offset();
             return true;

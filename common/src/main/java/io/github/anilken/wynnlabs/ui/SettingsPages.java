@@ -12,6 +12,7 @@ import io.github.anilken.wynnlabs.market.Vault;
 
 import net.minecraft.client.gui.GuiGraphics;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,21 +49,32 @@ final class SettingsPages extends MenuPaint {
     }
 
     /**
-     * About: whether this is the newest Wynn Labs and what to do about it ({@link AboutUpdateCard}),
-     * the links (source, a bug report, the licence), the mod's version and loader, and which
-     * Wynntils features work.
+     * About (the rail's "?"): whether this is the newest Wynn Labs and what to do about it
+     * ({@link AboutUpdateCard}); with a newer release its first changes and "All changes ›"; the
+     * keys as the player has bound them; the links (source, a bug report, the licence); one META
+     * line with the mod's version, loader and Wynntils, and a warning only when a Wynntils feature is off.
      */
     void drawAboutPage(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         UpdateCheck.State s = UpdateCheck.state();
         String mine = UpdateScreen.vName(s.own().isEmpty() ? UpdateCheck.version.get() : s.own());
         String loader = UpdateScreen.loaderLabel();
-        int cardH = updateCard().draw(g, x, y, w, mx, my);
-        int cy = y + cardH + Theme.SP_5;
-
+        int bottom = y + h;
+        int cy = y + updateCard().draw(g, x, y, w, mx, my) + Theme.SP_5;
+        // the changes only when the keys still fit under them (else the card's "Changes" opens them)
+        int sectionHead = Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3;
+        int changesH = sectionHead + 3 * (Type.BODY.lineHeight + Theme.SP_1) + Type.LINK.lineHeight + Theme.SP_5;
+        if (s.status() == UpdateCheck.Status.NEWER && cy + changesH + AboutKeys.height(font(), w) <= bottom) {
+            cy = changes(g, s, x, cy, w, mx, my) + Theme.SP_5;
+        }
+        if (cy + sectionHead + Ui.CHIP_H > bottom) {
+            return;
+        }
+        cy = AboutKeys.draw(g, font(), x, cy, w, bottom) + Theme.SP_5;
         // the links, each opened in the browser only after the game's "open this link?" prompt
-        Type.LABEL.draw(g, font(), L.t("wynnlabs.about.links"), x, cy);
-        Kit.hair(g, x, cy + Type.LABEL.lineHeight + Theme.SP_1, w, 1, Theme.LINE);
-        cy += Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3;
+        if (cy + sectionHead + Ui.CHIP_H > bottom) {
+            return;
+        }
+        cy = head(g, L.t("wynnlabs.about.links"), x, cy, w);
         int lx = x;
         for (int i = 0; i < ABOUT_LINKS.length; i++) {
             String label = L.t(ABOUT_LINKS[i][0]);
@@ -79,13 +91,67 @@ final class SettingsPages extends MenuPaint {
             lx += bw + Theme.SP_2;
         }
         cy += Ui.CHIP_H + Theme.SP_4;
-        Type.MUTED.draw(g, font(), Type.MUTED.fit(font(), L.t("wynnlabs.about.mod_line", mine, loader), w), x, cy);
-        cy += Type.MUTED.lineHeight + Theme.SP_4;
-        // which Wynntils features work, when there is room for it
-        if (y + h - cy >= 30) {
-            drawAbout(g, x, cy, w);
+        if (cy + Type.META.lineHeight > bottom) {
+            return;
+        }
+        // the version and Wynntils in one line; a warning only when one of its features is off
+        var down = Wyn.down();
+        if (down.isEmpty()) {
+            String line = L.t("wynnlabs.about.mod_line", mine, loader) + " · " + L.t("wynnlabs.wyn.about", Wyn.version()) + ": "
+                    + L.t("wynnlabs.wyn.all_ok");
+            Art.icon(g, "check", x, Type.META.onCaps(cy, 8), 8, Theme.GOOD);
+            Type.META.draw(g, font(), Type.META.fit(font(), line, w - 11), x + 11, cy, Theme.INK_3);
+            return;
+        }
+        Type.META.draw(g, font(), Type.META.fit(font(), L.t("wynnlabs.about.mod_line", mine, loader), w), x, cy, Theme.INK_3);
+        cy += Type.META.lineHeight + Theme.SP_3;
+        List<String> lines = new ArrayList<>();
+        lines.add(L.t("wynnlabs.wyn.about", Wyn.version()) + ": " + L.t("wynnlabs.wyn.some_off"));
+        for (var e : down.entrySet()) {
+            lines.add(Wyn.name(e.getKey()) + " — " + e.getValue());
+        }
+        if (y + h - cy > Ui.noticeHeight(1)) {
+            Ui.notice(g, font(), Ui.Level.WARNING, lines, null, x, cy, w, y + h - cy, mx, my, new int[1][]);
         }
     }
+
+    /** A section's LABEL title over a hairline; returns where its content starts. */
+    private int head(GuiGraphics g, String title, int x, int y, int w) {
+        Type.LABEL.draw(g, font(), title, x, y);
+        Kit.hair(g, x, y + Type.LABEL.lineHeight + Theme.SP_1, w, 1, Theme.LINE);
+        return y + Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3;
+    }
+
+    /** The release's first changes as bullets (at most three) and "All changes ›"; returns the bottom. */
+    private int changes(GuiGraphics g, UpdateCheck.State s, int x, int y, int w, int mx, int my) {
+        if (changesFor == null || !changesFor.equals(s.latest())) {
+            changesFor = s.latest();
+            changes = new ArrayList<>();
+            for (io.github.anilken.wynnlabs.core.ReleaseNotes.Line l : io.github.anilken.wynnlabs.core.ReleaseNotes.lines(s.notes())) {
+                if (l.bullet() && changes.size() < 3) {
+                    changes.add(l.text());
+                }
+            }
+        }
+        if (changes.isEmpty()) {
+            return y - Theme.SP_5;
+        }
+        int cy = head(g, L.t("wynnlabs.about.in_release", s.latest()), x, y, w);
+        for (String c : changes) {
+            Art.icon(g, "circle-dot", x, Type.BODY.onCaps(cy, 6), 6, Theme.INK_3);
+            Type.BODY.draw(g, font(), Type.BODY.fit(font(), c, w - 10), x + 10, cy, Theme.INK_2);
+            cy += Type.BODY.lineHeight + Theme.SP_1;
+        }
+        String all = L.t("wynnlabs.about.all_changes");
+        int aw = Type.LINK.width(font(), all);
+        boolean hover = mx >= x && mx < x + aw && my >= cy && my < cy + Type.LINK.lineHeight;
+        Type.LINK.draw(g, font(), all, x, cy, hover ? Theme.GOLD_DEEP : Theme.LINK);
+        menu.toggles.add(new Object[] {new int[] {x, cy, aw, Type.LINK.lineHeight}, "#upd:notes"});
+        return cy + Type.LINK.lineHeight;
+    }
+
+    private String changesFor;
+    private List<String> changes = List.of();
 
     /** The About page's buttons: the update card's, the setting, a link. */
     void aboutClick(String id) {
@@ -112,26 +178,6 @@ final class SettingsPages extends MenuPaint {
         int i = Integer.parseInt(id.substring("#link:".length()));
         if (i >= 0 && i < ABOUT_LINKS.length) {
             updateCard().openLink(ABOUT_LINKS[i][1]);
-        }
-    }
-
-    /** About: the Wynntils version and which of its features work with it, on a soft card. */
-    private void drawAbout(GuiGraphics g, int x, int y, int w) {
-        var down = Wyn.down();
-        String title = L.t("wynnlabs.wyn.about", Wyn.version());
-        String line = L.t(down.isEmpty() ? "wynnlabs.wyn.all_ok" : "wynnlabs.wyn.some_off");
-        int pad = Theme.SP_3;
-        int h = pad + Type.LABEL.lineHeight + Type.BODY.lineHeight * (1 + down.size()) + pad;
-        Kit.softCard(g, x, y, w, h);
-        Type.LABEL.draw(g, font(), Type.LABEL.fit(font(), title, w - 2 * pad), x + pad, y + pad);
-        int ly = y + pad + Type.LABEL.lineHeight;
-        int lc = down.isEmpty() ? Theme.GOOD : Theme.BAD;
-        Art.icon(g, down.isEmpty() ? "check" : "x", x + pad, Type.BODY.onCaps(ly, 8), 8, lc);
-        Type.BODY.draw(g, font(), Type.BODY.fit(font(), line, w - 2 * pad - 10), x + pad + 8 + Theme.SP_1, ly, lc);
-        for (var e : down.entrySet()) {
-            ly += Type.BODY.lineHeight;
-            Type.META.draw(g, font(), Type.META.fit(font(), Wyn.name(e.getKey()) + " — " + e.getValue(), w - 2 * pad - 10),
-                    x + pad + 10, ly + 1, Theme.INK_2);
         }
     }
 
