@@ -42,11 +42,6 @@ class MenuPaint {
     static final int MUTED = Theme.INK_2;
     static final int FAINT = Theme.INK_3;
     static final int GOLD = Theme.PRICE;
-    // tags on paper: a light wash of the colour with dark text in it
-    static final int TAG_RED = 0xFFF2C9BE;
-    static final int TAG_AMBER = 0xFFF0D090;
-    static final int TAG_PURPLE = 0xFFDCC8EC;
-    static final int TAG_GREEN = 0xFFCFE0B0;
 
     // ---- drawing kit ----
 

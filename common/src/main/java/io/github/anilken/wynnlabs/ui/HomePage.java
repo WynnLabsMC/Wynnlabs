@@ -72,7 +72,7 @@ public final class HomePage extends MenuTab {
     @Override
     void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my, float pt) {
         if (detail != null) {
-            drawDetail(g, x, y, w, h, mx, my);
+            options().draw(g, x, y, w, h, mx, my);
         } else {
             drawHome(g, x, y, w, h, mx, my);
         }
@@ -245,7 +245,7 @@ public final class HomePage extends MenuTab {
     void mouseScrolled(double x, double y, double v) {
         if (detail != null) {
             // the comparison panel's cards scroll; the milestone stays
-            detailScroll = Math.max(0, Math.min(detailScrollMax, detailScroll - (int) Math.signum(v) * CARD_H / 2));
+            detailScroll = Math.max(0, Math.min(detailScrollMax, detailScroll - (int) Math.signum(v) * HomeOptions.PITCH * 2));
             return;
         }
         if (stats != null && stats.over(x, y)) {
@@ -355,28 +355,28 @@ public final class HomePage extends MenuTab {
     private static final Box[] RIGHT = {new Box("wynnlabs.screen.slot_ring", Slot.RING, 0),
         new Box("wynnlabs.screen.slot_ring", Slot.RING, 1),
         new Box("wynnlabs.screen.slot_bracelet", Slot.BRACELET, 0), new Box("wynnlabs.screen.slot_necklace", Slot.NECKLACE, 0)};
-    private static final int CARD_H = 74;
     /** First milestone shown after "now" in the level buttons, and how many fit. */
     private int levelOff = 0;            // the first shown milestone tab, as a position in shownSteps()
     private static final int LEVEL_WINDOW = 5;
     private final List<int[]> levelRows = new ArrayList<>();   // x, y, w, h, step index
     private final List<Object[]> slotHits = new ArrayList<>();  // {int[] rect, Roadmap.Gear, label, worn}
-    private final List<Object[]> cardHits = new ArrayList<>();  // {int[] rect, ItemData}
-    private int[] backRect;
+    final List<Object[]> cardHits = new ArrayList<>();  // {int[] rect, ItemData}
+    int[] backRect;
+    private HomeOptions options;
     /** The slot whose options the comparison panel shows (null: the home itself). */
     Roadmap.Gear detail;
-    private String detailLabel;
-    private ItemStack detailWorn = ItemStack.EMPTY;
+    String detailLabel;
+    ItemStack detailWorn = ItemStack.EMPTY;
     // the panel's filter (only what the Trade Market sells), kept for the session; its list's
     // scroll in pixels; this frame's filter buttons {all, market} and list area (no initializers:
     // fields a hot swap adds keep no value)
-    private boolean detailMarket;
-    private int detailScroll;
-    private int detailScrollMax;
+    boolean detailMarket;
+    int detailScroll;
+    int detailScrollMax;
     /** The comparison list's bar (offsets in pixels). */
-    private final ScrollBar detailBar = new ScrollBar();
-    private int[][] filterRects;
-    private int[] listRect;
+    final ScrollBar detailBar = new ScrollBar();
+    int[][] filterRects;
+    int[] listRect;
 
     /** The goal list under the goal button, open after a click on it. */
     private boolean goalOpen;
@@ -908,16 +908,6 @@ public final class HomePage extends MenuTab {
         return tip;
     }
 
-    /** An item's bright Minecraft tier colour, for the ring inside its slot (0 when it has none). */
-    private static int tierRing(ItemData info) {
-        try {
-            Integer c = info.tier().colour().getColor();
-            return c == null || (c & 0xFFFFFF) == 0xFFFFFF ? 0 : 0xFF000000 | c;
-        } catch (Throwable t) {
-            return 0;
-        }
-    }
-
     /** The first road map of a character is being built: a bar for how far it is. */
 
     /** How many milestone buttons the level row shows this frame (LEVEL_WINDOW where they fit). */
@@ -1155,231 +1145,13 @@ public final class HomePage extends MenuTab {
         return b < a ? 1 : 0;
     }
 
-    // ---- comparison panel (a slot's options) ----
+    // ---- comparison panel (a slot's options): HomeOptions ----
 
-    private void drawDetail(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        List<Roadmap.Option> all = detail.options() == null ? List.of() : detail.options();
-        Roadmap.Option pick = all.isEmpty() ? null : all.get(0);
-        List<Roadmap.Option> opts = PanelOptions.shown(all, detailMarket, Wyn.level());
-        String back = L.t("wynnlabs.home.back");
-        int bw = Ui.iconChipWidth(font(), "chevron-left", back, false);
-        String[] fl = {L.t("wynnlabs.home.filter_all"), L.t("wynnlabs.home.filter_market")};
-        int fx = x + w - bw - 8 - Ui.chipWidth(font(), fl[0]) - Ui.chipWidth(font(), fl[1]) - 2;
-        // the title, without "options, by gain" when the filter needs its room
-        Type.LABEL.draw(g, font(), Type.LABEL.fit(font(), detailLabel, fx - x - Theme.SP_3), x, y, BuildControls.CHOSEN);
-        String sub = L.t("wynnlabs.home.detail_sub");
-        int subX = x + Type.LABEL.width(font(), detailLabel) + Theme.SP_3;
-        if (subX + Type.META.width(font(), sub) + Theme.SP_4 <= fx) {
-            Type.META.draw(g, font(), sub, subX, y + 1, Theme.INK_3);
+    /** The options table, made on first use (a field without an initializer: safe to hot swap in). */
+    private HomeOptions options() {
+        if (options == null) {
+            options = new HomeOptions(menu, this);
         }
-        Ui.iconChip(g, font(), "chevron-left", back, false, x + w - bw, y - 3, bw, false, mx, my);
-        backRect = new int[] {x + w - bw, y - 3, bw, Ui.CHIP_H};
-        // the filter, left of Back: every option, or only what the Trade Market sells
-        filterRects = new int[2][];
-        for (int i = 0; i < 2; i++) {
-            int fw = Ui.chipWidth(font(), fl[i]);
-            boolean on = detailMarket == (i == 1);
-            Ui.chip(g, font(), fl[i], fx, y - 3, fw, on, false, false, mx, my);
-            filterRects[i] = new int[] {fx, y - 3, fw, Ui.CHIP_H};
-            fx += fw + 2;
-        }
-
-        // what you wear now
-        int ry = y + Ui.CHIP_H + Theme.SP_3;
-        int nowH = 18 + 2 * Theme.SP_1;
-        Kit.softCard(g, x, ry, w, nowH);
-        int sy0 = ry + Theme.SP_1;
-        Kit.slot(g, x + Theme.SP_2, sy0, 18, 0);
-        if (!detailWorn.isEmpty()) {
-            g.renderItem(detailWorn, x + Theme.SP_2 + 1, sy0 + 1);
-            menu.hits.add(new MenuHit(x + Theme.SP_2 + 1, sy0 + 1, 16, 16, detailWorn, null, null));
-        }
-        String wn = detailWorn.isEmpty() ? L.cap(L.t("wynnlabs.screen.empty")) : ItemJson.clean(detailWorn.getHoverName().getString());
-        String nowLabel = L.t("wynnlabs.home.card_now");
-        int nx = x + Theme.SP_2 + 18 + Theme.SP_3;
-        int nty = Type.BODY.yIn(ry, nowH);
-        Type.META.draw(g, font(), nowLabel, nx, nty + 1, Theme.INK_3);
-        Type.LABEL.draw(g, font(), wn, nx + Type.META.width(font(), nowLabel) + Theme.SP_3, nty, Theme.INK);
-        if (pick != null) {
-            Damage.Result f = pick.from();
-            String now = L.t("wynnlabs.home.detail_now", Math.round(f.spellDps()), Math.round(f.ehp()), signed(f.speed()));
-            Type.META.drawRight(g, font(), now, x + w - Theme.SP_3, nty + 1, Theme.INK_2);
-        }
-
-        // the cards, best gain first, scrolled by the wheel when they are taller than the panel
-        int top = ry + nowH + Theme.SP_3;
-        int bottom = y + h - 2;
-        int listH = opts.size() * CARD_H;
-        detailScrollMax = Math.max(0, listH - (bottom - top));
-        detailScroll = Math.min(detailScroll, detailScrollMax);
-        boolean bar = detailScrollMax > 0;
-        int cw = bar ? w - ScrollBar.W - Theme.SP_2 : w;
-        listRect = new int[] {x, top, w, bottom - top};
-        int hitsFrom = menu.hits.size();
-        g.enableScissor(x, top, x + w, bottom);
-        int cy = top - detailScroll;
-        for (int i = 0; i < opts.size(); i++) {
-            if (cy + CARD_H > top && cy < bottom) {
-                drawCard(g, opts.get(i), i, opts.get(i) == pick, x, cy, cw, mx, my);
-            }
-            cy += CARD_H;
-        }
-        g.disableScissor();
-        // an item's tooltip only where its card is in view
-        menu.hits.subList(hitsFrom, menu.hits.size()).removeIf(hb -> hb.y() < top || hb.y() + hb.h() > bottom);
-        detailBar.place(x + w - ScrollBar.W, top, bottom - top, bottom - top, listH, detailScroll);
-        detailBar.draw(g, mx, my);
-        if (opts.size() <= (detailMarket ? 0 : 1)) {
-            Type.MUTED.draw(g, font(), L.t(detailMarket ? "wynnlabs.home.detail_none_market" : "wynnlabs.home.detail_none"),
-                    x, cy + Theme.SP_1, Theme.INK_3);
-        }
-    }
-
-    /**
-     * One option in a slot's comparison, as a card: a big slot on the left; the name, where it
-     * is had and its tags; then only what changes (▲ gains, ▼ losses: old → new and the share),
-     * two to a row, and one line naming what stays the same; on the right the build's total as
-     * a large seal and a button that copies the name (for the Trade Market search).
-     */
-    private void drawCard(GuiGraphics g, Roadmap.Option o, int rank, boolean pick, int x, int y, int w, int mx, int my) {
-        int h = CARD_H - Theme.SP_4;            // SP_4 between cards for the shadow
-        boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
-        Kit.softCard(g, x, y, w, h);
-        if (pick) {
-            Kit.outline(g, x, y, w, h + 1, Theme.GOLD_DEEP);   // the road map's pick: the card's one gold
-        }
-        ItemStack icon = menu.icon(o.info());
-        int sy = y + (h - 40) / 2;
-        Kit.slot(g, x + 4, sy, 40, tierRing(o.info()));
-        bigItem(g, icon, x + 8, sy + 4);
-        menu.hits.add(new MenuHit(x + 8, sy + 4, 32, 32, icon, null, null));
-        cardHits.add(new Object[] {new int[] {x, y, w, h}, o.info()});
-
-        // right: BUILD, the total as a seal, the copy button
-        int rw = 64;
-        int rx = x + w - rw - 6;
-        String build = L.t("wynnlabs.home.card_build");
-        Type.META.drawRight(g, font(), build, rx + rw, y + Theme.SP_4, Theme.INK_3);
-        String total = (o.gain() >= 0 ? "+" : "−") + RoadmapScreen.pct(Math.round(Math.abs(o.gain())));
-        // the build's total as a light seal in the gain's colour
-        int sealY = y + Theme.SP_4 + Type.META.lineHeight + Theme.SP_1;
-        int sealH = Ui.CHIP_H + Theme.SP_1;
-        int ink = o.gain() >= 0 ? Theme.GOOD : Theme.BAD;
-        Art.box(g, rx + Theme.SP_2, sealY, rw - Theme.SP_2, sealH, sealH / 2, o.gain() >= 0 ? 0xFFE3EED8 : 0xFFF3DCD6, ink);
-        Type.NUMBER.draw(g, font(), total, rx + Theme.SP_2 + (rw - Theme.SP_2 - Type.NUMBER.width(font(), total)) / 2,
-                Type.NUMBER.yIn(sealY, sealH), ink);
-        String copy = L.t("wynnlabs.home.card_copy");
-        int cbw = Ui.chipWidth(font(), copy);
-        Ui.chip(g, font(), copy, rx + rw - cbw, y + h - 21, cbw, hover, false, false, -1, -1);
-
-        // middle: name and level, where it is had, the tags
-        int tx = x + 52;
-        int tw = rx - tx - 8;
-        ChatFormatting tc = o.info().tier().colour();
-        String where = o.price() != null ? o.price()
-                : Shopping.tradable(o.info()) ? L.cap(o.source()) : L.t("wynnlabs.home.card_untradable", L.cap(o.source()));
-        // "1." and the level in META, the name in LABEL in its tier's colour
-        String num = (rank + 1) + ".";
-        String lvT = "Lv " + o.info().requirements().level();
-        int ny = y + Theme.SP_4;
-        Type.META.draw(g, font(), num, tx, ny + 1, Theme.INK_3);
-        int nameX = tx + Type.META.width(font(), num) + Theme.SP_2;
-        String nm = Type.LABEL.fit(font(), o.info().name(), tw - (nameX - tx) - Type.META.width(font(), lvT) - Theme.SP_3);
-        Kit.text(g, font(), Type.LABEL.of(nm).withStyle(tc), nameX, ny, Theme.INK);
-        Type.META.draw(g, font(), lvT, nameX + Type.LABEL.width(font(), nm) + Theme.SP_2, ny + 1, Theme.INK_3);
-        int nameEnd = nameX + Type.LABEL.width(font(), nm) + Theme.SP_2 + Type.META.width(font(), lvT);
-        List<String[]> chips = new ArrayList<>();
-        int lvNow = Wyn.level();
-        if (o.info().requirements().level() > lvNow) {
-            chips.add(new String[] {L.t("wynnlabs.home.chip_wear_at", o.info().requirements().level()), "a"});
-        }
-        Integer seen = Rules.communityLevel(o.info().name());
-        if (seen != null) {
-            chips.add(new String[] {L.t("wynnlabs.home.chip_community", seen), "p"});
-        }
-        if (o.cautions().isEmpty()) {
-            chips.add(new String[] {L.t("wynnlabs.home.chip_no_cons"), "t"});
-        }
-        for (String c : o.cautions()) {
-            chips.add(new String[] {c, "r"});
-        }
-        chips.add(o.skills().isEmpty() ? new String[] {L.t("wynnlabs.home.chip_no_points"), "t"}
-                : new String[] {L.t("wynnlabs.home.chip_points", o.skills()) + (o.respec() ? L.t("wynnlabs.home.chip_respec") : ""), "a"});
-        // the tags follow the name on its line, as far as they fit
-        int cx = nameEnd + Theme.SP_4;
-        for (String[] c : chips) {
-            int bg = c[1].equals("r") ? TAG_RED : c[1].equals("a") ? TAG_AMBER
-                    : c[1].equals("p") ? TAG_PURPLE : TAG_GREEN;
-            int fg = c[1].equals("r") ? Theme.BAD : c[1].equals("a") ? Theme.WARN
-                    : c[1].equals("p") ? Theme.TIER_MYTHIC : Theme.GOOD;
-            int cw = tagW(c[0]);
-            if (cx + cw > tx + tw) {
-                break;
-            }
-            cx += chip(g, cx, ny, c[0], bg, fg) + Theme.SP_1;
-        }
-        Type.META.draw(g, font(), Type.META.fit(font(), where, tw), tx, ny + Type.LABEL.lineHeight, Theme.INK_2);
-
-        // what changes: gains first (largest first), then losses
-        double[] p = o.factorPct();
-        Damage.Result a = o.from();
-        Damage.Result b = o.to();
-        String[] sub = {
-            Math.round(a.spellDps()) + "→" + Math.round(b.spellDps()),
-            Math.round(a.ehp()) + "→" + Math.round(b.ehp()),
-            String.format(Locale.ROOT, "%.1f→%.1f", a.casts(), b.casts()),
-            signed(a.speed()) + "%→" + signed(b.speed()) + "%",
-            Math.round(a.xp()) + "%→" + Math.round(b.xp()) + "%",
-            b.factors().length > 5 ? "×" + String.format(Locale.ROOT, "%.2f", b.factors()[5]) : ""};
-        List<Integer> changed = new ArrayList<>();
-        List<String> same = new ArrayList<>();
-        for (int i = 0; i < 6 && i < p.length; i++) {
-            if (Math.abs(p[i]) < 0.5) {
-                same.add(Damage.factor(i));
-            } else {
-                changed.add(i);
-            }
-        }
-        changed.sort((i, j) -> Double.compare(p[j], p[i]));
-        int colW = (tw - 8) / 2;
-        for (int k = 0; k < changed.size() && k < 4; k++) {
-            int i = changed.get(k);
-            boolean up = p[i] > 0;
-            int dx = tx + (k % 2) * (colW + 8);
-            int dy = y + 34 + (k / 2) * 14;
-            Art.box(g, dx, dy - 3, colW, 13, 3, up ? 0xFFD3DFB0 : 0xFFEDCDB8, 0);
-            Art.icon(g, up ? "arrow-up" : "arrow-down", dx + 3, dy, 8, Theme.paperRgb(up ? Theme.GOOD : Theme.BAD));
-            String label = fit(Damage.factor(i), 58);
-            ink(g, label, dx + 14, dy, Theme.INK);
-            String v = (up ? "+" : "−") + RoadmapScreen.pct(Math.round(Math.abs(p[i])));
-            ink(g, v, dx + colW - font().width(v) - 5, dy, up ? Theme.GOOD : Theme.BAD);
-            int vx = dx + 76;
-            ink(g, fit(sub[i], dx + colW - font().width(v) - 8 - vx), vx, dy, MUTED);
-        }
-        if (changed.size() > 4) {
-            same.add(0, L.n("wynnlabs.home.card_more", changed.size() - 4));
-        }
-        if (!same.isEmpty() && changed.size() <= 2) {
-            ink(g, fit(L.t("wynnlabs.home.card_same", String.join(", ", same)), tw), tx, y + 51, FAINT);
-        }
-    }
-
-    private static String signed(double v) {
-        long n = Math.round(v);
-        return n > 0 ? "+" + n : String.valueOf(n);
-    }
-
-    /** A tag after the name: a round pill a seal tall, META in its colour, centred on the name's capitals. */
-    private int chip(GuiGraphics g, int x, int y, String text, int bg, int fg) {
-        String t = Type.META.fit(font(), text, 220);
-        int w = tagW(t);
-        int ty = Type.LABEL.onCaps(y, Ui.SEAL_H);
-        Art.box(g, x, ty, w, Ui.SEAL_H, Ui.SEAL_H / 2, bg, 0);
-        Type.META.draw(g, font(), t, x + Theme.SP_2, Type.META.yIn(ty, Ui.SEAL_H), fg);
-        return w;
-    }
-
-    private int tagW(String t) {
-        return Type.META.width(font(), t) + 2 * Theme.SP_2;
+        return options;
     }
 }

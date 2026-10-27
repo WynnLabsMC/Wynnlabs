@@ -255,10 +255,10 @@ final class HomeGearPanel extends HomePart {
             left.add(weapon);
         }
         for (int i = 0; i < left.size(); i++) {
-            slots.row(g, host, left.get(i), x, top + i * rh, colW, s, markW);
+            slots.row(g, host, left.get(i), x, top + i * rh, colW, s, markW, mx, my);
         }
         for (int i = 0; i < trinkets.size(); i++) {
-            slots.row(g, host, trinkets.get(i), x + colW + Theme.SP_7, top + i * rh, colW, s, markW);
+            slots.row(g, host, trinkets.get(i), x + colW + Theme.SP_7, top + i * rh, colW, s, markW, mx, my);
         }
         Kit.hair(g, x + colW + Theme.SP_7 / 2, top, 1, 4 * rh + s, Theme.LINE);
         tab.standBox[0] = 0;

@@ -367,6 +367,10 @@ final class HomeSlots extends HomePart {
         if (v.mark() != Mark.NONE && v.planned() != null) {
             boolean worn = v.mark() == Mark.DONE || v.mark() == Mark.DONE_CHOSEN;
             // the rect holds the square, the pill and the name: the pill's hover is the slot's
+            // a milestone's piece still opens the slot's options, like a plain upgrade
+            if (v.gear() != null) {
+                host.compare(rect, v);
+            }
             host.item(rect[0], rect[1], rect[2], rect[3], v.planned(), worn ? v.worn() : ItemStack.EMPTY,
                     v.lead() == null ? List.of() : v.lead(), v.tip());
         } else if (v.gear() != null) {
@@ -405,8 +409,13 @@ final class HomeSlots extends HomePart {
      * with where it comes from under it as a small chip (its icon on the place's colour, then its
      * name), and the gain pill or the tick in a fixed column at the row's end, {@code markW} wide.
      */
-    void row(GuiGraphics g, Host host, SlotView v, int x, int y, int w, int s, int markW) {
+    void row(GuiGraphics g, Host host, SlotView v, int x, int y, int w, int s, int markW, int mx, int my) {
         ItemStack show = showOf(v);
+        // a row that opens its options is lighter under the mouse, the whole row
+        boolean opens = v.gear() != null && v.gear().options() != null && !v.gear().options().isEmpty();
+        if (opens && mx >= x && mx < x + w && my >= y && my < y + s) {
+            Art.box(g, x - Theme.SP_1, y - Theme.SP_1, w + 2 * Theme.SP_1, s + 2 * Theme.SP_1, 4, Theme.CARD_HOVER, 0);
+        }
         int frame = v.mark() == Mark.CHOSEN ? CHOSEN : v.gear() != null || v.mark() == Mark.GET ? UP : 0;
         slotBox(g, x, y, s, frame);
         int o = (s - 16) / 2;
