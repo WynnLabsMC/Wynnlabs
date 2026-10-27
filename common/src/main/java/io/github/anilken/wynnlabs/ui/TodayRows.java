@@ -215,7 +215,7 @@ final class TodayRows extends MenuPaint {
         }
         if (!junk.isEmpty()) {
             long tm = junk.stream().filter(j -> "Trade Market".equals(Vault.place(j))).count();
-            y = row(g, x, y, w, "coin", Theme.INK, L.t("wynnlabs.today.todo_bank", junk.size()),
+            y = row(g, x, y, w, "coin", Theme.INK, L.n("wynnlabs.today.todo_bank", junk.size()),
                     tm > 0 ? L.t("wynnlabs.today.bank_market", tm) : "", L.t("wynnlabs.today.go_bank"), null, "#qgo:bank", null, mx, my);
         }
         if (!finds.isEmpty()) {
