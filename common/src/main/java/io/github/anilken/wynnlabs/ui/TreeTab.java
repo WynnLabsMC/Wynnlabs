@@ -187,6 +187,8 @@ public final class TreeTab extends MenuTab {
     @Override
     void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my, float pt) {
         drawer.page(x, y, w, h);
+        side.mx = mx;
+        side.my = my;
         board.rect = null;
         boolean compact = menu.layout.compact();
         List<AbilityNode> tree = GameState.current().abilityTree();

@@ -226,12 +226,10 @@ public final class UpdateInstall {
             return;
         }
         if (o.ok()) {
-            mc.gui.getChat().addMessage(L.c("wynnlabs.wear.prefix").withStyle(ChatFormatting.GOLD)
-                    .append(L.c("wynnlabs.update.installed", o.tag()).withStyle(ChatFormatting.GREEN)));
+            Chat.say(L.c("wynnlabs.update.installed", o.tag()).withStyle(ChatFormatting.GREEN));
         } else {
             failedTag = o.tag();
-            mc.gui.getChat().addMessage(L.c("wynnlabs.wear.prefix").withStyle(ChatFormatting.GOLD)
-                    .append(L.c("wynnlabs.update.install_failed", o.tag()).withStyle(ChatFormatting.RED)));
+            Chat.say(L.c("wynnlabs.update.install_failed", o.tag()).withStyle(ChatFormatting.RED));
         }
     }
 

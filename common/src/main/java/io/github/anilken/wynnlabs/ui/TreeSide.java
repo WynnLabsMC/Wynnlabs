@@ -20,6 +20,9 @@ import java.util.List;
 final class TreeSide extends MenuPaint {
 
     private final TreeTab tab;
+    /** The mouse this frame (set by the tab before it draws), for the title rows' chips. */
+    int mx;
+    int my;
 
     TreeSide(RoadmapScreen menu, TreeTab tab) {
         super(menu);
@@ -121,16 +124,18 @@ final class TreeSide extends MenuPaint {
         return out;
     }
 
-    /** A title and its hairline; returns its height. */
+    /** A title, its META, a chip that opens the drawer at the right, and its hairline; returns its height. */
     int head(GuiGraphics g, String title, String meta, String link, String action, int x, int y, int w) {
         Type.LABEL.draw(g, font(), title, x, y);
         if (meta != null) {
             Type.META.draw(g, font(), meta, x + Type.LABEL.width(font(), title) + Theme.SP_3, y + 1, Theme.INK_3);
         }
         if (link != null) {
-            int lw = Type.LINK.width(font(), link);
-            Type.LINK.draw(g, font(), link, x + w - lw, y);
-            menu.hits.add(new MenuHit(x + w - lw, y, lw, Type.LINK.lineHeight, null, null, action));
+            // the action that opens the drawer: a chip with an icon at the row's right
+            int cw = Ui.iconChipWidth(font(), "list-check", link, false);
+            int cy = Type.LABEL.onCaps(y, Ui.CHIP_H);
+            Ui.iconChip(g, font(), "list-check", link, false, x + w - cw, cy, cw, false, mx, my);
+            menu.hits.add(new MenuHit(x + w - cw, cy, cw, Ui.CHIP_H, null, null, action));
         }
         Kit.hair(g, x, y + Type.LABEL.lineHeight + Theme.SP_1, w, 1, Theme.LINE);
         return Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3;

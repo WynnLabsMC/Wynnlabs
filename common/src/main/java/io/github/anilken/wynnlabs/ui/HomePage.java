@@ -1312,7 +1312,7 @@ public final class HomePage extends MenuTab {
                     : c[1].equals("p") ? TAG_PURPLE : TAG_GREEN;
             int fg = c[1].equals("r") ? Theme.BAD : c[1].equals("a") ? Theme.WARN
                     : c[1].equals("p") ? Theme.TIER_MYTHIC : Theme.GOOD;
-            int cw = font().width(c[0]) + 6;
+            int cw = tagW(c[0]);
             if (cx + cw > tx + tw) {
                 break;
             }
@@ -1369,12 +1369,17 @@ public final class HomePage extends MenuTab {
         return n > 0 ? "+" + n : String.valueOf(n);
     }
 
+    /** A tag after the name: a round pill a seal tall, META in its colour, centred on the name's capitals. */
     private int chip(GuiGraphics g, int x, int y, String text, int bg, int fg) {
-        // a tag: 11px tall, 4px each side; the text keeps the line's y, the tag is centred on it
-        String t = font().plainSubstrByWidth(text, 220);
-        int w = Kit.Ui.tagW(font(), t);
-        g.fill(x, y - 2, x + w, y - 2 + Kit.Ui.TAG_H, bg);
-        ink(g, t, x + Kit.Ui.TAG_PAD, y, fg);
+        String t = Type.META.fit(font(), text, 220);
+        int w = tagW(t);
+        int ty = Type.LABEL.onCaps(y, Ui.SEAL_H);
+        Art.box(g, x, ty, w, Ui.SEAL_H, Ui.SEAL_H / 2, bg, 0);
+        Type.META.draw(g, font(), t, x + Theme.SP_2, Type.META.yIn(ty, Ui.SEAL_H), fg);
         return w;
+    }
+
+    private int tagW(String t) {
+        return Type.META.width(font(), t) + 2 * Theme.SP_2;
     }
 }

@@ -140,13 +140,14 @@ final class EndgameWeek extends EndgamePanel {
 
     // ---- the raids and the camps ----
 
-    /** A column's title, its hairline and an optional link on the right; returns the y under it. */
-    int head(GuiGraphics g, String title, String link, String what, Runnable action, int x, int y, int w) {
+    /** A column's title, its hairline and an optional icon chip on the right; returns the y under it. */
+    int head(GuiGraphics g, String title, String icon, String label, String what, Runnable action, int x, int y, int w, int mx, int my) {
         Type.LABEL.draw(g, tab.font, title, x, y);
-        if (link != null) {
-            int lw = Type.LINK.width(tab.font, link);
-            Type.LINK.draw(g, tab.font, link, x + w - lw, y);
-            tab.acts.add(new Act(x + w - lw, y, lw, Type.LINK.lineHeight, action, what));
+        if (label != null) {
+            int cw = Ui.iconChipWidth(tab.font, icon, label, false);
+            int cy = Type.LABEL.onCaps(y, Ui.CHIP_H);
+            Ui.iconChip(g, tab.font, icon, label, false, x + w - cw, cy, cw, false, mx, my);
+            tab.acts.add(new Act(x + w - cw, cy, cw, Ui.CHIP_H, action, what));
         }
         Kit.hair(g, x, y + Type.LABEL.lineHeight + Theme.SP_1, w, 1, Theme.LINE);
         return y + Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3;
@@ -158,7 +159,7 @@ final class EndgameWeek extends EndgamePanel {
      * one is lit with a gold seal; a row opens its pool. Returns the y under the last row.
      */
     int raids(GuiGraphics g, int x, int y, int w, int bottom, int mx, int my) {
-        y = head(g, L.t("wynnlabs.endgame.raids"), L.t("wynnlabs.endgame.log_open"), "endgame:log", tab::openLog, x, y, w);
+        y = head(g, L.t("wynnlabs.endgame.raids"), "script", L.t("wynnlabs.endgame.log_open"), "endgame:log", tab::openLog, x, y, w, mx, my);
         List<PoolView.Region> regs = tab.d.v().regions(true);
         PoolView.Region best = tab.pools.best(true, null);
         List<String> names = new ArrayList<>();
@@ -201,7 +202,7 @@ final class EndgameWeek extends EndgamePanel {
 
     /** The camps of this week: mythics, a shiny, when seen; the one with the most mythics lit. Returns the y under. */
     int camps(GuiGraphics g, int x, int y, int w, int bottom, int mx, int my) {
-        y = head(g, L.t("wynnlabs.endgame.camps"), null, null, null, x, y, w);
+        y = head(g, L.t("wynnlabs.endgame.camps"), null, null, null, null, x, y, w, mx, my);
         List<PoolView.Region> regs = tab.d.v().regions(false);
         if (regs.isEmpty()) {
             Type.MUTED.drawWrapped(g, tab.font, L.t(tab.d.lootruns().isEmpty() ? "wynnlabs.endgame.camps_none_runs" : "wynnlabs.endgame.camps_none"),

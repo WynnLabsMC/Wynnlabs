@@ -38,7 +38,7 @@ public final class PricePrompt {
         done = true;
         if (due(Prices.installed())) {
             Settings.setNumber(ASKED, 1);
-            mc.gui.getChat().addMessage(line());
+            io.github.anilken.wynnlabs.core.Chat.show(line());
         }
     }
 
@@ -52,8 +52,7 @@ public final class PricePrompt {
 
     /** The question, with its two bold underlined answers. */
     static Component line() {
-        return L.c("wynnlabs.wear.prefix").withStyle(ChatFormatting.GOLD)
-                .append(L.c("wynnlabs.price_prompt.ask").withStyle(ChatFormatting.GREEN))
+        return io.github.anilken.wynnlabs.core.Chat.prefixed(L.c("wynnlabs.price_prompt.ask").withStyle(ChatFormatting.GREEN))
                 .append(" ")
                 .append(answer("yes", ChatFormatting.GREEN))
                 .append(" ")

@@ -22,28 +22,28 @@ final class HomeSteps extends HomePart {
         boolean[] done = FirstSteps.done();
         int n = FirstSteps.count(done);
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
-        card(g, x, y, w, h, Theme.AMBER, hover);
-        Art.icon(g, "list-check", x + 5, y + 6, 8, Theme.INK_2);
+        card(g, x, y, w, h, hover);
+        Art.icon(g, "list-check", x + Theme.SP_3, Type.BODY.onCaps(y + Theme.SP_3, 8), 8, Theme.INK_2);
         String count = n + "/" + done.length;
-        Component cc = Component.literal(count).withStyle(UiFont::bold);
-        ink(g, cc, x + w - 6 - font.width(cc), y + 6, Theme.INK);
-        ink(g, fit(L.t("wynnlabs.steps.title"), w - 28 - font.width(cc)), x + 16, y + 6, Theme.INK_2);
-        int bw = w - 12;
-        Art.pill(g, x + 6, y + 18, bw, 3, Theme.WELL, 0);
-        if (n > 0) {
-            Art.pill(g, x + 6, y + 18, Math.max(3, bw * n / done.length), 3, Theme.GREEN, 0);
-        }
+        int cw = Type.LABEL.width(font, count);
+        Type.LABEL.draw(g, font, count, x + w - Theme.SP_3 - cw, y + Theme.SP_3, Theme.INK);
+        int tx = x + Theme.SP_3 + 8 + Theme.SP_2;
+        Type.BODY.draw(g, font, Type.BODY.fit(font, L.t("wynnlabs.steps.title"), x + w - Theme.SP_3 - cw - Theme.SP_3 - tx), tx,
+                y + Theme.SP_3, Theme.INK_2);
+        HdBar.draw(g, x + Theme.SP_3, y + 18, w - 2 * Theme.SP_3, 3, n / (double) done.length, Theme.GREEN);
         int pitch = Math.max(10, Math.min(large ? 16 : 13, (h - 30) / done.length));
         int ry = y + 26;
         for (int i : order(done)) {
             if (ry + 9 > y + h - 4) {
                 break;
             }
-            Art.box(g, x + 6, ry, 8, 8, 2, done[i] ? Theme.GREEN : Theme.WELL, done[i] ? 0 : Theme.LINE);
+            Art.box(g, x + Theme.SP_3, ry, 8, 8, 2, done[i] ? Theme.GREEN : Theme.WELL, done[i] ? 0 : Theme.LINE);
             if (done[i]) {
-                Art.icon(g, "check", x + 6, ry, 8, Theme.CREAM);
+                Art.icon(g, "check", x + Theme.SP_3, ry, 8, Theme.CREAM);
             }
-            ink(g, fit(L.t(FirstSteps.KEYS.get(i)), w - 24), x + 18, ry, done[i] ? Theme.INK_3 : Theme.INK);
+            int sx = x + Theme.SP_3 + 8 + Theme.SP_2;
+            Type.BODY.draw(g, font, Type.BODY.fit(font, L.t(FirstSteps.KEYS.get(i)), x + w - Theme.SP_3 - sx), sx, ry - 1,
+                    done[i] ? Theme.INK_3 : Theme.INK);
             ry += pitch;
         }
         host.area(x, y, w, h, null, tip(done), null);

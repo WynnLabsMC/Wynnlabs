@@ -6,6 +6,7 @@ import com.google.gson.JsonParser;
 
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
+import io.github.anilken.wynnlabs.core.Chat;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.core.Rules;
@@ -175,7 +176,7 @@ public final class DeathCoach {
         }
         save();
         if (!d.advice().isEmpty()) {
-            mc.gui.getChat().addMessage(L.c("wynnlabs.death.chat_prefix").withStyle(ChatFormatting.LIGHT_PURPLE)
+            Chat.say(L.c("wynnlabs.death.chat_prefix").withStyle(ChatFormatting.LIGHT_PURPLE)
                     .append(Component.literal(String.join(" · ", d.adviceText())).withStyle(ChatFormatting.GRAY)));
         }
     }

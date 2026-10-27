@@ -312,12 +312,13 @@ final class BuildResultsView {
             deltas.add(new String[] {L.t("wynnlabs.results.d_speed"), (to.speed() - now.speed() >= 0 ? "+" : "−")
                 + Math.round(Math.abs(to.speed() - now.speed())) + "%"});
         }
-        // the title, "Detailed ›" at its right: every stat on the Home
+        // the title, a "Detailed" chip at its right: every stat on the Home
         String more = L.t("wynnlabs.results.detailed");
-        int mw = Type.LINK.width(ui.font, more);
+        int mw = Ui.iconChipWidth(ui.font, "list-check", more, false);
+        int my0 = Type.LABEL.onCaps(y, Ui.CHIP_H);
         int ly = title(g, L.t("wynnlabs.results.vs_now"), null, x, y, w, more, mx, my);
-        ui.btn(x + w - mw, y, mw, Type.LABEL.lineHeight, "detailed", null);
-        host.tip(x + w - mw, y, mw, Type.LABEL.lineHeight, List.of(L.c("wynnlabs.results.detailed_tip").withStyle(ChatFormatting.GRAY)));
+        ui.btn(x + w - mw, my0, mw, Ui.CHIP_H, "detailed", null);
+        host.tip(x + w - mw, my0, mw, Ui.CHIP_H, List.of(L.c("wynnlabs.results.detailed_tip").withStyle(ChatFormatting.GRAY)));
         for (String[] d : deltas) {
             if (ly + Type.BODY.lineHeight > bottom) {
                 break;
@@ -403,16 +404,15 @@ final class BuildResultsView {
         return ly;
     }
 
-    /** A section's title (LABEL, its META count), a link at its right, a hairline; returns the y under it. */
+    /** A section's title (LABEL, its META count), an action chip at its right, a hairline; returns the y under it. */
     private int title(GuiGraphics g, String text, String meta, int x, int y, int w, String link, int mx, int my) {
         Type.LABEL.draw(g, ui.font, text, x, y, Theme.INK);
         if (meta != null) {
             Type.META.draw(g, ui.font, meta, x + Type.LABEL.width(ui.font, text) + Theme.SP_3, y + 1, Theme.INK_3);
         }
         if (link != null) {
-            int lw = Type.LINK.width(ui.font, link);
-            boolean hov = BuildControls.in(mx, my, x + w - lw, y, lw, Type.LABEL.lineHeight);
-            Type.LINK.draw(g, ui.font, link, x + w - lw, y, hov ? Theme.GOLD_DEEP : Theme.LINK);
+            int lw = Ui.iconChipWidth(ui.font, "list-check", link, false);
+            Ui.iconChip(g, ui.font, "list-check", link, false, x + w - lw, Type.LABEL.onCaps(y, Ui.CHIP_H), lw, false, mx, my);
         }
         int hy = y + Type.LABEL.lineHeight + Theme.SP_2;
         Kit.hair(g, x, hy, w, 1, Theme.LINE);

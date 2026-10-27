@@ -28,10 +28,14 @@ final class BoxListingsPanel {
 
     /** A collapsed row's line and the gap after it. */
     static final int LINE = Type.BODY.lineHeight;
-    private static final int GAP = Theme.SP_3;
     private static final int BAR_W = 32;
     /** The chevron's column at the row's right end, kept for every row so price and age never move. */
     private static final int CHEV = Ui.CHIP_H + 2 + Theme.SP_2;
+
+    /** Between two rows: SP_3, SP_4 in a small window so the ▾ buttons are not packed. */
+    private int gap() {
+        return s.compact ? Theme.SP_4 : Theme.SP_3;
+    }
 
     private final BoxScreen s;
     private final ScrollBar bar = new ScrollBar();
@@ -162,10 +166,10 @@ final class BoxListingsPanel {
             if (i == open && !plain) {
                 y += i > 0 ? Theme.SP_2 : 0;
                 rowY[i] = y;
-                y += openHeight(ls.get(i)) + Theme.SP_2 + GAP;
+                y += openHeight(ls.get(i)) + Theme.SP_2 + gap();
             } else {
                 rowY[i] = y;
-                y += plain ? BoxPlainRows.ROW : LINE + GAP;
+                y += plain ? BoxPlainRows.ROW : LINE + gap();
             }
         }
         rowY[ls.size()] = y;
@@ -222,7 +226,7 @@ final class BoxListingsPanel {
         boolean grey = l.possiblySold();
         int x = rowX;
         int w = rowW;
-        int washH = rowY[i + 1] - rowY[i] - GAP + (opened ? Theme.SP_2 : 0);
+        int washH = rowY[i + 1] - rowY[i] - gap() + (opened ? Theme.SP_2 : 0);
         if (opened) {
             Kit.rowLit(g, x - Theme.SP_2, y - Theme.SP_2, w + 2 * Theme.SP_2, washH);
         } else if (i == sel || BoxChips.in(mx, my, x - Theme.SP_2, y - Theme.SP_1, w + 2 * Theme.SP_2, LINE + Theme.SP_2) && my < top + listH) {
@@ -313,8 +317,8 @@ final class BoxListingsPanel {
     private void empty(GuiGraphics g, BoxMarket.Row r, int x, int y, int w, int h, int mx, int my) {
         if (r.state() == BoxMarket.State.LOADING && Listings.live()) {
             // a few faint rows where the listings will be
-            for (int i = 0; i < 4 && y + (i + 1) * (LINE + GAP) <= y + h; i++) {
-                int ry = y + i * (LINE + GAP);
+            for (int i = 0; i < 4 && y + (i + 1) * (LINE + gap()) <= y + h; i++) {
+                int ry = y + i * (LINE + gap());
                 Art.box(g, x + Theme.SP_3, Type.BODY.onCaps(ry, 6), BAR_W, 6, 3, 0x30A08A5A, 0);
                 Art.box(g, x + Theme.SP_3 + BAR_W + Theme.SP_3, Type.BODY.onCaps(ry, BoxChips.H), 60, BoxChips.H, 5, 0x22A08A5A, 0);
                 Art.box(g, x + w - ScrollBar.W - 48, Type.BODY.onCaps(ry, 8), 40, 8, 4, 0x30A08A5A, 0);
@@ -460,7 +464,7 @@ final class BoxListingsPanel {
         if (!BoxChips.in(mx, my, area[0], area[1], area[2], area[3])) {
             return false;
         }
-        scroll = Math.max(0, Math.min(max, scroll - (int) Math.signum(v) * (LINE + GAP) * 2));
+        scroll = Math.max(0, Math.min(max, scroll - (int) Math.signum(v) * (LINE + gap()) * 2));
         atEnd();
         return true;
     }

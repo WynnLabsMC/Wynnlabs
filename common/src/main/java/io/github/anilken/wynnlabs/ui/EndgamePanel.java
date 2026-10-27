@@ -11,7 +11,6 @@ import io.github.anilken.wynnlabs.model.Tier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -121,9 +120,12 @@ abstract class EndgamePanel {
 
     /** A small green tag with light text. */
     void tag(GuiGraphics g, String text, int x, int y) {
-        int w = Kit.Ui.tagW(tab.font, text);
-        Art.pill(g, x, y, w, 10, Theme.GOOD, 0);
-        Kit.text(g, tab.font, text, x + Kit.Ui.TAG_PAD, y + 1, Theme.CARD);
+        Ui.seal(g, tab.font, text, x, y, Theme.GOOD);
+    }
+
+    /** A tag's width (a seal's). */
+    int tagW(String text) {
+        return Type.META.width(tab.font, text) + 2 * Theme.SP_2;
     }
 
     /** A pack glyph without its empty margin (the content book's 32 px raid glyph is 19 px of it), else an icon. */
@@ -258,10 +260,6 @@ abstract class EndgamePanel {
         Kit.text(g, tab.font, s, right - tab.font.width(s), y, colour);
     }
 
-    static MutableComponent bold(String s) {
-        return Component.literal(s).withStyle(UiFont::bold);
-    }
-
     static Component title(String s, ChatFormatting f) {
         return Component.literal(s).withStyle(f);
     }
@@ -290,54 +288,6 @@ abstract class EndgamePanel {
             return s;
         }
         return tab.font.plainSubstrByWidth(s, Math.max(0, w - tab.font.width("…"))) + "…";
-    }
-
-    /**
-     * {@code s} in bold, cut with "…" to {@code w} measured in bold: the game's bold is a pixel
-     * wider per letter (the web font's bold face differs too), so a cut measured plain runs over.
-     */
-    MutableComponent boldFit(String s, int w) {
-        if (s == null || w <= 0) {
-            return Component.empty();
-        }
-        MutableComponent whole = bold(s);
-        if (tab.font.width(whole) <= w) {
-            return whole;
-        }
-        String cut = tab.font.substrByWidth(whole, Math.max(0, w - tab.font.width(bold("…")))).getString();
-        return bold(cut.stripTrailing() + "…");
-    }
-
-    /**
-     * {@code s} in bold over at most {@code maxLines} lines of {@code w}, broken between words and
-     * measured in bold; the last line is cut with "…" when the rest does not fit.
-     */
-    List<MutableComponent> boldLines(String s, int w, int maxLines) {
-        List<MutableComponent> out = new ArrayList<>();
-        if (s == null || s.isEmpty() || w <= 0) {
-            return out;
-        }
-        String rest = s;
-        while (out.size() < maxLines - 1 && tab.font.width(bold(rest)) > w) {
-            String[] words = rest.split(" ");
-            String line = "";
-            int used = 0;
-            for (String word : words) {
-                String next = line.isEmpty() ? word : line + " " + word;
-                if (!line.isEmpty() && tab.font.width(bold(next)) > w) {
-                    break;
-                }
-                line = next;
-                used++;
-            }
-            if (used >= words.length || tab.font.width(bold(line)) > w) {
-                break;                                  // one word wider than the line: cut it instead
-            }
-            out.add(bold(line));
-            rest = String.join(" ", java.util.Arrays.copyOfRange(words, used, words.length));
-        }
-        out.add(boldFit(rest, w));
-        return out;
     }
 
     static String num(int v) {

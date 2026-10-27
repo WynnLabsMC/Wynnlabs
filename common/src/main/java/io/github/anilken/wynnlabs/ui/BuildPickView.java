@@ -221,9 +221,10 @@ final class BuildPickView {
                 metaW = Type.META.width(ui.font, meta);
             }
             Type.META.draw(g, ui.font, meta, right - metaW, Type.META.yIn(sy, 18), Theme.INK_3);
-            String name = Type.BODY.fit(ui.font, it.name(), right - metaW - Theme.SP_4 - nx);
-            net.minecraft.network.chat.MutableComponent nc = Component.literal(name).withStyle(it.tier().colour());
-            Kit.text(g, ui.font, on ? nc.withStyle(UiFont::bold) : nc, nx, ty, Theme.INK);
+            String name = (on ? Type.LABEL : Type.BODY).fit(ui.font, it.name(), right - metaW - Theme.SP_4 - nx);
+            // the name in its tier's colour, bold when picked
+            Integer rgb = it.tier().colour().getColor();
+            (on ? Type.LABEL : Type.BODY).draw(g, ui.font, name, nx, ty, rgb == null ? Theme.INK : 0xFF000000 | Theme.paperRgb(rgb));
             ui.btn(x, ry, rw, PITCH, "item", it);
             if (DevHooks.ON) {
                 DevHooks.part("pickrow", g.pose(), x, ry, rw, PITCH);

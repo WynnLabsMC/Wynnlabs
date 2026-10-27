@@ -143,11 +143,11 @@ final class SettingsPages extends MenuPaint {
             cy += Type.BODY.lineHeight + Theme.SP_1;
         }
         String all = L.t("wynnlabs.about.all_changes");
-        int aw = Type.LINK.width(font(), all);
-        boolean hover = mx >= x && mx < x + aw && my >= cy && my < cy + Type.LINK.lineHeight;
-        Type.LINK.draw(g, font(), all, x, cy, hover ? Theme.GOLD_DEEP : Theme.LINK);
-        menu.toggles.add(new Object[] {new int[] {x, cy, aw, Type.LINK.lineHeight}, "#upd:notes"});
-        return cy + Type.LINK.lineHeight;
+        int aw = Ui.iconChipWidth(font(), "script", all, false);
+        cy += Theme.SP_2;
+        Ui.iconChip(g, font(), "script", all, false, x, cy, aw, false, mx, my);
+        menu.toggles.add(new Object[] {new int[] {x, cy, aw, Ui.CHIP_H}, "#upd:notes"});
+        return cy + Ui.CHIP_H;
     }
 
     private String changesFor;

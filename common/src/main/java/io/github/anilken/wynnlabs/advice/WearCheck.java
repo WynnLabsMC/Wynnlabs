@@ -109,8 +109,8 @@ public final class WearCheck {
         String text;
         // the message: a head line, then step lines (what to take back in red, what to give in green)
         List<net.minecraft.network.chat.Component> lines = new ArrayList<>();
-        var head = L.c("wynnlabs.wear.prefix").withStyle(ChatFormatting.GOLD)
-                .append(net.minecraft.network.chat.Component.literal(names).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
+        var head = io.github.anilken.wynnlabs.core.Chat.prefixed(
+                net.minecraft.network.chat.Component.literal(names).withStyle(ChatFormatting.AQUA, ChatFormatting.BOLD));
         // what was said is remembered as its facts, not its words: a language switch alone does
         // not say it again
         if (sumTarget > earned) {

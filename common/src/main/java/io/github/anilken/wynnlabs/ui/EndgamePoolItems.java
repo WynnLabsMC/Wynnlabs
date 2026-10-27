@@ -46,9 +46,10 @@ final class EndgamePoolItems extends EndgamePanel {
         int ty = y + (h - 8) / 2;
         int rx = x + w - 1;
         if (item.shiny() && !item.shinyStat().isEmpty()) {
-            int bw = Kit.Ui.tagW(tab.font, item.shinyStat());
-            Art.pill(g, rx - bw, ty - 1, bw, 10, Theme.WELL, 0);
-            Kit.text(g, tab.font, item.shinyStat(), rx - bw + Kit.Ui.TAG_PAD, ty, Theme.INK_3);
+            int bw = tagW(item.shinyStat());
+            int sy = y + (h - Ui.SEAL_H) / 2;
+            Art.box(g, rx - bw, sy, bw, Ui.SEAL_H, Ui.SEAL_H / 2, Theme.WELL, 0);
+            Type.META.draw(g, tab.font, item.shinyStat(), rx - bw + Theme.SP_2, Type.META.yIn(sy, Ui.SEAL_H), Theme.INK_3);
             rx -= bw + 3;
         }
         if (r.ownClass()) {
@@ -58,8 +59,8 @@ final class EndgamePoolItems extends EndgamePanel {
             } else {
                 String tg = markText(r);
                 if (tg != null) {
-                    int tw = Kit.Ui.tagW(tab.font, tg);
-                    tag(g, tg, rx - tw, ty - 1);
+                    int tw = tagW(tg);
+                    tag(g, tg, rx - tw, y + (h - Ui.SEAL_H) / 2);
                     rx -= tw + 3;
                 }
             }

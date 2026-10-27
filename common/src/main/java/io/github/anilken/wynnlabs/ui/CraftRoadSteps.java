@@ -91,7 +91,7 @@ final class CraftRoadSteps {
         Type.LABEL.draw(g, tab.font, band, tx, y, Theme.INK_2);
         String more = L.n("wynnlabs.road.more_steps", n);
         int mw = Type.META.width(tab.font, more);
-        Type.META.drawRight(g, tab.font, more, x + w, y + 1, hover ? Theme.INK : Theme.LINK);
+        Type.META.drawRight(g, tab.font, more, x + w, y + 1, hover ? Theme.INK : Theme.INK_2);
         int mx2 = tx + Type.LABEL.width(tab.font, band) + Theme.SP_3;
         Type.META.draw(g, tab.font, Type.META.fit(tab.font, String.join(", ", mats), x + w - mw - Theme.SP_4 - mx2), mx2, y + 1, Theme.INK_3);
         tab.acts.add(new Act(x, y, w, Type.LABEL.lineHeight, () -> openBands.add(from), null, null));

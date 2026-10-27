@@ -152,14 +152,13 @@ abstract class CraftPanel {
         return Settings.on("webFont") ? c.copy().withStyle(st -> UiFont.sized(st, f)) : c.copy();
     }
 
-    /** A section title in the tab's size: bold ink, a brass dot and a rule to the right edge. */
+    /** A section title: LABEL, then a hairline to the right edge on its middle. */
     void section(GuiGraphics g, String title, int x, int y, int w) {
-        Component t = Component.literal(title).withStyle(UiFont::bold);
-        text(g, t, x, y, Theme.INK_2);
-        int dx = x + width(t) + 4;
-        g.fill(dx, y + 3, dx + 3, y + 6, Theme.BRASS);
-        if (dx + 7 < x + w) {
-            Kit.hair(g, dx + 7, y + 4, x + w - dx - 7, 1, Theme.LINE);
+        String t = Type.LABEL.fit(tab.font, title, w);
+        Type.LABEL.draw(g, tab.font, t, x, y, Theme.INK_2);
+        int dx = x + Type.LABEL.width(tab.font, t) + Theme.SP_3;
+        if (dx < x + w) {
+            Kit.hair(g, dx, Type.LABEL.onCaps(y, 1), x + w - dx, 1, Theme.LINE);
         }
     }
 

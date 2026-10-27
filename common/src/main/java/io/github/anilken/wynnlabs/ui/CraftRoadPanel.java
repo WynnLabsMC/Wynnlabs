@@ -402,14 +402,13 @@ final class CraftRoadPanel extends CraftPanel {
         String s = L.t("wynnlabs.road.done_sub", tab.knownLevel(profession.toLowerCase(Locale.ROOT)));
         Type.MUTED.draw(g, tab.font, s, cx - Type.MUTED.width(tab.font, s) / 2, cy, Theme.INK_2);
         cy += Type.MUTED.lineHeight + Theme.SP_5;
-        String link = L.t("wynnlabs.road.to_cap", ProfessionPlan.MAX_LEVEL);
-        int lw = Type.LINK.width(tab.font, link);
+        String label = L.t("wynnlabs.road.to_cap", ProfessionPlan.MAX_LEVEL);
+        int lw = Ui.iconChipWidth(tab.font, "trending-up", label, false);
         int lx = cx - lw / 2;
-        boolean hover = in(mx, my, lx, cy - 2, lw, Type.LINK.lineHeight + 2);
-        Type.LINK.draw(g, tab.font, link, lx, cy, hover ? Theme.INK : Theme.LINK);
+        Ui.iconChip(g, tab.font, "trending-up", label, false, lx, cy, lw, false, mx, my);
         int level = level(profession);
-        tab.acts.add(new Act(lx, cy - 2, lw, Type.LINK.lineHeight + 2, () -> setTarget(level, ProfessionPlan.MAX_LEVEL), null, null));
-        return cy + Type.LINK.lineHeight - y;
+        tab.acts.add(new Act(lx, cy, lw, Ui.CHIP_H, () -> setTarget(level, ProfessionPlan.MAX_LEVEL), null, null));
+        return cy + Ui.CHIP_H - y;
     }
 
     // ---- a gathering profession ----

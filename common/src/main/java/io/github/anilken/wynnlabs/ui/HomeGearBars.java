@@ -37,8 +37,8 @@ final class HomeGearBars extends HomePart {
             String sub = L.t("wynnlabs.home.loading_sub", Math.round(road.progress() * 100));
             int need = 11 + 10 + 13 + 18;
             int ty = y + Math.max(0, (h - need) / 2);
-            Component t = Component.literal(fit(title, w, true)).withStyle(UiFont::bold);
-            Kit.text(g, font, t, cx - font.width(t) / 2, ty, Theme.INK);
+            String t = Type.LABEL.fit(font, title, w);
+            Type.LABEL.draw(g, font, t, cx - Type.LABEL.width(font, t) / 2, ty, Theme.INK);
             int bw = Math.min(200, w - 16);
             HdBar.draw(g, cx - bw / 2, ty + 14, bw, 5, road.progress(), HdBar.TEAL);
             String s = fit(sub, w);
@@ -59,8 +59,8 @@ final class HomeGearBars extends HomePart {
             Art.icon(g, "sparkles", cx - 8, ty, 16, Theme.INK_3);
             ty += 22;
         }
-        Component t = Component.literal(fit(title, w, true)).withStyle(UiFont::bold);
-        Kit.text(g, font, t, cx - font.width(t) / 2, ty, Theme.INK);
+        String t = Type.LABEL.fit(font, title, w);
+        Type.LABEL.draw(g, font, t, cx - Type.LABEL.width(font, t) / 2, ty, Theme.INK);
         int bw = Math.min(w, Ui.iconChipWidth(font, "player-play", button, false));
         int bx = cx - bw / 2;
         int by = ty + 13;
@@ -152,17 +152,20 @@ final class HomeGearBars extends HomePart {
      * under it; compact, the line first and the bar after it on the same line. Without a set
      * worked out, the slots' gains summed and no bar.
      */
-    void buildBar(GuiGraphics g, In in, Host host, int x, int y, int w, boolean compact, int count, double gains) {
+    void buildBar(GuiGraphics g, In in, Host host, int x, int y, int w, boolean compact, int count, double gains, int mx, int my) {
         if (Plans.removedUndoable(System.currentTimeMillis()) != null) {
-            // a plan just removed: "Plan removed · Undo" for a few seconds, as after deleting a saved build
-            String gone = L.t("wynnlabs.homev.plan_removed") + " · ";
+            // a plan just removed: "Plan removed" and a small Undo button, for a few seconds
+            String gone = L.t("wynnlabs.homev.plan_removed");
             String undo = L.t("wynnlabs.saved.undo");
+            int uw = Ui.chipWidth(font, undo);
             int ly = compact ? y : y + 11;
-            int lx = x + (w - font.width(gone) - font.width(undo)) / 2;
-            Kit.text(g, font, gone, lx, ly, Theme.INK_3);
-            Kit.text(g, font, undo, lx + font.width(gone), ly, Theme.LINK);
-            host.area(lx + font.width(gone), ly - 1, font.width(undo), 10, null,
-                    List.of(L.c("wynnlabs.homev.plan_undo_tip").withStyle(ChatFormatting.GRAY)), "#qplanundo:");
+            int lx = x + (w - Type.BODY.width(font, gone) - Theme.SP_3 - uw) / 2;
+            Type.BODY.draw(g, font, gone, lx, ly, Theme.INK_3);
+            int ux = lx + Type.BODY.width(font, gone) + Theme.SP_3;
+            int uy = Type.BODY.onCaps(ly, Ui.SMALL_H);
+            Ui.small(g, font, undo, ux, uy, uw, mx, my);
+            host.area(ux, uy, uw, Ui.SMALL_H, null, List.of(L.c("wynnlabs.homev.plan_undo_tip").withStyle(ChatFormatting.GRAY)),
+                    "#qplanundo:");
             return;
         }
         if (count == 0) {
@@ -233,7 +236,7 @@ final class HomeGearBars extends HomePart {
      * "Build complete"; the better-build hint at the line's right end when a level-up found one
      * (a click opens it, a right-click hides it). Compact: the line, then the hint or the bar.
      */
-    void planBar(GuiGraphics g, In in, Host host, int x, int y, int w, boolean compact) {
+    void planBar(GuiGraphics g, In in, Host host, int x, int y, int w, boolean compact, int mx, int my) {
         PlanLine p = in.plan();
         boolean done = p.total() > 0 && p.worn() >= p.total();
         // the longest forms that fit side by side, never cut: the line with the plan's name, then
@@ -259,7 +262,7 @@ final class HomeGearBars extends HomePart {
         search:
         for (String hc : hints) {
             for (String lc : lines) {
-                int need = icon + font.width(lc) + (hc == null ? 0 : 8 + font.width(hc)) + (compact && hc == null ? 30 : 0);
+                int need = icon + font.width(lc) + (hc == null ? 0 : 8 + Ui.chipWidth(font, hc)) + (compact && hc == null ? 30 : 0);
                 if (need <= w) {
                     line = lc;
                     h = hc;
@@ -267,7 +270,7 @@ final class HomeGearBars extends HomePart {
                 }
             }
         }
-        int hw = h == null ? 0 : font.width(h);
+        int hw = h == null ? 0 : Ui.chipWidth(font, h);
         int room = w - (h == null ? 0 : hw + 8) - icon;
         line = fit(line, room);
         int lx = compact || h != null ? x : x + (w - font.width(line) - icon) / 2;
@@ -278,9 +281,11 @@ final class HomeGearBars extends HomePart {
         Kit.text(g, font, line, lx, ty, done ? Theme.GOOD : CHOSEN);
         int lineEnd = lx + font.width(line);
         if (h != null) {
-            int hx = x + w - font.width(h);
-            Kit.text(g, font, h, hx, ty, Theme.LINK);
-            host.area(hx, ty - 1, font.width(h), 10, null, List.of(L.c("wynnlabs.homev.plan_better_tip", p.better()).withStyle(ChatFormatting.AQUA),
+            // the better build: a small button at the line's right end
+            int hx = x + w - hw;
+            int hy = Type.BODY.onCaps(ty, Ui.SMALL_H);
+            Ui.small(g, font, h, hx, hy, hw, mx, my);
+            host.area(hx, hy, hw, Ui.SMALL_H, null, List.of(L.c("wynnlabs.homev.plan_better_tip", p.better()).withStyle(ChatFormatting.AQUA),
                     L.c("wynnlabs.homev.plan_better_click").withStyle(ChatFormatting.DARK_GRAY)), "#qhint:");
         }
         // the bar: the share of the plan you wear, in the chosen items' purple

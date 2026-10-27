@@ -140,7 +140,7 @@ final class HomeGearPanel extends HomePart {
         int areaH = bottom - top;
         if (large && !compact) {
             list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, planRow(in), mx, my);
-            barLine(g, in, host, x, y, w, h, barH, compact, count, gains);
+            barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
             return;
         }
         int s = large ? 36 : compact ? 18 : 22;
@@ -217,18 +217,18 @@ final class HomeGearPanel extends HomePart {
                 bars.planButtons(g, host, in, foldRight - (2 * 16 + 3), ty - 3, 2 * 16 + 3, true, mx, my);
             }
         }
-        barLine(g, in, host, x, y, w, h, barH, compact, count, gains);
+        barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
     }
 
     /** The build bar (or the plan's) along the panel's foot. */
     private void barLine(GuiGraphics g, In in, Host host, int x, int y, int w, int h, int barH, boolean compact, int count,
-            double gains) {
+            double gains, int mx, int my) {
         // the preview's check: the bar's whole line is one part, which no slot, pill or name may touch
         LayoutCheck.part(g.pose(), x + PAD + 1, y + h - PAD - barH, w - 2 * PAD - 2, barH, "bar", "the build bar");
         if (in.plan() != null) {
-            bars.planBar(g, in, host, x + PAD + 1, y + h - PAD - barH, w - 2 * PAD - 2, compact);
+            bars.planBar(g, in, host, x + PAD + 1, y + h - PAD - barH, w - 2 * PAD - 2, compact, mx, my);
         } else {
-            bars.buildBar(g, in, host, x + PAD + 1, y + h - PAD - barH, w - 2 * PAD - 2, compact, count, gains);
+            bars.buildBar(g, in, host, x + PAD + 1, y + h - PAD - barH, w - 2 * PAD - 2, compact, count, gains, mx, my);
         }
     }
 

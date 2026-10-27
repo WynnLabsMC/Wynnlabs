@@ -393,7 +393,7 @@ public final class BankTab extends MenuTab {
                     gg.disableScissor();
                 }, mx, my);
         if (box != null) {
-            menu.hits.add(new MenuHit(box[0], box[1], box[2], box[3], null, List.of(Component.literal("Banker")), action.id()));
+            menu.hits.add(new MenuHit(box[0], box[1], box[2], box[3], null, List.of(L.c("wynnlabs.bank.banker_tip")), action.id()));
         }
     }
 

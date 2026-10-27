@@ -78,7 +78,7 @@ final class HomeSlots extends HomePart {
         if (text == null) {
             return 15;
         }
-        return font.width(text) + 8 + (icon == null ? 0 : 10);
+        return Type.META.width(font, text) + 2 * Theme.SP_2 + (icon == null ? 0 : 8 + Theme.SP_1);
     }
 
     /** The width of a slot's pill in {@code room} pixels: its gain, or the tick's 15; 0 for an empty slot. */
@@ -391,10 +391,10 @@ final class HomeSlots extends HomePart {
         LayoutCheck.part(g.pose(), px, y, pw, PILL_H, partOwner == null ? "pill" : partOwner, "a pill (" + (text == null ? icon : text) + ")");
         if (text != null && icon != null) {
             // the icon, then the text
-            Art.icon(g, icon, px + 4, y + (PILL_H - 8) / 2, 8, ink);
-            g.drawString(font, text, px + 14, y + 2, ink, false);
+            Art.icon(g, icon, px + Theme.SP_2, y + Ui.iconIn(PILL_H, 8), 8, ink);
+            Type.META.draw(g, font, text, px + Theme.SP_2 + 8 + Theme.SP_1, Type.META.yIn(y, PILL_H), ink);
         } else if (text != null) {
-            g.drawString(font, text, px + (pw - font.width(text) + 1) / 2, y + 2, ink, false);
+            Type.META.draw(g, font, text, px + Theme.SP_2, Type.META.yIn(y, PILL_H), ink);
         } else {
             Art.icon(g, icon, px + (pw - 8) / 2, y + (PILL_H - 8) / 2, 8, ink);
         }

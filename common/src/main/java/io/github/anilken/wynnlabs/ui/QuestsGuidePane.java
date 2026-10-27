@@ -128,12 +128,13 @@ final class QuestsGuidePane extends MenuPaint {
             String nearest = nearest(places);
             String line = nearest == null ? L.n("wynnlabs.quests.points_count", places.size())
                     : L.n("wynnlabs.quests.points_head", places.size(), places.size(), nearest);
-            Type.META.draw(g, font(), line, x, cy, Theme.INK_2);
-            String link = L.t("wynnlabs.quests.points_link");
-            int lx = x + Type.META.width(font(), line) + Theme.SP_3;
-            Type.META.draw(g, font(), link, lx, cy, Theme.LINK);
-            menu.hits.add(new MenuHit(lx, cy, Type.META.width(font(), link), Type.META.lineHeight, null, null, "#qview:3"));
-            cy += Type.META.lineHeight + Theme.SP_4;
+            // the line, then a chip that opens the full list of places
+            String label = L.t("wynnlabs.quests.points_link");
+            int cw = Ui.iconChipWidth(font(), "map-pin", label, false);
+            Type.META.draw(g, font(), Type.META.fit(font(), line, w - cw - Theme.SP_4), x, Type.META.yIn(cy, Ui.CHIP_H), Theme.INK_2);
+            Ui.iconChip(g, font(), "map-pin", label, false, x + w - cw, cy, cw, false, mx, my);
+            menu.hits.add(new MenuHit(x + w - cw, cy, cw, Ui.CHIP_H, null, null, "#qview:3"));
+            cy += Ui.CHIP_H + Theme.SP_4;
         }
         cy = needs(g, x, cy, w, info, q);
         cy = QuestsGuideFacts.rewards(this, g, x, cy, w, info, q, tab);

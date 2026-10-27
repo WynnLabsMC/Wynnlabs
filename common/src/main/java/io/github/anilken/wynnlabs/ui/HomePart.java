@@ -54,13 +54,12 @@ abstract class HomePart {
         return a == null ? List.of(fit(s, w, bold)) : List.of(a, fit(b, w, bold));
     }
 
-    /** A card with its shadow under the whole width (Kit.card's stops short of the corners). */
-    static void card(GuiGraphics g, int x, int y, int w, int h, int accent, boolean lit) {
-        Kit.card(g, x, y, w, h, accent, lit);
-        g.fill(x + 1, y + h, x + 2, y + h + 1, 0x88624E3C);
-        g.fill(x + w - 2, y + h, x + w - 1, y + h + 1, 0x88624E3C);
-        g.fill(x + 1, y + h + 1, x + 3, y + h + 2, 0x44624E3C);
-        g.fill(x + w - 3, y + h + 1, x + w - 1, y + h + 2, 0x44624E3C);
+    /** A tile's soft card, a shade lighter under the mouse. */
+    static void card(GuiGraphics g, int x, int y, int w, int h, boolean hover) {
+        Kit.softCard(g, x, y, w, h);
+        if (hover) {
+            Art.box(g, x + 1, y + 1, w - 2, h - 1, 3, Theme.CARD_HOVER, 0);
+        }
     }
 
     /** Text wrapped to {@code w} from line {@code y}, the lines that end above {@code bottom}; the next line's y. */

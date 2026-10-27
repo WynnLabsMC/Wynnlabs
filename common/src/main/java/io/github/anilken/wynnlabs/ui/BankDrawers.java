@@ -117,11 +117,19 @@ final class BankDrawers {
                 String t = Vault.label(o.page()) + (o.slot() >= 0 ? " · " + L.t("wynnlabs.bank.slot_no",
                         (o.slot() / 9) * BankIndex.get().cols + o.slot() % 9 + 1) : "");
                 String n = "×" + o.count();
-                boolean hover = mx >= x && mx < x + w && my >= cy && my < cy + Type.LINK.lineHeight;
-                Type.LINK.draw(g, font, Type.LINK.fit(font, t, w - Type.META.width(font, n) - Theme.SP_3), x, cy, hover ? Theme.INK : Theme.LINK);
+                // a plain row that takes you there: a pin, the place, the count; lighter under the mouse
+                boolean hover = mx >= x && mx < x + w && my >= cy && my < cy + Type.BODY.lineHeight;
+                if (hover) {
+                    Art.box(g, x - Theme.SP_2, cy - Theme.SP_1, w + 2 * Theme.SP_2, Type.BODY.lineHeight + 2 * Theme.SP_1, 3,
+                            Theme.CARD_HOVER, 0);
+                }
+                Art.icon(g, "map-pin", x, Type.BODY.onCaps(cy, 8), 8, Theme.INK_3);
+                int px = x + 8 + Theme.SP_2;
+                Type.BODY.draw(g, font, Type.BODY.fit(font, t, x + w - Type.META.width(font, n) - Theme.SP_3 - px), px, cy,
+                        hover ? Theme.INK : Theme.INK_2);
                 Type.META.drawRight(g, font, n, x + w, cy + 1, Theme.INK_3);
-                act(x, cy, w, Type.LINK.lineHeight, () -> tab.goTo(o));
-                cy += Type.LINK.lineHeight + Theme.SP_2;
+                act(x, cy, w, Type.BODY.lineHeight, () -> tab.goTo(o));
+                cy += Type.BODY.lineHeight + Theme.SP_2;
             }
             cy += Theme.SP_4 - Theme.SP_2;
         }

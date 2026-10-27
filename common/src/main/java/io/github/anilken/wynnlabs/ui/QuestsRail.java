@@ -337,11 +337,16 @@ final class QuestsRail extends MenuPaint {
         tcx += tab.types.chip(g, tcx, y, mx, my);
         String tracked = QuestsData.tracked();
         if (tracked != null && tab.questType.quest()) {
-            String link = L.t("wynnlabs.quests.started_link", QuestGuides.title(tracked));
-            int lx = tcx + Theme.SP_3;
-            String cut = Type.META.fit(font(), link, x + w - lx);
-            Type.META.draw(g, font(), cut, lx, Type.META.yIn(y, Ui.CHIP_H), Theme.LINK);
-            menu.hits.add(new MenuHit(lx, y, Type.META.width(font(), cut), Ui.CHIP_H, null, null, "#qsel:" + tracked));
+            // the quest you are on, one click back to it
+            String on = L.t("wynnlabs.quests.started_link", QuestGuides.title(tracked));
+            int lx = tcx + Theme.SP_2;
+            int bare = Ui.iconChipWidth(font(), "player-play", "", false) + Theme.SP_1;
+            int tw = Math.min(x + w - lx, Ui.iconChipWidth(font(), "player-play", on, false));
+            if (tw >= bare + 24) {
+                Ui.iconChip(g, font(), "player-play", Type.BODY.fit(font(), on, tw - bare), false,
+                        lx, y, tw, false, mx, my);
+                menu.hits.add(new MenuHit(lx, y, tw, Ui.CHIP_H, null, null, "#qsel:" + tracked));
+            }
         }
         return Ui.CHIP_H;
     }

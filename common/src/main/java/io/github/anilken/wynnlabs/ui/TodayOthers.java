@@ -120,7 +120,7 @@ final class TodayOthers extends MenuPaint implements MenuTab.Popup {
     private void drawPlus(GuiGraphics g, int x, int y, String more, int w, int mx, int my) {
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + CHIP_H;
         Kit.pill(g, x, y, w, CHIP_H, open, hover);
-        Type.META.draw(g, font(), more, x + Theme.SP_3, Type.META.yIn(y, CHIP_H), Theme.LINK);
+        Type.META.draw(g, font(), more, x + Theme.SP_3, Type.META.yIn(y, CHIP_H), open ? Theme.INK : Theme.INK_2);
         plus = new int[] {x, y, w, CHIP_H};
         menu.hits.add(new MenuHit(x, y, w, CHIP_H, null, List.of(L.c("wynnlabs.today.others_all", all.size())), "#qtodayothers"));
     }

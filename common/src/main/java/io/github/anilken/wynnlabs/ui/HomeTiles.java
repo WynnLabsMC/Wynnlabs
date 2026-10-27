@@ -47,12 +47,14 @@ final class HomeTiles extends HomePart {
 
     // ---- the tiles ----
 
-    /** A tile's card and its title line (an icon, the name); lit under the mouse. */
+    /** A tile's soft card and its title line (an icon in the tile's colour, the name); lighter under the mouse. */
     private void tile(GuiGraphics g, int x, int y, int w, int h, String icon, String title, int accent, int mx, int my) {
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
-        card(g, x, y, w, h, accent, hover);
-        Art.icon(g, icon, x + 5, y + 6, 8, Theme.INK_2);
-        ink(g, fit(title, w - 22), x + 16, y + 6, Theme.INK_2);
+        card(g, x, y, w, h, hover);
+        // the tile's icon keeps its colour (the grind's risk, a tier); the title is plain
+        Art.icon(g, icon, x + Theme.SP_3, Type.BODY.onCaps(y + Theme.SP_3, 8), 8, accent);
+        int tx = x + Theme.SP_3 + 8 + Theme.SP_2;
+        Type.BODY.draw(g, font, Type.BODY.fit(font, title, x + w - Theme.SP_3 - tx), tx, y + Theme.SP_3, Theme.INK_2);
     }
 
     /** "Click: open the X tab", the last line of a tile's tooltip. */
@@ -76,7 +78,7 @@ final class HomeTiles extends HomePart {
         int iy = y + 9 + font.lineHeight;
         int dryH = dry ? font.lineHeight + 7 : 6;
         if (d.pool().isEmpty()) {
-            ink(g, fit(L.t("wynnlabs.homev.week_none"), w - 12), x + 6, iy + 2, Theme.INK_3);
+            ink(g, fit(L.t("wynnlabs.homev.week_none"), w - 2 * Theme.SP_3), x + Theme.SP_3, iy + 2, Theme.INK_3);
             tip.add(Component.literal(L.t("wynnlabs.endgame.pool_never_tip")).withStyle(ChatFormatting.GRAY));
         } else {
             int is = large ? 24 : 16;
@@ -111,7 +113,7 @@ final class HomeTiles extends HomePart {
             }
         }
         if (dry) {
-            ink(g, fit(L.n("wynnlabs.homev.week_dry", d.dryPulls()), w - 12), x + 6, y + h - 4 - font.lineHeight, Theme.INK_3);
+            ink(g, fit(L.n("wynnlabs.homev.week_dry", d.dryPulls()), w - 2 * Theme.SP_3), x + Theme.SP_3, y + h - 4 - font.lineHeight, Theme.INK_3);
         }
         tip.add(opens("wynnlabs.screen.tab_endgame"));
         host.area(x, y, w, h, null, tip, "#qopen:" + RoadmapScreen.TAB_ENDGAME);
@@ -140,8 +142,8 @@ final class HomeTiles extends HomePart {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(L.t("wynnlabs.homev.aspects")).withStyle(ChatFormatting.GOLD));
         if (!d.aspectsUp() || d.total() == 0) {
-            ink(g, fit(L.t(d.aspectsUp() ? "wynnlabs.endgame.aspects_no_data" : "wynnlabs.endgame.aspects_off"), w - 12),
-                    x + 6, y + 20, Theme.INK_3);
+            ink(g, fit(L.t(d.aspectsUp() ? "wynnlabs.endgame.aspects_no_data" : "wynnlabs.endgame.aspects_off"), w - 2 * Theme.SP_3),
+                    x + Theme.SP_3, y + 20, Theme.INK_3);
         } else {
             int owned = d.owned();
             String count = (owned < 0 ? "?" : String.valueOf(owned)) + "/" + d.total();
@@ -150,12 +152,11 @@ final class HomeTiles extends HomePart {
                 int gcx = x + 6 + 29;
                 int gcy = y + 18 + 29;
                 Kit.gauge(g, gcx, gcy, 29, 5, owned < 0 ? 0 : owned / (double) d.total(), Theme.PAPER_DEEP, Theme.GOLD_DEEP, Theme.GOLD_EDGE);
-                Component c = Component.literal(count).withStyle(UiFont::bold);
-                Kit.text(g, font, c, gcx - font.width(c) / 2, gcy - 11, Theme.INK);
+                Type.LABEL.draw(g, font, count, gcx - Type.LABEL.width(font, count) / 2, gcy - 11, Theme.INK);
                 tx = x + 70;
             } else {
-                Kit.text(g, font, Component.literal(count).withStyle(UiFont::bold), x + 6, y + 19, Theme.INK);
-                tx = x + 10 + font.width(count) + 6;
+                Type.LABEL.draw(g, font, count, x + Theme.SP_3, y + 19, Theme.INK);
+                tx = x + Theme.SP_3 + Type.LABEL.width(font, count) + Theme.SP_4;
             }
             int tw = x + w - 6 - tx;
             if (owned < 0) {
@@ -174,20 +175,22 @@ final class HomeTiles extends HomePart {
                         // beside the ring: "Next" over the name in up to two lines
                         ink(g, fit(L.t("wynnlabs.homev.aspects_next"), tw), tx, y + 20, Theme.INK_3);
                         for (int i = 0; i < name.size(); i++) {
-                            Kit.text(g, font, Component.literal(name.get(i)).withStyle(UiFont::bold), tx, y + 31 + i * 10,
-                                    tierColour(a.aspect().rarity()));
+                            Type.LABEL.draw(g, font, name.get(i), tx, y + 31 + i * 10, tierColour(a.aspect().rarity()));
                         }
                         by = y + 31 + Math.max(2, name.size()) * 10 + 4;
                     } else {
                         // too narrow beside the ring: "Next: name" on a line under it
-                        Component next = Component.literal(L.t("wynnlabs.homev.aspects_next") + ": ").withColor(Theme.INK_3 & 0xFFFFFF)
-                                .append(Component.literal(shortName).withStyle(UiFont::bold).withColor(tierColour(a.aspect().rarity()) & 0xFFFFFF));
-                        if (font.width(next) > w - 12) {
-                            // still too wide: the name alone, in its colour
-                            next = Component.literal(fit(shortName, w - 12, true)).withStyle(UiFont::bold)
-                                    .withColor(tierColour(a.aspect().rarity()) & 0xFFFFFF);
+                        String head = L.t("wynnlabs.homev.aspects_next") + ": ";
+                        int hw = Type.BODY.width(font, head);
+                        int room = w - 2 * Theme.SP_3;
+                        int nx = x + Theme.SP_3;
+                        if (hw + Type.LABEL.width(font, shortName) <= room) {
+                            Type.BODY.draw(g, font, head, nx, y + 51, Theme.INK_3);
+                            nx += hw;
+                            room -= hw;
                         }
-                        Kit.text(g, font, next, x + 6, y + 51, Theme.INK);
+                        // still too wide: the name alone, in its colour
+                        Type.LABEL.draw(g, font, Type.LABEL.fit(font, shortName, room), nx, y + 51, tierColour(a.aspect().rarity()));
                         by = y + 53 + font.lineHeight;
                     }
                     tip.add(Component.literal(L.t("wynnlabs.homev.aspects_next") + ": " + a.aspect().name())
@@ -200,7 +203,7 @@ final class HomeTiles extends HomePart {
                     a.matches().forEach(m -> abilities.add(m.ability()));
                     String boosts = abilities.isEmpty() ? a.reason() : L.t("wynnlabs.homev.aspects_boosts", String.join(", ", abilities));
                     if (!boosts.isEmpty() && by + font.lineHeight <= y + h - 4) {
-                        ink(g, fit(boosts, w - 12), x + 6, by, Theme.INK_3);
+                        ink(g, fit(boosts, w - 2 * Theme.SP_3), x + Theme.SP_3, by, Theme.INK_3);
                     }
                 }
             }
@@ -219,7 +222,7 @@ final class HomeTiles extends HomePart {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(L.t("wynnlabs.homev.profs")).withStyle(ChatFormatting.GOLD));
         if (d.profs().isEmpty()) {
-            ink(g, fit(L.t("wynnlabs.homev.profs_none"), w - 12), x + 6, y + 20, Theme.INK_3);
+            ink(g, fit(L.t("wynnlabs.homev.profs_none"), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 20, Theme.INK_3);
             tip.add(Component.literal(L.t("wynnlabs.homev.profs_none_tip")).withStyle(ChatFormatting.GRAY));
         } else {
             int pitch = Math.max(11, Math.min(18, (h - 24) / 3));
@@ -239,7 +242,7 @@ final class HomeTiles extends HomePart {
                 int[] xp = Crafting.professionXp(pr);
                 boolean exact = xp != null && xp.length == 2 && xp[1] > 0;
                 double frac = exact ? xp[0] / (double) xp[1] : lv / (double) PROF_CAP;
-                int nx = WynnTex.profession(g, pr, x + 6, ry - 1, 9) ? x + 17 : x + 6;
+                int nx = WynnTex.profession(g, pr, x + Theme.SP_3, ry - 1, 9) ? x + 17 : x + 6;
                 ink(g, fit(Professions.name(pr), x + 6 + nw - nx - 3), nx, ry, Theme.INK_2);
                 String n = String.valueOf(lv);
                 int bx = x + 6 + nw;
@@ -269,7 +272,7 @@ final class HomeTiles extends HomePart {
         tile(g, x, y, w, h, "map-2", L.t("wynnlabs.homev.quest"), 0xFF378ADD, mx, my);
         QuestAdvisor.Suggestion q = in.quest();
         if (q == null) {
-            ink(g, fit(L.t(QuestAdvisor.known() == 0 ? "wynnlabs.home.open_book" : "wynnlabs.home.no_quest"), w - 12), x + 6, y + 20,
+            ink(g, fit(L.t(QuestAdvisor.known() == 0 ? "wynnlabs.home.open_book" : "wynnlabs.home.no_quest"), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 20,
                     Theme.INK_3);
             host.area(x, y, w, h, null, List.of(opens("wynnlabs.screen.tab_quests")), "#qopen:2");
             return;
@@ -277,7 +280,7 @@ final class HomeTiles extends HomePart {
         int px = large && h >= 52 ? 3 : 2;                  // the arrow's pixel: 7 of them across
         int ds = 7 * px + 8;
         int tx = x + 6;
-        if (HomeDial.draw(g, q.quest(), x + 6, y + 18, ds)) {
+        if (HomeDial.draw(g, q.quest(), x + Theme.SP_3, y + 18, ds)) {
             tx = x + 6 + ds + 5;
         }
         int tw = x + w - 6 - tx;
@@ -287,7 +290,7 @@ final class HomeTiles extends HomePart {
         // why this one, where the tile has room under the dial
         int ry = y + 22 + ds;
         for (String r : q.reasons()) {
-            ry = lines(g, "• " + L.cap(r), x + 6, ry, w - 12, y + h - 5, Theme.INK_3);
+            ry = lines(g, "• " + L.cap(r), x + Theme.SP_3, ry, w - 2 * Theme.SP_3, y + h - 5, Theme.INK_3);
         }
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(QuestGuides.title(q.quest().name())).withStyle(ChatFormatting.AQUA).withStyle(UiFont::bold));
@@ -310,13 +313,13 @@ final class HomeTiles extends HomePart {
             xp = -1;
         }
         if (raw == null) {
-            ink(g, fit(L.t("wynnlabs.home.no_place"), w - 12), x + 6, y + 20, Theme.INK_3);
+            ink(g, fit(L.t("wynnlabs.home.no_place"), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 20, Theme.INK_3);
         } else {
             String place = RoadmapScreen.shortPlace(raw);
             String name = place.contains(" (") ? place.substring(0, place.indexOf(" (")) : place;
             String lv = place.contains(" (") ? place.substring(place.indexOf(" (") + 2, place.length() - 1) : "";
             int rc = Theme.paperRgb(RoadmapScreen.RISK[risk]);
-            Art.box(g, x + 6, y + 20, 6, 6, 3, rc, 0);
+            Art.box(g, x + Theme.SP_3, y + 20, 6, 6, 3, rc, 0);
             ink(g, fit(name, w - 22), x + 16, y + 19, Theme.INK);
             String safe = L.t(risk == 0 ? "wynnlabs.home.risk_safe" : risk == 1 ? "wynnlabs.home.risk_careful" : "wynnlabs.home.risk_risky");
             ink(g, fit(safe + (lv.isEmpty() ? "" : " · " + lv), w - 22), x + 16, y + 30, Theme.INK_3);
@@ -329,7 +332,7 @@ final class HomeTiles extends HomePart {
         if (xp >= 0 && h >= 50) {
             String p = RoadmapScreen.pct(xp);
             int bw = w - 12 - font.width(p) - 4;
-            HdBar.draw(g, x + 6, y + h - 11, bw, 4, Math.max(0, Math.min(100, xp)) / 100.0, HdBar.TEAL);
+            HdBar.draw(g, x + Theme.SP_3, y + h - 11, bw, 4, Math.max(0, Math.min(100, xp)) / 100.0, HdBar.TEAL);
             ink(g, p, x + w - 6 - font.width(p), y + h - 13, Theme.INK_3);
         }
     }
@@ -341,7 +344,7 @@ final class HomeTiles extends HomePart {
         tip.add(Component.literal(L.t("wynnlabs.homev.bank")).withStyle(ChatFormatting.DARK_AQUA));
         int[] b = d.bank();
         if (b == null) {
-            ink(g, fit(L.t("wynnlabs.homev.bank_none"), w - 12), x + 6, y + 20, Theme.INK_3);
+            ink(g, fit(L.t("wynnlabs.homev.bank_none"), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 20, Theme.INK_3);
         } else {
             int[] colours = {Theme.MARK_SELL, Theme.MARK_QUEST, Theme.MARK_IDENTIFY, Theme.MARK_USE, 0xFFBCAE8E};
             String[] names = {L.t("wynnlabs.bank.filter_sell"), L.t("wynnlabs.bank.filter_quest"), L.t("wynnlabs.bank.filter_prof"),
@@ -363,7 +366,7 @@ final class HomeTiles extends HomePart {
             }
             Kit.outline(g, sx - 1, y + 18, sw + 2, 8, Theme.LINE);
             String sell = L.t("wynnlabs.homev.bank_sell", b[0]) + (d.sellWorth() > 0 ? " · ≈" + Prices.fmt(d.sellWorth()) : "");
-            ink(g, fit(sell, w - 12), x + 6, y + 30, b[0] > 0 ? Theme.BAD : Theme.INK_3);
+            ink(g, fit(sell, w - 2 * Theme.SP_3), x + Theme.SP_3, y + 30, b[0] > 0 ? Theme.BAD : Theme.INK_3);
             if (d.sellWorth() > 0) {
                 tip.add(L.cn("wynnlabs.homev.bank_worth_tip", d.priced(), Prices.fmt(d.sellWorth()), d.priced()).withStyle(ChatFormatting.GOLD));
             }
@@ -390,14 +393,14 @@ final class HomeTiles extends HomePart {
         tile(g, x, y, w, h, "compass", L.t("wynnlabs.homev.discovery"), 0xFFC9A7F0, mx, my);
         Discoveries.Entry e = d.near();
         if (e == null) {
-            ink(g, fit(L.t("wynnlabs.homev.discovery_none"), w - 12), x + 6, y + 20, Theme.INK_3);
+            ink(g, fit(L.t("wynnlabs.homev.discovery_none"), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 20, Theme.INK_3);
             host.area(x, y, w, h, null, List.of(opens("wynnlabs.screen.tab_discoveries")), "#qdisc:");
             return;
         }
-        ink(g, Component.literal(fit(e.name(), w - 12, true)).withStyle(UiFont::bold), x + 6, y + 19, Theme.ACCENT);
-        ink(g, fit(RoadmapScreen.dist(d.nearDist()) + " · Lv. " + e.minLevel(), w - 12), x + 6, y + 30, Theme.INK_3);
+        Type.LABEL.draw(g, font, Type.LABEL.fit(font, e.name(), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 19, Theme.ACCENT);
+        ink(g, fit(RoadmapScreen.dist(d.nearDist()) + " · Lv. " + e.minLevel(), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 30, Theme.INK_3);
         if (h >= 52 && e.region() != null) {
-            ink(g, fit(e.region(), w - 12), x + 6, y + 41, Theme.INK_3);
+            ink(g, fit(e.region(), w - 2 * Theme.SP_3), x + Theme.SP_3, y + 41, Theme.INK_3);
         }
         host.area(x, y, w, h, null, List.of(Component.literal(e.name()).withStyle(ChatFormatting.LIGHT_PURPLE),
                 Component.literal(e.region() == null ? "" : e.region()).withStyle(ChatFormatting.GRAY),
@@ -430,7 +433,7 @@ final class HomeTiles extends HomePart {
             String[] r = rows.get(i);
             int ry = y + i * (rh + gap);
             boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + rh;
-            card(g, x, ry, w, rh, 0, hover);
+            card(g, x, ry, w, rh, hover);
             Art.icon(g, r[0], x + 4, ry + (rh - 8) / 2, 8, Theme.INK_2);
             int tx = x + 15;
             int tw = x + w - 4 - tx;

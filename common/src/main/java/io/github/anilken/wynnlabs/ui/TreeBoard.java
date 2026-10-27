@@ -155,10 +155,12 @@ final class TreeBoard extends MenuPaint {
             if (p > 0) {
                 g.fill(px + 1, ly - 1, px + pw - 1, ly + 1, 0x50FFFFFF);
             }
+            // the page's number on a dark pill at the board's right edge
             String label = L.t("wynnlabs.tree.page_short", p + 1);
-            int lw2 = font().width(label);
-            g.fill(px + pw - 9 - lw2, ly - 5, px + pw - 3, ly + 5, 0xC0262B30);
-            g.drawString(font(), label, px + pw - 6 - lw2, ly - 4, 0xB0FFFFFF, false);
+            int lw2 = Type.META.width(font(), label) + 2 * Theme.SP_2;
+            Art.box(g, px + pw - Theme.SP_1 - lw2, ly - Ui.SEAL_H / 2, lw2, Ui.SEAL_H, Ui.SEAL_H / 2, 0xC0262B30, 0);
+            Type.META.draw(g, font(), label, px + pw - Theme.SP_1 - lw2 + Theme.SP_2, Type.META.yIn(ly - Ui.SEAL_H / 2, Ui.SEAL_H),
+                    0xD0FFFFFF);
         }
         // the lines, under the nodes: the game's pieces where a page was seen, routed around
         // the nodes elsewhere; lit between unlocked nodes, the archetype's colour along the
@@ -272,8 +274,9 @@ final class TreeBoard extends MenuPaint {
             }
             if (n.step() > 0) {
                 String mark = String.valueOf(n.step());
-                g.drawString(font(), mark, nx + (cell - font().width(mark)) / 2, ny + (cell - 8) / 2,
-                        n.state() == TreeView.State.NEXT ? 0xFFFFE071 : 0xFFFFFFFF, true);
+                // over the node's picture: the one place text keeps its shadow
+                g.drawString(font(), Type.META.of(mark), nx + (cell - Type.META.width(font(), mark)) / 2,
+                        Type.META.yIn(ny, cell), n.state() == TreeView.State.NEXT ? 0xFFFFE071 : 0xFFFFFFFF, true);
             } else if (n.state() == TreeView.State.BLOCKED) {
                 Art.icon(g, "x", nx + (cell - 8) / 2, ny + (cell - 8) / 2, 8, 0xFFFFFFFF);
             }

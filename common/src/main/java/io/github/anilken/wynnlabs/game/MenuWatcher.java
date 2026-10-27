@@ -209,7 +209,7 @@ public final class MenuWatcher {
                         .append(net.minecraft.network.chat.Component.literal(
                                 " " + (e.note() == null ? "" : e.note()))
                                 .withStyle(net.minecraft.ChatFormatting.GRAY));
-                mc.player.displayClientMessage(msg, false);
+                io.github.anilken.wynnlabs.core.Chat.say(msg);
             }
         }
     }

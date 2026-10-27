@@ -96,13 +96,13 @@ public final class UpdateCheck {
         if (r != null) {
             pending = null;
             if (!UpdatePrefs.silenced(r.tag())) {
-                mc.gui.getChat().addMessage(line(r, own));
+                Chat.show(line(r, own));
             }
             return;
         }
         UpdateDownload.Phase done = UpdateDownload.takeNotice();
         if (done != null) {
-            mc.gui.getChat().addMessage(done == UpdateDownload.Phase.READY
+            Chat.show(done == UpdateDownload.Phase.READY
                     ? note("wynnlabs.update.downloaded", ChatFormatting.GREEN, UpdateDownload.tag())
                     : note("wynnlabs.update.failed_line", ChatFormatting.RED, UpdateDownload.tag(), failText(UpdateDownload.failure())));
         }
@@ -241,7 +241,7 @@ public final class UpdateCheck {
 
     /** "Wynn Labs ▸ " and one text in a colour: the updater's chat lines. */
     static Component note(String key, ChatFormatting colour, Object... args) {
-        return L.c("wynnlabs.wear.prefix").withStyle(ChatFormatting.GOLD).append(L.c(key, args).withStyle(colour));
+        return Chat.line(key, colour, args);
     }
 
     /**
@@ -318,8 +318,7 @@ public final class UpdateCheck {
                 .withBold(true)
                 .withClickEvent(new ClickEvent.RunCommand("/wynnlabs-update"))
                 .withHoverEvent(new HoverEvent.ShowText(L.c("wynnlabs.update.update_hover"))));
-        return L.c("wynnlabs.wear.prefix").withStyle(ChatFormatting.GOLD)
-                .append(L.c("wynnlabs.update.newer", have, r.tag()).withStyle(ChatFormatting.GREEN))
+        return Chat.prefixed(L.c("wynnlabs.update.newer", have, r.tag()).withStyle(ChatFormatting.GREEN))
                 .append(here)
                 .append(L.c("wynnlabs.update.newer_end").withStyle(ChatFormatting.GREEN));
     }

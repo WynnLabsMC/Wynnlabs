@@ -276,8 +276,8 @@ public final class Wyn {
             }
         }
         if (!names.isEmpty()) {
-            mc.gui.getChat().addMessage(L.c("wynnlabs.wyn.down", String.join(", ", names), version())
-                    .withStyle(net.minecraft.ChatFormatting.GOLD));
+            io.github.anilken.wynnlabs.core.Chat.say(L.c("wynnlabs.wyn.down", String.join(", ", names), version())
+                    .withStyle(net.minecraft.ChatFormatting.YELLOW));
         }
     }
 

@@ -76,7 +76,7 @@ final class QuestsMiniPane extends MenuPaint {
             cy = mob(g, x, cy, lw, name, m, q);
         }
         if (cy + block <= room) {
-            cy = where(g, x, cy, lw, m, at);
+            cy = where(g, x, cy, lw, m, at, mx, my);
         }
         if (mapW > 0) {
             tab.map.draw(g, x + lw + Theme.SP_6, top, mapW, foot - Theme.SP_4 - top, post, null, true, "mini|" + name, mx, my);
@@ -204,7 +204,7 @@ final class QuestsMiniPane extends MenuPaint {
         for (int i = 0; i < needs.size(); i++) {
             MiniQuests.Need n = needs.get(i);
             if (i > 0) {
-                Type.META.draw(g, font(), L.t("wynnlabs.quests.mini_or"), x + 22, y - Theme.SP_2, Theme.INK_3);
+                Type.META.draw(g, font(), L.t("wynnlabs.quests.mini_or"), x + 18 + Theme.SP_2, y - Theme.SP_2, Theme.INK_3);
                 y += Type.META.lineHeight - Theme.SP_2;
             }
             double total = row(g, x, y, w, n, mx, my);
@@ -232,7 +232,7 @@ final class QuestsMiniPane extends MenuPaint {
             Art.icon(g, "package", x + 5, y + 4, 8, Theme.INK_3);
         }
         String shown = e != null ? e.name() : n.name();
-        int nx = x + 22;
+        int nx = x + 18 + Theme.SP_2;
         // what you hold, by the data's name or, without it, the wiki's ("Snow Clumps" is held as "Snow Clump")
         Sources.Owned own = QuestsCache.kept("mini|own|" + shown, 1_000, () -> owned(shown));
         int bank = own.bank().values().stream().mapToInt(Integer::intValue).sum();
@@ -241,9 +241,9 @@ final class QuestsMiniPane extends MenuPaint {
         Prices.Price p = Prices.of(shown);
         Double unit = p == null ? null : p.typical();
         int priceW = 70;
-        Type.BODY.draw(g, font(), Type.BODY.fit(font(), shown, w - 22 - priceW - 24), nx, y - 1);
+        Type.BODY.draw(g, font(), Type.BODY.fit(font(), shown, w - 18 - Theme.SP_2 - priceW - 24), nx, y - 1);
         String cnt = "×" + n.count();
-        Type.BODY.draw(g, font(), cnt, nx + Math.min(Type.BODY.width(font(), shown), w - 22 - priceW - 24) + Theme.SP_2, y - 1, Theme.INK_3);
+        Type.BODY.draw(g, font(), cnt, nx + Math.min(Type.BODY.width(font(), shown), w - 18 - Theme.SP_2 - priceW - 24) + Theme.SP_2, y - 1, Theme.INK_3);
         int by = y + Type.BODY.lineHeight;
         Art.pill(g, nx, by + 2, 46, 3, Theme.WELL, 0);
         Art.pill(g, nx, by + 2, Math.max(3, 46 * Math.min(have, n.count()) / Math.max(1, n.count())), 3, enough ? Theme.GOOD : Theme.GOLD_DEEP, 0);
@@ -368,26 +368,29 @@ final class QuestsMiniPane extends MenuPaint {
             f.add(mob.where());
         }
         Art.icon(g, "skull", x, Type.BODY.onCaps(y, 8), 8, Theme.INK_3);
-        Type.BODY.draw(g, font(), Type.BODY.fit(font(), String.join(" · ", f), w - 12), x + 12, y, Theme.INK_2);
+        Type.BODY.draw(g, font(), Type.BODY.fit(font(), String.join(" · ", f), w - 8 - Theme.SP_2), x + 8 + Theme.SP_2, y, Theme.INK_2);
         return y + Type.BODY.lineHeight + Theme.SP_5;
     }
 
-    /** The post's place and province, "Haritada aç ›"; a locked gathering post, your profession's way there. */
-    private int where(GuiGraphics g, int x, int y, int w, MiniQuests.Mini m, int[] at) {
+    /** The post's place and province with an "Open on map" chip; a locked gathering post, your profession's way there. */
+    private int where(GuiGraphics g, int x, int y, int w, MiniQuests.Mini m, int[] at, int mx, int my) {
         if (m == null || m.place().isEmpty()) {
             return y;
         }
         y = head(g, L.t("wynnlabs.quests.mini_where"), x, y, w);
         String place = m.place() + (m.province().isEmpty() ? "" : " · " + m.province());
-        Art.icon(g, "map-pin", x, Type.BODY.onCaps(y, 8), 8, Theme.INK_3);
-        Type.BODY.draw(g, font(), Type.BODY.fit(font(), place, w - 12), x + 12, y, Theme.INK_2);
         String open = L.t("wynnlabs.quests.mini_open_map");
-        int ox = x + 12 + Math.min(Type.BODY.width(font(), place), w - 12) + Theme.SP_4;
-        if (ox + Type.LINK.width(font(), open) <= x + w) {
-            Type.LINK.draw(g, font(), open, ox, y);
-            menu.hits.add(new MenuHit(ox, y, Type.LINK.width(font(), open), Type.LINK.lineHeight, null, null,
-                    "#qmapopen:" + at[0] + " " + at[2]));
+        int cw = Ui.iconChipWidth(font(), "map-2", open, false);
+        boolean chip = 12 + 48 + Theme.SP_4 + cw <= w; // room for a few words of the place too
+        int ty = Type.BODY.yIn(y, Ui.CHIP_H);
+        Art.icon(g, "map-pin", x, Type.BODY.onCaps(ty, 8), 8, Theme.INK_3);
+        int room = w - 8 - Theme.SP_2 - (chip ? cw + Theme.SP_4 : 0);
+        Type.BODY.draw(g, font(), Type.BODY.fit(font(), place, room), x + 8 + Theme.SP_2, ty, Theme.INK_2);
+        if (chip) {
+            Ui.iconChip(g, font(), "map-2", open, false, x + w - cw, y, cw, false, mx, my);
+            menu.hits.add(new MenuHit(x + w - cw, y, cw, Ui.CHIP_H, null, null, "#qmapopen:" + at[0] + " " + at[2]));
         }
+        y += Ui.CHIP_H - Type.BODY.lineHeight;
         y += Type.BODY.lineHeight + Theme.SP_3;
         if (!m.kind().equals("COMBAT")) {
             int have = Professions.level(m.kind());

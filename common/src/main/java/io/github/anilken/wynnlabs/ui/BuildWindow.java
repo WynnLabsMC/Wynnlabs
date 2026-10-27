@@ -111,18 +111,9 @@ public final class BuildWindow {
     List<EditBox> init(Font f) {
         ui.font = f;
         search = UiInput.box(f, "wynnlabs.pick.search_hint", search, v -> pick.listScroll = 0);
-        String renamed = rename == null ? "" : rename.getValue();
-        rename = new EditBox(f, 0, 0, 100, 12, L.c("wynnlabs.saved.rename"));
+        rename = UiInput.box(f, "wynnlabs.saved.rename", rename, v -> { });
         rename.setMaxLength(Plans.MAX_NAME);
-        rename.setValue(renamed);
-        paperField(rename);
         return List.of(search, rename);
-    }
-
-    private static void paperField(EditBox box) {
-        box.setBordered(false);
-        box.setTextColor(Theme.INK);
-        box.setTextShadow(false);
     }
 
     public boolean isOpen() {

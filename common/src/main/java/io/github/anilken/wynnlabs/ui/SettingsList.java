@@ -95,9 +95,9 @@ final class SettingsList extends MenuPaint {
             }
             ry += NAV_ROW + Theme.SP_1;
         }
-        // the foot: how many differ from their default, and the link that lists them
+        // the foot: how many differ from their default, and a chip that lists them (or goes back)
         int n = SettingsRows.changedTotal();
-        int fy = y + h - 2 * Type.META.lineHeight;
+        int fy = y + h - Type.META.lineHeight - Theme.SP_2 - Ui.CHIP_H;
         if (fy - Theme.SP_3 < ry) {
             return;
         }
@@ -105,11 +105,12 @@ final class SettingsList extends MenuPaint {
         String what = n > 0 ? L.t("wynnlabs.settings.changed_count", n) : L.t("wynnlabs.settings.all_default");
         Type.META.draw(g, font(), Type.META.fit(font(), what, w), x, fy, Theme.INK_2);
         if (n > 0 || tab.showChanged) {
-            String link = tab.showChanged ? "‹ " + L.t("wynnlabs.settings.back") : L.t("wynnlabs.settings.show_changed");
-            int lw = Type.META.width(font(), link);
-            int ly = fy + Type.META.lineHeight;
-            Type.META.draw(g, font(), link, x, ly, Theme.LINK);
-            menu.toggles.add(new Object[] {new int[] {x, ly - 1, lw, Type.META.lineHeight}, tab.showChanged ? "#sclearview" : "#sshowchanged"});
+            String label = L.t(tab.showChanged ? "wynnlabs.settings.back" : "wynnlabs.settings.show_changed");
+            String icon = tab.showChanged ? "arrow-left" : "filter";
+            int cw = Math.min(w, Ui.iconChipWidth(font(), icon, label, false));
+            int ly = fy + Type.META.lineHeight + Theme.SP_2;
+            Ui.iconChip(g, font(), icon, label, false, x, ly, cw, tab.showChanged, mx, my);
+            menu.toggles.add(new Object[] {new int[] {x, ly, cw, Ui.CHIP_H}, tab.showChanged ? "#sclearview" : "#sshowchanged"});
         }
     }
 
@@ -267,12 +268,14 @@ final class SettingsList extends MenuPaint {
             if (!keys.isEmpty()) {
                 boolean anyOn = SectionSwitches.anyOn(keys);
                 String label = SectionSwitches.label(anyOn);
-                lw = Type.META.width(font(), label);
+                String icon = anyOn ? "x" : "check";
+                lw = Ui.iconChipWidth(font(), icon, label, false);
                 int lx = x + w - lw;
-                Type.META.draw(g, font(), label, lx, y + (Type.LABEL.lineHeight - Type.META.lineHeight), Theme.LINK);
-                menu.toggles.add(new Object[] {new int[] {lx, y, lw, Type.LABEL.lineHeight}, "#sall:" + it.cat() + ":" + it.index()});
-                if (mx >= lx && mx < lx + lw && my >= y && my < y + Type.LABEL.lineHeight) {
-                    rowTip(lx, y, lw, Type.LABEL.lineHeight, label, SectionSwitches.tip(anyOn, it.title()));
+                int cy = Type.LABEL.onCaps(y, Ui.CHIP_H);
+                boolean hover = Ui.iconChip(g, font(), icon, label, false, lx, cy, lw, false, mx, my);
+                menu.toggles.add(new Object[] {new int[] {lx, cy, lw, Ui.CHIP_H}, "#sall:" + it.cat() + ":" + it.index()});
+                if (hover) {
+                    rowTip(lx, cy, lw, Ui.CHIP_H, label, SectionSwitches.tip(anyOn, it.title()));
                 }
                 lw += Theme.SP_4;
             }

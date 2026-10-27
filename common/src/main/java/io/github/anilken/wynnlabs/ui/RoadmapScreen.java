@@ -559,9 +559,9 @@ public final class RoadmapScreen extends Screen {
             if (group.length > 1) {
                 titleW = drawSections(g, group, cx, cy - 3, cw, mx, my);
             } else {
-                Component title = L.c(MenuRail.RAIL_NAMES[MenuRail.entry(tab)]).withStyle(UiFont::bold);
-                Kit.text(g, font, title, cx, cy, Theme.INK);
-                titleW = font.width(title);
+                String title = L.t(MenuRail.RAIL_NAMES[MenuRail.entry(tab)]);
+                Type.LABEL.draw(g, font, title, cx, cy, Theme.INK);
+                titleW = Type.LABEL.width(font, title);
             }
             int titleRoom = cw - titleW - 12;
             // the quests tab: when the list was read and its "Yenile" chip on the right

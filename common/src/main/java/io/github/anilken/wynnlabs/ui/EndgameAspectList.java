@@ -291,13 +291,15 @@ final class EndgameAspectList extends EndgamePanel {
         }
         int ty = y + 4;                                 // the text on the 16 px row, the 12 px picture centred on it
         int colour = tierColour(a.aspect().rarity());
+        // the rank as a seal in a column as wide as two digits, then the picture
+        int rankW = Type.META.width(tab.font, "00") + 2 * Theme.SP_2;
         if (a.rank() > 0) {
             String n = String.valueOf(a.rank());
-            int bw = Math.max(10, tab.font.width(n) + 3);
-            g.fill(x + 3, y + 3, x + 3 + bw, y + 13, Theme.BRASS);
-            Kit.text(g, tab.font, n, x + 3 + (bw - tab.font.width(n) + 1) / 2, ty, Theme.INK);
+            int sw = Type.META.width(tab.font, n) + 2 * Theme.SP_2;
+            Ui.seal(g, tab.font, n, x + Theme.SP_1 + (rankW - sw) / 2, y + (16 - Ui.SEAL_H) / 2, Theme.BRASS);
         }
-        aspectGlyph(g, a.aspect(), x + 16, y + 2, 12);
+        int gx = x + Theme.SP_1 + rankW + Theme.SP_2;
+        aspectGlyph(g, a.aspect(), gx, y + 2, 12);
         // from the right: pips, the equipped dot, the pool tag; the name gets what is left
         int pw = a.ownedTier() < 0 ? tab.font.width("?") : pipsW(a.aspect().tiers());
         int px = x + w - 2 - pw;
@@ -306,20 +308,21 @@ final class EndgameAspectList extends EndgamePanel {
         } else {
             pips(g, px, y + 5, a.aspect().tiers(), a.ownedTier(), colour);
         }
-        int rx = px - 4;
+        int rx = px - Theme.SP_2;
         if (a.equipped()) {
-            g.fill(rx - 4, y + 6, rx, y + 10, Theme.GOLD_DEEP);
-            Kit.outline(g, rx - 5, y + 5, 6, 6, Theme.GOLD_EDGE);
-            rx -= 9;
+            // worn: a small gold dot
+            Art.box(g, rx - 6, y + 5, 6, 6, 3, Theme.GOLD_DEEP, 0);
+            rx -= 6 + Theme.SP_2;
         }
         String tg = tagText(name);
         if (tg != null) {
-            int tw = Kit.Ui.tagW(tab.font, tg);
-            tag(g, tg, rx - tw, y + 3);
-            rx -= tw + 4;
+            int tw = tagW(tg);
+            tag(g, tg, rx - tw, y + (16 - Ui.SEAL_H) / 2);
+            rx -= tw + Theme.SP_2;
         }
-        int nx = x + 31;                                // 3 px clear of the 12 px icon
-        Kit.text(g, tab.font, lit ? boldFit(name, rx - nx) : Component.literal(fit(name, rx - nx)), nx, ty, colour);
+        int nx = gx + 12 + Theme.SP_2;
+        Type role = lit ? Type.LABEL : Type.BODY;
+        role.draw(g, tab.font, role.fit(tab.font, name, rx - nx), nx, ty, colour);
         int extra = lit ? Type.META.lineHeight + Theme.SP_1 : 0;
         if (large && h - extra > 16) {
             ink(g, fit(a.reason(), x + w - 2 - nx), nx, y + 14, Theme.INK_3);

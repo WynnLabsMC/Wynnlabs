@@ -377,7 +377,8 @@ public final class TooltipListener {
         int w = font.width(s);
         int x = slot.x + 17 - w;
         int y = slot.y - 2;
-        g.fill(x - 2, y - 1, x + w + 1, y + 9, 0xC0000000);
+        // the HUD's dark pill, round, under the number
+        Art.box(g, x - 2, y - 1, w + 3, 10, 3, io.github.anilken.wynnlabs.ui.Hud.PANEL, 0);
         g.drawString(font, s, x, y, f.stepColour(), true);
     }
 

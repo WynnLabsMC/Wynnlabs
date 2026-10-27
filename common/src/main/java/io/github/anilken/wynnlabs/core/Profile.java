@@ -292,11 +292,10 @@ public final class Profile {
             todo.add(L.t("wynnlabs.profile.levelup_grind", String.join("; ", names)));
         }
 
-        mc.player.displayClientMessage(L.c("wynnlabs.profile.levelup_title", level)
-                .withStyle(ChatFormatting.LIGHT_PURPLE, ChatFormatting.BOLD), false);
+        Chat.say(L.c("wynnlabs.profile.levelup_title", level).withStyle(ChatFormatting.LIGHT_PURPLE));
         for (String t : todo) {
-            mc.player.displayClientMessage(Component.literal("  • ").withStyle(ChatFormatting.DARK_PURPLE)
-                    .append(Component.literal(t).withStyle(ChatFormatting.GRAY)), false);
+            Chat.show(Component.literal("  • ").withStyle(ChatFormatting.DARK_PURPLE)
+                    .append(Component.literal(t).withStyle(ChatFormatting.GRAY)));
         }
     }
 
