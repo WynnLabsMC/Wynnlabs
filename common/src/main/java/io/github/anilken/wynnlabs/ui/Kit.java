@@ -84,6 +84,8 @@ final class Kit {
     /** {@code kit/slot} nine-sliced to 18 and 24 px ahead of time (kit/slot_18.png, kit/slot_24.png). */
     private static final Identifier SLOT_18 = Identifier.fromNamespaceAndPath("wynnlabs", "kit/slot_18");
     private static final Identifier SLOT_24 = Identifier.fromNamespaceAndPath("wynnlabs", "kit/slot_24");
+    private static final Identifier SLOT_20 = Identifier.fromNamespaceAndPath("wynnlabs", "kit/slot_20");
+    private static final Identifier SLOT_22 = Identifier.fromNamespaceAndPath("wynnlabs", "kit/slot_22");
 
     private static Identifier sprite(String name) {
         return Identifier.fromNamespaceAndPath("wynnlabs", "kit/" + name);
@@ -331,10 +333,10 @@ final class Kit {
 
     /** An inset item slot; {@code ring} (0 = none) is a 1px tier-colour line just inside it. */
     static void slot(GuiGraphics g, int x, int y, int size, int ring) {
-        if (size == 18 || size == 24) {
+        Identifier ready = size == 18 ? SLOT_18 : size == 20 ? SLOT_20 : size == 22 ? SLOT_22 : size == 24 ? SLOT_24 : null;
+        if (ready != null) {
             // the common sizes, drawn ahead as one picture: one quad instead of nine (the bank draws hundreds)
-            g.blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, size == 18 ? SLOT_18 : SLOT_24,
-                    x, y, size, size);
+            g.blitSprite(net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED, ready, x, y, size, size);
         } else {
             nine(g, "slot", x, y, size, size);
         }
@@ -343,6 +345,11 @@ final class Kit {
             int in = size <= 20 ? 0 : 1;
             outline(g, x + in, y + in, size - 2 * in, size - 2 * in, ring);
         }
+    }
+
+    /** The picked slot's gold ring (and a search's match), 2 px outside a slot of {@code size}. */
+    static void slotRing(GuiGraphics g, int x, int y, int size) {
+        nine(g, "slot_ring_gold", x - 2, y - 2, size + 4, size + 4);
     }
 
     /** A rectangle outline, one screen pixel thick (a hairline at every scale). */

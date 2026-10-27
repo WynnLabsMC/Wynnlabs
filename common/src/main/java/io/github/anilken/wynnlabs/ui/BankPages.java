@@ -298,15 +298,14 @@ final class BankPages {
                 g.drawString(font, Type.META.of("?"), x + 2, y + 1, Theme.GOLD, true);
             }
             if (it.mark() != 0) {
-                // a small triangle in the top-right corner, in the mark's colour
+                // a small triangle in the top-right corner, in the mark's colour (inside the round corner)
                 for (int i = 0; i < 4; i++) {
                     g.fill(x + sz - 5 + i, y + 1 + i, x + sz - 1, y + 2 + i, it.mark());
                 }
             }
         }
         if (gold) {
-            Kit.outline(g, x - 1, y - 1, sz + 2, sz + 2, Theme.GOLD_DEEP);
-            Kit.outline(g, x - 2, y - 2, sz + 4, sz + 4, Theme.GOLD_DEEP);
+            Kit.slotRing(g, x, y, sz);
         }
         if (hover) {
             g.fill(x + 1, y + 1, x + sz - 1, y + sz - 1, 0x50FFFFFF);
