@@ -147,8 +147,7 @@ public class JMenuPreview implements FabricClientGameTest {
             ctx.setScreen(() -> RoadmapScreen.on(10));
             ctx.waitForScreen(RoadmapScreen.class);
             try {
-                craftShots(ctx, out);
-                CraftPreview.planShots(ctx, n -> shot(ctx, out, n));
+                CraftShots.shots(ctx, n -> shot(ctx, out, n));
             } catch (RuntimeException e) {
                 // the crafting tab without its ingredient sample has no grid to click: its shots are skipped, not the rest
                 System.out.println("[preview] crafting shots skipped: " + e);
@@ -170,11 +169,6 @@ public class JMenuPreview implements FabricClientGameTest {
                 shot(ctx, out, "jmenu-" + (i == 0 ? "now" : "step" + i));
             }
             optionShots(ctx, out);
-            try {
-                craftScales(ctx, out);
-            } catch (RuntimeException e) {
-                System.out.println("[preview] crafting scale shots skipped: " + e);
-            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
@@ -545,179 +539,10 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.setScreen(() -> RoadmapScreen.on(10));
         ctx.waitForScreen(RoadmapScreen.class);
         try {
-            craftShots(ctx, out);
-            CraftPreview.planShots(ctx, n -> shot(ctx, out, n));
+            CraftShots.shots(ctx, n -> shot(ctx, out, n));
         } catch (RuntimeException e) {
             System.out.println("[preview] crafting shots skipped: " + e);
         }
-    }
-
-    /** The crafting tab with a sample of real ingredients: a weapon, the picker, results, an accessory, a potion. */
-    private static void craftShots(ClientGameTestContext ctx, Path out) throws Exception {
-        ctx.runOnClient(mc -> {
-            CraftingTab.previewIngredients = CraftPreview.ingredients();
-            CraftPreview.levels();
-            set(mc.screen, "tab", 10);
-        });
-        ctx.getInput().setCursorPos(2, 2);
-        ctx.runOnClient(mc -> CraftPreview.recipe("relik", 103, 3, 2, "Foul Fairy Dust", "Obelisk Core", "Dizzying Void",
-                "Depurinated Genome", "Exquisite Marsh Scale", "Gunkfueled Core"));
-        ctx.waitTicks(5);
-        shot(ctx, out, "craft-weapon");
-        // the picker on slot 3, a meta ingredient hovered: the grid previews it
-        ctx.runOnClient(mc -> CraftPreview.openSlot(2));
-        ctx.waitTicks(3);
-        List<int[]> rows = ctx.computeOnClient(mc -> {
-            try {
-                return CraftPreview.rects("overlay");
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        CraftPreview.hover(ctx, rows.get(Math.min(1, rows.size() - 1)));
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-picker");
-        ctx.getInput().setCursorPos(2, 2);
-        ctx.runOnClient(mc -> CraftPreview.set(CraftingTab.INSTANCE, "open",
-                CraftPreview.get(CraftingTab.INSTANCE, "open").getClass().getEnumConstants()[0]));
-        // the optimiser's three layouts
-        ctx.runOnClient(mc -> CraftPreview.call("startSearch"));
-        ctx.waitFor(mc -> {
-            try {
-                return !((List<?>) CraftPreview.get(CraftingTab.INSTANCE, "results")).isEmpty();
-            } catch (ReflectiveOperationException e) {
-                return false;
-            }
-        }, 20 * 30);
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-results");
-        // many goal chips: they wrap instead of running under the search button
-        ctx.runOnClient(mc -> {
-            @SuppressWarnings("unchecked")
-            var w = (java.util.Map<String, Double>) CraftPreview.get(CraftingTab.INSTANCE, "weights");
-            w.put("healthRegen", 0.5);
-            w.put("healthRegenRaw", 0.05);
-            w.put("rawHealth", 0.02);
-            w.put("manaRegen", 2.0);
-        });
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-goals-wrap");
-        ctx.runOnClient(mc -> {
-            @SuppressWarnings("unchecked")
-            var w = (java.util.Map<String, Double>) CraftPreview.get(CraftingTab.INSTANCE, "weights");
-            w.clear();
-            w.put("spellDamage", 1.0);
-        });
-        // the bottom: roll chances, shopping, what can I craft
-        ctx.runOnClient(mc -> {
-            CraftPreview.set(CraftingTab.INSTANCE, "foldWhat", true);
-            CraftPreview.call("startWhat");
-        });
-        ctx.waitTicks(60);
-        ctx.runOnClient(mc -> CraftPreview.set(CraftingTab.INSTANCE, "scroll", 100000));
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-bottom");
-        ctx.runOnClient(mc -> CraftPreview.recipe("ring", 80, 2, 3, "Major's Badge", "Ancient Currency", null,
-                null, null, null));
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-accessory");
-        ctx.runOnClient(mc -> CraftPreview.recipe("potion", 43, 1, 3, "Bat Heart", "Black Sulphur"));
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-consumable");
-        ctx.runOnClient(mc -> CraftPreview.recipe("potion", 43, 1, 3));
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-potion-heal");
-        // our suggestions: the second page of the tab, filled in the background
-        ctx.runOnClient(mc -> {
-            CraftPreview.set(CraftingTab.INSTANCE, "view", 1);
-            CraftPreview.call("startSuggestionsNow");
-        });
-        ctx.runOnClient(mc -> CraftPreview.set(CraftingTab.INSTANCE, "suggestMode", 1));
-        ctx.waitTicks(20 * 12);
-        shot(ctx, out, "craft-suggestions");
-        // the same page as whole sets, four to a page, and one set's pieces
-        ctx.runOnClient(mc -> {
-            CraftPreview.set(CraftingTab.INSTANCE, "suggestMode", 0);
-            CraftPreview.call("startSetsNow");
-        });
-        ctx.waitTicks(20 * 25);
-        shot(ctx, out, "craft-sets");
-        ctx.runOnClient(mc -> {
-            var sets = (java.util.List<?>) CraftPreview.get(CraftingTab.INSTANCE, "sets");
-            if (!sets.isEmpty()) {
-                CraftPreview.set(CraftingTab.INSTANCE, "setDetail", sets.get(0));
-            }
-        });
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-set-pieces");
-        // a piece's "Aç" opens it in the calculator: a click on the button, not on the row's tip area
-        ctx.runOnClient(mc -> {
-            if (CraftPreview.get(CraftingTab.INSTANCE, "setDetail") == null) {
-                return;
-            }
-            String tipText = L.t("wynnlabs.craft.suggest_open_tip");
-            try {
-                for (Object a : (java.util.List<?>) CraftPreview.get(CraftingTab.INSTANCE, "overlay")) {
-                    var tip = a.getClass().getDeclaredMethod("tip");
-                    tip.setAccessible(true);
-                    Object t = tip.invoke(a);
-                    if (t instanceof java.util.List<?> l && !l.isEmpty() && l.get(0) instanceof net.minecraft.network.chat.Component c && c.getString().contains(tipText)) {
-                        int[] r = new int[4];
-                        String[] names = {"x", "y", "w", "h"};
-                        for (int k = 0; k < 4; k++) {
-                            var m = a.getClass().getDeclaredMethod(names[k]);
-                            m.setAccessible(true);
-                            r[k] = (int) m.invoke(a);
-                        }
-                        CraftingTab.INSTANCE.mouseClicked(r[0] + r[2] / 2.0, r[1] + r[3] / 2.0, 0);
-                        break;
-                    }
-                }
-            } catch (ReflectiveOperationException e) {
-                throw new RuntimeException(e);
-            }
-            if (CraftPreview.get(CraftingTab.INSTANCE, "setDetail") != null || (int) CraftPreview.get(CraftingTab.INSTANCE, "view") != 0) {
-                throw new AssertionError("the set piece's \"Aç\" did not open it");
-            }
-        });
-        ctx.waitTicks(3);
-        shot(ctx, out, "craft-set-piece-opened");
-        ctx.runOnClient(mc -> CraftPreview.set(CraftingTab.INSTANCE, "setDetail", null));
-        ctx.runOnClient(mc -> CraftPreview.set(CraftingTab.INSTANCE, "view", 0));
-    }
-
-    /** The saved recipes beside the menu (GUI 2), as a drawer (GUI 3) and the one-column page (GUI 4). */
-    private static void craftScales(ClientGameTestContext ctx, Path out) throws Exception {
-        ctx.runOnClient(mc -> {
-            var saved = Crafting.saved();
-            var goal = io.github.anilken.wynnlabs.crafting.SavedRecipes.SavedGoal.of(
-                    io.github.anilken.wynnlabs.crafting.CraftSearch.Goal.of("spellDamage"));
-            saved.save(new io.github.anilken.wynnlabs.crafting.SavedRecipes.Saved("Relik büyü", "relik", 103, 3, 2,
-                    "NORMAL", java.util.Arrays.asList("Foul Fairy Dust", "Obelisk Core", "Dizzying Void",
-                            "Depurinated Genome", null, null), goal, 1L), true);
-            saved.save(new io.github.anilken.wynnlabs.crafting.SavedRecipes.Saved("Yüzük mana", "ring", 80, 2, 3,
-                    "NORMAL", java.util.Arrays.asList("Major's Badge", null, null, null, null, null), goal, 2L), true);
-            set(mc.screen, "tab", 10);
-            CraftPreview.recipe("relik", 103, 3, 2, "Foul Fairy Dust", "Obelisk Core", "Dizzying Void",
-                    "Depurinated Genome", "Exquisite Marsh Scale", "Gunkfueled Core");
-        });
-        ctx.getInput().setCursorPos(2, 2);
-        for (int scale : new int[] {2, 4}) {
-            ctx.runOnClient(mc -> {
-                mc.options.guiScale().set(scale);
-                mc.resizeDisplay();
-            });
-            ctx.waitTicks(5);
-            shot(ctx, out, "craft-gui" + scale);
-        }
-        ctx.runOnClient(mc -> {
-            mc.options.guiScale().set(3);
-            mc.resizeDisplay();
-            CraftPreview.set(CraftingTab.INSTANCE, "drawerOpen", true);
-        });
-        ctx.waitTicks(5);
-        shot(ctx, out, "craft-drawer");
-        ctx.runOnClient(mc -> CraftPreview.set(CraftingTab.INSTANCE, "drawerOpen", false));
     }
 
     /**

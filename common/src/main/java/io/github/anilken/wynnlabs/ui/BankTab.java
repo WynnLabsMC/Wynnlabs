@@ -89,12 +89,12 @@ public final class BankTab extends MenuTab {
         // the search, wide, and the way to what to sell on its right
         String sell = idx.junk.isEmpty() ? null : idx.marketWorth > 0 ? L.t("wynnlabs.bank.sellable", Prices.fmt(idx.marketWorth))
                 : L.n("wynnlabs.bank.sellable_kinds", idx.junk.size());
-        int linkW = sell == null ? 0 : Type.LINK.width(font(), sell);
+        int linkW = sell == null ? 0 : Ui.iconChipWidth(font(), "shopping-cart", sell, false);
         int cy = y;
         int sw = sell != null ? w - linkW - Theme.SP_5 : w;
         searchHit = UiInput.search(g, font(), search, L.t("wynnlabs.bank.search_hint"), true, x, cy, sw, mx, my);
         if (sell != null) {
-            link(g, sell, x + w - linkW, Type.LINK.yIn(cy, UiInput.H), mx, my);
+            link(g, sell, x + w - linkW, cy, mx, my);
         }
         cy += UiInput.H + Theme.SP_3;
         pages.refresh(idx);
@@ -127,11 +127,11 @@ public final class BankTab extends MenuTab {
         bar.draw(g, mx, my);
     }
 
+    /** "Satılabilir: 67 LE" as a chip (it opens the drawer of what to sell). */
     void link(GuiGraphics g, String text, int x, int y, int mx, int my) {
-        int lw = Type.LINK.width(font(), text);
-        boolean hover = mx >= x && mx < x + lw && my >= y - 2 && my < y + Type.LINK.lineHeight;
-        Type.LINK.draw(g, font(), text, x, y, hover ? Theme.INK : Theme.LINK);
-        acts.add(new Object[] {new int[] {x, y - 2, lw, Type.LINK.lineHeight + 2}, (Runnable) () -> drawers.openSell(drawer)});
+        int lw = Ui.iconChipWidth(font(), "shopping-cart", text, false);
+        Ui.iconChip(g, font(), "shopping-cart", text, false, x, y, lw, false, mx, my);
+        acts.add(new Object[] {new int[] {x, y, lw, Ui.CHIP_H}, (Runnable) () -> drawers.openSell(drawer)});
     }
 
     /** "4 results  Champion Helmet — Account 2 · …" (the places on the pages' layout), or that nothing matches. */

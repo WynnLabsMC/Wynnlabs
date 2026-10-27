@@ -494,7 +494,23 @@ final class Kit {
 
     /** The picked row of a list: a soft gold wash. */
     static void rowLit(GuiGraphics g, int x, int y, int w, int h) {
-        nine(g, "row_lit", x, y, w, h);
+        // a wash is never cut by a clip: an end outside the open scissor moves in (both ends stay round)
+        int mid = y + h / 2;
+        int in = 0;
+        while (in < 2 * Theme.SP_3 && in < w / 2 && !inClip(g, x + in, mid)) {
+            in++;
+        }
+        int out = 0;
+        while (out < 2 * Theme.SP_3 && out < w / 2 && !inClip(g, x + w - 1 - out, mid)) {
+            out++;
+        }
+        nine(g, "row_lit", x + in, y, w - in - out, h);
+    }
+
+    /** Whether a point (in this pose's units) is inside the open scissor; true without one. */
+    static boolean inClip(GuiGraphics g, int x, int y) {
+        org.joml.Vector2f v = g.pose().transformPosition(x + 0.5f, y + 0.5f, new org.joml.Vector2f());
+        return g.containsPointInScissor((int) Math.floor(v.x), (int) Math.floor(v.y));
     }
 
     /** A soft shadow around a window drawn at x, y, w, h (call before {@link #window}). */

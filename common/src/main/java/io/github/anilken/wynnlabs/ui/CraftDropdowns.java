@@ -3,11 +3,8 @@ package io.github.anilken.wynnlabs.ui;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.crafting.Craft;
 import io.github.anilken.wynnlabs.crafting.CraftData;
-import io.github.anilken.wynnlabs.crafting.CraftSearch;
 import io.github.anilken.wynnlabs.crafting.Ingredient;
-import io.github.anilken.wynnlabs.crafting.WhatCanICraft;
 import io.github.anilken.wynnlabs.game.Professions;
-import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.ui.CraftingTab.Act;
 import io.github.anilken.wynnlabs.ui.CraftingTab.Drop;
 import net.minecraft.client.gui.GuiGraphics;
@@ -16,217 +13,167 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
-import static io.github.anilken.wynnlabs.ui.CraftFormat.dec;
-import static io.github.anilken.wynnlabs.ui.CraftFormat.pct;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.typeIcon;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.typeName;
 
-/** The crafting tab's drop-down lists: types, levels, a slot's ingredients, goal identifications, conditions. */
+/**
+ * The crafting tab's dropdowns, all the shared {@link UiMenu}: the item type, the level, the goal
+ * (identifications to raise, ticked), the conditions, the attack speed, a material's tier (each
+ * with its multiplier) and the road's item type. A choice closes the menu; a tick keeps it open.
+ */
 final class CraftDropdowns extends CraftPanel {
+
+    private static final List<String> TYPE_ORDER = List.of("#armour", "helmet", "chestplate", "leggings", "boots",
+            "#accessory", "ring", "bracelet", "necklace", "#weapon", "spear", "dagger", "bow", "wand", "relik",
+            "#consumable", "potion", "scroll", "food");
+    /** Tier 1, 2, 3 multiply a recipe's identifications by these (the game's weights). */
+    static final String[] TIER_MULT = {"×1,00", "×1,25", "×1,40"};
 
     CraftDropdowns(CraftingTab tab) {
         super(tab);
     }
 
-    /** The types in the list's order, a "#group" starting each group. */
-    private static final List<String> TYPE_ORDER = List.of("#armour", "helmet", "chestplate", "leggings", "boots",
-            "#accessory", "ring", "bracelet", "necklace", "#weapon", "spear", "dagger", "bow", "wand", "relik",
-            "#consumable", "potion", "scroll", "food");
-
-
-
     void drawDrop(GuiGraphics g, int mx, int my, float pt) {
         if (tab.open == Drop.NONE || tab.openAnchor == null) {
             return;
         }
-        g.nextStratum();
-        tab.dropBar.place(0, 0, 0, 1, 1, 0);           // none until a list with one draws it
+        List<UiMenu.Item> items = items();
+        if (items.isEmpty()) {
+            tab.open = Drop.NONE;
+            return;
+        }
+        UiMenu.State st = tab.dropMenu;
+        int[] box = UiMenu.draw(g, UiFont.get(), UiMenu.Spec.under(tab.openAnchor, tab.screen.width, tab.screen.height).rows(12), st,
+                items, mx, my, r -> tab.overlay.add(new Act(r.x(), r.y(), r.w(), r.h(), () -> pick(r.item()), null, r.item().tip())));
+        tab.overlayBox = box;
+    }
+
+    /** The open menu's rows. */
+    private List<UiMenu.Item> items() {
+        UiMenu.Items items = new UiMenu.Items();
         switch (tab.open) {
-            case TYPE -> dropTypes(g, mx, my);
-            case LEVEL -> dropLevels(g, mx, my);
-            case SLOT -> dropPicker(g, mx, my, pt);
-            case GOAL -> dropGoal(g, mx, my);
-            case CONDITIONS -> dropConditions(g, mx, my);
+            case TYPE -> {
+                for (String t : TYPE_ORDER) {
+                    if (t.startsWith("#")) {
+                        items.divide();
+                        continue;
+                    }
+                    items.add(UiMenu.Item.of(t, typeIcon(t), typeName(t), null, t.equals(tab.type)));
+                }
+            }
+            case LEVEL -> {
+                List<CraftData.Recipe> rs = CraftData.ofType(tab.type);
+                int lv = tab.level(rs.get(0).profession());
+                for (CraftData.Recipe r : rs) {
+                    boolean locked = r.minLevel() > lv;
+                    UiMenu.Item it = UiMenu.Item.of(String.valueOf(r.minLevel()), locked ? "lock" : null, "Lv " + r.bracket().replace('-', '–'),
+                            null, r.minLevel() == tab.minLevel);
+                    if (locked) {
+                        it = it.asDim().tip(List.of(L.c("wynnlabs.craft.locked_recipe",
+                                Professions.name(r.profession().toUpperCase(Locale.ROOT)), r.minLevel(), lv)));
+                    }
+                    items.add(it);
+                }
+            }
+            case GOAL -> {
+                for (String id : idsForProfession()) {
+                    items.add(UiMenu.Item.of(id, null, tab.statName(id), null, tab.weights.containsKey(id)));
+                }
+            }
+            case CONDITIONS -> {
+                for (int i = 0; i < CraftingTab.FLOORS.length; i++) {
+                    items.add(UiMenu.Item.of("floor:" + i, null, L.t("wynnlabs.craft.cond_floor", CraftingTab.FLOORS[i]), null,
+                            tab.floorIndex == i));
+                }
+                items.divide();
+                items.add(UiMenu.Item.of("cap", null, L.t("wynnlabs.craft.cond_points"), null, tab.capToPoints));
+                items.divide();
+                for (String id : idsForProfession()) {
+                    items.add(UiMenu.Item.of("neg:" + id, null, L.t("wynnlabs.craft.cond_no_negative_id", tab.statName(id)), null,
+                            tab.noNegative.contains(id)));
+                }
+            }
+            case SPEED -> {
+                for (Craft.Speed s : Craft.Speed.values()) {
+                    items.add(UiMenu.Item.of(s.name(), null, L.t("wynnlabs.craft.speed." + s.name().toLowerCase(Locale.ROOT)), null,
+                            s == tab.speed));
+                }
+            }
+            case TIER1, TIER2 -> {
+                int now = tab.open == Drop.TIER1 ? tab.tier1 : tab.tier2;
+                CraftData.Material m = tab.recipe().materials().get(tab.open == Drop.TIER1 ? 0 : 1);
+                for (int t = 1; t <= 3; t++) {
+                    items.add(UiMenu.Item.of(String.valueOf(t), "star-filled", L.t("wynnlabs.craft.tier_n", t), TIER_MULT[t - 1], t == now)
+                            .sub(L.t("wynnlabs.craft.tier_have", tab.stock.material(m.shown(), t))));
+                }
+            }
+            case ROAD_TYPE -> items.list.addAll(tab.roadPanel.typeItems());
+            case ROAD_PROF -> items.list.addAll(tab.roadPanel.profItems());
+            default -> { }
+        }
+        return items.list;
+    }
+
+    /** A row picked with the keyboard (Enter): as if clicked. */
+    void pickByKey(UiMenu.Item it) {
+        pick(it);
+    }
+
+    private void pick(UiMenu.Item it) {
+        String id = it.id();
+        switch (tab.open) {
+            case TYPE -> {
+                if (!id.equals(tab.type)) {
+                    tab.type = id;
+                    tab.minLevel = tab.bestBracket(id).minLevel();
+                    Arrays.fill(tab.slots, null);
+                }
+                tab.open = Drop.NONE;
+            }
+            case LEVEL -> {
+                tab.minLevel = Integer.parseInt(id);
+                tab.open = Drop.NONE;
+            }
+            case GOAL -> {
+                if (tab.weights.remove(id) == null) {
+                    tab.weights.put(id, 1.0);
+                }
+            }
+            case CONDITIONS -> {
+                if (id.startsWith("floor:")) {
+                    tab.floorIndex = Integer.parseInt(id.substring(6));
+                } else if (id.equals("cap")) {
+                    tab.capToPoints = !tab.capToPoints;
+                } else if (!tab.noNegative.remove(id.substring(4))) {
+                    tab.noNegative.add(id.substring(4));
+                }
+            }
+            case SPEED -> {
+                tab.speed = Craft.Speed.valueOf(id);
+                tab.open = Drop.NONE;
+            }
+            case TIER1 -> {
+                tab.tier1 = Integer.parseInt(id);
+                tab.open = Drop.NONE;
+            }
+            case TIER2 -> {
+                tab.tier2 = Integer.parseInt(id);
+                tab.open = Drop.NONE;
+            }
+            case ROAD_TYPE -> {
+                tab.roadPanel.pickType(id);
+                tab.open = Drop.NONE;
+            }
+            case ROAD_PROF -> {
+                tab.roadPanel.pickProf(id);
+                tab.open = Drop.NONE;
+            }
             default -> { }
         }
     }
 
-    private int dropX(int w) {
-        return Math.max(4, Math.min(tab.openAnchor[0], tab.screen.width - w - 4));
-    }
-
-    /** The list opens under its field, or above it when there is no room below. */
-    private int dropY(int h) {
-        int below = tab.openAnchor[1] + tab.openAnchor[3] + 2;
-        if (below + h <= tab.screen.height - 4) {
-            return below;
-        }
-        return Math.max(4, tab.openAnchor[1] - h - 2);
-    }
-
-    /** The shared dropdown under the open field: its rows become this tab's clicks, the scroll its drop scroll. */
-    private void menu(GuiGraphics g, List<UiMenu.Item> items, int mx, int my, java.util.function.Consumer<UiMenu.Item> pick) {
-        UiMenu.State st = tab.dropMenu;
-        st.scroll = tab.dropScroll;
-        int[] box = UiMenu.draw(g, UiFont.get(), UiMenu.Spec.under(tab.openAnchor, tab.screen.width, tab.screen.height), st, items, mx, my,
-                r -> tab.overlay.add(new Act(r.x(), r.y(), r.w(), r.h(), () -> pick.accept(r.item()), null, r.item().tip())));
-        tab.dropScroll = st.scroll;
-        tab.overlayBox = box;
-    }
-
-    private void dropTypes(GuiGraphics g, int mx, int my) {
-        java.util.Set<String> ready = new java.util.HashSet<>();
-        for (WhatCanICraft.Entry e : tab.sectionsPanel.what) {
-            if (e.craftable()) {
-                ready.add(e.type());
-            }
-        }
-        UiMenu.Items items = new UiMenu.Items();
-        for (String t : TYPE_ORDER) {
-            if (t.startsWith("#")) {
-                items.divide();
-                continue;
-            }
-            List<net.minecraft.network.chat.Component> tip = ready.contains(t) ? List.of(L.c("wynnlabs.craft.type_ready")) : null;
-            items.add(UiMenu.Item.of(t, typeIcon(t), typeName(t), ready.contains(t) ? L.t("wynnlabs.craft.type_ready_short") : null, t.equals(tab.type)).tip(tip));
-        }
-        menu(g, items.list, mx, my, it -> {
-            String pick = it.id();
-            if (!pick.equals(tab.type)) {
-                tab.type = pick;
-                tab.minLevel = tab.bestBracket(pick).minLevel();
-                Arrays.fill(tab.slots, null);
-            }
-            tab.open = Drop.NONE;
-        });
-    }
-
-    private void dropLevels(GuiGraphics g, int mx, int my) {
-        List<CraftData.Recipe> rs = CraftData.ofType(tab.type);
-        int lv = tab.level(rs.get(0).profession());
-        List<UiMenu.Item> items = new ArrayList<>();
-        for (CraftData.Recipe r : rs) {
-            boolean locked = r.minLevel() > lv;
-            UiMenu.Item it = UiMenu.Item.of(String.valueOf(r.minLevel()), locked ? "lock" : null, r.bracket(), null, r.minLevel() == tab.minLevel);
-            if (locked) {
-                it = it.asDim().tip(List.of(L.c("wynnlabs.craft.locked_recipe",
-                        Professions.name(r.profession().toUpperCase(Locale.ROOT)), r.minLevel(), lv)));
-            }
-            items.add(it);
-        }
-        menu(g, items, mx, my, it -> {
-            tab.minLevel = Integer.parseInt(it.id());
-            tab.open = Drop.NONE;
-        });
-    }
-
-    /** The open list's scroll bar ({@link ScrollBar}: dragged, its track paged) in its box at x. */
-    private void scrollMarks(GuiGraphics g, int x, int y, int h, int first, int total, int shown, int mx, int my) {
-        tab.dropBar.place(x, y, h, shown, total, first);
-        tab.dropBar.draw(g, mx, my);
-    }
-
-    /** The ingredient list of one slot: searchable, own ones first, then by what they add there. */
-    private void dropPicker(GuiGraphics g, int mx, int my, float pt) {
-        CraftData.Recipe r = tab.recipe();
-        int lv = tab.level(r.profession());
-        List<Ingredient> lay = tab.layout();
-        int[] effNow = Craft.effectiveness(lay);
-        int slotEff = effNow[tab.openSlot];
-        String q = tab.pickSearch.getValue().strip().toLowerCase(Locale.ROOT);
-        CraftSearch.Goal goal = tab.goal();
-        record Row(Ingredient ing, double gain, int own) {}
-        List<Row> rows = new ArrayList<>();
-        for (Ingredient i : tab.ingredients) {
-            if (!i.usableBy(r.profession()) || i.level() > r.maxLevel()) {
-                continue;
-            }
-            if (!q.isEmpty() && !i.name().toLowerCase(Locale.ROOT).contains(q)) {
-                continue;
-            }
-            double gain = 0;
-            for (Map.Entry<String, Double> e : goal.weights().entrySet()) {
-                Ingredient.Stat st = i.ids().get(e.getKey());
-                if (st != null) {
-                    gain += e.getValue() * Craft.scaled(st, slotEff).mean();
-                }
-            }
-            rows.add(new Row(i, gain, tab.owned(i.name())));
-        }
-        rows.sort((a, b) -> {
-            boolean la = a.ing().level() > lv;
-            boolean lb = b.ing().level() > lv;
-            if (la != lb) {
-                return la ? 1 : -1;
-            }
-            boolean oa = a.own() > 0;
-            boolean ob = b.own() > 0;
-            if (oa != ob) {
-                return oa ? -1 : 1;
-            }
-            int c = Double.compare(b.gain(), a.gain());
-            return c != 0 ? c : a.ing().name().compareTo(b.ing().name());
-        });
-        int rowH = 12;
-        int shown = Math.min(11, Math.max(1, rows.size()));
-        int bar = rows.size() > shown ? ScrollBar.W + Theme.SP_1 : 0;
-        int w = 210 + bar;
-        int h = 18 + shown * rowH + 6;
-        int x = dropX(w);
-        int y = dropY(h);
-        Kit.card(g, x, y, w, h, 0);
-        tab.overlayBox = new int[] {x, y, w, h};
-        // the search field
-        UiInput.Hit sh = UiInput.search(g, tab.font, tab.pickSearch, L.t("wynnlabs.craft.picker_hint", pct(slotEff)), false,
-                x + 4, y + 3, w - 8, mx, my);
-        if (sh.clear() != null) {
-            int[] c = sh.clear();
-            tab.overlay.add(new Act(c[0], c[1], c[2], c[3], () -> tab.pickSearch.setValue(""), null, null));
-        }
-        tab.dropScroll = Math.max(0, Math.min(tab.dropScroll, rows.size() - shown));
-        int ry = y + 19;
-        if (rows.isEmpty()) {
-            text(g, L.t("wynnlabs.craft.picker_empty"), x + 6, ry + 2, Theme.INK_3);
-        }
-        for (int i = 0; i < shown && tab.dropScroll + i < rows.size(); i++) {
-            Row row = rows.get(tab.dropScroll + i);
-            Ingredient in = row.ing();
-            boolean locked = in.level() > lv;
-            boolean hover = in(mx, my, x + 2, ry, w - 4 - bar, rowH);
-            Kit.row(g, x + 2, ry, w - 4 - bar, rowH, i, hover);
-            int tx = x + 6;
-            if (locked) {
-                Art.icon(g, "lock", tx, ry + 2, 8, Theme.paperRgb(Theme.INK_3));
-                tx += 10;
-            }
-            text(g, fit(in.name(), 96 - (tx - x - 6)), tx, ry + 2, locked ? Theme.INK_3 : Theme.INK);
-            String own = row.own() > 0 ? String.valueOf(row.own()) : "—";
-            text(g, own, x + 108 - width(own), ry + 2, row.own() > 0 ? Theme.INK_2 : Theme.INK_3);
-            CraftSearch.Price p = tab.prices.get(in.name());
-            String price = locked ? "Lv " + in.level() : p == null ? "?" : Prices.fmt(p.emeralds());
-            text(g, price, x + 158 - width(price), ry + 2, locked ? Theme.BAD : Theme.PRICE);
-            String gain = (row.gain() >= 0 ? "+" : "") + dec(row.gain(), row.gain() == Math.rint(row.gain()) ? 0 : 1);
-            text(g, gain, x + w - bar - 6 - width(gain), ry + 2, row.gain() > 0 ? Theme.GOOD
-                    : row.gain() < 0 ? Theme.BAD : Theme.INK_3);
-            String name = in.name();
-            tab.overlay.add(new Act(x + 2, ry, w - 4 - bar, rowH, () -> {
-                tab.slots[tab.openSlot] = name;
-                tab.open = Drop.NONE;
-                tab.pickSearch.setFocused(false);
-            }, null, card(in)));
-            if (hover) {
-                List<Ingredient> p2 = new ArrayList<>(lay);
-                p2.set(tab.openSlot, in);
-                tab.nextPreview = p2;
-            }
-            ry += rowH;
-        }
-        scrollMarks(g, x + w - ScrollBar.W - Theme.SP_1, y + 19, shown * rowH, tab.dropScroll, rows.size(), shown, mx, my);
-    }
-
-    /** Identifications that the recipe's profession can get, for the goal and filter lists. */
+    /** Identifications the recipe's profession can get, for the goal and the conditions. */
     private List<String> idsForProfession() {
         CraftData.Recipe r = tab.recipe();
         java.util.TreeMap<String, String> byShown = new java.util.TreeMap<>();
@@ -238,66 +185,5 @@ final class CraftDropdowns extends CraftPanel {
             }
         }
         return new ArrayList<>(byShown.values());
-    }
-
-    private void dropGoal(GuiGraphics g, int mx, int my) {
-        List<String> ids = idsForProfession();
-        ids.removeAll(tab.weights.keySet());
-        List<UiMenu.Item> items = new ArrayList<>();
-        for (String id : ids) {
-            items.add(UiMenu.Item.of(id, null, tab.statName(id), null, false));
-        }
-        if (items.isEmpty()) {
-            tab.open = Drop.NONE;
-            return;
-        }
-        menu(g, items, mx, my, it -> {
-            tab.weights.put(it.id(), 1.0);
-            tab.open = Drop.NONE;
-        });
-    }
-
-    private void dropConditions(GuiGraphics g, int mx, int my) {
-        List<String> ids = idsForProfession();
-        int rowH = 12;
-        int fixed = 3;
-        int shown = Math.min(10, ids.size());
-        int bar = ids.size() > shown ? ScrollBar.W + Theme.SP_1 : 0;
-        int w = 190 + bar;
-        int h = (fixed + shown) * rowH + 8;
-        int x = dropX(w);
-        int y = dropY(h);
-        Kit.card(g, x, y, w, h, 0);
-        tab.overlayBox = new int[] {x, y, w, h};
-        int ry = y + 4;
-        // the durability floor, the cap to the player's points, then "no negative" per identification
-        String floor = L.t("wynnlabs.craft.cond_floor", CraftingTab.FLOORS[tab.floorIndex]);
-        condRow(g, x, ry, w - bar, floor, null, mx, my, () -> tab.floorIndex = (tab.floorIndex + 1) % CraftingTab.FLOORS.length);
-        ry += rowH;
-        condRow(g, x, ry, w - bar, L.t("wynnlabs.craft.cond_points"), tab.capToPoints, mx, my, () -> tab.capToPoints = !tab.capToPoints);
-        ry += rowH;
-        text(g, L.t("wynnlabs.craft.cond_no_negative"), x + 6, ry + 2, Theme.INK_3);
-        ry += rowH;
-        tab.dropScroll = Math.max(0, Math.min(tab.dropScroll, ids.size() - shown));
-        for (int i = 0; i < shown; i++) {
-            String id = ids.get(tab.dropScroll + i);
-            condRow(g, x, ry, w - bar, tab.statName(id), tab.noNegative.contains(id), mx, my, () -> {
-                if (!tab.noNegative.remove(id)) {
-                    tab.noNegative.add(id);
-                }
-            });
-            ry += rowH;
-        }
-        scrollMarks(g, x + w - ScrollBar.W - Theme.SP_1, y + 3 * rowH + 4, shown * rowH, tab.dropScroll, ids.size(), shown, mx, my);
-    }
-
-    private void condRow(GuiGraphics g, int x, int y, int w, String text, Boolean on, int mx, int my, Runnable click) {
-        boolean hover = in(mx, my, x + 2, y, w - 4, 12);
-        Kit.row(g, x + 2, y, w - 4, 12, 0, hover);
-        text(g, fit(text, w - 34), x + 6, y + 2, Theme.INK);
-        if (on != null) {
-            Kit.toggle(g, x + w - 26, y + 1, on);
-        }
-        tab.overlay.add(new Act(x + 2, y, w - 4, 12, click, null, null));
     }
 }

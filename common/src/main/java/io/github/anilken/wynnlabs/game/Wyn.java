@@ -1068,6 +1068,35 @@ public final class Wyn {
         }, List.of());
     }
 
+    /**
+     * The profession bombs Wynntils knows of and that still run (its bomb model, from the bomb
+     * messages the client was shown): XP and Speed, with their world and time left. Empty without
+     * Wynntils' bomb model.
+     */
+    public static List<io.github.anilken.wynnlabs.model.ProfBomb> professionBombs() {
+        return guard(Feature.WORLD, () -> {
+            String here = Models.WorldState.getCurrentWorldName();
+            List<io.github.anilken.wynnlabs.model.ProfBomb> out = new ArrayList<>();
+            for (com.wynntils.models.worlds.type.BombInfo b : Models.Bomb.getBombBells()) {
+                var t = b.bomb();
+                if (!b.isActive() || t != com.wynntils.models.worlds.type.BombType.PROFESSION_XP
+                        && t != com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED) {
+                    continue;
+                }
+                out.add(new io.github.anilken.wynnlabs.model.ProfBomb(t == com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED,
+                        b.server(), b.getRemainingLong(), b.server() != null && b.server().equals(here)));
+            }
+            // this world's bomb from its boss bar, when no message named it (time left unknown: -1)
+            for (var t : List.of(com.wynntils.models.worlds.type.BombType.PROFESSION_XP, com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED)) {
+                boolean speed = t == com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED;
+                if (Models.Bomb.isBombActive(t) && out.stream().noneMatch(x -> x.here() && x.speed() == speed)) {
+                    out.add(new io.github.anilken.wynnlabs.model.ProfBomb(speed, here, -1, true));
+                }
+            }
+            return out;
+        }, List.of());
+    }
+
     /** The name of the territory at this position, or null. */
     public static String territoryAt(Position pos) {
         return guard(Feature.WORLD, () -> {

@@ -17,7 +17,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,12 +29,12 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * The J menu's crafting tab (openspec crafting-tab, mockup v3): on the left the recipe (type and
- * level lists, materials with tier pickers, the 2×3 grid where ingredients go), on the right the
- * crafted item and the optimiser's three layouts, below them roll chances, the shopping list and
- * "what can I craft now"; the saved recipes in a panel beside the menu, or a drawer when the
- * screen is too narrow. Its state lives here between openings of the menu. It never feeds the
- * build plan, the road map or any advice.
+ * The J menu's crafting tab, by what the player comes for: Tarif (a type, a level and a goal, the
+ * 2×3 grid, the crafted item and the best three layouts), Öneriler (what can be crafted from what is
+ * owned now, and with a few bought), Meslek (each profession's level road, step by step). The
+ * ingredient picker, the shopping list, the saved recipes and a set's pieces open in a drawer. Its
+ * state lives here between openings of the menu. It never feeds the build plan, the road map or any
+ * advice.
  */
 public final class CraftingTab {
 
@@ -46,7 +45,8 @@ public final class CraftingTab {
         }
     }
 
-    enum Drop { NONE, TYPE, LEVEL, SLOT, GOAL, CONDITIONS }
+    /** The open dropdown (UiMenu) under its chip. */
+    enum Drop { NONE, TYPE, LEVEL, GOAL, CONDITIONS, SPEED, TIER1, TIER2, ROAD_TYPE, ROAD_PROF }
 
     public static final CraftingTab INSTANCE = new CraftingTab();
 
@@ -56,7 +56,11 @@ public final class CraftingTab {
     static volatile Map<String, Integer> previewLevels = Map.of();
 
     static final int[] FLOORS = {1, 50, 100, 200, 300};
+    /** The page is in two columns from this width (one, scrolled, on a small window). */
     static final int TWO_COLUMNS_MIN = 440;
+    static final int VIEW_RECIPE = 0;
+    static final int VIEW_SUGGEST = 1;
+    static final int VIEW_ROAD = 2;
 
     // ---- the recipe ----
     String type;
@@ -79,26 +83,18 @@ public final class CraftingTab {
 
     // ---- the page ----
     Drop open = Drop.NONE;
-    int openSlot = -1;
     int[] openAnchor;
     int dropScroll;
-    /** The open list's dropdown state (its scroll bar, the keys' row). */
+    /** The open dropdown's state (its scroll bar, the keys' row). */
     final UiMenu.State dropMenu = new UiMenu.State();
-    /** The ingredient picker's and the conditions' list bar (CraftDropdowns), and the page's own. */
-    final ScrollBar dropBar = new ScrollBar();
-    private final ScrollBar pageBar = new ScrollBar();
+    final ScrollBar pageBar = new ScrollBar();
     int scroll;
-    private int scrollMax;
-    boolean foldWhat;
-    int subTab;
-    boolean drawerOpen;
-    /** The calculator (0), the suggestions (1) or the profession planner (2). */
+    int scrollMax;
+    /** Tarif (0), Öneriler (1) or Meslek (2). */
     int view;
-    /** Suggestions as whole sets (0) or single pieces (1). */
+    /** Suggestions as single pieces (0) or whole sets (1). */
     int suggestMode;
-    SetSuggestions.CraftSet setDetail;
-    int pageCount = 1;
-    /** Whether the calculator is in two columns this frame (one on a narrow page). */
+    /** Whether the recipe page is in two columns this frame (one on a narrow page). */
     boolean twoColumns = true;
     List<Ingredient> preview;            // a layout drawn dashed on the grid (hovered row)
     List<Ingredient> nextPreview;
@@ -118,7 +114,6 @@ public final class CraftingTab {
     Font font;
     EditBox pickSearch;
     EditBox saveName;
-    EditBox distBox;
     final List<Act> acts = new ArrayList<>();
     final List<Act> overlay = new ArrayList<>();
     int[] overlayBox;
@@ -126,16 +121,16 @@ public final class CraftingTab {
     java.util.function.Consumer<String> flash = s -> {};
 
     // ---- the page's parts ----
-    private final CraftHeaderPanel headerPanel = new CraftHeaderPanel(this);
+    final CraftHeaderPanel headerPanel = new CraftHeaderPanel(this);
     final CraftRecipePanel recipePanel = new CraftRecipePanel(this);
     final CraftResultPanel resultPanel = new CraftResultPanel(this);
     final CraftOptimiserPanel optimiserPanel = new CraftOptimiserPanel(this);
-    final CraftSectionsPanel sectionsPanel = new CraftSectionsPanel(this);
     final CraftSuggestionsPanel suggestionsPanel = new CraftSuggestionsPanel(this);
     final CraftSetsPanel setsPanel = new CraftSetsPanel(this);
     final CraftSavedPanel savedPanel = new CraftSavedPanel(this);
-    final CraftPlanPanel planPanel = new CraftPlanPanel(this);
-    private final CraftDropdowns dropdowns = new CraftDropdowns(this);
+    final CraftRoadPanel roadPanel = new CraftRoadPanel(this);
+    final CraftDrawers drawers = new CraftDrawers(this);
+    final CraftDropdowns dropdowns = new CraftDropdowns(this);
 
     private CraftingTab() {}
 
@@ -144,51 +139,25 @@ public final class CraftingTab {
         this.screen = screen;
         this.font = font;
         this.flash = flash;
-        String typed = pickSearch == null ? "" : pickSearch.getValue();
-        pickSearch = new EditBox(font, 0, 0, 100, 12, L.c("wynnlabs.craft.search_hint"));
-        pickSearch.setMaxLength(40);
-        pickSearch.setValue(typed);
-        pickSearch.setResponder(v -> dropScroll = 0);
-        paper(pickSearch);
-        String name = saveName == null ? "" : saveName.getValue();
-        saveName = new EditBox(font, 0, 0, 100, 12, L.c("wynnlabs.craft.saved_name"));
+        pickSearch = UiInput.box(font, "wynnlabs.craft.search_hint", pickSearch, v -> drawers.pickScroll());
+        saveName = UiInput.box(font, "wynnlabs.craft.saved_name", saveName, v -> { });
         saveName.setMaxLength(40);
-        saveName.setValue(name);
-        paper(saveName);
-        distBox = new EditBox(font, 0, 0, 30, 12, L.c("wynnlabs.craft.dist_target"));
-        distBox.setMaxLength(7);
-        distBox.setFilter(s -> s.matches("-?\\d*"));
-        distBox.setResponder(v -> {
-            try {
-                sectionsPanel.distTarget = v.isEmpty() || v.equals("-") ? null : Integer.parseInt(v);
-            } catch (NumberFormatException e) {
-                sectionsPanel.distTarget = null;
-            }
-        });
-        paper(distBox);
         stockAt = 0;
-        return List.of(pickSearch, saveName, distBox);
-    }
-
-    private static void paper(EditBox box) {
-        box.setBordered(false);
-        box.setTextColor(Theme.INK);
-        box.setTextShadow(false);
+        return List.of(pickSearch, saveName);
     }
 
     /** The menu was closed: running searches stop. */
     void closed() {
         optimiserPanel.stop();
-        sectionsPanel.stop();
         suggestionsPanel.stop();
         setsPanel.stop();
-        setDetail = null;
+        drawers.close();
         open = Drop.NONE;
     }
 
     private void refresh() {
         long now = System.currentTimeMillis();
-        if (now - stockAt < 5000 && type != null) {
+        if (now - stockAt < (ingredients.isEmpty() ? 1000 : 5000) && type != null) {        // no list yet: looked for every second
             return;
         }
         stockAt = now;
@@ -319,10 +288,14 @@ public final class CraftingTab {
         return type + minLevel + tier1 + tier2 + speed + weights + noNegative + capToPoints + floorIndex;
     }
 
+    /** True while a popup (a dropdown or a drawer) owns the mouse. */
+    boolean popupOpen() {
+        return open != Drop.NONE || drawers.showing();
+    }
+
     /**
      * Draws the page into {@code x, y, w, h}; {@code titleY} is the page title's line (the
-     * header's buttons sit on it) and {@code frame} the menu panel {x, y, w, h} (the saved
-     * recipes go beside it).
+     * profession and the saved recipes' link sit on it).
      */
     void draw(GuiGraphics g, int x, int y, int w, int h, int titleY, int[] frame, int screenW, int mx, int my, float pt) {
         acts.clear();
@@ -333,80 +306,44 @@ public final class CraftingTab {
         preview = nextPreview;
         nextPreview = null;
         refresh();
-        headerPanel.drawHeader(g, x, titleY, w, mx, my);
+        // an open popup owns the mouse: the page draws as if the mouse were away
+        boolean popup = popupOpen();
+        int pmx = popup ? -1 : mx;
+        int pmy = popup ? -1 : my;
+        headerPanel.drawHeader(g, x, titleY, w, pmx, pmy);
         if (ingredients.isEmpty()) {
-            headerPanel.noData(g, x, y, w, h);
+            headerPanel.noData(g, x, y, w, h, pmx, pmy);
             return;
         }
         if (!optimiserPanel.resultsFor.equals(key()) && !results.isEmpty()) {
             results = List.of();                    // the recipe or goal changed: old layouts no longer apply
         }
-        // the pages (calculator, suggestions, planner) as a tab bar; then the page's own margin:
-        // SP_3 before the suggestions' filter row, SP_4 before content
-        int bar = headerPanel.viewTabs(g, x, y, w, mx, my) + (view == 1 ? Theme.SP_3 : Theme.SP_4);
+        int bar = headerPanel.viewTabs(g, x, y, w, pmx, pmy) + Theme.SP_4;
         y += bar;
         h -= bar;
-        if (view == 1) {
-            suggestionsPanel.drawSuggestions(g, x, y, w, h, mx, my);
-            savedPanel.drawSaved(g, frame, screenW, x, y, w, h, w >= TWO_COLUMNS_MIN, mx, my);
-            showTooltip(g, mx, my);
-            return;
-        }
-        boolean two = w >= TWO_COLUMNS_MIN;
-        twoColumns = two;
-        clip = new int[] {x, y, w, h};
-        g.enableScissor(x, y, x + w, y + h);
-        int top = y - scroll;
-        int cw = w - ScrollBar.W - Theme.SP_2;      // room for the scroll bar
-        int used;
-        if (view == 2) {
-            used = planPanel.drawPlan(g, x, top, cw, mx, my) + 4;
-            g.disableScissor();
-            scrollBar(g, x, y, w, h, used, mx, my);
-            showTooltip(g, mx, my);
-            return;
-        }
-        if (two) {
-            int colW = (cw - 10) / 2;
-            int left = recipePanel.drawRecipe(g, x, top, colW, mx, my);
-            int rx = x + colW + 10;
-            int right = resultPanel.drawResult(g, rx, top, colW, mx, my);
-            right += 6 + optimiserPanel.drawOptimiser(g, rx, top + right + 6, colW, mx, my);
-            int by = top + Math.max(left, right) + 8;
-            by += sectionsPanel.drawSections(g, x, by, cw, mx, my, pt);
-            used = by - top;
+        twoColumns = w >= TWO_COLUMNS_MIN;
+        if (view == VIEW_SUGGEST) {
+            suggestionsPanel.draw(g, x, y, w, h, pmx, pmy);
         } else {
-            int sy = top;
-            sy += headerPanel.subTabs(g, x, sy, cw, mx, my) + Theme.SP_4;
-            switch (subTab) {
-                case 1 -> {
-                    sy += resultPanel.drawResult(g, x, sy, cw, mx, my) + 6;
-                    sy += sectionsPanel.boxed(g, 0, x, sy, cw, (bx, by, bw) -> sectionsPanel.drawDistribution(g, bx, by, bw, mx, my, pt));
-                }
-                case 2 -> {
-                    sy += optimiserPanel.drawOptimiser(g, x, sy, cw, mx, my) + 6;
-                    sy += sectionsPanel.boxed(g, 2, x, sy, cw, (bx, by, bw) -> sectionsPanel.drawWhat(g, bx, by, bw, mx, my));
-                }
-                default -> {
-                    sy += recipePanel.drawRecipe(g, x, sy, Math.min(cw, 260), mx, my) + 6;
-                    sy += sectionsPanel.boxed(g, 1, x, sy, cw, (bx, by, bw) -> sectionsPanel.drawShopping(g, bx, by, bw, mx, my));
-                }
-            }
-            used = sy - top;
+            clip = new int[] {x, y, w, h};
+            g.enableScissor(x, y, x + w, y + h);
+            int top = y - scroll;
+            int cw = w - ScrollBar.W - Theme.SP_2;      // room for the scroll bar
+            int used = view == VIEW_ROAD ? roadPanel.draw(g, x, top, cw, y, y + h, pmx, pmy)
+                    : CraftTarifPage.draw(this, g, x, top, cw, pmx, pmy);
+            g.disableScissor();
+            clip = null;
+            scrollMax = Math.max(0, used - h);
+            scroll = Math.min(scroll, scrollMax);
+            pageBar.place(x + w - ScrollBar.W, y, h, h, used, scroll);   // offsets in pixels
+            pageBar.draw(g, pmx, pmy);
         }
-        g.disableScissor();
-        scrollBar(g, x, y, w, h, used, mx, my);
-        savedPanel.drawSaved(g, frame, screenW, x, y, w, h, two, mx, my);
-        dropdowns.drawDrop(g, mx, my, pt);
-        showTooltip(g, mx, my);
-    }
-
-    /** The page's scroll limit for {@code used} pixels of content, and its bar when it scrolls. */
-    private void scrollBar(GuiGraphics g, int x, int y, int w, int h, int used, int mx, int my) {
-        scrollMax = Math.max(0, used - h + 4);
-        scroll = Math.min(scroll, scrollMax);
-        pageBar.place(x + w - ScrollBar.W, y, h, h, used + 4, scroll);   // offsets in pixels
-        pageBar.draw(g, mx, my);
+        if (popup) {
+            g.nextStratum();
+            dropdowns.drawDrop(g, mx, my, pt);
+            drawers.draw(g, x, y - bar, w, h + bar, mx, my);
+        }
+        CraftInput.showTooltip(this, g, mx, my);
     }
 
     Craft.Result result() {
@@ -418,17 +355,15 @@ public final class CraftingTab {
         return stock.ingredients().hashCode() + "|" + stock.levels() + "|" + defaultType() + "|" + CraftSuggestionsPanel.combatLevel();
     }
 
-    void toggle(Drop d, int slot, int[] anchor) {
-        if (open == d && openSlot == slot) {
+    void toggle(Drop d, int[] anchor) {
+        if (open == d) {
             open = Drop.NONE;
             return;
         }
         open = d;
         dropMenu.reset();
         dropScroll = 0;
-        openSlot = slot;
         openAnchor = anchor;
-        dropScroll = 0;
         if (d == Drop.LEVEL) {
             List<CraftData.Recipe> rs = CraftData.ofType(type);
             for (int i = 0; i < rs.size(); i++) {
@@ -445,10 +380,6 @@ public final class CraftingTab {
         optimiserPanel.startSearch();
     }
 
-    private void startWhat() {
-        sectionsPanel.startWhat();
-    }
-
     /** For the preview: start working the suggestions out now. */
     private void startSuggestionsNow() {
         suggestionsPanel.startSuggestions(true);
@@ -461,207 +392,36 @@ public final class CraftingTab {
 
     // ---- input ------------------------------------------------------------------------------
 
-    /** A drag in the tab: moves the slider's knob while it is held; true when it did. */
+
+
+
     boolean mouseDragged(double mx, double my) {
-        if (open != Drop.NONE && dropMenu.drag(my)) {
-            return true;
-        }
-        if (resultPanel.idBar.mouseDragged(my)) {
-            resultPanel.idScroll = resultPanel.idBar.offset();
-            return true;
-        }
-        if (dropBar.mouseDragged(my)) {
-            dropScroll = dropBar.offset();
-            return true;
-        }
-        if (pageBar.mouseDragged(my)) {
-            scroll = pageBar.offset();
-            return true;
-        }
-        return sectionsPanel.mouseDragged(mx, my);
+        return CraftInput.mouseDragged(this, mx, my);
     }
 
     void mouseReleased() {
-        dropMenu.release();
-        dropBar.mouseReleased();
-        pageBar.mouseReleased();
-        resultPanel.idBar.mouseReleased();
-        sectionsPanel.mouseReleased();
+        CraftInput.mouseReleased(this);
     }
 
-    /**
-     * For the preview's layout check: the click areas of this frame. With an overlay open only its
-     * own (it takes every click); a tip-only area is not one.
-     */
     List<LayoutCheck.Area> clickAreas() {
-        List<LayoutCheck.Area> out = new ArrayList<>();
-        for (Act a : overlayBox != null ? overlay : acts) {
-            if (a.left() != null || a.right() != null) {
-                out.add(new LayoutCheck.Area(a.x(), a.y(), a.w(), a.h(),
-                        a.tip() != null && !a.tip().isEmpty() ? a.tip().get(0).getString() : "act@" + a.x() + "," + a.y()));
-            }
-        }
-        return out;
+        return CraftInput.clickAreas(this);
     }
 
     boolean mouseClicked(double mx, double my, int button) {
-        sectionsPanel.lastX = mx;
-        if (overlayBox != null && open != Drop.NONE && dropMenu.press(mx, my)) {
-            return true;                            // the list's scroll bar
-        }
-        if (overlayBox != null && open != Drop.NONE && dropBar.mouseClicked(mx, my)) {
-            dropScroll = dropBar.offset();
-            return true;
-        }
-        if (overlayBox == null && resultPanel.idBar.mouseClicked(mx, my)) {
-            resultPanel.idScroll = resultPanel.idBar.offset();
-            return true;
-        }
-        if (overlayBox == null && pageBar.mouseClicked(mx, my)) {
-            scroll = pageBar.offset();
-            return true;
-        }
-        if (overlayBox != null) {
-            Runnable r = target(overlay, mx, my, button);
-            if (r != null) {
-                r.run();
-                return true;
-            }
-            if (!CraftPanel.in(mx, my, overlayBox[0], overlayBox[1], overlayBox[2], overlayBox[3])) {
-                boolean wasDrawer = drawerOpen && open == Drop.NONE;
-                open = Drop.NONE;
-                drawerOpen = false;
-                setDetail = null;
-                pickSearch.setFocused(false);
-                if (!wasDrawer) {
-                    return true;                    // a click outside closes the list, nothing else
-                }
-            } else {
-                return true;
-            }
-        }
-        Runnable r = target(acts, mx, my, button);
-        if (r != null) {
-            r.run();
-            return true;
-        }
-        if (saveName.isFocused() && !saveName.isMouseOver(mx, my)) {
-            saveName.setFocused(false);
-            String typed = saveName.getValue().strip();
-            if (savedPanel.renaming != null && (typed.isEmpty() || typed.equals(savedPanel.renaming))) {
-                savedPanel.stopRenaming();                         // clicked away without a new name
-            }
-        }
-        if (distBox.isFocused() && !distBox.isMouseOver(mx, my)) {
-            distBox.setFocused(false);
-        }
-        return false;
-    }
-
-    /**
-     * What a click runs: of the areas under it that act on this button, the smallest, so a row's
-     * buttons win over the row however they were added; a tip-only area lets the click through.
-     */
-    private static Runnable target(List<Act> list, double mx, double my, int button) {
-        Act best = null;
-        for (int i = list.size() - 1; i >= 0; i--) {
-            Act a = list.get(i);
-            Runnable r = button == 1 ? a.right() : a.left();
-            if (r != null && a.in(mx, my) && (best == null || a.w() * a.h() < best.w() * best.h())) {
-                best = a;
-            }
-        }
-        return best == null ? null : button == 1 ? best.right() : best.left();
+        return CraftInput.mouseClicked(this, mx, my, button);
     }
 
     boolean mouseScrolled(double mx, double my, double v) {
-        int step = (int) Math.signum(v);
-        if (view == 1 && open == Drop.NONE && !drawerOpen && setDetail == null) {
-            // the wheel turns pages
-            if (suggestMode == 0) {
-                setsPanel.setPage = Math.max(0, Math.min(pageCount - 1, setsPanel.setPage - step));
-            } else {
-                suggestionsPanel.suggestPage = Math.max(0, Math.min(pageCount - 1, suggestionsPanel.suggestPage - step));
-            }
-            return true;
-        }
-        if (open != Drop.NONE && overlayBox != null && CraftPanel.in(mx, my, overlayBox[0], overlayBox[1], overlayBox[2], overlayBox[3])) {
-            dropScroll = Math.max(0, dropScroll - step);
-            return true;
-        }
-        if (resultPanel.cardRect != null && CraftPanel.in(mx, my, resultPanel.cardRect[0], resultPanel.cardRect[1], resultPanel.cardRect[2], resultPanel.cardRect[3])) {
-            int next = Math.max(0, Math.min(resultPanel.idMax, resultPanel.idScroll - step));
-            if (next != resultPanel.idScroll) {
-                resultPanel.idScroll = next;                    // the card's own list scrolls first
-                return true;
-            }
-        }
-        if (clip != null && CraftPanel.in(mx, my, clip[0], clip[1], clip[2], clip[3])) {
-            scroll = Math.max(0, Math.min(scrollMax, scroll - 12 * step));
-            open = Drop.NONE;
-        }
-        return true;
+        return CraftInput.mouseScrolled(this, mx, my, v);
     }
 
-    /** Enter in the name box saves; Escape closes an open list first. */
     boolean keyPressed(int key) {
-        if ((key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) && saveName.isFocused()) {
-            savedPanel.saveCurrent();
-            return true;
-        }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && savedPanel.renaming != null) {
-            savedPanel.stopRenaming();                             // Esc leaves renaming, not the menu
-            return true;
-        }
-        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && (open != Drop.NONE || drawerOpen || setDetail != null)) {
-            open = Drop.NONE;
-            drawerOpen = false;
-            setDetail = null;
-            pickSearch.setFocused(false);
-            return true;
-        }
-        return false;
+        return CraftInput.keyPressed(this, key);
     }
-
-    /** True while a text box of the tab takes the keys (so key binds such as J do not fire). */
     boolean typing() {
-        return pickSearch != null && (pickSearch.isFocused() || saveName.isFocused() || distBox.isFocused());
+        return pickSearch != null && (pickSearch.isFocused() || saveName.isFocused());
     }
 
-    private void showTooltip(GuiGraphics g, int mx, int my) {
-        List<Component> tip = null;
-        if (overlayBox != null) {
-            for (int i = overlay.size() - 1; i >= 0 && tip == null; i--) {
-                if (overlay.get(i).in(mx, my)) {
-                    tip = overlay.get(i).tip();
-                    if (tip == null) {
-                        return;
-                    }
-                }
-            }
-            if (CraftPanel.in(mx, my, overlayBox[0], overlayBox[1], overlayBox[2], overlayBox[3]) && tip == null) {
-                return;
-            }
-        }
-        if (tip == null) {
-            for (int i = acts.size() - 1; i >= 0; i--) {
-                if (acts.get(i).in(mx, my) && acts.get(i).tip() != null) {
-                    tip = acts.get(i).tip();
-                    break;
-                }
-            }
-        }
-        if (tip == null || tip.isEmpty()) {
-            return;
-        }
-        int maxW = Math.max(160, Math.min(260, screen.width / 2));
-        List<FormattedCharSequence> lines = new ArrayList<>();
-        for (Component c : tip) {
-            List<FormattedCharSequence> part = font.split(c, maxW);
-            lines.addAll(part.isEmpty() ? List.of(FormattedCharSequence.EMPTY) : part);
-        }
-        g.setTooltipForNextFrame(font, lines, mx, my);
-    }
 
     /** An identification's shown name, from Wynntils' data ("Spell Damage"). */
     String statName(String id) {

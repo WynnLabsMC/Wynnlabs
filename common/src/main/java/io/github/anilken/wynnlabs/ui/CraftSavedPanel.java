@@ -1,6 +1,5 @@
 package io.github.anilken.wynnlabs.ui;
 
-import io.github.anilken.wynnlabs.core.DevHooks;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.crafting.Craft;
 import io.github.anilken.wynnlabs.crafting.CraftChecks;
@@ -8,12 +7,14 @@ import io.github.anilken.wynnlabs.crafting.CraftData;
 import io.github.anilken.wynnlabs.crafting.CraftSearch;
 import io.github.anilken.wynnlabs.crafting.Crafting;
 import io.github.anilken.wynnlabs.crafting.Ingredient;
+import io.github.anilken.wynnlabs.crafting.RecipeCode;
 import io.github.anilken.wynnlabs.crafting.SavedRecipes;
 import io.github.anilken.wynnlabs.crafting.StockView;
+import io.github.anilken.wynnlabs.crafting.WynnBuilderCode;
 import io.github.anilken.wynnlabs.ui.CraftingTab.Act;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,10 +24,13 @@ import static io.github.anilken.wynnlabs.ui.CraftFormat.range;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.skill;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.typeName;
 
-/** The crafting tab's saved recipes: beside the menu, or a drawer when the screen is too narrow. */
+/**
+ * The saved recipes, in their drawer: save the recipe on the page under a name, copy its code or
+ * read one from the clipboard (WynnBuilder's, or the mod's own), and the list: a row opens its
+ * recipe; on the hovered row copy, rename and delete (a second click deletes).
+ */
 final class CraftSavedPanel extends CraftPanel {
 
-    private static final int SIDE_W = 120;
     private String deleteArmed;
     private long deleteArmedAt;
     String renaming;
@@ -35,144 +39,119 @@ final class CraftSavedPanel extends CraftPanel {
         super(tab);
     }
 
-    void drawSaved(GuiGraphics g, int[] frame, int screenW, int px, int py, int pw, int ph, boolean two,
-                           int mx, int my) {
-        int fx = frame[0];
-        int fy = frame[1];
-        int fw = frame[2];
-        int fh = frame[3];
-        int sideX = fx + fw + 5 + 4;
-        boolean room = sideX + SIDE_W + 4 <= screenW;
-        if (room) {
-            Kit.window(g, sideX - 5, fy - 5, SIDE_W + 10, fh + 10);
-            Kit.paper(g, sideX, fy, SIDE_W, fh);
-            savedList(g, sideX + 8, fy + 10, SIDE_W - 16, fh - 20, mx, my, false);
-            tab.drawerOpen = false;
-            return;
-        }
-        // the ribbon on the menu's right edge
-        // (over the frame's edge when the window ends there)
-        int rx = Math.min(fx + fw + 1, screenW - 9);
-        int ry = fy + 24;
-        LayoutCheck.frame(g.pose(), rx, ry, 9, 40);
-        if (DevHooks.ON) {
-            DevHooks.frame(g.pose(), rx, ry, 9, 40);         // the dev screenshot tool's crop keeps the ribbon
-        }
-        boolean rh = in(mx, my, rx, ry, 9, 40);
-        Kit.button(g, rx, ry, 9, 40, tab.drawerOpen ? Kit.ON : rh ? Kit.HOVER : Kit.REST);
-        Art.icon(g, "bookmark", rx + 1, ry + 16, 7, tab.drawerOpen ? Theme.INK : Theme.CREAM);
-        tab.acts.add(new Act(rx, ry, 9, 40, () -> tab.drawerOpen = !tab.drawerOpen, null, List.of(L.c("wynnlabs.craft.saved"))));
-        if (tab.drawerOpen) {
-            int dw = two ? Math.min(150, pw / 2) : Math.min(170, pw);
-            int dx = px + pw - dw;
-            g.nextStratum();
-            Kit.card(g, dx, py, dw, ph, Theme.GOLD_DEEP);
-            tab.overlayBox = new int[] {dx, py, dw, ph};
-            savedList(g, dx + 6, py + 6, dw - 12, ph - 12, mx, my, true);
-        }
+    private void act(int x, int y, int w, int h, Runnable r, List<Component> tip) {
+        tab.overlay.add(new Act(x, y, w, h, r, null, tip));
     }
 
-    private void savedList(GuiGraphics g, int x, int y, int w, int h, int mx, int my, boolean inDrawer) {
-        List<Act> into = inDrawer ? tab.overlay : tab.acts;
+    /** The drawer's content from y across w; returns its height. */
+    int content(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
         SavedRecipes saved = Crafting.saved();
-        text(g, Component.literal(L.t("wynnlabs.craft.saved")).withStyle(UiFont::bold), x, y, Theme.INK);
-        int yy = y + 13;
+        int cy = y;
+        // the name and Save (or Rename)
         String save = L.t(renaming != null ? "wynnlabs.craft.rename" : "wynnlabs.craft.save");
-        int bw = width(save) + 10;
-        int fw = w - bw - 3;
-        UiInput.input(g, tab.font, tab.saveName, L.t("wynnlabs.craft.saved_name"), x, yy - 1, fw, true, false, mx, my);
-        into.add(new Act(x, yy, fw, 12, () -> {
-            tab.screen.setFocused(tab.saveName);
-            tab.saveName.setFocused(true);
-        }, null, null));
-        int sbx = x + fw + 3;
-        boolean sh = in(mx, my, sbx, yy - 1, bw, 14);
-        Kit.button(g, sbx, yy - 1, bw, 14, sh ? Kit.HOVER : Kit.ON);
-        wood(g, save, sbx + 5, yy + 2, sh ? Theme.INK_2 : Theme.INK, sh);
-        into.add(new Act(sbx, yy - 1, bw, 14, this::saveCurrent, null, null));
-        yy += 18;
+        int bw = Ui.chipWidth(tab.font, save);
+        int fw = w - bw - Theme.SP_2;
+        UiInput.input(g, tab.font, tab.saveName, L.t("wynnlabs.craft.saved_name"), x, cy, fw, true, false, mx, my);
+        act(x, cy, fw, UiInput.H, () -> UiInput.focus(tab.saveName, tab.screen::setFocused), null);
+        Ui.chip(g, tab.font, save, x + fw + Theme.SP_2, cy, bw, true, false, false, mx, my);
+        act(x + fw + Theme.SP_2, cy, bw, Ui.CHIP_H, this::saveCurrent, null);
+        cy += UiInput.H + Theme.SP_3;
+        // the code: copy this recipe's, or read one
+        int cx = x;
+        String copy = L.t("wynnlabs.craft.code");
+        String paste = L.t("wynnlabs.craft.paste");
+        int cw = Ui.iconChipWidth(tab.font, "copy", copy, false);
+        Ui.iconChip(g, tab.font, "copy", copy, false, cx, cy, cw, false, mx, my);
+        act(cx, cy, cw, Ui.CHIP_H, this::copyCode, List.of(L.c("wynnlabs.craft.tip.copy")));
+        cx += cw + Theme.SP_2;
+        int pw = Ui.iconChipWidth(tab.font, "clipboard", paste, false);
+        Ui.iconChip(g, tab.font, "clipboard", paste, false, cx, cy, pw, false, mx, my);
+        act(cx, cy, pw, Ui.CHIP_H, this::pasteCode, List.of(L.c("wynnlabs.craft.tip.paste")));
+        cy += Ui.CHIP_H + Theme.SP_5;
         if (saved.all().isEmpty()) {
-            for (FormattedCharSequence line : tab.font.split(sized(L.c("wynnlabs.craft.saved_empty"), FINE), w)) {
-                g.drawString(tab.font, Kit.ink(line), x, yy, Theme.INK_3, false);
-                yy += 10;
-            }
+            return Type.MUTED.drawWrapped(g, tab.font, L.t("wynnlabs.craft.saved_empty"), x, cy, w, 0, Theme.INK_3) - y;
         }
-        int rowH = 32;
-        int bottom = y + h - 22;
-        for (int i = 0; i < saved.all().size() && yy + rowH <= bottom; i++) {
-            SavedRecipes.Saved s = saved.all().get(i);
-            boolean hover = in(mx, my, x - 2, yy, w + 4, rowH - 2);
-            Kit.row(g, x - 2, yy, w + 4, rowH - 2, i, hover);
-            text(g, Component.literal(fit(s.name(), w - (hover ? 34 : 2))).withStyle(UiFont::bold), x, yy + 2, Theme.INK);
-            CraftData.Recipe r = s.recipe();
+        int rowH = Type.LABEL.lineHeight + Type.META.lineHeight;
+        for (SavedRecipes.Saved s : saved.all()) {
+            if (cy + rowH > top && cy < bottom) {
+                row(g, saved, s, x, cy, w, rowH, mx, my);
+            }
+            cy += rowH + Theme.SP_2;
+        }
+        return cy - Theme.SP_2 - y;
+    }
+
+    private void row(GuiGraphics g, SavedRecipes saved, SavedRecipes.Saved s, int x, int y, int w, int rowH, int mx, int my) {
+        boolean hover = in(mx, my, x, y, w, rowH);
+        CraftIcons.typeSlot(g, s.type(), x, y + (rowH - 18) / 2, 18, Theme.INK_2);
+        int tx = x + 18 + Theme.SP_3;
+        CraftData.Recipe r = s.recipe();
+        String sub = typeName(s.type()) + " · Lv " + (r == null ? "?" : r.bracket().replace('-', '–'));
+        String mark = null;
+        boolean ok = true;
+        if (r != null) {
             List<Ingredient> lay = new ArrayList<>();
             for (String n : s.slots()) {
                 lay.add(tab.ing(n));
             }
-            String sub = typeName(s.type()) + " " + (r == null ? "?" : r.bracket());
-            String wear = "";
-            boolean wearOk = true;
-            String mats = "";
-            boolean matsOk = true;
-            if (r != null) {
-                Craft.Result c = Craft.craft(r, s.tier1(), s.tier2(), s.attackSpeed(), lay);
-                String main = s.goal() == null || s.goal().weights() == null || s.goal().weights().isEmpty() ? null
-                        : s.goal().weights().keySet().iterator().next();
-                Craft.Range v = main == null ? null : c.ids().get(main);
-                if (v != null) {
-                    sub += " · " + range(v, tab.unit(main));
-                }
-                List<CraftChecks.Gap> gaps = r.consumable() ? List.of() : CraftChecks.gaps(c.requirements(), tab.points);
-                wearOk = gaps.isEmpty();
-                wear = r.consumable() ? L.t("wynnlabs.craft.can_use") : wearOk ? L.t("wynnlabs.craft.can_wear")
-                        : L.t("wynnlabs.craft.cannot_wear", skill(gaps.get(0).skill()), gaps.get(0).missing());
-                matsOk = StockView.missing(r, s.tier1(), s.tier2(), tab.stock).isEmpty();
-                mats = " · " + (matsOk ? L.t("wynnlabs.craft.mats_ok") : L.t("wynnlabs.craft.mats_short"));
+            Craft.Result c = Craft.craft(r, s.tier1(), s.tier2(), s.attackSpeed(), lay);
+            String main = s.goal() == null || s.goal().weights() == null || s.goal().weights().isEmpty() ? null
+                    : s.goal().weights().keySet().iterator().next();
+            Craft.Range v = main == null ? null : c.ids().get(main);
+            if (v != null) {
+                sub += " · " + tab.statName(main) + " " + range(v, tab.unit(main));
             }
-            text(g, fit(sub, w), x, yy + 11, Theme.INK_2);
-            String wearShown = fit(wear, w);
-            text(g, wearShown, x, yy + 20, wearOk ? Theme.GOOD : Theme.BAD);
-            int mx3 = x + width(wearShown);
-            text(g, fit(mats, x + w - mx3), mx3, yy + 20, matsOk ? Theme.GOOD : Theme.BAD);
-            String name = s.name();
-            int ry = yy;
-            // the row opens the recipe; its buttons, added after, are found first on a click
-            into.add(new Act(x - 2, yy, w + 4, rowH - 2, () -> openSaved(s), null, null));
-            if (hover) {
-                // copy, rename, delete on the hovered row
-                int ix = x + w - 30;
-                boolean armed = name.equals(deleteArmed) && System.currentTimeMillis() - deleteArmedAt < 3000;
-                Art.icon(g, "copy", ix, ry + 2, 8, Theme.paperRgb(Theme.INK_2));
-                Art.icon(g, "pencil", ix + 11, ry + 2, 8, Theme.paperRgb(Theme.INK_2));
-                Art.icon(g, "trash", ix + 22, ry + 2, 8, Theme.paperRgb(armed ? Theme.BAD : Theme.INK_2));
-                into.add(new Act(ix, ry + 1, 10, 10, () -> {
-                    SavedRecipes.Saved c = saved.copy(name);
-                    Crafting.persist();
-                    if (c != null) {
-                        tab.flash.accept(L.t("wynnlabs.craft.copied", c.name()));
-                    }
-                }, null, List.of(L.c("wynnlabs.craft.copy_tip"))));
-                into.add(new Act(ix + 11, ry + 1, 10, 10, () -> {
-                    if (name.equals(renaming)) {
-                        stopRenaming();                 // the pencil again: back to saving
-                        return;
-                    }
-                    renaming = name;
-                    tab.saveName.setValue(name);
-                    tab.screen.setFocused(tab.saveName);
-                    tab.saveName.setFocused(true);
-                }, null, List.of(L.c("wynnlabs.craft.rename_tip"))));
-                into.add(new Act(ix + 22, ry + 1, 10, 10, () -> deleteClick(name), null,
-                        List.of(L.c(armed ? "wynnlabs.craft.delete_again" : "wynnlabs.craft.delete_tip"))));
-            }
-            yy += rowH;
+            List<CraftChecks.Gap> gaps = r.consumable() ? List.of() : CraftChecks.gaps(c.requirements(), tab.points);
+            boolean mats = StockView.missing(r, s.tier1(), s.tier2(), tab.stock).isEmpty();
+            ok = gaps.isEmpty() && mats;
+            mark = !gaps.isEmpty() ? L.t("wynnlabs.craft.cannot_wear", skill(gaps.get(0).skill()), gaps.get(0).missing())
+                    : mats ? L.t("wynnlabs.craft.mats_ok") : L.t("wynnlabs.craft.mats_short");
         }
-        for (FormattedCharSequence line : tab.font.split(sized(L.c("wynnlabs.craft.saved_hint"), FINE), w)) {
-            if (bottom + 10 > y + h) {
-                break;
+        int right = x + w;
+        if (hover) {
+            // copy, rename, delete on the hovered row
+            String name = s.name();
+            boolean armed = name.equals(deleteArmed) && System.currentTimeMillis() - deleteArmedAt < 3000;
+            String[][] icons = {{"trash", armed ? "wynnlabs.craft.delete_again" : "wynnlabs.craft.delete_tip"},
+                {"pencil", "wynnlabs.craft.rename_tip"}, {"copy", "wynnlabs.craft.copy_tip"}};
+            for (String[] ic : icons) {
+                right -= Ui.CHIP_H + 2;
+                int by = y + (rowH - Ui.CHIP_H) / 2;
+                Ui.iconButton(g, ic[0], right, by, ic[0].equals("trash") && armed, mx, my);
+                String what = ic[0];
+                act(right, by, Ui.CHIP_H + 2, Ui.CHIP_H, () -> rowAction(saved, name, what), List.of(L.c(ic[1])));
+                right -= Theme.SP_1;
             }
-            g.drawString(tab.font, Kit.ink(line), x, bottom, Theme.INK_3, false);
-            bottom += 10;
+            right -= Theme.SP_3;
+        } else if (mark != null) {
+            int sw = Type.META.width(tab.font, mark) + 2 * Theme.SP_2;
+            Ui.seal(g, tab.font, mark, right - sw, y + (rowH - Ui.SEAL_H) / 2, ok ? Theme.GOOD : Theme.WARN);
+            right -= sw + Theme.SP_3;
+        }
+        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, s.name(), right - tx), tx, y, hover ? Theme.LINK : Theme.INK);
+        Type.META.draw(g, tab.font, Type.META.fit(tab.font, sub, right - tx), tx, y + Type.LABEL.lineHeight, Theme.INK_3);
+        act(x, y, w, rowH, () -> openSaved(s), null);
+    }
+
+    private void rowAction(SavedRecipes saved, String name, String what) {
+        switch (what) {
+            case "copy" -> {
+                SavedRecipes.Saved c = saved.copy(name);
+                Crafting.persist();
+                if (c != null) {
+                    tab.flash.accept(L.t("wynnlabs.craft.copied", c.name()));
+                }
+            }
+            case "pencil" -> {
+                if (name.equals(renaming)) {
+                    stopRenaming();
+                    return;
+                }
+                renaming = name;
+                tab.saveName.setValue(name);
+                UiInput.focus(tab.saveName, tab.screen::setFocused);
+            }
+            default -> deleteClick(name);
         }
     }
 
@@ -199,15 +178,14 @@ final class CraftSavedPanel extends CraftPanel {
     void saveCurrent() {
         String name = tab.saveName.getValue().strip();
         if (name.isEmpty()) {
-            tab.screen.setFocused(tab.saveName);
-            tab.saveName.setFocused(true);
+            UiInput.focus(tab.saveName, tab.screen::setFocused);
             tab.flash.accept(L.t("wynnlabs.craft.name_first"));
             return;
         }
         SavedRecipes saved = Crafting.saved();
         if (renaming != null) {
             if (name.equals(renaming)) {
-                stopRenaming();                         // the same name: nothing to change
+                stopRenaming();
                 return;
             }
             if (saved.rename(renaming, name)) {
@@ -236,6 +214,35 @@ final class CraftSavedPanel extends CraftPanel {
         tab.flash.accept(L.t("wynnlabs.craft.saved_one", name));
     }
 
+    private void copyCode() {
+        List<String> names = new ArrayList<>(Arrays.asList(tab.slots));
+        RecipeCode.Recipe here = new RecipeCode.Recipe(tab.type, tab.minLevel, tab.tier1, tab.tier2, tab.speed, names);
+        // WynnBuilder's code, the one everyone shares; the mod's own when WynnBuilder lacks an id
+        String code = WynnBuilderCode.encode(here);
+        Minecraft.getInstance().keyboardHandler.setClipboard(code != null ? code : RecipeCode.encode(here));
+        tab.flash.accept(L.t("wynnlabs.craft.code_copied"));
+    }
+
+    private void pasteCode() {
+        String text = Minecraft.getInstance().keyboardHandler.getClipboard();
+        RecipeCode.Recipe r = WynnBuilderCode.looksLike(text) ? WynnBuilderCode.decode(text) : RecipeCode.decode(text, tab.byName.keySet());
+        if (r == null) {
+            tab.flash.accept(L.t("wynnlabs.craft.code_bad"));
+            return;
+        }
+        tab.type = r.type();
+        tab.minLevel = r.minLevel();
+        tab.tier1 = r.tier1();
+        tab.tier2 = r.tier2();
+        tab.speed = r.speed();
+        for (int i = 0; i < Craft.SLOTS; i++) {
+            tab.slots[i] = r.slots().get(i);
+        }
+        tab.drawers.close();
+        tab.view = CraftingTab.VIEW_RECIPE;
+        tab.flash.accept(L.t("wynnlabs.craft.code_read"));
+    }
+
     private void openSaved(SavedRecipes.Saved s) {
         if (s.recipe() == null) {
             return;
@@ -261,7 +268,8 @@ final class CraftSavedPanel extends CraftPanel {
                 }
             }
         }
-        tab.drawerOpen = false;
+        tab.drawers.close();
+        tab.view = CraftingTab.VIEW_RECIPE;
         tab.flash.accept(L.t("wynnlabs.craft.opened", s.name()));
     }
 }

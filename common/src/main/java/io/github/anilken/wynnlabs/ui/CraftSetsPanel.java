@@ -12,9 +12,7 @@ import io.github.anilken.wynnlabs.crafting.SearchRunner;
 import io.github.anilken.wynnlabs.crafting.SetSuggestions;
 import io.github.anilken.wynnlabs.crafting.Suggestions;
 import io.github.anilken.wynnlabs.crafting.Types;
-import io.github.anilken.wynnlabs.crafting.WhatCanICraft;
 import io.github.anilken.wynnlabs.crafting.WynnBuilderCode;
-import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.ui.CraftingTab.Act;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -24,33 +22,35 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
-import static io.github.anilken.wynnlabs.ui.CraftFormat.costLine;
-import static io.github.anilken.wynnlabs.ui.CraftFormat.costText;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.range;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.skill;
-import static io.github.anilken.wynnlabs.ui.CraftFormat.typeIcon;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.typeName;
 
-/** The crafting tab's suggested whole sets: their cards, the detail list over the page, copying and saving. */
+/**
+ * Whole suggested sets on the Öneriler page: one row a set in the same two groups as the pieces
+ * (from what is owned, with a few bought); its "Parçalar ›" opens the pieces in a drawer, where each
+ * goes to the Tarif page or its code is copied, and the whole set is saved or its codes copied.
+ */
 final class CraftSetsPanel extends CraftPanel {
 
     private final SearchRunner setRunner = new SearchRunner();
-    CraftSearch.Budget setting;
+    private CraftSearch.Budget setting;
     private String setsFor = "";
-    int setPage;
 
     CraftSetsPanel(CraftingTab tab) {
         super(tab);
     }
 
-    /** The menu was closed: a running search stops. */
     void stop() {
         setRunner.cancel();
         setting = null;
         setsFor = "";
+    }
+
+    boolean running() {
+        return setting != null && !setting.cancelled();
     }
 
     void startSets(boolean force) {
@@ -60,9 +60,7 @@ final class CraftSetsPanel extends CraftPanel {
         }
         setsFor = k;
         tab.sets.clear();
-        setPage = 0;
-        WhatCanICraft.Stock st = CraftingTab.previewLevels.isEmpty() ? tab.stock
-                : new WhatCanICraft.Stock(tab.stock.ingredients(), tab.stock.materials(), CraftingTab.previewLevels);
+        var st = tab.suggestionsPanel.stockForSearch();
         List<Ingredient> all = tab.ingredients;
         Map<String, CraftSearch.Price> pr = new HashMap<>(tab.prices);
         String weapon = tab.suggestionsPanel.suggestTypes().get(0);
@@ -74,219 +72,105 @@ final class CraftSetsPanel extends CraftPanel {
         });
     }
 
-    private boolean setLocked(SetSuggestions.CraftSet s) {
-        for (SetSuggestions.Piece pc : s.pieces()) {
-            if (pc.layout() != null && pieceLocked(pc)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean pieceLocked(SetSuggestions.Piece pc) {
-        int lv = tab.level(pc.recipe().profession());
-        if (pc.recipe().minLevel() > lv) {
-            return true;
-        }
-        for (Ingredient in : pc.layout().slots()) {
-            if (!in.empty() && in.level() > lv) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean setShown(SetSuggestions.CraftSet s) {
-        return switch (CraftSuggestionsPanel.SUGGEST_FILTERS[tab.suggestionsPanel.suggestFilter]) {
-            case "craftable" -> !setLocked(s);
-            case "stock" -> s.fromStock();
-            case "cheap" -> setCost(s)[0] < 64 * 9 && setCost(s)[2] == 0;
-            default -> true;
-        };
-    }
-
-    /** {cost, priced copies, unpriced copies} of what a set needs bought, at today's prices. */
-    private long[] setCost(SetSuggestions.CraftSet s) {
-        long cost = 0;
-        long priced = 0;
-        long unknown = 0;
-        for (String n : s.bought()) {
-            CraftSearch.Price p = tab.prices.get(n);
-            if (p == null) {
-                unknown++;
-                tab.wantedPrices.add(n);
-            } else {
-                cost += p.emeralds();
-                priced++;
-            }
-        }
-        return new long[] {cost, priced, unknown};
-    }
-
-    void drawSets(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        List<SetSuggestions.CraftSet> list = new ArrayList<>();
-        for (SetSuggestions.CraftSet s : tab.sets) {
-            if (setShown(s)) {
-                list.add(s);
-            }
-        }
-        List<String> goals = tab.suggestionsPanel.goalOrder();
-        list.sort((a, b) -> {
-            if (a.fromStock() != b.fromStock()) {
-                return a.fromStock() ? -1 : 1;
-            }
-            int ga = goals.indexOf(a.goal().key());
-            int gb = goals.indexOf(b.goal().key());
-            if (ga != gb) {
-                return Integer.compare(ga, gb);
-            }
-            return Integer.compare(a.step(), b.step());
-        });
-        boolean running = setting != null && !setting.cancelled();
-        int cols = w >= CraftingTab.TWO_COLUMNS_MIN ? 2 : 1;
-        int pageBar = 16;
-        int gap = 6;
-        // as many rows of cards (up to 3) as fit their pieces, totals and buttons (110px each)
-        int rows = Math.max(1, Math.min(3, (h - pageBar + gap) / (110 + gap)));
-        int per = rows * cols;
-        int cardH = (h - pageBar - (rows - 1) * gap) / rows;
-        int cardW = (w - (cols - 1) * 8) / cols;
-        int pages = Math.max(1, (list.size() + per - 1) / per);
-        setPage = Math.max(0, Math.min(setPage, pages - 1));
-        if (list.isEmpty()) {
-            String t = L.t(running ? "wynnlabs.craft.set_working" : "wynnlabs.craft.suggest_none");
-            text(g, t, x + (w - width(t)) / 2, y + 40, Theme.INK_3);
-        }
-        for (int i = 0; i < per && setPage * per + i < list.size(); i++) {
-            int cx = x + (i % cols) * (cardW + 8);
-            int cy = y + (i / cols) * (cardH + gap);
-            setCard(g, list.get(setPage * per + i), cx, cy, cardW, cardH, mx, my);
-        }
-        int by = y + h - pageBar + 2;
-        String count = L.n(running ? "wynnlabs.craft.set_count_running" : "wynnlabs.craft.set_count", list.size(), list.size(),
-                setPage + 1, pages);
-        fine(g, count, x, by + 2, Theme.INK_3);
-        pageButtons(g, x + w, by, setPage, pages, pg -> setPage = pg, mx, my);
-        tab.pageCount = pages;
-        if (tab.setDetail != null) {
-            setDetail(g, x, y, w, h, mx, my);
-        }
-    }
-
-    /** The ‹ 1 2 3 › buttons ending at {@code right}. */
-    private void pageButtons(GuiGraphics g, int right, int by, int page, int pages,
-                             java.util.function.IntConsumer go, int mx, int my) {
-        int px = right;
-        List<int[]> buttons = new ArrayList<>();
-        buttons.add(new int[] {page + 1, -1});
-        int from = Math.max(0, Math.min(page - 3, pages - 7));
-        for (int pg = Math.min(pages - 1, from + 6); pg >= from; pg--) {
-            buttons.add(new int[] {pg, 0});
-        }
-        buttons.add(new int[] {page - 1, -2});
-        for (int[] b : buttons) {
-            String label = b[1] < 0 ? "" : String.valueOf(b[0] + 1);
-            int bw = Math.max(14, width(label) + 8);
-            px -= bw;
-            boolean usable = b[0] >= 0 && b[0] < pages;
-            boolean on = b[1] == 0 && b[0] == page;
-            int state = on ? Kit.ON : usable && in(mx, my, px, by, bw, ROW_H) ? Kit.HOVER : Kit.REST;
-            Kit.button(g, px, by, bw, ROW_H, state);
-            if (b[1] < 0) {
-                Art.icon(g, b[1] == -1 ? "chevron-right" : "chevron-left", px + (bw - 8) / 2, by + 2, 8,
-                        usable ? Kit.buttonText(state) : Theme.CREAM_DIM);
-            } else {
-                wood(g, label, px + (bw - width(label)) / 2, by + 1, Kit.buttonText(state), !on);
-            }
-            if (usable) {
-                int target = b[0];
-                tab.acts.add(new Act(px, by, bw, ROW_H, () -> go.accept(target), null, null));
-            }
-            px -= 2;
-        }
-    }
-
-    private String setTitle(SetSuggestions.CraftSet s) {
+    String title(SetSuggestions.CraftSet s) {
         String bracket = "";
         for (SetSuggestions.Piece pc : s.pieces()) {
             if (pc.recipe() != null && Types.armour(pc.type())) {
-                bracket = pc.recipe().bracket();
+                bracket = pc.recipe().bracket().replace('-', '–');
                 break;
             }
         }
         return L.t("wynnlabs.craft.set_name", L.t("wynnlabs.craft.goalset." + s.goal().key()), bracket);
     }
 
-    /** The main value of a piece for the set's goal: its first goal identification's range. */
-    private String pieceValue(SetSuggestions.CraftSet s, SetSuggestions.Piece pc) {
-        if (pc.layout() == null) {
-            return "—";
-        }
-        for (String id : s.goal().goal().weights().keySet()) {
-            Craft.Range v = pc.layout().result().ids().get(id);
-            if (v != null) {
-                return range(v, tab.unit(id));
-            }
-        }
-        return "✔";
+    private String cost(SetSuggestions.CraftSet s) {
+        return tab.liveCost(s.bought());
     }
 
-    private void setCard(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, int h, int mx, int my) {
-        boolean hover = in(mx, my, x, y, w, h);
-        Kit.card(g, x, y, w, h, s.fromStock() ? Theme.GOOD : Theme.GOLD_DEEP, hover);
-        int ix = x + 6;
-        // title and marks
+    /** The sets in their two groups; returns the height. */
+    int list(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
+        List<SetSuggestions.CraftSet> own = new ArrayList<>();
+        List<SetSuggestions.CraftSet> buy = new ArrayList<>();
+        for (SetSuggestions.CraftSet s : tab.sets) {
+            if (tab.suggestionsPanel.shows(s)) {
+                (s.fromStock() ? own : buy).add(s);
+            }
+        }
+        List<String> goals = tab.suggestionsPanel.goalOrder();
+        java.util.Comparator<SetSuggestions.CraftSet> order = (a, b) -> {
+            int ga = goals.indexOf(a.goal().key());
+            int gb = goals.indexOf(b.goal().key());
+            return ga != gb ? Integer.compare(ga, gb) : Integer.compare(a.step(), b.step());
+        };
+        own.sort(order);
+        buy.sort(order);
+        int cy = y;
+        if (own.isEmpty() && buy.isEmpty()) {
+            Type.MUTED.draw(g, tab.font, L.t(running() ? "wynnlabs.craft.set_working" : "wynnlabs.craft.suggest_none"), x, cy, Theme.INK_3);
+            return Type.MUTED.lineHeight;
+        }
+        int rowH = Type.LABEL.lineHeight + Type.META.lineHeight;
+        for (int grp = 0; grp < 2; grp++) {
+            List<SetSuggestions.CraftSet> list = grp == 0 ? own : buy;
+            if (list.isEmpty()) {
+                continue;
+            }
+            cy = tab.recipePanel.head(g, L.t(grp == 0 ? "wynnlabs.craft.group_own" : "wynnlabs.craft.group_buy"),
+                    String.valueOf(list.size()), x, cy, w);
+            for (SetSuggestions.CraftSet s : list) {
+                if (cy + rowH > top && cy < bottom) {
+                    row(g, s, x, cy, w, rowH, mx, my);
+                }
+                cy += rowH + Theme.SP_2;
+            }
+            cy += Theme.SP_5;
+        }
+        return cy - y;
+    }
+
+    private void row(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, int rowH, int mx, int my) {
+        boolean hover = in(mx, my, x, y, w, rowH);
+        CraftIcons.typeSlot(g, s.pieces().get(0).type(), x, y + (rowH - 18) / 2, 18, Theme.INK_2);
+        int tx = x + 18 + Theme.SP_3;
+        String open = L.t("wynnlabs.craft.set_view");
+        int ow = Ui.chipWidth(tab.font, open);
+        int right = x + w - ow;
+        Ui.chip(g, tab.font, open, right, y + (rowH - Ui.CHIP_H) / 2, ow, false, false, false, mx, my);
+        clipped(right, y + (rowH - Ui.CHIP_H) / 2, ow, Ui.CHIP_H, () -> tab.drawers.openSet(s), null, List.of(L.c("wynnlabs.craft.set_view_tip")));
+        right -= Theme.SP_4;
         int notWorn = 0;
         for (SetSuggestions.Piece pc : s.pieces()) {
-            if (pc.layout() != null && !pc.recipe().consumable()
-                    && !CraftChecks.gaps(pc.layout().result().requirements(), tab.points).isEmpty()) {
+            if (pc.layout() != null && !pc.recipe().consumable() && !CraftChecks.gaps(pc.layout().result().requirements(), tab.points).isEmpty()) {
                 notWorn++;
             }
         }
-        boolean locked = setLocked(s);
-        int right = x + w - 6;
-        String stockTag = s.fromStock() ? L.t("wynnlabs.craft.suggest_in_stock")
-                : L.t("wynnlabs.craft.suggest_to_buy", s.bought().size());
-        right -= tag(g, right, y + 3, stockTag, s.fromStock(), true) + 3;
-        String wear = notWorn == 0 ? L.t("wynnlabs.craft.set_all_wear") : L.t("wynnlabs.craft.set_not_worn", notWorn);
-        right -= tag(g, right, y + 3, wear, notWorn == 0, true) + 3;
-        int tx = ix;
-        if (locked) {
-            Art.icon(g, "lock", tx, y + 4, 8, Theme.paperRgb(Theme.BAD));
-            tx += 10;
-        }
-        text(g, Component.literal(fit(setTitle(s), right - tx - 4)).withStyle(UiFont::bold), tx, y + 4, Theme.INK);
-        String why = L.t("wynnlabs.craft.suggest_tier." + s.tier().name().toLowerCase(Locale.ROOT));
-        fine(g, why, ix, y + 15, Theme.ACCENT);
-        // the pieces, two columns
-        int py = y + 25;
-        int colW = (w - 12 - 6) / 2;
-        int rowsH = Math.max(8, Math.min(10, (h - 25 - 34) / 5));
-        for (int i = 0; i < s.pieces().size(); i++) {
-            SetSuggestions.Piece pc = s.pieces().get(i);
-            int px = ix + (i / 5) * (colW + 6);
-            int ry = py + (i % 5) * rowsH;
-            boolean pl = pc.layout() != null && pieceLocked(pc);
-            Art.icon(g, typeIcon(pc.type()), px, ry, 8, Theme.paperRgb(pc.layout() == null ? Theme.INK_3 : Theme.INK_2));
-            String nm = typeName(pc.type());
-            fine(g, fitFine(nm, colW / 2), px + 10, ry + 1, pc.layout() == null ? Theme.INK_3 : pl ? Theme.BAD : Theme.INK);
-            String v = pieceValue(s, pc);
-            fine(g, fitFine(v, colW / 2 - 4), px + colW - fineWidth(fitFine(v, colW / 2 - 4)), ry + 1,
-                    pc.layout() == null ? Theme.INK_3 : Theme.GOOD);
-        }
-        // totals and the highest requirement
-        int ty = py + 5 * rowsH + 2;
+        String mark = s.bought().isEmpty() ? L.t("wynnlabs.craft.in_stock_all") : L.n("wynnlabs.craft.to_buy_n", s.bought().size()) + CraftSuggestionsPanel.costPart(cost(s));
+        int sw = Type.META.width(tab.font, mark) + 2 * Theme.SP_2;
+        Ui.seal(g, tab.font, mark, right - sw, y + (rowH - Ui.SEAL_H) / 2, s.bought().isEmpty() ? Theme.GOOD : Theme.WARN);
+        right -= sw + Theme.SP_4;
+        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, title(s), right - tx), tx, y, hover ? Theme.LINK : Theme.TIER_LEGENDARY);
         StringBuilder tot = new StringBuilder();
-        int shownIds = 0;
+        int shown = 0;
         for (String id : s.goal().goal().weights().keySet()) {
             Craft.Range v = s.totals().get(id);
-            if (v == null || shownIds == 3) {
+            if (v == null || shown == 2) {
                 continue;
             }
             tot.append(tot.isEmpty() ? "" : " · ").append(tab.statName(id)).append(' ').append(range(v, tab.unit(id)));
-            shownIds++;
+            shown++;
         }
-        fine(g, fitFine(L.t("wynnlabs.craft.set_total") + " " + (tot.isEmpty() ? "—" : tot), w - 12), ix, ty, Theme.INK);
+        String sub = L.n("wynnlabs.craft.set_pieces", s.found()) + (tot.isEmpty() ? "" : " · " + tot)
+                + (notWorn > 0 ? " · " + L.t("wynnlabs.craft.set_not_worn", notWorn) : "");
+        Type.META.draw(g, tab.font, Type.META.fit(tab.font, sub, right - tx), tx, y + Type.LABEL.lineHeight, notWorn > 0 ? Theme.WARN : Theme.GOOD);
+        clipped(x, y, w - ow - Theme.SP_4, rowH, () -> tab.drawers.openSet(s), null, null);
+    }
+
+    /** The drawer: the set's pieces, then save all and copy all codes; returns the height. */
+    int detail(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, int mx, int my) {
+        if (s == null) {
+            return 0;
+        }
+        int cy = y;
         int maxSkill = -1;
         for (int k = 0; k < 5; k++) {
             if (s.maxRequirements()[k] > 0 && (maxSkill < 0 || s.maxRequirements()[k] > s.maxRequirements()[maxSkill])) {
@@ -296,121 +180,66 @@ final class CraftSetsPanel extends CraftPanel {
         String req = maxSkill < 0 ? L.t("wynnlabs.craft.set_no_req")
                 : L.t("wynnlabs.craft.set_req", skill(maxSkill), s.maxRequirements()[maxSkill], tab.points[maxSkill]);
         boolean reqOk = maxSkill < 0 || tab.points[maxSkill] >= s.maxRequirements()[maxSkill];
-        fine(g, fitFine(req, w - 12), ix, ty + 9, reqOk ? Theme.INK_2 : Theme.BAD);
-        // cost and buttons
-        long[] c = setCost(s);
-        String cost = s.bought().isEmpty() ? L.t("wynnlabs.craft.cost_none")
-                : costLine(costText(c[0], c[1] > 0, c[2] > 0));
-        int by = y + h - 14;
-        fine(g, cost, ix, by + 2, s.bought().isEmpty() ? Theme.GOOD : Theme.PRICE);
-        String viewL = L.t("wynnlabs.craft.set_view");
-        String saveL = L.t("wynnlabs.craft.save");
-        int vw = width(viewL) + 10;
-        int sw = width(saveL) + 10;
-        int vx = x + w - 6 - vw;
-        int sx = vx - 3 - sw;
-        int vs = in(mx, my, vx, by, vw, 11) ? Kit.HOVER : Kit.ON;
-        Kit.button(g, vx, by, vw, 11, vs);
-        wood(g, viewL, vx + 5, by + 1, Kit.buttonText(vs), false);
-        int ss = in(mx, my, sx, by, sw, 11) ? Kit.HOVER : Kit.REST;
-        Kit.button(g, sx, by, sw, 11, ss);
-        wood(g, saveL, sx + 5, by + 1, Kit.buttonText(ss), true);
-        tab.acts.add(new Act(vx, by, vw, 11, () -> tab.setDetail = s, null, List.of(L.c("wynnlabs.craft.set_view_tip"))));
-        tab.acts.add(new Act(sx, by, sw, 11, () -> saveSet(s), null, List.of(L.c("wynnlabs.craft.set_save_tip"))));
-    }
-
-    /** The set's pieces in a list over the page: open or copy each, copy all codes, save all. */
-    private void setDetail(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        SetSuggestions.CraftSet s = tab.setDetail;
-        g.nextStratum();
-        Kit.card(g, x, y, w, h, Theme.GOLD_DEEP);
-        tab.overlayBox = new int[] {x, y, w, h};
-        int ix = x + 8;
-        text(g, Component.literal(setTitle(s)).withStyle(UiFont::bold), ix, y + 6, Theme.INK);
-        // close, copy all, save all on the title line
-        int bx = x + w - 8;
-        String[][] bs = {{"x", "", "close"}, {"device-floppy", L.t("wynnlabs.craft.save"), "save"},
-            {"copy", L.t("wynnlabs.craft.set_copy_all"), "codes"}};
-        for (String[] b : bs) {
-            int bw = b[1].isEmpty() ? 14 : width(b[1]) + 18;
-            bx -= bw;
-            int st = in(mx, my, bx, y + 4, bw, ROW_H) ? Kit.HOVER : Kit.REST;
-            Kit.button(g, bx, y + 4, bw, ROW_H, st);
-            Art.icon(g, b[0], bx + (b[1].isEmpty() ? 3 : 4), y + 6, 8, Kit.buttonText(st));
-            if (!b[1].isEmpty()) {
-                wood(g, b[1], bx + 14, y + 6, Kit.buttonText(st), true);
-            }
-            String what = b[2];
-            tab.overlay.add(new Act(bx, y + 4, bw, ROW_H, () -> {
-                switch (what) {
-                    case "close" -> tab.setDetail = null;
-                    case "save" -> saveSet(s);
-                    default -> copySetCodes(s);
-                }
-            }, null, null));
-            bx -= 3;
-        }
-        int ry = y + 22;
-        int rowH = Math.max(14, Math.min(20, (h - 30) / s.pieces().size()));
-        for (int i = 0; i < s.pieces().size(); i++) {
-            SetSuggestions.Piece pc = s.pieces().get(i);
-            boolean hover = in(mx, my, x + 4, ry, w - 8, rowH);
-            Kit.row(g, x + 4, ry, w - 8, rowH, i, hover);
-            int ty = ry + (rowH - 8) / 2;
-            Art.icon(g, typeIcon(pc.type()), ix, ty, 8, Theme.paperRgb(Theme.INK_2));
-            String nm = typeName(pc.type()) + (pc.recipe() == null ? "" : " " + pc.recipe().bracket());
-            text(g, nm, ix + 11, ty, pc.layout() == null ? Theme.INK_3 : Theme.INK);
+        Type.META.draw(g, tab.font, Type.META.fit(tab.font, req, w), x, cy, reqOk ? Theme.INK_2 : Theme.BAD);
+        cy += Type.META.lineHeight + Theme.SP_4;
+        int rowH = Type.BODY.lineHeight + Type.META.lineHeight;
+        for (SetSuggestions.Piece pc : s.pieces()) {
+            CraftIcons.typeSlot(g, pc.type(), x, cy + (rowH - 18) / 2, 18, pc.layout() == null ? Theme.INK_3 : Theme.INK_2);
+            int tx = x + 18 + Theme.SP_3;
+            String nm = typeName(pc.type()) + (pc.recipe() == null ? "" : " · Lv " + pc.recipe().bracket().replace('-', '–'));
             if (pc.layout() == null) {
-                fine(g, L.t("wynnlabs.craft.set_piece_none"), ix + 120, ty + 1, Theme.INK_3);
-                ry += rowH;
+                Type.BODY.draw(g, tab.font, nm, tx, cy, Theme.INK_3);
+                Type.META.draw(g, tab.font, L.t("wynnlabs.craft.set_piece_none"), tx, cy + Type.BODY.lineHeight, Theme.INK_3);
+                cy += rowH + Theme.SP_2;
                 continue;
             }
-            String v = pieceValue(s, pc);
-            text(g, v, ix + 120, ty, Theme.GOOD);
-            boolean pl = pieceLocked(pc);
-            String note = pl ? L.t("wynnlabs.craft.suggest_locked", Professions.name(pc.recipe().profession()
-                    .toUpperCase(Locale.ROOT)), pieceNeeds(pc))
-                    : pc.layout().bought().isEmpty() ? L.t("wynnlabs.craft.suggest_in_stock")
-                    : L.t("wynnlabs.craft.suggest_to_buy", pc.layout().bought().size());
-            fine(g, note, ix + 210, ty + 1, pl ? Theme.BAD : pc.layout().bought().isEmpty() ? Theme.GOOD : Theme.PRICE);
             String openL = L.t("wynnlabs.craft.suggest_open");
             String codeL = L.t("wynnlabs.craft.code");
-            int ow = width(openL) + 10;
-            int cw = width(codeL) + 10;
-            int ox = x + w - 10 - ow;
-            int cx = ox - 3 - cw;
-            int by = ry + (rowH - 11) / 2;
-            int os = in(mx, my, ox, by, ow, 11) ? Kit.HOVER : Kit.ON;
-            Kit.button(g, ox, by, ow, 11, os);
-            wood(g, openL, ox + 5, by + 1, Kit.buttonText(os), false);
-            int cs = in(mx, my, cx, by, cw, 11) ? Kit.HOVER : Kit.REST;
-            Kit.button(g, cx, by, cw, 11, cs);
-            wood(g, codeL, cx + 5, by + 1, Kit.buttonText(cs), true);
-            List<Component> tip = new ArrayList<>();
-            for (Ingredient in : pc.layout().slots()) {
-                tip.add(Component.literal(in.empty() ? "—" : in.name() + (tab.owned(in.name()) > 0 ? " ×" + tab.owned(in.name()) : ""))
-                        .withStyle(in.empty() ? ChatFormatting.GRAY : ChatFormatting.WHITE));
-            }
+            int ow = Ui.chipWidth(tab.font, openL);
+            int cw = Ui.chipWidth(tab.font, codeL);
+            int bx = x + w - ow;
+            int by = cy + (rowH - Ui.CHIP_H) / 2;
+            Ui.chip(g, tab.font, openL, bx, by, ow, false, false, false, mx, my);
             SetSuggestions.Piece piece = pc;
-            tab.overlay.add(new Act(ox, by, ow, 11, () -> {
-                openPiece(s, piece);
-                tab.setDetail = null;
-            }, null, List.of(L.c("wynnlabs.craft.suggest_open_tip"))));
-            tab.overlay.add(new Act(cx, by, cw, 11, () -> {
+            tab.overlay.add(new Act(bx, by, ow, Ui.CHIP_H, () -> openPiece(s, piece), null, List.of(L.c("wynnlabs.craft.suggest_open_tip"))));
+            bx -= Theme.SP_2 + cw;
+            Ui.chip(g, tab.font, codeL, bx, by, cw, false, false, false, mx, my);
+            tab.overlay.add(new Act(bx, by, cw, Ui.CHIP_H, () -> {
                 Minecraft.getInstance().keyboardHandler.setClipboard(pieceCode(piece));
                 tab.flash.accept(L.t("wynnlabs.craft.code_copied"));
             }, null, null));
-            tab.overlay.add(new Act(x + 4, ry, w - 8, rowH, null, null, tip));
-            ry += rowH;
+            int right = bx - Theme.SP_4;
+            Type.BODY.draw(g, tab.font, Type.BODY.fit(tab.font, nm, right - tx), tx, cy);
+            String v = pieceValue(s, pc);
+            String note = pc.layout().bought().isEmpty() ? L.t("wynnlabs.craft.in_stock_all") : L.n("wynnlabs.craft.to_buy_n", pc.layout().bought().size());
+            Type.META.draw(g, tab.font, Type.META.fit(tab.font, v + " · " + note, right - tx), tx, cy + Type.BODY.lineHeight, Theme.GOOD);
+            List<Component> tip = new ArrayList<>();
+            for (Ingredient in : pc.layout().slots()) {
+                tip.add(Component.literal(in.empty() ? "—" : in.name()).withStyle(in.empty() ? ChatFormatting.GRAY : ChatFormatting.WHITE));
+            }
+            tab.overlay.add(new Act(x, cy, right - x, rowH, null, null, tip));
+            cy += rowH + Theme.SP_2;
         }
+        cy += Theme.SP_4;
+        String save = L.t("wynnlabs.craft.set_save_all");
+        String codes = L.t("wynnlabs.craft.set_copy_all");
+        int sw = Ui.iconChipWidth(tab.font, "device-floppy", save, false);
+        Ui.iconChip(g, tab.font, "device-floppy", save, false, x, cy, sw, false, mx, my);
+        tab.overlay.add(new Act(x, cy, sw, Ui.CHIP_H, () -> saveSet(s), null, List.of(L.c("wynnlabs.craft.set_save_tip"))));
+        int cw = Ui.iconChipWidth(tab.font, "copy", codes, false);
+        Ui.iconChip(g, tab.font, "copy", codes, false, x + sw + Theme.SP_2, cy, cw, false, mx, my);
+        tab.overlay.add(new Act(x + sw + Theme.SP_2, cy, cw, Ui.CHIP_H, () -> copySetCodes(s), null, null));
+        return cy + Ui.CHIP_H - y;
     }
 
-    private static int pieceNeeds(SetSuggestions.Piece pc) {
-        int n = pc.recipe().minLevel();
-        for (Ingredient in : pc.layout().slots()) {
-            n = Math.max(n, in.empty() ? 0 : in.level());
+    private String pieceValue(SetSuggestions.CraftSet s, SetSuggestions.Piece pc) {
+        for (String id : s.goal().goal().weights().keySet()) {
+            Craft.Range v = pc.layout().result().ids().get(id);
+            if (v != null) {
+                return tab.statName(id) + " " + range(v, tab.unit(id));
+            }
         }
-        return n;
+        return "✔";
     }
 
     private RecipeCode.Recipe pieceRecipe(SetSuggestions.Piece pc) {
@@ -418,8 +247,7 @@ final class CraftSetsPanel extends CraftPanel {
         for (Ingredient in : pc.layout().slots()) {
             names.add(in.empty() ? null : in.name());
         }
-        return new RecipeCode.Recipe(pc.recipe().type(), pc.recipe().minLevel(), pc.tier1(), pc.tier2(), Craft.Speed.NORMAL,
-                names);
+        return new RecipeCode.Recipe(pc.recipe().type(), pc.recipe().minLevel(), pc.tier1(), pc.tier2(), Craft.Speed.NORMAL, names);
     }
 
     private String pieceCode(SetSuggestions.Piece pc) {
@@ -451,7 +279,8 @@ final class CraftSetsPanel extends CraftPanel {
         }
         tab.weights.clear();
         tab.weights.putAll(s.goal().goal().weights());
-        tab.view = 0;
+        tab.drawers.close();
+        tab.view = CraftingTab.VIEW_RECIPE;
         tab.scroll = 0;
         tab.flash.accept(L.t("wynnlabs.craft.applied"));
     }

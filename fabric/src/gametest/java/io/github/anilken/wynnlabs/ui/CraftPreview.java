@@ -111,28 +111,6 @@ final class CraftPreview {
         m.invoke(CraftingTab.INSTANCE);
     }
 
-    /** Opens a slot's ingredient list. */
-    static void openSlot(int slot) throws ReflectiveOperationException {
-        Class<?> drop = Class.forName("io.github.anilken.wynnlabs.ui.CraftingTab$Drop");
-        Object slotDrop = Arrays.stream(drop.getEnumConstants()).filter(c -> c.toString().equals("SLOT")).findFirst().orElseThrow();
-        Method toggle = CraftingTab.class.getDeclaredMethod("toggle", drop, int.class, int[].class);
-        toggle.setAccessible(true);
-        // the anchor is where the slot was drawn last frame: the act list holds it
-        toggle.invoke(CraftingTab.INSTANCE, slotDrop, slot, gridCell(slot));
-    }
-
-    /** The grid cell of a slot from the last frame's click areas: the cells are the 2×3 block of equal areas. */
-    private static int[] gridCell(int slot) throws ReflectiveOperationException {
-        List<int[]> rects = rects("acts");
-        List<int[]> cells = new ArrayList<>();
-        for (int[] r : rects) {
-            if (r[3] == 26) {
-                cells.add(r);
-            }
-        }
-        return cells.get(slot);
-    }
-
     /** {x, y, w, h} of each click area in a list field ("acts" or "overlay"). */
     static List<int[]> rects(String field) throws ReflectiveOperationException {
         List<?> acts = (List<?>) get(CraftingTab.INSTANCE, field);
@@ -154,48 +132,6 @@ final class CraftPreview {
     static void hover(ClientGameTestContext ctx, int[] r) {
         double scale = ctx.computeOnClient(mc -> mc.getWindow().getGuiScale());
         ctx.getInput().setCursorPos((r[0] + r[2] / 2.0) * scale, (r[1] + r[3] / 2.0) * scale);
-    }
-
-    /**
-     * The planner page: mining at 34 (its spots, a last gather of 38 XP) and jeweling at 105, at
-     * GUI scale 3, then 2 (large) and 4 (compact); this level's XP is a made-up 1,200 of 4,100.
-     */
-    static void planShots(ClientGameTestContext ctx, java.util.function.Consumer<String> shot) {
-        // the spots come from the search index (SearchPreview.loadIndex)
-        ctx.waitFor(mc -> !"loading".equals(io.github.anilken.wynnlabs.search.ItemIndex.get().missing()), 20 * 60);
-        ctx.runOnClient(mc -> {
-            Map<String, Integer> lv = new LinkedHashMap<>(CraftingTab.previewLevels);
-            lv.put("mining", 34);
-            CraftingTab.previewLevels = lv;
-            CraftPlanPanel.previewXp = new int[] {1200, 4100};
-            io.github.anilken.wynnlabs.crafting.ProfessionXp.gained("MINING", 38);
-            CraftingTab.INSTANCE.view = 2;
-            CraftingTab.INSTANCE.scroll = 0;
-        });
-        for (String p : List.of("MINING", "JEWELING")) {
-            ctx.runOnClient(mc -> CraftingTab.INSTANCE.planPanel.profession = p);
-            for (int scale : new int[] {3, 2, 4}) {
-                ctx.runOnClient(mc -> {
-                    mc.options.guiScale().set(scale);
-                    mc.resizeDisplay();
-                });
-                ctx.waitTicks(5);
-                shot.accept("craft-plan-" + p.toLowerCase(java.util.Locale.ROOT) + "-gui" + scale);
-            }
-        }
-        ctx.runOnClient(mc -> {
-            mc.options.guiScale().set(3);
-            mc.resizeDisplay();
-            CraftPlanPanel.previewXp = null;
-            CraftingTab.INSTANCE.view = 0;
-        });
-        // the shared dropdown on the crafting tab: the item type's and the level's lists
-        for (String d : List.of("TYPE", "LEVEL")) {
-            ctx.runOnClient(mc -> CraftingTab.INSTANCE.toggle(CraftingTab.Drop.valueOf(d), -1, new int[] {150, 70, 110, 12}));
-            ctx.waitTicks(3);
-            shot.accept("craft-drop-" + d.toLowerCase(java.util.Locale.ROOT));
-            ctx.runOnClient(mc -> CraftingTab.INSTANCE.open = CraftingTab.Drop.NONE);
-        }
     }
 
     static void set(Object o, String field, Object value) throws ReflectiveOperationException {

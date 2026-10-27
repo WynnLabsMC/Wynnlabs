@@ -7,7 +7,6 @@ import io.github.anilken.wynnlabs.crafting.CraftData;
 import io.github.anilken.wynnlabs.crafting.CraftSearch;
 import io.github.anilken.wynnlabs.crafting.Ingredient;
 import io.github.anilken.wynnlabs.crafting.SearchRunner;
-import io.github.anilken.wynnlabs.ui.CraftingTab.Drop;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -20,12 +19,16 @@ import java.util.Map;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.dec;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.range;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.skill;
-import static io.github.anilken.wynnlabs.ui.CraftFormat.weightText;
 
-/** The crafting tab's optimiser: the goal chips, the search and its three best layouts. */
+/**
+ * The best three layouts for the goal ("En iyisini bul ›" starts the search): with what is owned,
+ * with up to two bought, and the strongest; each row shows its six ingredients, its result for the
+ * goal, what it needs bought and what that costs, and "Uygula". A hover lays the row on the grid.
+ */
 final class CraftOptimiserPanel extends CraftPanel {
 
-    private static final double[] WEIGHT_STEPS = {1.0, 0.5, 2.0};
+    private static final int MINI = 16;
+
     private final SearchRunner runner = new SearchRunner();
     private CraftSearch.Budget searching;
     String resultsFor = "";
@@ -34,122 +37,86 @@ final class CraftOptimiserPanel extends CraftPanel {
         super(tab);
     }
 
-    /** The menu was closed: a running search stops. */
     void stop() {
         runner.cancel();
+        searching = null;
     }
 
-    int drawOptimiser(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        int yy = y;
-        section(g, L.t("wynnlabs.craft.best"), x, yy, w);
-        yy += 11;
-        // goal chips, the conditions chip and the search button; the chips wrap onto more rows
-        // instead of running under the button when there are many
-        boolean running = searching != null && !searching.cancelled() && searching.progress() < 1.0;
-        String go = L.t(running ? "wynnlabs.craft.stop" : "wynnlabs.craft.search");
-        int gw = width(go) + 12;
-        int gx = x + w - gw;
-        int rowY = yy;
-        boolean gh = in(mx, my, gx, rowY, gw, ROW_H);
-        Kit.button(g, gx, rowY, gw, ROW_H, gh ? Kit.HOVER : Kit.ON);
-        wood(g, go, gx + 6, rowY + 2, gh ? Theme.INK_2 : Theme.INK, gh);
-        clipped(gx, rowY, gw, ROW_H, running ? this::stopSearch : this::startSearch, null,
-                List.of(L.c("wynnlabs.craft.search_tip")));
-        int limit = gx - 4;
-        int cx = x;
-        for (Map.Entry<String, Double> e : new ArrayList<>(tab.weights.entrySet())) {
-            String label = shortStat(e.getKey()) + " ×" + weightText(e.getValue());
-            int bw = Math.min(width(label) + 10, 90);
-            if (cx > x && cx + bw > limit) {
-                cx = x;
-                yy += ROW_H + 3;
-            }
-            boolean hover = in(mx, my, cx, yy, bw, ROW_H);
-            Kit.button(g, cx, yy, bw, ROW_H, Kit.ON);
-            wood(g, fit(label, bw - 8), cx + 4, yy + 2, Theme.INK, false);
-            String id = e.getKey();
-            clipped(cx, yy, bw, ROW_H, () -> cycleWeight(id), () -> tab.weights.remove(id),
-                    List.of(Component.literal(tab.statName(id)), L.c("wynnlabs.craft.goal_tip")));
-            if (hover) {
-                Kit.outline(g, cx, yy, bw, ROW_H, Theme.GOLD_EDGE);
-            }
-            cx += bw + 3;
-        }
-        int conds = tab.noNegative.size() + (tab.capToPoints ? 1 : 0) + (tab.floorIndex > 0 ? 1 : 0);
-        String cl = L.t("wynnlabs.craft.conditions", conds);
-        int cw = width(cl) + 10;
-        if (cx > x && cx + 15 + cw > limit) {
-            cx = x;
-            yy += ROW_H + 3;
-        }
-        int[] addAnchor = {cx, yy, 12, ROW_H};
-        chip(g, cx, yy, 12, "+", mx, my, () -> tab.toggle(Drop.GOAL, -1, addAnchor), List.of(L.c("wynnlabs.craft.goal_add")));
-        cx += 15;
-        int[] condAnchor = {cx, yy, cw, ROW_H};
-        chip(g, cx, yy, cw, cl, mx, my, () -> tab.toggle(Drop.CONDITIONS, -1, condAnchor), List.of(L.c("wynnlabs.craft.conditions_tip")));
-        yy += ROW_H + 4;
-        if (running) {
-            Kit.tealBar(g, x, yy + 2, w, 6, searching.progress(), false);
-            text(g, L.t("wynnlabs.craft.searching"), x, yy + 10, Theme.INK_3);
-            yy += 22;
-            return yy - y;
+    boolean running() {
+        return searching != null && !searching.cancelled() && searching.progress() < 1.0;
+    }
+
+    /** Draws the section from y across w; returns its height. */
+    int draw(GuiGraphics g, int x, int y, int w, int mx, int my) {
+        String goal = tab.weights.isEmpty() ? null : tab.statName(tab.weights.keySet().iterator().next());
+        int cy = tab.recipePanel.head(g, L.t("wynnlabs.craft.best"), goal == null ? null : L.t("wynnlabs.craft.best_for", goal), x, y, w);
+        if (running()) {
+            Kit.tealBar(g, x, cy + 2, Math.min(w, 240), 6, searching.progress(), false);
+            Type.MUTED.draw(g, tab.font, L.t("wynnlabs.craft.searching"), x, cy + 2 + 6 + Theme.SP_2, Theme.INK_3);
+            return cy + 2 + 6 + Theme.SP_2 + Type.MUTED.lineHeight - y;
         }
         if (tab.results.isEmpty()) {
-            text(g, fit(L.t("wynnlabs.craft.search_first"), w), x, yy, Theme.INK_3);
-            yy += 12;
-            return yy - y;
+            Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, L.t("wynnlabs.craft.search_first"), w), x, cy, Theme.INK_3);
+            return cy + Type.MUTED.lineHeight - y;
         }
         String[] names = {L.t("wynnlabs.craft.tier_own"), L.t("wynnlabs.craft.tier_two"), L.t("wynnlabs.craft.tier_any")};
         String mainId = tab.weights.isEmpty() ? null : tab.weights.keySet().iterator().next();
+        int labelW = 0;
+        for (String n : names) {
+            labelW = Math.max(labelW, Type.LABEL.width(tab.font, n));
+        }
+        String apply = L.t("wynnlabs.craft.apply");
+        int aw = Ui.chipWidth(tab.font, apply);
+        boolean wide = w >= 380;
         for (int i = 0; i < tab.results.size(); i++) {
             CraftSearch.Outcome o = tab.results.get(i);
-            int ry = yy;
-            boolean hover = in(mx, my, x, ry, w, 13);
-            Kit.row(g, x, ry, w, 13, i, hover);
-            text(g, fit(names[i], 62), x + 4, ry + 3, Theme.INK);
-            if (o.best() == null) {
-                text(g, L.t("wynnlabs.craft.no_layout"), x + 70, ry + 3, Theme.INK_3);
-                yy += 14;
+            int rh = MINI;
+            int ty = Type.BODY.yIn(cy, rh);
+            Type.LABEL.draw(g, tab.font, names[i], x, ty);
+            int sx = x + labelW + Theme.SP_5;
+            CraftSearch.Layout l = o.best();
+            if (l == null || l.slots().stream().allMatch(Ingredient::empty)) {
+                Type.MUTED.draw(g, tab.font, L.t(i == 0 ? "wynnlabs.craft.no_own" : "wynnlabs.craft.no_layout"), sx, ty, Theme.INK_3);
+                cy += rh + Theme.SP_2 + Theme.SP_2;
                 continue;
             }
-            CraftSearch.Layout l = o.best();
-            if (l.slots().stream().allMatch(Ingredient::empty)) {
-                text(g, L.t(i == 0 ? "wynnlabs.craft.no_own" : "wynnlabs.craft.no_layout"), x + 70, ry + 3,
-                        Theme.INK_3);
-                yy += 14;
-                continue;
+            if (wide) {
+                for (int k = 0; k < Craft.SLOTS; k++) {
+                    Ingredient in = l.slots().get(k);
+                    CraftIcons.slot(g, sx + k * (MINI + Theme.SP_1), cy, MINI, in.empty() ? null : CraftIcons.of(in.name()));
+                }
+                sx += Craft.SLOTS * (MINI + Theme.SP_1) + Theme.SP_4;
             }
             Craft.Range main = mainId == null ? null : l.result().ids().get(mainId);
-            String val = main == null ? dec(l.score(), 1) : range(main, tab.unit(mainId));
+            String val = main == null ? dec(l.score(), 1) : tab.statName(mainId) + " " + range(main, tab.unit(mainId));
             if (!o.complete()) {
                 val = "≈ " + val;
             }
-            text(g, val, x + 70, ry + 3, Theme.INK);
-            int mx2 = x + 70 + width(val) + 6;
+            int r = x + w - aw;
+            boolean ah = in(mx, my, r, cy + (rh - Ui.CHIP_H) / 2, aw, Ui.CHIP_H);
+            Ui.chip(g, tab.font, apply, r, cy + (rh - Ui.CHIP_H) / 2, aw, false, false, false, mx, my);
             List<CraftChecks.Gap> gaps = CraftChecks.gaps(l.result().requirements(), tab.points);
-            Art.icon(g, gaps.isEmpty() ? "check" : "x", mx2, ry + 2, 8, Theme.paperRgb(gaps.isEmpty() ? Theme.GOOD : Theme.BAD));
-            mx2 += 11;
-            if (!l.bought().isEmpty()) {
-                String cost = "~" + tab.liveCost(l.bought());
-                text(g, cost, mx2, ry + 3, Theme.PRICE);
-            }
-            String apply = L.t("wynnlabs.craft.apply");
-            int aw = width(apply) + 10;
-            int ax = x + w - aw - 1;
-            boolean ah = in(mx, my, ax, ry + 1, aw, 11);
-            Kit.button(g, ax, ry + 1, aw, 11, ah ? Kit.HOVER : Kit.REST);
-            wood(g, apply, ax + 5, ry + 2, Kit.buttonText(ah ? Kit.HOVER : Kit.REST), false);
             List<Component> tip = layoutTip(o, gaps);
-            clipped(ax, ry + 1, aw, 11, () -> apply(l), null, tip);
-            clipped(x, ry, w - aw - 2, 13, null, null, tip);
-            if (hover) {
+            clipped(r, cy + (rh - Ui.CHIP_H) / 2, aw, Ui.CHIP_H, () -> apply(l), null, tip);
+            r -= Theme.SP_4;
+            String live = l.bought().isEmpty() ? "?" : tab.liveCost(l.bought());
+            if (!live.equals("?")) {
+                String cost = "~" + live;
+                Type.NUMBER.drawRight(g, tab.font, cost, r, ty, Theme.PRICE);
+                r -= Type.NUMBER.width(tab.font, cost) + Theme.SP_4;
+            }
+            String need = l.bought().isEmpty() ? L.t("wynnlabs.craft.in_stock_all") : L.n("wynnlabs.craft.to_buy_n", l.bought().size());
+            int sw = Type.META.width(tab.font, need) + 2 * Theme.SP_2;
+            Ui.seal(g, tab.font, need, r - sw, cy + (rh - Ui.SEAL_H) / 2, l.bought().isEmpty() ? Theme.GOOD : Theme.WARN);
+            r -= sw + Theme.SP_4;
+            Type.BODY.draw(g, tab.font, Type.BODY.fit(tab.font, val, r - sx), sx, ty, gaps.isEmpty() ? Theme.GOOD : Theme.BAD);
+            clipped(x, cy, w - aw - Theme.SP_4, rh, null, null, tip);
+            if (ah || in(mx, my, x, cy, w, rh)) {
                 tab.nextPreview = l.slots();
             }
-            yy += 14;
+            cy += rh + Theme.SP_2 + Theme.SP_2;
         }
-        fine(g, fitFine(L.t("wynnlabs.craft.best_hint"), w), x, yy + 1, Theme.INK_3);
-        yy += 11;
-        return yy - y;
+        return cy - Theme.SP_2 - y;
     }
 
     private List<Component> layoutTip(CraftSearch.Outcome o, List<CraftChecks.Gap> gaps) {
@@ -172,25 +139,8 @@ final class CraftOptimiserPanel extends CraftPanel {
         if (!o.complete()) {
             tip.add(L.c("wynnlabs.craft.maybe_not_best").withStyle(ChatFormatting.GRAY));
         }
+        tip.add(L.c("wynnlabs.craft.best_hint").withStyle(ChatFormatting.DARK_GRAY));
         return tip;
-    }
-
-    private void chip(GuiGraphics g, int x, int y, int w, String text, int mx, int my, Runnable click, List<Component> tip) {
-        int state = in(mx, my, x, y, w, ROW_H) ? Kit.HOVER : Kit.REST;
-        Kit.button(g, x, y, w, ROW_H, state);
-        wood(g, text, x + (w - width(text)) / 2, y + 2, Kit.buttonText(state), true);
-        clipped(x, y, w, ROW_H, click, null, tip);
-    }
-
-    private void cycleWeight(String id) {
-        double w = tab.weights.getOrDefault(id, 1.0);
-        int i = 0;
-        for (int k = 0; k < WEIGHT_STEPS.length; k++) {
-            if (Math.abs(WEIGHT_STEPS[k] - w) < 1e-9) {
-                i = k;
-            }
-        }
-        tab.weights.put(id, WEIGHT_STEPS[(i + 1) % WEIGHT_STEPS.length]);
     }
 
     void startSearch() {
@@ -210,11 +160,6 @@ final class CraftOptimiserPanel extends CraftPanel {
                 tab.results = List.copyOf(out);
             }
         });
-    }
-
-    private void stopSearch() {
-        runner.cancel();
-        searching = null;
     }
 
     void apply(CraftSearch.Layout l) {

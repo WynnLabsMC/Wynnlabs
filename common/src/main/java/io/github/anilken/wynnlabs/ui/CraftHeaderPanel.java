@@ -1,30 +1,21 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
-import io.github.anilken.wynnlabs.crafting.Craft;
-import io.github.anilken.wynnlabs.crafting.CraftChecks;
 import io.github.anilken.wynnlabs.crafting.CraftData;
 import io.github.anilken.wynnlabs.crafting.Crafting;
-import io.github.anilken.wynnlabs.crafting.RecipeCode;
-import io.github.anilken.wynnlabs.crafting.WynnBuilderCode;
 import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.ui.CraftingTab.Act;
-import io.github.anilken.wynnlabs.ui.CraftingTab.Drop;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import static io.github.anilken.wynnlabs.ui.CraftFormat.thousands;
-
 /**
- * The crafting tab's frame: the header line (profession progress, reset, paste and code buttons),
- * the calculator/suggestions tabs, the sub-tabs of the one-column page and the card shown when there
- * is no ingredient data.
+ * The crafting tab's frame: on the title line the recipe's profession and level and the saved
+ * recipes' link, under it the three pages (Tarif, Öneriler, Meslek), and the empty page shown
+ * while there is no ingredient data.
  */
 final class CraftHeaderPanel extends CraftPanel {
 
@@ -32,102 +23,53 @@ final class CraftHeaderPanel extends CraftPanel {
         super(tab);
     }
 
-    void noData(GuiGraphics g, int x, int y, int w, int h) {
-        int cw = Math.min(w - 40, 320);
-        int cx = x + (w - cw) / 2;
-        int cy = y + Math.max(10, h / 2 - 40);
-        Kit.card(g, cx, cy, cw, 62, Theme.GOLD_DEEP);
-        Art.icon(g, "hammer", cx + (cw - 16) / 2, cy + 8, 16, Theme.paperRgb(Theme.INK_2));
-        String t = L.t("wynnlabs.craft.no_data");
-        text(g, Component.literal(t).withStyle(UiFont::bold), cx + (cw - width(t)) / 2, cy + 30, Theme.INK);
-        String s = fit(L.t("wynnlabs.craft.no_data_hint"), cw - 16);
-        text(g, s, cx + (cw - width(s)) / 2, cy + 44, Theme.INK_3);
+    /** Wynntils has no ingredient list yet: the shared empty page, a ghost of the grid under it. */
+    void noData(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
+        UiEmpty.draw(g, tab.font, x, y, w, h, w < CraftingTab.TWO_COLUMNS_MIN, "hammer", L.t("wynnlabs.craft.no_data"),
+                List.of(L.t("wynnlabs.craft.no_data_step1"), L.t("wynnlabs.craft.no_data_step2"), L.t("wynnlabs.craft.no_data_step3")),
+                null, (gg, gx, gy, gw, gh) -> {
+                    int s = 30;
+                    int ox = gx + (gw - (2 * s + Theme.SP_4)) / 2;
+                    for (int i = 0; i < 6 && (i / 2 + 1) * (s + Theme.SP_3) <= gh; i++) {
+                        int sx = ox + (i % 2) * (s + Theme.SP_4);
+                        int sy = gy + (i / 2) * (s + Theme.SP_3);
+                        gg.fill(sx, sy, sx + s, sy + s, 0x0A000000);
+                        Kit.outline(gg, sx, sy, s, s, 0x30624E3C);
+                    }
+                }, mx, my);
     }
 
+    /** On the title line, right: the recipe's profession and level, then the saved recipes' button (and its count). */
     void drawHeader(GuiGraphics g, int x, int ty, int w, int mx, int my) {
-        int bx = x + w;
-        String[][] buttons = {{"refresh", L.t("wynnlabs.craft.reset"), "reset"}, {"clipboard", L.t("wynnlabs.craft.paste"), "paste"},
-            {"copy", L.t("wynnlabs.craft.code"), "copy"}};
-        for (String[] b : buttons) {
-            int bw = width(b[1]) + 18;
-            bx -= bw;
-            int by = ty - 2;
-            boolean hover = in(mx, my, bx, by, bw, 12);
-            int state = hover ? Kit.HOVER : Kit.REST;
-            Kit.button(g, bx, by, bw, 12, state);
-            Art.icon(g, b[0], bx + 4, by + 2, 8, Kit.buttonText(state));
-            wood(g, b[1], bx + 14, by + 2, Kit.buttonText(state), true);
-            String what = b[2];
-            tab.acts.add(new Act(bx, by, bw, 12, () -> header(what), null,
-                    List.of(L.c("wynnlabs.craft.tip." + what))));
-            bx -= 3;
+        int r = x + w;
+        int by = ty - 3;                            // the chip on the title's line, as every title row's control
+        int n = Crafting.saved().all().size();
+        if (n > 0) {
+            String c = String.valueOf(n);
+            int sw = Type.META.width(tab.font, c) + 2 * Theme.SP_2;
+            Ui.seal(g, tab.font, c, r - sw, by + (Ui.CHIP_H - Ui.SEAL_H) / 2, Theme.GOLD_EDGE);
+            r -= sw + Theme.SP_1;
         }
+        String label = L.t("wynnlabs.craft.saved_button");
+        int cw = Ui.iconChipWidth(tab.font, "bookmark", label, false);
+        r -= cw;
+        Ui.iconChip(g, tab.font, "bookmark", label, false, r, by, cw, false, mx, my);
+        tab.acts.add(new Act(r, by, cw, Ui.CHIP_H, () -> tab.drawers.openSaved(), null, List.of(L.c("wynnlabs.craft.saved_tip"))));
+        r -= Theme.SP_5;
         if (tab.type == null) {
             return;
         }
-        CraftData.Recipe r = tab.recipe();
-        int known = tab.knownLevel(r.profession());
-        Object lv = known > 0 ? known : "?";
-        int[] xp = Crafting.professionXp(r.profession());
-        int crafts = known > 0 ? CraftChecks.craftsToLevel(r.xp(), xp[0], xp[1]) : -1;
-        String prof = Professions.name(r.profession().toUpperCase(Locale.ROOT));
-        String line = crafts < 0 ? L.t("wynnlabs.craft.prof_line_unknown", prof, lv, thousands(r.xp()))
-                : L.n("wynnlabs.craft.prof_line", crafts, prof, known, known + 1, crafts, thousands(r.xp()));
-        int titleW = tab.font.width(L.t("wynnlabs.screen.tab_craft")) + 12;
-        int room = bx - (x + titleW) - 6;
-        String shown = fitFine(line, room);
-        fine(g, shown, bx - 6 - fineWidth(shown), ty + 1, Theme.INK_3);
-        tab.acts.add(new Act(bx - 6 - fineWidth(shown), ty - 2, fineWidth(shown), 12, null, null,
-                List.of(Component.literal(line), L.c("wynnlabs.craft.xp_estimate"))));
+        CraftData.Recipe rec = tab.recipe();
+        int known = tab.knownLevel(rec.profession());
+        String prof = Professions.name(rec.profession().toUpperCase(Locale.ROOT)) + " " + (known > 0 ? known : "?");
+        int pw = Type.META.width(tab.font, prof);
+        Type.META.draw(g, tab.font, prof, r - pw, Type.META.yIn(by, Ui.CHIP_H), Theme.INK_3);
     }
 
-    private void header(String what) {
-        switch (what) {
-            case "copy" -> {
-                List<String> names = new ArrayList<>();
-                for (String s : tab.slots) {
-                    names.add(s);
-                }
-                RecipeCode.Recipe here = new RecipeCode.Recipe(tab.type, tab.minLevel, tab.tier1, tab.tier2, tab.speed, names);
-                // WynnBuilder's code, the one everyone shares; the mod's own when WynnBuilder lacks an id
-                String code = WynnBuilderCode.encode(here);
-                if (code == null) {
-                    code = RecipeCode.encode(here);
-                }
-                Minecraft.getInstance().keyboardHandler.setClipboard(code);
-                tab.flash.accept(L.t("wynnlabs.craft.code_copied"));
-            }
-            case "paste" -> {
-                String text = Minecraft.getInstance().keyboardHandler.getClipboard();
-                RecipeCode.Recipe r = WynnBuilderCode.looksLike(text) ? WynnBuilderCode.decode(text)
-                        : RecipeCode.decode(text, tab.byName.keySet());
-                if (r == null) {
-                    tab.flash.accept(L.t("wynnlabs.craft.code_bad"));
-                    return;
-                }
-                tab.type = r.type();
-                tab.minLevel = r.minLevel();
-                tab.tier1 = r.tier1();
-                tab.tier2 = r.tier2();
-                tab.speed = r.speed();
-                for (int i = 0; i < Craft.SLOTS; i++) {
-                    tab.slots[i] = r.slots().get(i);
-                }
-                tab.flash.accept(L.t("wynnlabs.craft.code_read"));
-            }
-            default -> {
-                Arrays.fill(tab.slots, null);
-                tab.tier1 = 1;
-                tab.tier2 = 1;
-                tab.speed = Craft.Speed.NORMAL;
-                tab.results = List.of();
-            }
-        }
-    }
-
+    /** The three pages as the shared tab bar; returns its height. */
     int viewTabs(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        String[][] tabs = {{"hammer", L.t("wynnlabs.craft.view_calc")}, {"star-filled", L.t("wynnlabs.craft.view_suggest")},
-            {"trending-up", L.t("wynnlabs.craft.view_plan")}};
+        String[][] tabs = {{"hammer", L.t("wynnlabs.craft.view_recipe")}, {"star", L.t("wynnlabs.craft.view_suggest")},
+            {"trending-up", L.t("wynnlabs.craft.view_road")}};
         List<Ui.Tab> list = new ArrayList<>();
         for (String[] t : tabs) {
             list.add(new Ui.Tab(t[0], t[1]));
@@ -135,41 +77,18 @@ final class CraftHeaderPanel extends CraftPanel {
         int[][] hits = new int[tabs.length][];
         int used = Ui.tabBar(g, tab.font, x, y, w, list, tab.view, mx, my, hits);
         for (int i = 0; i < tabs.length; i++) {
-            int[] r = hits[i];
+            int[] h = hits[i];
             int v = i;
-            tab.acts.add(new Act(r[0], r[1], r[2], r[3], () -> {
-                if (v == 2 || tab.view == 2) {
-                    tab.scroll = 0;                 // the planner scrolls on its own
+            tab.acts.add(new Act(h[0], h[1], h[2], h[3], () -> {
+                if (tab.view != v) {
+                    tab.scroll = 0;
                 }
                 tab.view = v;
-                tab.open = Drop.NONE;
-                if (v == 1) {
-                    if (tab.suggestMode == 0) {
-                        tab.setsPanel.startSets(false);
-                    } else {
-                        tab.suggestionsPanel.startSuggestions(false);
-                    }
+                tab.open = CraftingTab.Drop.NONE;
+                if (v == CraftingTab.VIEW_SUGGEST) {
+                    tab.suggestionsPanel.startCurrent(false);
                 }
             }, null, List.of(Component.literal(tabs[i][1]))));
-        }
-        return used;
-    }
-
-    int subTabs(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        String[] names = {L.t("wynnlabs.craft.sub_recipe"), L.t("wynnlabs.craft.sub_result"), L.t("wynnlabs.craft.sub_search")};
-        List<Ui.Tab> list = new ArrayList<>();
-        for (String n : names) {
-            list.add(new Ui.Tab(null, n));
-        }
-        int[][] hits = new int[names.length][];
-        int used = Ui.tabBar(g, tab.font, x, y, w, list, tab.subTab, mx, my, hits);
-        for (int i = 0; i < names.length; i++) {
-            int[] r = hits[i];
-            int t = i;
-            clipped(r[0], r[1], r[2], r[3], () -> {
-                tab.subTab = t;
-                tab.scroll = 0;
-            }, null, null);
         }
         return used;
     }

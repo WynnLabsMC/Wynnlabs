@@ -79,4 +79,31 @@ class UiCentreTest {
             assertTrue(Math.abs(cy - h / 2f) <= 0.5f, name + " y " + cy);
         }
     }
+
+    /** The material tier chip: its star and number one group in the chip's middle, on whole pixels. */
+    @Test
+    void theTierSealCentresItsStarAndNumber() {
+        assertEquals(0, (UiTierSeal.H - UiTierSeal.STAR) % 2, "chip and star share their parity");
+        assertEquals(103, UiTierSeal.starY(100), "(14 - 8) / 2 = 3 from the top");
+        for (int numW : new int[] {5, 6, 7}) {
+            int w = UiTierSeal.width(numW);
+            int gx = UiTierSeal.groupX(100, w, numW);
+            float left = gx - 100;
+            float right = 100 + w - (gx + UiTierSeal.group(numW));
+            assertTrue(Math.abs(left - right) <= 1, numW + "px: the group sits in the middle");
+        }
+        // the number's capitals on the chip's middle, as every label in a chip
+        int y = Ui.centreY(100, UiTierSeal.H, 9, 0, false);
+        assertEquals(103, y);
+    }
+
+    /** The build score in the home gauge: short enough for the arc, the exact value in the tooltip. */
+    @Test
+    void theGaugeScoreIsCompact() {
+        assertEquals("42", HomeHero.compact(42));
+        assertEquals("3769", HomeHero.compact(3769));
+        assertEquals("12.4k", HomeHero.compact(12_400));
+        assertEquals("756k", HomeHero.compact(755_771));
+        assertEquals("1.2M", HomeHero.compact(1_234_567));
+    }
 }

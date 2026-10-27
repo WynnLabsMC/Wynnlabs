@@ -98,10 +98,11 @@ final class HomeHero extends MenuPaint {
             settingsIcons(g, ix, cy, mx, my);
             if (now != null) {
                 String score = String.valueOf(Math.round(now.objective()));
-                int sw = Type.LEAD.width(font, score);
+                String scoreShown = compact(Math.round(now.objective()));
+                int sw = Type.LEAD.width(font, scoreShown);
                 int sx = ix - Theme.SP_4 - sw;
                 if (sx > cx + Type.MUTED.width(font, "Lv " + level) + Theme.SP_4) {
-                    Type.LEAD.draw(g, font, score, sx, Type.LEAD.yIn(cy, Ui.CHIP_H));
+                    Type.LEAD.draw(g, font, scoreShown, sx, Type.LEAD.yIn(cy, Ui.CHIP_H));
                     menu.hits.add(new MenuHit(sx, cy, sw, Ui.CHIP_H, null,
                             page.vsTip(L.t("wynnlabs.home.stat_build"), score,
                             target == null || target.objective() <= 0 ? 1 : now.objective() / target.objective(), targetLevel), null));
@@ -113,7 +114,18 @@ final class HomeHero extends MenuPaint {
             int gcy = y + pad + 29;
             Kit.gauge(g, gcx, gcy, 29, 5, Math.max(0, Math.min(1, frac)), TRACK, Theme.GOLD_DEEP, Theme.GOLD_EDGE);
             String score = String.valueOf(Math.round(now.objective()));
-            Type.LEAD.draw(g, font, score, gcx - Type.LEAD.width(font, score) / 2, gcy - 17);
+            // the number inside the arc: compact ("756k"), a smaller role when even that is too wide, centred
+            String scoreShown = compact(Math.round(now.objective()));
+            int room = 2 * (29 - 5) - 2 * Theme.SP_2;
+            Type role = Type.LEAD;
+            for (Type t : new Type[] {Type.LEAD, Type.NUMBER, Type.META}) {
+                role = t;
+                if (t.width(font, scoreShown) <= room) {
+                    break;
+                }
+            }
+            role.draw(g, font, role.fit(font, scoreShown, room), gcx - Math.min(room, role.width(font, scoreShown)) / 2,
+                    role.yIn(gcy - 17, Type.LEAD.lineHeight), Theme.INK);
             String lbl = L.t("wynnlabs.home.build_score");
             Type.META.draw(g, font, lbl, gcx - Type.META.width(font, lbl) / 2, gcy + Theme.SP_1);
             menu.hits.add(new MenuHit(gx, gcy - 28, GAUGE_W, 28 + Theme.SP_1 + Type.META.lineHeight, null,
@@ -279,5 +291,19 @@ final class HomeHero extends MenuPaint {
             r -= Theme.SP_2;
         }
         return right - r - Theme.SP_2;
+    }
+
+    /** A big number short enough for the gauge: 42, 9 800, 12.4k, 756k, 1.2M (the exact one is in the tooltip). */
+    static String compact(long v) {
+        if (v >= 1_000_000) {
+            return Math.round(v / 100_000.0) / 10.0 + "M";
+        }
+        if (v >= 100_000) {
+            return Math.round(v / 1000.0) + "k";
+        }
+        if (v >= 10_000) {
+            return Math.round(v / 100.0) / 10.0 + "k";
+        }
+        return String.valueOf(v);
     }
 }
