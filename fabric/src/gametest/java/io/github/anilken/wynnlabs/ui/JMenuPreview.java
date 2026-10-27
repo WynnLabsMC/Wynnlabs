@@ -54,7 +54,7 @@ public class JMenuPreview implements FabricClientGameTest {
             ctx.getInput().resizeWindow(PreviewSize.WIDTH, PreviewSize.HEIGHT);
             ctx.runOnClient(mc -> mc.options.guiScale().set(3));
             ctx.runOnClient(mc -> {
-                FixtureState.load(fixture).install(System.getProperty("wynnlabs.previewLang", "tr"));
+                FixtureState.load(fixture).install(System.getProperty("wynnlabs.previewLang", "en"));
                 Wyn.clearDown();                // marked down before the recording was in
             });
             SearchPreview.loadIndex();

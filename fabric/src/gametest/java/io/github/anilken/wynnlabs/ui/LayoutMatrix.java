@@ -99,7 +99,7 @@ public class LayoutMatrix implements FabricClientGameTest {
             Files.createDirectories(shots);
             FixtureState fx = FixtureState.load(fixture);
             ctx.runOnClient(mc -> {
-                fx.install(System.getProperty("wynnlabs.previewLang", "tr"));
+                fx.install(System.getProperty("wynnlabs.previewLang", "en"));
                 if (VANILLA) {
                     Settings.set("webFont", false);
                 }

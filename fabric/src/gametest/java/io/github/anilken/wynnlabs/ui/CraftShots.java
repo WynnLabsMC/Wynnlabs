@@ -63,9 +63,9 @@ final class CraftShots {
             tab.drawers.close();
             var saved = Crafting.saved();
             var goal = SavedRecipes.SavedGoal.of(CraftSearch.Goal.of("spellDamage"));
-            saved.save(new SavedRecipes.Saved("Relik büyü", "relik", 103, 3, 2, "NORMAL", Arrays.asList("Foul Fairy Dust", "Obelisk Core",
+            saved.save(new SavedRecipes.Saved("Relik spell", "relik", 103, 3, 2, "NORMAL", Arrays.asList("Foul Fairy Dust", "Obelisk Core",
                     "Dizzying Void", "Depurinated Genome", null, null), goal, 1L), true);
-            saved.save(new SavedRecipes.Saved("Yüzük mana", "ring", 80, 2, 3, "NORMAL", Arrays.asList("Major's Badge", null, null, null,
+            saved.save(new SavedRecipes.Saved("Ring mana", "ring", 80, 2, 3, "NORMAL", Arrays.asList("Major's Badge", null, null, null,
                     null, null), goal, 2L), true);
             tab.drawers.openSaved();
         });

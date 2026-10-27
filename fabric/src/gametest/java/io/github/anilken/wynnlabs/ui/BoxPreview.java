@@ -56,7 +56,7 @@ public class BoxPreview implements FabricClientGameTest {
                 mc.options.guiScale().set(3);
                 mc.resizeDisplay();
                 try {
-                    FixtureState.load(Fixtures.root().resolve("shaman-44")).install(System.getProperty("wynnlabs.previewLang", "tr"));
+                    FixtureState.load(Fixtures.root().resolve("shaman-44")).install(System.getProperty("wynnlabs.previewLang", "en"));
                 } catch (java.io.IOException e) {
                     throw new RuntimeException(e);
                 }

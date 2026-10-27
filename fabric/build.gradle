@@ -97,6 +97,10 @@ loom.runs.matching { it.name == 'clientGameTest' }.configureEach {
     if (rootProject.hasProperty('previewHidden')) {
         vmArg "-Dwynnlabs.previewHidden=${rootProject.property('previewHidden')}"
     }
+    // -PpreviewLang=tr: the shots in Turkish (English by default)
+    if (rootProject.hasProperty('previewLang')) {
+        vmArg "-Dwynnlabs.previewLang=${rootProject.property('previewLang')}"
+    }
     if (rootProject.hasProperty('previewTab')) {
         vmArg "-Dwynnlabs.previewTab=${rootProject.property('previewTab')}"
     }
