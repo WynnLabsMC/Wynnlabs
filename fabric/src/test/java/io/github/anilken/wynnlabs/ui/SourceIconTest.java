@@ -32,12 +32,12 @@ class SourceIconTest {
 
     @Test
     void theIconMatchesTheSourceLine() {
-        assertEquals("question-mark", BuildWindow.sourceIcon("No Such Item At All"), "nothing known");
-        assertEquals(null, BuildWindow.sourceDetail("No Such Item At All"), "and no detail line");
+        assertEquals("question-mark", io.github.anilken.wynnlabs.build.BuildSources.sourceIcon("No Such Item At All"), "nothing known");
+        assertEquals(null, io.github.anilken.wynnlabs.build.BuildSources.sourceDetail("No Such Item At All"), "and no detail line");
         for (String name : List.of("Covetous Thunder", "Morph-Emerald", "Tainted Ruby", "Yume", "Venison", "Precious", "Prologue")) {
-            String icon = BuildWindow.sourceIcon(name);
+            String icon = io.github.anilken.wynnlabs.build.BuildSources.sourceIcon(name);
             assertTrue(ICONS.contains(icon), name + ": " + icon);
-            Object[] src = BuildWindow.source(name);
+            Object[] src = io.github.anilken.wynnlabs.build.BuildSources.source(name);
             if (src[1] != null) {
                 assertEquals("coin", icon, name + " has a Trade Market price");
             }

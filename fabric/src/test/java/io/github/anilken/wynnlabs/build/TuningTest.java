@@ -109,4 +109,16 @@ class TuningTest {
         }
         assertFalse(c.budgetCut().isEmpty(), "the map says where the budget left something out");
     }
+
+    @Test
+    void theBudgetMenuSetsAnyStepEitherWay() {
+        Tuning.Choice c = new Tuning.Choice(Tuning.BALANCED, true, false, 0);
+        for (long b : Tuning.BUDGETS) {
+            Tuning.Choice set = c.withBudget(b);
+            assertEquals(b, set.budget());
+            assertEquals(c.focus(), set.focus(), "the rest of the strip stays");
+            assertTrue(set.mana());
+        }
+        assertEquals(640, c.withBudget(4096).withBudget(640).budget(), "down as well as up");
+    }
 }

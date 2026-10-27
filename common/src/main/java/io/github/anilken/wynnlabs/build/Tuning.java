@@ -16,7 +16,7 @@ public final class Tuning {
     public static final int TANKY = 2;
 
     /** The budget's steps in emeralds: no limit, 10 EB, 1 LE, 5 LE. */
-    static final long[] BUDGETS = {0, 10 * 64, 4096, 5 * 4096};
+    public static final long[] BUDGETS = {0, 10 * 64, 4096, 5 * 4096};
 
     /**
      * One setting of the strip. {@code budget} in emeralds, 0 for no limit.
@@ -50,6 +50,10 @@ public final class Tuning {
 
         public Choice withSpeed(boolean on) {
             return new Choice(focus, mana, on, budget);
+        }
+
+        public Choice withBudget(long b) {
+            return new Choice(focus, mana, speed, b);
         }
 
         /** The next budget step after this one (back to no limit after the last). */

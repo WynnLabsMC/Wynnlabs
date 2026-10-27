@@ -21,8 +21,6 @@ import java.util.Map;
  */
 final class BuildSavedView {
 
-    private static final int SAVED_ROW_H = 30;
-
     private final BuildWindow win;
     private final BuildControls ui;
 
@@ -36,121 +34,124 @@ final class BuildSavedView {
 
     void drawSaved(GuiGraphics g, BuildWindow.Host host, int x, int y, int w, int h, int mx, int my, float pt) {
         List<Plans.Build> all = Plans.saved();
-        Klass cls = GameState.current().classType();
-        String title = L.t("wynnlabs.saved.title", cls == null ? "?" : BuildText.nice(cls.name()), all.size());
-        Art.icon(g, "bookmark", x, y, 8, Theme.INK_2);
-        Kit.text(g, ui.font, Component.literal(ui.fit(title, w - 30, true)).withStyle(UiFont::bold), x + 11, y, Theme.INK);
-        int top = y + 14;
-        int footY = y + h - 14;
-        int editH = win.editId == null ? 0 : 54;
-        int listH = footY - (win.editId == null ? 4 : 8) - editH - top;
+        int footY = y + h - Ui.BUTTON_H;
         Plans.Build current = Plans.current();
+        if (all.isEmpty()) {
+            // nothing saved: the three steps there, and the way to the first
+            int[] box = UiEmpty.draw(g, ui.font, x, y, w, footY - Theme.SP_4 - y, win.compact, "bookmark", L.t("wynnlabs.saved.none"),
+                    List.of(L.t("wynnlabs.saved.step1"), L.t("wynnlabs.saved.step2"), L.t("wynnlabs.saved.step3")),
+                    new UiEmpty.Action("target", L.t("wynnlabs.pick.tab"), "pick"), null, mx, my);
+            if (box != null) {
+                ui.btn(box[0], box[1], box[2], box[3], "tab", BuildWindow.View.PICK);
+            }
+            footer(g, host, x, footY, w, current, mx, my);
+            return;
+        }
+        int editH = win.editId == null ? 0 : EDIT_H + Theme.SP_4;
+        int listH = footY - Theme.SP_4 - editH - y;
         Map<String, String> worn = BuildSources.worn();
-        Kit.outline(g, x, top, w, listH, Theme.LINE);
-        int rows = Math.max(1, (listH - 2) / SAVED_ROW_H);
+        int rows = Math.max(1, listH / ROW);
         int max = Math.max(0, all.size() - rows);
         savedScroll = Math.max(0, Math.min(savedScroll, max));
-        int rw = w - 2 - (max > 0 ? ScrollBar.W + 2 : 0);
+        int rw = w - (max > 0 ? ScrollBar.W + Theme.SP_3 : 0);
         boolean renaming = false;
-        if (all.isEmpty()) {
-            Kit.text(g, ui.font, ui.fit(L.t("wynnlabs.saved.none"), w - 12, false), x + 6, top + 6, Theme.INK_3);
-        }
+        int textH = Type.BODY.lineHeight + Type.META.lineHeight;
         for (int i = 0; i < rows && savedScroll + i < all.size(); i++) {
             Plans.Build b = all.get(savedScroll + i);
-            int ry = top + 1 + i * SAVED_ROW_H;
+            int ry = y + i * ROW;
             boolean mine = current != null && current.id().equals(b.id());
-            Kit.row(g, x + 1, ry, rw, SAVED_ROW_H, i, BuildControls.in(mx, my, x + 1, ry, rw, SAVED_ROW_H) || b.id().equals(win.editId));
-            if (mine) {
-                Kit.outline(g, x + 1, ry, rw, SAVED_ROW_H, BuildControls.CHOSEN);
+            boolean lit = b.id().equals(win.editId) || b.id().equals(win.renameId);
+            if (lit) {
+                Kit.rowLit(g, x, ry, rw, textH + 2 * Theme.SP_2);
             }
-            // the buttons on the right: Apply (not on your plan), Edit, Rename, Delete
-            int bx = x + 1 + rw - 4;
+            int ty = ry + Theme.SP_2;
+            // the actions on the right: Apply (not on your plan), Edit, Rename, Delete
+            int bx = x + rw - Theme.SP_2;
             String[][] all4 = {{"trash", "delete", "wynnlabs.saved.delete_tip"}, {"pencil", "rename", "wynnlabs.saved.rename_tip"},
                 {"edit", "edit", "wynnlabs.saved.edit_tip"}, {"check", "applySaved", "wynnlabs.saved.apply_tip"}};
             String[][] acts = mine ? java.util.Arrays.copyOf(all4, 3) : all4;
+            int by = ty + (textH - Ui.CHIP_H) / 2;
             for (String[] a : acts) {
-                bx -= 14;
-                boolean hov = BuildControls.in(mx, my, bx, ry + 3, 13, 12);
-                Kit.button(g, bx, ry + 3, 13, 12, a[1].equals("applySaved") ? Kit.ON : hov ? Kit.HOVER : Kit.REST);
-                Art.icon(g, a[0], bx + 2, ry + 5, 8, Kit.buttonText(a[1].equals("applySaved") ? Kit.ON : Kit.REST));
-                ui.btn(bx, ry + 3, 13, 12, a[1], b.id());
-                host.tip(bx, ry + 3, 13, 12, List.of(L.c(a[2]).withStyle(ChatFormatting.GRAY)));
-                bx -= 1;
+                bx -= Ui.CHIP_H + 2;
+                ui.iconBtn(g, host, bx, by, a[0], false, a[1], b.id(), List.of(L.c(a[2]).withStyle(ChatFormatting.GRAY)), mx, my);
+                bx -= Theme.SP_2;
             }
-            int nx = x + 6;
-            int nameRoom = bx - 4 - nx;
+            int nx = x + Theme.SP_2;
+            int nameRoom = bx - Theme.SP_3 - nx;
             if (b.id().equals(win.renameId)) {
                 renaming = true;
-                int fw = Math.max(40, nameRoom - 30);
+                int okW = 2 * (Ui.CHIP_H + 2) + Theme.SP_2;
+                int fw = Math.max(40, nameRoom - okW - Theme.SP_2);
                 win.rename.setFocused(true);
-                UiInput.input(g, ui.font, win.rename, "", nx - 2, ry + 1, fw, true, false, mx, my);
-                int okX = nx - 2 + fw + 2;
-                Kit.button(g, okX, ry + 2, 12, 12, Kit.ON);
-                Art.icon(g, "check", okX + 2, ry + 4, 8, Kit.buttonText(Kit.ON));
-                ui.btn(okX, ry + 2, 12, 12, "renameOk", b.id());
-                Kit.button(g, okX + 14, ry + 2, 12, 12, Kit.REST);
-                Art.icon(g, "x", okX + 16, ry + 4, 8, Kit.buttonText(Kit.REST));
-                ui.btn(okX + 14, ry + 2, 12, 12, "renameCancel", b.id());
+                UiInput.input(g, ui.font, win.rename, "", nx, ty - 1, fw, true, false, mx, my);
+                int okX = nx + fw + Theme.SP_2;
+                ui.iconBtn(g, host, okX, ty - 1, "check", true, "renameOk", b.id(),
+                        List.of(L.c("wynnlabs.saved.rename_ok").withStyle(ChatFormatting.GRAY)), mx, my);
+                ui.iconBtn(g, host, okX + Ui.CHIP_H + 2 + Theme.SP_2, ty - 1, "x", false, "renameCancel", b.id(),
+                        List.of(L.c("wynnlabs.saved.rename_cancel").withStyle(ChatFormatting.GRAY)), mx, my);
             } else {
-                String suffix = mine ? " · " + L.t("wynnlabs.saved.your_plan") : "";
-                int sw = ui.font.width(suffix);
-                Component nm = Component.literal(ui.fit(b.name(), nameRoom - sw, true)).withStyle(UiFont::bold);
-                Kit.text(g, ui.font, nm, nx, ry + 4, Theme.INK);
-                if (mine) {
-                    Kit.text(g, ui.font, suffix, nx + ui.font.width(nm), ry + 4, BuildControls.CHOSEN);
+                String plan = mine ? L.t("wynnlabs.saved.your_plan") : null;
+                int sw = plan == null ? 0 : Type.META.width(ui.font, plan) + 2 * Theme.SP_2 + Theme.SP_3;
+                String name = Type.LABEL.fit(ui.font, b.name(), nameRoom - sw);
+                Type.LABEL.draw(g, ui.font, name, nx, ty, Theme.INK);
+                if (plan != null) {
+                    Ui.seal(g, ui.font, plan, nx + Type.LABEL.width(ui.font, name) + Theme.SP_3, Type.LABEL.onCaps(ty, Ui.SEAL_H), BuildControls.CHOSEN);
                 }
             }
-            // the squares, the score and how much of it you wear
+            // the nine pieces as small marks, the score and how much of it you wear
             boolean[] on = Plans.wornSlots(b.items(), worn);
             int wornN = 0;
             for (int k = 0; k < Plans.SLOTS.length; k++) {
                 wornN += on[k] ? 1 : 0;
             }
-            savedSquares(g, nx, ry + 18, b, on);
-            String info = String.format(Locale.ROOT, "%,d", Math.round(b.score())) + " · " + wornN + "/" + b.items().size();
-            Kit.text(g, ui.font, ui.fit(info, bx - 4 - (nx + 70), false), nx + 70, ry + 17, Theme.INK_3);
-            host.tip(x + 1, ry, Math.max(1, bx - 2 - x), SAVED_ROW_H, savedTip(b));
+            int my2 = ty + Type.BODY.lineHeight;
+            int sqEnd = savedSquares(g, nx, Type.META.onCaps(my2, 6), b, on);
+            String info = L.t("wynnlabs.saved.info", String.format(Locale.ROOT, "%,d", Math.round(b.score())), wornN, b.items().size());
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, info, bx - Theme.SP_3 - sqEnd - Theme.SP_3), sqEnd + Theme.SP_3, my2, Theme.INK_3);
+            host.tip(x, ry, Math.max(1, bx - x), textH + 2 * Theme.SP_2, savedTip(b));
         }
         if (!renaming) {
             win.rename.setFocused(false);
         }
-        savedBar.place(x + w - ScrollBar.W - 1, top + 1, listH - 2, rows, all.size(), savedScroll);
+        savedBar.place(x + w - ScrollBar.W, y, listH, rows, all.size(), savedScroll);
         savedBar.draw(g, mx, my);
-        if (savedBar.shown()) {
-            int[] t = savedBar.track();
-            ui.btn(t[0], t[1], t[2], t[3], "scrollbar", null);
-        }
         if (win.editId != null) {
-            drawEdit(g, host, x, top + listH + 4, w, editH, mx, my);
+            drawEdit(g, host, x, y + listH + Theme.SP_4, w, EDIT_H, mx, my);
         }
-        // the footer: "+ Save current plan", and the undo line after a delete
+        footer(g, host, x, footY, w, current, mx, my);
+    }
+
+    /** A row's pitch: a name and a META line, SP_2 inside its wash above and below, SP_2 of page between washes. */
+    private static final int ROW = Type.BODY.lineHeight + Type.META.lineHeight + 3 * Theme.SP_2;
+    private static final int EDIT_H = 2 * Theme.SP_4 + Type.LABEL.lineHeight + 2 * Theme.SP_3 + 2 * Ui.CHIP_H;
+
+    /** "+ Save current plan" (only with a plan) on the left; after a delete, "Deleted · Undo" as a notice on the right. */
+    private void footer(GuiGraphics g, BuildWindow.Host host, int x, int y, int w, Plans.Build current, int mx, int my) {
         boolean can = current != null;
         List<Component> addTip = List.of(L.c(can ? "wynnlabs.saved.add_tip" : "wynnlabs.saved.add_none").withStyle(ChatFormatting.GRAY));
-        int aw = ui.control(g, host, x, footY, 14, "plus", L.t("wynnlabs.saved.add"), can ? BuildControls.PRIMARY : BuildControls.WOOD, false, w / 2,
+        int cy = y + (Ui.BUTTON_H - Ui.CHIP_H) / 2;
+        int aw = ui.control(g, host, x, cy, Ui.CHIP_H, "plus", L.t("wynnlabs.saved.add"), BuildControls.WOOD, false, w / 2,
                 can ? "addCurrent" : null, null, addTip, mx, my);
-        long now = System.currentTimeMillis();
-        Plans.Build gone = Plans.undoable(now);
+        Plans.Build gone = Plans.undoable(System.currentTimeMillis());
         if (gone != null) {
-            String del = L.t("wynnlabs.saved.deleted") + " · ";
-            String undo = L.t("wynnlabs.saved.undo");
-            int uw = ui.font.width(del) + ui.font.width(undo);
-            int ux = x + w - uw;
-            if (ux > x + aw + 6) {
-                Kit.text(g, ui.font, del, ux, footY + 3, Theme.INK_3);
-                Kit.text(g, ui.font, undo, ux + ui.font.width(del), footY + 3, Theme.LINK);
-                ui.btn(ux + ui.font.width(del), footY + 1, ui.font.width(undo), 12, "undo", null);
+            int nw = Math.min(w - aw - Theme.SP_5, 240);
+            int[][] hit = new int[1][];
+            Ui.notice(g, ui.font, Ui.Level.INFO, List.of(L.t("wynnlabs.saved.deleted", gone.name())),
+                    new Ui.Action("arrow-left", L.t("wynnlabs.saved.undo")), x + w - nw, y - Theme.SP_1, nw, Ui.BUTTON_H + 2 * Theme.SP_1, mx, my, hit);
+            if (hit[0] != null) {
+                ui.btn(hit[0][0], hit[0][1], hit[0][2], hit[0][3], "undo", null);
             }
         }
     }
 
-    private void savedSquares(GuiGraphics g, int x, int y, Plans.Build b, boolean[] worn) {
+    /** The nine pieces as small rounded marks: purple a chosen item, green one you wear, plain the rest; returns the x after them. */
+    private int savedSquares(GuiGraphics g, int x, int y, Plans.Build b, boolean[] worn) {
         for (int i = 0; i < Plans.SLOTS.length; i++) {
             String name = b.items().get(Plans.SLOTS[i]);
-            int c = name != null && b.locked(name) ? BuildControls.CHOSEN : worn[i] ? Theme.GREEN : Theme.WELL;
-            int sx = x + i * 7;
-            g.fill(sx, y, sx + 6, y + 6, Theme.INK_2);
-            g.fill(sx + 1, y + 1, sx + 5, y + 5, c);
+            int c = name != null && b.locked(name) ? BuildControls.CHOSEN : worn[i] ? Theme.GOOD : Theme.WELL;
+            Art.box(g, x + i * 8, y, 6, 6, 2, c, 0);
         }
+        return x + 9 * 8 - 2;
     }
 
     private static List<Component> savedTip(Plans.Build b) {
@@ -166,50 +167,44 @@ final class BuildSavedView {
         return tip;
     }
 
-    /** The edit area under the list: the build's chosen items as chips with "+ item", its strip, and its three buttons. */
+    /** The edit card under the list: the build's chosen items (✕ each) and "+ Item", its strip (changeable), and its actions. */
     private void drawEdit(GuiGraphics g, BuildWindow.Host host, int x, int y, int w, int h, int mx, int my) {
         Plans.Build b = Plans.byId(win.editId);
         if (b == null) {
             win.editId = null;
             return;
         }
-        Kit.card(g, x, y, w, h, BuildControls.CHOSEN);
-        int cx = x + 5;
-        int cy = y + 5;
-        String head = L.t("wynnlabs.saved.editing", b.name());
-        Kit.text(g, ui.font, Component.literal(ui.fit(head, w - 10, true)).withStyle(UiFont::bold), cx, cy, Theme.INK);
-        cy += 12;
-        int plusW = ui.controlW("plus", L.t("wynnlabs.saved.add_item"), 70);
+        Kit.softCard(g, x, y, w, h);
+        Kit.outline(g, x, y, w, h + 1, BuildControls.CHOSEN);
+        int cx = x + Theme.SP_4;
+        int cy = y + Theme.SP_4;
+        int iw = w - 2 * Theme.SP_4;
+        Type.LABEL.draw(g, ui.font, Type.LABEL.fit(ui.font, L.t("wynnlabs.saved.editing", b.name()), iw), cx, cy, Theme.INK);
+        cy += Type.LABEL.lineHeight + Theme.SP_3;
+        int plusW = ui.controlW("plus", L.t("wynnlabs.saved.add_item"), 80);
         for (String n : win.editLocks) {
-            int cw = Math.min(ui.font.width(n) + 18, 110);
-            if (cx + cw + 3 + plusW > x + w - 5) {
+            if (cx + 60 + Theme.SP_2 + plusW > x + w - Theme.SP_4) {
                 break;
             }
-            BuildControls.chip(g, cx, cy, cw, 14, BuildControls.in(mx, my, cx, cy, cw, 14));
-            Kit.text(g, ui.font, ui.fit(n, cw - 18, false), cx + 5, cy + 3, Theme.INK);
-            Art.icon(g, "x", cx + cw - 11, cy + 3, 8, BuildControls.CHOSEN);
-            ui.btn(cx, cy, cw, 14, "editUnlock", n);
-            host.tip(cx, cy, cw, 14, List.of(Component.literal(n).withStyle(ChatFormatting.LIGHT_PURPLE),
-                    L.c("wynnlabs.pick.chip_tip").withStyle(ChatFormatting.DARK_GRAY)));
-            cx += cw + 3;
+            cx += ui.chosenChip(g, host, cx, cy, n, Math.min(120, x + w - Theme.SP_4 - plusW - Theme.SP_2 - cx), "editUnlock", n, mx, my) + Theme.SP_2;
         }
-        ui.control(g, host, cx, cy, 14, "plus", L.t("wynnlabs.saved.add_item"), BuildControls.WOOD, false, 70, "editAdd", null,
+        ui.control(g, host, cx, cy, Ui.CHIP_H, "plus", L.t("wynnlabs.saved.add_item"), BuildControls.WOOD, false, 80, "editAdd", null,
                 List.of(L.c("wynnlabs.saved.add_item_tip").withStyle(ChatFormatting.GRAY)), mx, my);
-        cy += 17;
-        // the buttons on the right of the strip's summary: Recompute (purple), Save as new (a disk), Cancel (✕)
-        int bx = x + w - 5;
-        int rw = ui.controlW("refresh", L.t("wynnlabs.saved.recompute"), w / 2);
+        cy += Ui.CHIP_H + Theme.SP_3;
+        // the actions on the right of the strip: Recompute (purple), Save as new (a disk), Cancel (✕)
+        int bx = x + w - Theme.SP_4;
+        String re = L.t("wynnlabs.saved.recompute");
+        int rw = ui.controlW("refresh", re, w / 3, BuildControls.PRIMARY);
         bx -= rw;
-        ui.control(g, host, bx, cy, 14, "refresh", L.t("wynnlabs.saved.recompute"), BuildControls.PRIMARY, false, w / 2, "editRecompute", null,
+        ui.control(g, host, bx, cy - 1, Ui.BUTTON_H, "refresh", re, BuildControls.PRIMARY, false, w / 3, "editRecompute", null,
                 List.of(L.c("wynnlabs.saved.recompute_tip").withStyle(ChatFormatting.GRAY)), mx, my);
-        bx -= 3 + BuildControls.ICON_W;
-        ui.control(g, host, bx, cy, 14, "device-floppy", L.t("wynnlabs.saved.save_new"), BuildControls.WOOD, false, 0, "editSaveNew", null,
-                List.of(L.c("wynnlabs.saved.save_new_tip").withStyle(ChatFormatting.GRAY)), mx, my);
-        bx -= 3 + BuildControls.ICON_W;
-        ui.control(g, host, bx, cy, 14, "x", L.t("wynnlabs.pick.cancel"), BuildControls.WOOD, false, 0, "editCancel", null,
-                List.of(L.c("wynnlabs.saved.edit_cancel_tip").withStyle(ChatFormatting.GRAY)), mx, my);
-        bx -= 3;
-        cy += 1;
-        Kit.text(g, ui.font, ui.fit(BuildText.summary(win.editTuning), bx - 4 - (x + 5), false), x + 5, cy + 2, Theme.INK_3);
+        bx -= Theme.SP_2 + Ui.CHIP_H + 2;
+        ui.iconBtn(g, host, bx, cy, "device-floppy", false, "editSaveNew", null, List.of(Component.literal(L.t("wynnlabs.saved.save_new")),
+                L.c("wynnlabs.saved.save_new_tip").withStyle(ChatFormatting.GRAY)), mx, my);
+        bx -= Theme.SP_2 + Ui.CHIP_H + 2;
+        ui.iconBtn(g, host, bx, cy, "x", false, "editCancel", null, List.of(Component.literal(L.t("wynnlabs.pick.cancel")),
+                L.c("wynnlabs.saved.edit_cancel_tip").withStyle(ChatFormatting.GRAY)), mx, my);
+        // the strip, changeable here: Recompute searches with it
+        win.pick.stripOf(g, host, win.editTuning, true, x + Theme.SP_4, cy, bx - Theme.SP_3 - x - Theme.SP_4, mx, my);
     }
 }

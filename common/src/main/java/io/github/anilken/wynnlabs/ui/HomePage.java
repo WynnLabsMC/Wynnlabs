@@ -751,8 +751,8 @@ public final class HomePage extends MenuTab {
                 tip.add(L.c("wynnlabs.homev.slot_worn").withStyle(ChatFormatting.GREEN));
             } else {
                 // the pill's icon explained first: "Missing · dropped by mobs", then where, when known
-                lead.add(L.c("wynnlabs.homev.slot_missing", BuildWindow.sourceText(name)).withStyle(ChatFormatting.GOLD));
-                String detail = BuildWindow.sourceDetail(name);
+                lead.add(L.c("wynnlabs.homev.slot_missing", io.github.anilken.wynnlabs.build.BuildSources.sourceText(name)).withStyle(ChatFormatting.GOLD));
+                String detail = io.github.anilken.wynnlabs.build.BuildSources.sourceDetail(name);
                 if (detail != null) {
                     lead.add(Component.literal(detail).withStyle(ChatFormatting.GRAY));
                 }

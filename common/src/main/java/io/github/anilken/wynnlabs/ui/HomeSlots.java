@@ -62,7 +62,7 @@ final class HomeSlots extends HomePart {
      * the icon, then "chosen" alone, then the icon alone.
      */
     private String[] missingPill(SlotView v, int room) {
-        String icon = BuildWindow.sourceIcon(v.planned() == null ? "" : v.planned().name());
+        String icon = io.github.anilken.wynnlabs.build.BuildSources.sourceIcon(v.planned() == null ? "" : v.planned().name());
         String text = L.t(v.mark() == Mark.CHOSEN ? "wynnlabs.homev.chosen_pill" : "wynnlabs.homev.get_pill");
         if (pillW(text, icon) <= room) {
             return new String[] {text, icon};
@@ -292,7 +292,7 @@ final class HomeSlots extends HomePart {
                     : v.gear() != null ? v.gear().info().name()
                     : ItemJson.clean(v.worn().getHoverName().getString()).trim();
             String icon = !worn && BuildSources.haveNames().contains(name)
-                    ? "building-bank" : BuildWindow.sourceIcon(name);
+                    ? "building-bank" : io.github.anilken.wynnlabs.build.BuildSources.sourceIcon(name);
             // each kind of place its own colour, a light icon on it, so the kind reads at a glance
             if (compact) {
                 Kit.kindBadge(g, cx, cy, d, KindBadge.of(icon));
@@ -428,8 +428,8 @@ final class HomeSlots extends HomePart {
                     : v.gear() != null ? v.gear().info().name()
                     : ItemJson.clean(v.worn().getHoverName().getString()).trim();
             boolean have = !worn && BuildSources.haveNames().contains(name);
-            String icon = have ? "building-bank" : BuildWindow.sourceIcon(name);
-            String text = have ? L.t("wynnlabs.homev.src_bank") : BuildWindow.sourceText(name);
+            String icon = have ? "building-bank" : io.github.anilken.wynnlabs.build.BuildSources.sourceIcon(name);
+            String text = have ? L.t("wynnlabs.homev.src_bank") : io.github.anilken.wynnlabs.build.BuildSources.sourceText(name);
             sourceChip(g, icon, 0, text, tx, lineTop + Type.BODY.lineHeight, right - tx);
         }
         partOwner = "slot" + v.index();

@@ -42,76 +42,74 @@ final class BuildResultsView {
             DevHooks.part("results", g.pose(), x, y - 3, w, h + 3);
         }
         Around.Result r = win.result;
-        // the header: back to the items, the count found around them
-        int bw = ui.control(g, host, x, y - 3, 14, "arrow-left", L.t("wynnlabs.results.back"), BuildControls.WOOD, false, 0, "back", null,
-                List.of(L.c("wynnlabs.results.back_tip").withStyle(ChatFormatting.GRAY)), mx, my);
         int n = r == null ? 0 : r.builds().size();
-        String around = r == null || r.around().isEmpty() ? null : String.join(", ", r.around());
-        // planned for a level above yours when a chosen item needs it
-        String planned = r != null && r.level() > GameState.current().level() ? L.t("wynnlabs.results.planned_for", r.level()) : null;
-        int headRoom = w - bw - 24;
-        String plain = L.n("wynnlabs.results.found_plain", n, n);
-        String[] tries = around == null ? new String[] {plain}
-                : new String[] {L.n("wynnlabs.results.found", n, n, around), plain};
-        String head = tries[tries.length - 1];
-        for (String c : tries) {
-            if (ui.width(c, true) + (planned == null ? 0 : 8 + ui.font.width(planned)) <= headRoom) {
-                head = c;
-                break;
-            }
+        // what they are around (the tab says how many), and the level planned for when above yours
+        String around = r == null || r.around().isEmpty() ? L.t("wynnlabs.results.around_none") : L.t("wynnlabs.results.around", String.join(", ", r.around()));
+        if (r != null && r.level() > GameState.current().level()) {
+            around += " · " + L.t("wynnlabs.results.planned_for", r.level());
         }
-        if (around != null && !head.contains(around)) {
-            host.tip(x + bw + 6, y, Math.min(headRoom, ui.width(head, true)), 9,
-                    List.of(Component.literal(around).withStyle(ChatFormatting.LIGHT_PURPLE)));
+        String shown = Type.META.fit(ui.font, around, w);
+        Type.META.draw(g, ui.font, shown, x, y, Theme.INK_3);
+        if (!shown.equals(around)) {
+            host.tip(x, y, w, Type.META.lineHeight, List.of(Component.literal(around).withStyle(ChatFormatting.LIGHT_PURPLE)));
         }
-        Kit.text(g, ui.font, Component.literal(ui.fit(head, headRoom, true)).withStyle(UiFont::bold), x + bw + 6, y, Theme.INK);
-        if (planned != null && ui.width(head, true) + 8 + ui.font.width(planned) <= headRoom) {
-            Kit.text(g, ui.font, planned, x + bw + 6 + ui.width(head, true) + 8, y, BuildControls.CHOSEN);
-        }
-        int top = y + 16;
-        int footY = y + h - 14;
+        int top = y + Type.META.lineHeight + Theme.SP_4;
+        int footY = y + h - Ui.BUTTON_H;
         if (r == null || r.builds().isEmpty()) {
-            String why = r != null && r.problem() != null ? L.t("wynnlabs.pick.problem", r.problem().text())
-                    : r != null && r.tuning().budget() > 0 ? L.t("wynnlabs.results.none_budget", BuildText.budgetText(r.tuning().budget()))
-                    : L.t("wynnlabs.results.none");
-            Kit.text(g, ui.font, ui.fit(why, w, false), x, top + 4, Theme.BAD);
-            footer(g, host, x, footY, w, mx, my, false);
+            empty(g, host, r, x, top, w, footY - Theme.SP_4 - top, mx, my);
             return;
+        }
+        if (win.card != shownCard) {
+            detailScroll = 0;                       // another build: its details from the top
+            shownCard = win.card;
         }
         win.card = Math.max(0, Math.min(win.card, n - 1));
         if (r.problem() != null) {
             // the chosen items could not be held: these are the builds without them
-            Kit.text(g, ui.font, ui.fit(L.t("wynnlabs.pick.problem", r.problem().text()), w, false), x, top, Theme.BAD);
-            top += 12;
+            top += Ui.notice(g, ui.font, Ui.Level.WARNING, List.of(L.t("wynnlabs.pick.problem", r.problem().text())), null, x, top, w, 40, mx, my,
+                    new int[1][]) + Theme.SP_4;
         }
-        int bodyH = footY - 4 - top;
-        boolean two = !win.compact && w >= 380;             // the win.compact menu: one column, the cards on top
+        int bodyH = footY - Theme.SP_4 - top;
+        boolean two = !win.compact && w >= 380;             // the compact menu: one column, the cards on top
         if (two) {
             int lw = Math.max(176, Math.min(220, w * 40 / 100));
-            int ch = Math.min(CARD_H, (bodyH - (n - 1) * 3) / n);
+            int ch = Math.min(CARD_H, (bodyH - (n - 1) * Theme.SP_3) / n);
             for (int i = 0; i < n; i++) {
-                cardBox(g, host, r.builds().get(i), i, x, top + i * (ch + 3), lw, ch, mx, my, false);
+                cardBox(g, host, r.builds().get(i), i, x, top + i * (ch + Theme.SP_3), lw, ch, mx, my, false);
             }
-            details(g, host, r.builds().get(win.card), x + lw + 8, top, w - lw - 8, bodyH, 16, mx, my);
+            scrolledDetails(g, host, r.builds().get(win.card), x + lw + Theme.SP_6, top, w - lw - Theme.SP_6, bodyH, 18, mx, my);
         } else {
             // narrow: the cards two by two on top, the details under them
             int cols = Math.min(2, n);
             int rowsN = (n + cols - 1) / cols;
-            int cw = (w - (cols - 1) * 3) / cols;
+            int cw = (w - (cols - 1) * Theme.SP_3) / cols;
             int ch = SMALL_CARD_H;
             for (int i = 0; i < n; i++) {
-                cardBox(g, host, r.builds().get(i), i, x + (i % cols) * (cw + 3), top + (i / cols) * (ch + 3), cw, ch, mx, my, true);
+                cardBox(g, host, r.builds().get(i), i, x + (i % cols) * (cw + Theme.SP_3), top + (i / cols) * (ch + Theme.SP_3), cw, ch, mx, my, true);
             }
-            int used = rowsN * (ch + 3) + 2;
-            details(g, host, r.builds().get(win.card), x, top + used, w, bodyH - used, 12, mx, my);
+            int used = rowsN * (ch + Theme.SP_3) + Theme.SP_3;
+            scrolledDetails(g, host, r.builds().get(win.card), x, top + used, w, bodyH - used, 14, mx, my);
         }
         footer(g, host, x, footY, w, mx, my, true);
     }
 
+    /** No build: the empty page with why, and the one way on (the budget off, or back to the items). */
+    private void empty(GuiGraphics g, BuildWindow.Host host, Around.Result r, int x, int y, int w, int h, int mx, int my) {
+        boolean budget = r != null && r.problem() == null && r.tuning().budget() > 0;
+        String title = r != null && r.problem() != null ? L.t("wynnlabs.pick.problem", r.problem().text())
+                : budget ? L.t("wynnlabs.results.none_budget", BuildText.budgetText(r.tuning().budget())) : L.t("wynnlabs.results.none");
+        UiEmpty.Action a = budget ? new UiEmpty.Action("coin", L.t("wynnlabs.results.budget_off"), "budgetNone")
+                : new UiEmpty.Action("arrow-left", L.t("wynnlabs.results.back"), "back");
+        int[] box = UiEmpty.draw(g, ui.font, x, y, w, h, win.compact, "sparkles", title, List.of(), a, null, mx, my);
+        if (box != null) {
+            ui.btn(box[0], box[1], box[2], box[3], a.id(), null);
+        }
+    }
+
     /** A win.card's height: its score line, its price line and the row of item icons. */
-    private static final int CARD_H = 47;
+    private static final int CARD_H = 2 * Theme.SP_3 + 12 + Theme.SP_2 + 18;
     /** A win.compact win.card's: the score line, then the 12px icons with the price beside them. */
-    private static final int SMALL_CARD_H = 34;
+    private static final int SMALL_CARD_H = 2 * Theme.SP_3 + 12 + Theme.SP_2 + 14;
 
     /**
      * One build's win.card: rank and score with its label, the price (coin and amount), and its nine
@@ -120,32 +118,49 @@ final class BuildResultsView {
      */
     private void cardBox(GuiGraphics g, BuildWindow.Host host, Roadmap.Candidate c, int i, int x, int y, int w, int h, int mx, int my, boolean small) {
         boolean on = i == win.card;
-        boolean hov = BuildControls.in(mx, my, x, y, w, h);
-        Kit.card(g, x, y, w, h, 0, on || hov);
+        Kit.softCard(g, x, y, w, h);
         if (on) {
-            Kit.outline(g, x, y, w, h, BuildControls.CHOSEN);
+            Kit.outline(g, x, y, w, h + 1, Theme.GOLD_DEEP);
         }
         String score = "#" + (i + 1) + " · " + String.format(Locale.ROOT, "%,d", Math.round(c.score()));
         if (small && ui.width(score, true) > w / 2) {
             score = "#" + (i + 1) + " · " + shortNum(c.score());
         }
-        Kit.text(g, ui.font, Component.literal(score).withStyle(UiFont::bold), x + 5, y + 4, Theme.INK);
-        int sw = ui.width(score, true);
+        int pad = Theme.SP_3;
+        int titleY = y + pad;
+        int sealX = x + w - pad;
         if (!c.labels().isEmpty()) {
-            // the label as a small icon on a seal of its colour (star, coin, shield, shoe); its name in the tooltip
+            // the label as a light seal on the title row's right: its glyph and word, the glyph alone when tight
             String l = c.labels().get(0);
-            Kit.seal(g, x + w - 4 - 14, y + 3, 14, 11, labelColour(l));
-            Art.icon(g, labelIcon(l), x + w - 4 - 11, y + 4, 8, 0xFFFFFFFF);
-            host.tip(x + w - 18, y + 3, 14, 11, List.of(L.c(labelKey(l, false)).withStyle(ChatFormatting.WHITE),
+            int col = BuildText.labelColour(l);
+            String name = L.t(labelKey(l, false));
+            int wordW = Type.META.width(ui.font, name);
+            boolean word = w - 2 * pad - ui.width(score, true) - Theme.SP_3 >= 8 + Theme.SP_1 + wordW + 2 * Theme.SP_2;
+            int sw = word ? 8 + Theme.SP_1 + wordW + 2 * Theme.SP_2 : Ui.SEAL_H + 2;
+            sealX = x + w - pad - sw;
+            int sy = Type.LABEL.onCaps(titleY, Ui.SEAL_H);
+            Kit.seal(g, sealX, sy, sw, Ui.SEAL_H, KindBadge.light(col));
+            Kit.pillLine(g, sealX, sy, sw, Ui.SEAL_H, col);
+            int gx = word ? sealX + Theme.SP_2 : sealX + (sw - 8) / 2;
+            Art.icon(g, BuildText.labelIcon(l), gx, sy + (Ui.SEAL_H - 8) / 2, 8, col);
+            if (word) {
+                Type.META.draw(g, ui.font, name, gx + 8 + Theme.SP_1, Type.META.yIn(sy, Ui.SEAL_H), col);
+            }
+            host.tip(sealX, sy, sw, Ui.SEAL_H, List.of(L.c(labelKey(l, false)).withStyle(ChatFormatting.WHITE),
                     L.c(labelKey(l, true)).withStyle(ChatFormatting.GRAY)));
         }
+        Type.LABEL.draw(g, ui.font, ui.fit(score, sealX - Theme.SP_3 - x - pad, true), x + pad, titleY, Theme.INK);
+        // the items' row under it, the price at its right end; the icons shrink before the price is cut
+        String priceText = priceText(c.price());
+        int priceW = priceText == null ? 0 : (Double.isNaN(c.price()) || c.price() <= 0 ? 0 : 10) + ui.width(priceText, false);
+        int room = w - 2 * pad - priceW - Theme.SP_3;
         int s = small ? 12 : 16;
-        int iy = small ? y + 17 : y + h - s - 5;
-        int iconsW = icons(g, host, x + 5, iy, s, c.set(), c.fixed(), BuildSources.worn(), w - 10);
-        // the price: beside the icons on a win.compact win.card, on its own line otherwise
-        int px = small ? x + 5 + iconsW + 4 : x + 5;
-        int py = small ? iy + (s - 8) / 2 : y + 16;
-        price(g, c.price(), px, py, x + w - 4 - px);
+        while (s > 10 && 9 * (s + 3) - 1 > room) {
+            s -= 2;
+        }
+        int iy = titleY + Type.LABEL.lineHeight + Theme.SP_2 + 1;
+        icons(g, host, x + pad, iy, s, c.set(), c.fixed(), BuildSources.worn(), room);
+        price(g, c.price(), x + w - pad - priceW, Type.BODY.yIn(iy - 1, s + 2), priceW);
         ui.btn(x, y, w, h, "card", i);
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(score).withStyle(ChatFormatting.WHITE));
@@ -158,9 +173,17 @@ final class BuildResultsView {
     }
 
     /** "1.2 LE" after the coin, "nothing to buy", or "price unknown", within {@code room}. */
+    /** The price's words: "1.2 LE", "nothing to buy" or "price unknown". */
+    private static String priceText(double price) {
+        if (Double.isNaN(price) || price <= 0) {
+            return L.t(Double.isNaN(price) ? "wynnlabs.results.price_unknown" : "wynnlabs.results.price_free");
+        }
+        return Prices.fmt(price);
+    }
+
     private void price(GuiGraphics g, double price, int x, int y, int room) {
         if (Double.isNaN(price) || price <= 0) {
-            String t = L.t(Double.isNaN(price) ? "wynnlabs.results.price_unknown" : "wynnlabs.results.price_free");
+            String t = priceText(price);
             Kit.text(g, ui.font, ui.fit(t, room, false), x, y, Theme.INK_3);
             return;
         }
@@ -171,23 +194,6 @@ final class BuildResultsView {
         Kit.text(g, ui.font, ui.fit(Prices.fmt(price), room - 10, false), x + 10, y, Theme.PRICE);
     }
 
-    private static String labelIcon(String l) {
-        return switch (l) {
-            case "best" -> "star-filled";
-            case "cheap" -> "coin";
-            case "tanky" -> "shield";
-            default -> "shoe";
-        };
-    }
-
-    private static int labelColour(String l) {
-        return switch (l) {
-            case "best" -> 0xFF8A6A1C;
-            case "cheap" -> Theme.SEAL_3;
-            case "tanky" -> 0xFF2F5E8A;
-            default -> 0xFF2C7A7E;
-        };
-    }
 
     private static String shortNum(double v) {
         return v >= 10_000 ? Math.round(v / 1000) + "k" : String.valueOf(Math.round(v));
@@ -260,64 +266,67 @@ final class BuildResultsView {
      * points, the equip order, and what to get (each with its icon and where it comes from, a
      * price after the coin). {@code s}: the icon size.
      */
-    private void details(GuiGraphics g, BuildWindow.Host host, Roadmap.Candidate c, int x, int y, int w, int h, int s, int mx, int my) {
-        Kit.outline(g, x, y, w, h, Theme.LINE);
-        int ix = x + 5;
-        int iw = w - 10;
-        int ly = y + 5;
-        int bottom = y + h - 4;
+    /** The details' scroll and bar: the whole of them reachable at every size (wheel, drag, track). */
+    int detailScroll;
+    private int shownCard = -1;
+    private int detailMax;
+    int[] detailBox;
+    final ScrollBar detailBar = new ScrollBar();
+
+    /** The details in their own clipped, scrolling column, the bar on its right when they do not fit. */
+    private void scrolledDetails(GuiGraphics g, BuildWindow.Host host, Roadmap.Candidate c, int x, int y, int w, int h, int s, int mx, int my) {
+        detailBox = new int[] {x, y, w, h};
+        int cw = detailMax > 0 ? w - ScrollBar.W - Theme.SP_3 : w;
+        detailScroll = Math.max(0, Math.min(detailScroll, detailMax));
+        boolean in = BuildControls.in(mx, my, x, y, w, h);
+        g.enableScissor(x - Theme.SP_2, y - Theme.SP_1, x + w, y + h);
+        int top = y - detailScroll;
+        int end = details(g, host, c, x, top, cw, 100_000, s, in ? mx : -1, in ? my : -1);
+        g.disableScissor();
+        int total = end - top + Theme.SP_2;
+        detailMax = Math.max(0, total - h);
+        detailBar.place(x + w - ScrollBar.W, y, h, h, total, detailScroll);
+        detailBar.draw(g, mx, my);
+    }
+
+    private int details(GuiGraphics g, BuildWindow.Host host, Roadmap.Candidate c, int x, int y, int w, int h, int s, int mx, int my) {
+        int bottom = y + h;
         Map<String, String> worn = BuildSources.worn();
-        icons(g, host, ix, ly + 1, s, c.set(), c.fixed(), worn, iw);
-        ly += s + 6;
         Build.Plan plan = Build.plan();
         Damage.Result now = plan == null ? null : plan.current();
         Damage.Result to = c.eval().result();
-        // the changes: damage, effective health, mana regen, walk speed
-        List<Object[]> deltas = new ArrayList<>();
+        // the changes: damage, effective health, mana regen, walk speed, each a row
+        List<String[]> deltas = new ArrayList<>();
         if (now != null && now.factors().length > 0 && to.factors().length > 0) {
-            deltas.add(new Object[] {L.t("wynnlabs.results.d_damage"), pct(now.factors()[0], to.factors()[0])});
+            deltas.add(new String[] {L.t("wynnlabs.results.d_damage"), pct(now.factors()[0], to.factors()[0])});
         }
         if (now != null) {
-            deltas.add(new Object[] {L.t("wynnlabs.results.d_ehp"), pct(now.ehp(), to.ehp())});
+            deltas.add(new String[] {L.t("wynnlabs.results.d_ehp"), pct(now.ehp(), to.ehp())});
         }
         double regenNow = plan == null || plan.worn() == null ? 0 : stat(plan.worn(), "manaRegen");
         double regenTo = stat(c.set(), "manaRegen");
         if (Math.abs(regenTo - regenNow) >= 0.5) {
-            deltas.add(new Object[] {L.t("wynnlabs.results.d_mana"), (regenTo - regenNow >= 0 ? "+" : "−") + Math.round(Math.abs(regenTo - regenNow))});
+            deltas.add(new String[] {L.t("wynnlabs.results.d_mana"), (regenTo - regenNow >= 0 ? "+" : "−") + Math.round(Math.abs(regenTo - regenNow))});
         }
         if (now != null && Math.abs(to.speed() - now.speed()) >= 1) {
-            deltas.add(new Object[] {L.t("wynnlabs.results.d_speed"), (to.speed() - now.speed() >= 0 ? "+" : "−")
+            deltas.add(new String[] {L.t("wynnlabs.results.d_speed"), (to.speed() - now.speed() >= 0 ? "+" : "−")
                 + Math.round(Math.abs(to.speed() - now.speed())) + "%"});
         }
-        // the changes are against what you wear now; "Detailed" at the line's end opens every stat on the Home
+        // the title, "Detailed ›" at its right: every stat on the Home
         String more = L.t("wynnlabs.results.detailed");
-        int mw = ui.font.width(more);
-        int mx0 = ix + iw - mw;
-        boolean mh = BuildControls.in(mx, my, mx0, ly - 1, mw, 10);
-        Kit.text(g, ui.font, more, mx0, ly, mh ? Theme.ACCENT : Theme.LINK);
-        Kit.hair(g, mx0, ly + 9, mw, 1, mh ? Theme.ACCENT : Theme.LINK);
-        ui.btn(mx0, ly - 1, mw, 11, "detailed", null);
-        host.tip(mx0, ly - 1, mw, 11, List.of(L.c("wynnlabs.results.detailed_tip").withStyle(ChatFormatting.GRAY)));
-        int right = mx0 - 6;
-        String vs = L.t("wynnlabs.results.vs_now");
-        int dx = ix + ui.font.width(vs) + 6;
-        Kit.text(g, ui.font, vs, ix, ly, Theme.INK_3);
-        for (Object[] d : deltas) {
-            String v = (String) d[1];
-            String part = d[0] + " " + v;
-            int pw = ui.font.width(part) + 8;
-            if (dx + pw > right && dx > ix) {
-                dx = ix;
-                ly += 10;
-            }
-            if (ly + 9 > bottom) {
+        int mw = Type.LINK.width(ui.font, more);
+        int ly = title(g, L.t("wynnlabs.results.vs_now"), null, x, y, w, more, mx, my);
+        ui.btn(x + w - mw, y, mw, Type.LABEL.lineHeight, "detailed", null);
+        host.tip(x + w - mw, y, mw, Type.LABEL.lineHeight, List.of(L.c("wynnlabs.results.detailed_tip").withStyle(ChatFormatting.GRAY)));
+        for (String[] d : deltas) {
+            if (ly + Type.BODY.lineHeight > bottom) {
                 break;
             }
-            Kit.text(g, ui.font, (String) d[0], dx, ly, Theme.INK_2);
-            Kit.text(g, ui.font, v, dx + ui.font.width(d[0] + " "), ly, v.startsWith("−") ? Theme.BAD : Theme.GOOD);
-            dx += pw;
+            Type.BODY.draw(g, ui.font, d[0], x, ly, Theme.INK_2);
+            Type.LABEL.drawRight(g, ui.font, d[1], x + w, ly, d[1].startsWith("−") ? Theme.BAD : Theme.GOOD);
+            ly += Type.BODY.lineHeight + Theme.SP_1;
         }
-        ly += 12;
+        ly += Theme.SP_3;
         // the skill points to assign
         StringBuilder sp = new StringBuilder();
         int[] a = c.eval().allocation();
@@ -326,21 +335,18 @@ final class BuildResultsView {
                 sp.append(sp.length() > 0 ? " · " : "").append(k.displayName(), 0, 3).append(' ').append(a[k.ordinal()]);
             }
         }
-        if (ly + 9 <= bottom) {
-            Kit.text(g, ui.font, ui.fit(L.t("wynnlabs.results.points", sp.length() == 0 ? "—" : sp.toString()), iw, false), ix, ly, Theme.INK);
-            ly += 11;
+        if (ly + Type.META.lineHeight <= bottom) {
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, L.t("wynnlabs.results.points", sp.length() == 0 ? "—" : sp.toString()), w), x, ly, Theme.INK_2);
+            ly += Type.META.lineHeight + Theme.SP_3;
         }
         String order = equipOrder(c);
-        if (order != null && ly + 9 <= bottom) {
-            Kit.text(g, ui.font, ui.fit(L.t("wynnlabs.results.order", order), iw, false), ix, ly, Theme.WARN);
-            ly += 11;
+        if (order != null && ly + Ui.noticeHeight(1) <= bottom) {
+            ly += Ui.notice(g, ui.font, Ui.Level.WARNING, List.of(L.t("wynnlabs.results.order", order)), null, x, ly, w, 40, mx, my, new int[1][])
+                    + Theme.SP_4;
         }
-        ly += 2;
-        if (ly + 9 > bottom) {
-            return;
+        if (ly + Type.LABEL.lineHeight > bottom) {
+            return ly;
         }
-        Kit.text(g, ui.font, Component.literal(L.t("wynnlabs.results.to_get")).withStyle(UiFont::bold), ix, ly, Theme.INK_2);
-        ly += 11;
         java.util.Set<String> have = BuildSources.haveNames();
         List<String> slots = new ArrayList<>();
         for (String slot : Plans.SLOTS) {
@@ -349,15 +355,17 @@ final class BuildResultsView {
                 slots.add(slot);
             }
         }
+        ly = title(g, L.t("wynnlabs.results.to_get"), slots.isEmpty() ? null : String.valueOf(slots.size()), x, ly, w, null, mx, my);
         if (slots.isEmpty()) {
-            Kit.text(g, ui.font, ui.fit(L.t("wynnlabs.results.nothing_to_get"), iw, false), ix, ly, Theme.GOOD);
-            return;
+            Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, L.t("wynnlabs.results.nothing_to_get"), w), x, ly, Theme.GOOD);
+            return ly + Type.BODY.lineHeight;
         }
-        int lineH = s + 2;
+        int textH = Type.BODY.lineHeight + Type.META.lineHeight;
+        int pitch = Math.max(s, textH) + Theme.SP_2;
         for (int i = 0; i < slots.size(); i++) {
-            if (ly + lineH > bottom || ly + 2 * lineH > bottom && i < slots.size() - 1) {
+            if (ly + pitch > bottom || ly + 2 * pitch > bottom && i < slots.size() - 1) {
                 int left = slots.size() - i;
-                Kit.text(g, ui.font, L.n("wynnlabs.results.more", left, left), ix, ly + (lineH - 8) / 2, Theme.INK_3);
+                Type.META.draw(g, ui.font, L.n("wynnlabs.results.more", left, left), x, ly, Theme.INK_3);
                 break;
             }
             String slot = slots.get(i);
@@ -366,36 +374,49 @@ final class BuildResultsView {
             boolean owned = p.stack() != null || have.contains(p.name());
             ItemData info = BuildSources.itemOf(p.name());
             ItemStack icon = info == null ? ItemStack.EMPTY : host.icon(info);
+            int sy = ly + (Math.max(s, textH) - s) / 2;
+            int is = Math.min(16, s - 2);
+            Kit.slot(g, x, sy, s, 0);
             if (!icon.isEmpty()) {
-                renderIcon(g, icon, ix, ly, s);
-                host.item(ix, ly, s, s, info, icon, itemExtra(p.name(), locked, p.stack() != null));
+                renderIcon(g, icon, x + (s - is) / 2, sy + (s - is) / 2, is);
+                host.item(x, sy, s, s, info, icon, itemExtra(p.name(), locked, p.stack() != null));
             }
-            int tx = ix + s + 4;
-            int ty = ly + (s - 8) / 2;
-            Component nm = Component.literal(p.name()).withStyle(info == null ? ChatFormatting.WHITE : info.tier().colour());
-            String nameText = ui.fit(p.name(), Math.max(30, iw - (tx - ix)) * 55 / 100, false);
-            nm = Component.literal(nameText).withStyle(nm.getStyle());
-            Kit.text(g, ui.font, nm, tx, ty, Theme.INK);
-            tx += ui.font.width(nm);
+            int tx = x + s + Theme.SP_2;
+            Component nm = Component.literal(Type.BODY.fit(ui.font, p.name(), w - (tx - x) - 12))
+                    .withStyle(info == null ? ChatFormatting.WHITE : info.tier().colour());
+            Kit.text(g, ui.font, nm, tx, ly, Theme.INK);
             if (locked) {
-                Art.icon(g, "lock", tx + 3, ty, 8, BuildControls.CHOSEN);
-                tx += 11;
+                Art.icon(g, "lock", tx + ui.font.width(nm) + Theme.SP_2, Type.BODY.onCaps(ly, 8), 8, BuildControls.CHOSEN);
             }
-            int room = ix + iw - tx - 10;
+            String where;
+            int ink = Theme.INK_3;
             if (owned) {
-                Kit.text(g, ui.font, ui.fit("— " + L.t("wynnlabs.results.have"), room + 6, false), tx + 4, ty, Theme.GOOD);
+                where = L.t("wynnlabs.results.have");
+                ink = Theme.GOOD;
             } else {
                 Object[] src = BuildSources.source(p.name());
-                if (src[1] != null) {
-                    Kit.text(g, ui.font, "—", tx + 4, ty, Theme.INK_3);
-                    int cx = tx + 4 + ui.font.width("— ");
-                    price(g, (double) src[1], cx, ty, ix + iw - cx);
-                } else {
-                    Kit.text(g, ui.font, ui.fit("— " + src[0], room + 6, false), tx + 4, ty, Theme.INK_3);
-                }
+                where = src[1] != null ? L.t("wynnlabs.results.market", Prices.fmt((double) src[1])) : (String) src[0];
             }
-            ly += lineH;
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, where, w - (tx - x)), tx, ly + Type.BODY.lineHeight, ink);
+            ly += pitch;
         }
+        return ly;
+    }
+
+    /** A section's title (LABEL, its META count), a link at its right, a hairline; returns the y under it. */
+    private int title(GuiGraphics g, String text, String meta, int x, int y, int w, String link, int mx, int my) {
+        Type.LABEL.draw(g, ui.font, text, x, y, Theme.INK);
+        if (meta != null) {
+            Type.META.draw(g, ui.font, meta, x + Type.LABEL.width(ui.font, text) + Theme.SP_3, y + 1, Theme.INK_3);
+        }
+        if (link != null) {
+            int lw = Type.LINK.width(ui.font, link);
+            boolean hov = BuildControls.in(mx, my, x + w - lw, y, lw, Type.LABEL.lineHeight);
+            Type.LINK.draw(g, ui.font, link, x + w - lw, y, hov ? Theme.GOLD_DEEP : Theme.LINK);
+        }
+        int hy = y + Type.LABEL.lineHeight + Theme.SP_2;
+        Kit.hair(g, x, hy, w, 1, Theme.LINE);
+        return hy + 1 + Theme.SP_3;
     }
 
     private static String pct(double from, double to) {
@@ -441,18 +462,17 @@ final class BuildResultsView {
         return null;
     }
 
-    /** "Cancel" and the purple "Apply build N" (or "Overwrite" for a saved build's recompute). */
+    /** "Items" (the results stay) on the left, the purple "Apply build N" (or "Overwrite" for a saved build's recompute) on the right. */
     private void footer(GuiGraphics g, BuildWindow.Host host, int x, int y, int w, int mx, int my, boolean any) {
         String apply = win.overwriteId != null ? L.t("wynnlabs.results.overwrite", win.card + 1) : L.t("wynnlabs.results.apply", win.card + 1);
-        int aw = ui.controlW("check", apply, w / 2);
-        int ax = x + w - aw;
+        int aw = ui.controlW("check", apply, w / 2, BuildControls.PRIMARY);
         if (any) {
-            ui.control(g, host, ax, y, 14, "check", apply, BuildControls.PRIMARY, false, w / 2, "apply", null,
+            ui.control(g, host, x + w - aw, y, Ui.BUTTON_H, "check", apply, BuildControls.PRIMARY, false, w / 2, "apply", null,
                     List.of(L.c("wynnlabs.results.apply_tip").withStyle(ChatFormatting.GRAY)), mx, my);
         }
-        int cx = any ? ax - 4 - BuildControls.ICON_W : x + w - BuildControls.ICON_W;
-        ui.control(g, host, cx, y, 14, "x", L.t("wynnlabs.pick.cancel"), BuildControls.WOOD, false, 0, "close", null,
-                List.of(L.c("wynnlabs.results.cancel_tip").withStyle(ChatFormatting.GRAY)), mx, my);
+        String back = L.t("wynnlabs.results.back");
+        ui.control(g, host, x, y + (Ui.BUTTON_H - Ui.CHIP_H) / 2, Ui.CHIP_H, "arrow-left", back, BuildControls.WOOD, false, w / 3, "back", null,
+                List.of(L.c("wynnlabs.results.back_tip").withStyle(ChatFormatting.GRAY)), mx, my);
     }
 
     /** A label's pill text (or its tooltip line). */

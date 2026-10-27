@@ -23,6 +23,8 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
   shows it, to watch a run.
 - `-PpreviewOnly=ai`: the AI assistant page (Settings › AI) in its four states: off, on and never asked, connected
   (a real request to the local API) with writing on, and the port busy.
+- `-PpreviewOnly=build`: the build window on Home (pick, WynnBuilder import, loading, results, saved, rename, edit) and the road
+  states, at the preview size only.
 - `-PpreviewOnly=search`: only that tab: the catalogue before typing, an item, its marks list, a tracked mob and
   the tracked list, a place, the Stats category and a stat, nothing found ("did you mean") and the filter menu.
   With `-PpreviewSize=1380x960` the card shows in its drawer.

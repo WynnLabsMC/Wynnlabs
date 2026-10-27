@@ -22,9 +22,9 @@ final class BuildControls {
     Font font;
     final List<Btn> btns = new ArrayList<>();
 
-    /** A wood button (Kit.button). */
+    /** A chip: a thin pill, gold when on (Kit.pill). */
     static final int WOOD = 0;
-    /** The purple primary button (Kit.primary). */
+    /** The purple primary action (Kit.pillPrimary). */
     static final int PRIMARY = 1;
     /** An icon-only button's width. */
     static final int ICON_W = 16;
@@ -37,26 +37,29 @@ final class BuildControls {
      */
     int control(GuiGraphics g, BuildWindow.Host host, int x, int y, int h, String icon, String text, int kind, boolean on, int maxW,
             String act, Object arg, List<Component> tip, int mx, int my) {
-        int full = text == null ? Integer.MAX_VALUE : (icon == null ? 0 : 11) + font.width(text) + 12;
+        int full = text == null ? Integer.MAX_VALUE : fullW(icon, text, kind);
         boolean words = text != null && full <= maxW;
         int w = words ? full : ICON_W;
         boolean hov = in(mx, my, x, y, w, h);
-        int state = on ? Kit.ON : hov ? Kit.HOVER : Kit.REST;
         if (kind == PRIMARY) {
-            Kit.primary(g, x, y, w, h, hov);
+            Kit.pillPrimary(g, x, y, w, h, hov);
         } else {
-            Kit.button(g, x, y, w, h, state);
+            Kit.pill(g, x, y, w, h, on, hov);
         }
-        int ink = kind == PRIMARY ? Theme.CREAM : Kit.buttonText(state);
-        int iy = y + (h - 8) / 2;
+        int ink = kind == PRIMARY ? Theme.CREAM : on ? Theme.INK : Theme.INK_2;
+        Type role = kind == PRIMARY ? Type.LABEL : Type.BODY;
+        int ty = role.yIn(y, h);
+        int iy = role.onCaps(ty, 8);
         if (words) {
-            int tx = x + 6;
+            int pad = kind == PRIMARY ? Theme.SP_4 : Theme.SP_3;
+            int tx = x + pad;
             if (icon != null) {
                 Art.icon(g, icon, tx, iy, 8, ink);
-                tx += 11;
+                tx += 8 + Theme.SP_1;
             }
-            g.drawString(font, text, tx, y + (h - 8) / 2, ink, false);
+            role.draw(g, font, text, tx, ty, ink);
         } else if (icon != null) {
+            iy = y + (h - 8) / 2;
             Art.icon(g, icon, x + (w - 8) / 2, iy, 8, ink);
         }
         if (act != null) {
@@ -75,10 +78,20 @@ final class BuildControls {
         return w;
     }
 
-    /** {@link #control}'s width without drawing it. */
+    /** {@link #control}'s width without drawing it (a chip's; a primary's is a touch wider). */
     int controlW(String icon, String text, int maxW) {
-        int full = text == null ? Integer.MAX_VALUE : (icon == null ? 0 : 11) + font.width(text) + 12;
+        return controlW(icon, text, maxW, WOOD);
+    }
+
+    int controlW(String icon, String text, int maxW, int kind) {
+        int full = text == null ? Integer.MAX_VALUE : fullW(icon, text, kind);
         return text != null && full <= maxW ? full : ICON_W;
+    }
+
+    private int fullW(String icon, String text, int kind) {
+        Type role = kind == PRIMARY ? Type.LABEL : Type.BODY;
+        int pad = kind == PRIMARY ? Theme.SP_4 : Theme.SP_3;
+        return 2 * pad + (icon == null ? 0 : 8 + Theme.SP_1) + role.width(font, text);
     }
 
     void btn(int x, int y, int w, int h, String act, Object arg) {
@@ -107,9 +120,36 @@ final class BuildControls {
         return bold ? font.width(Component.literal(s).withStyle(UiFont::bold)) : font.width(s);
     }
 
-    /** A chosen item's chip: the kit's pill, washed purple, with its purple outline (lighter on hover). */
+    /** A chosen item's chip: the purple pill (lighter on hover); its name and ✕ cream on it. */
     static void chip(GuiGraphics g, int x, int y, int w, int h, boolean hover) {
-        Kit.seal(g, x, y, w, h, hover ? 0xFFEFE6FA : 0xFFE4D8F2);
-        Kit.pillLine(g, x, y, w, h, CHOSEN);
+        Kit.pillPrimary(g, x, y, w, h, hover);
+    }
+
+    /**
+     * A chosen item as a chip at x, y: its name (cut to {@code maxW}) and a ✕, the click {@code act}
+     * on {@code arg}; returns its width.
+     */
+    int chosenChip(GuiGraphics g, BuildWindow.Host host, int x, int y, String name, int maxW, String act, Object arg, int mx, int my) {
+        int cw = Math.min(Type.BODY.width(font, name) + 2 * Theme.SP_3 + Theme.SP_2 + 6, maxW);
+        chip(g, x, y, cw, Ui.CHIP_H, in(mx, my, x, y, cw, Ui.CHIP_H));
+        int ty = Type.BODY.yIn(y, Ui.CHIP_H);
+        Type.BODY.draw(g, font, Type.BODY.fit(font, name, cw - 2 * Theme.SP_3 - Theme.SP_2 - 6), x + Theme.SP_3, ty, Theme.CREAM);
+        Art.icon(g, "x", x + cw - Theme.SP_3 - 6, Type.BODY.onCaps(ty, 6), 6, Theme.CREAM);
+        btn(x, y, cw, Ui.CHIP_H, act, arg);
+        host.tip(x, y, cw, Ui.CHIP_H, List.of(Component.literal(name).withStyle(ChatFormatting.LIGHT_PURPLE),
+                io.github.anilken.wynnlabs.core.L.c("wynnlabs.pick.chip_tip").withStyle(ChatFormatting.DARK_GRAY)));
+        return cw;
+    }
+
+    /** An icon-only square button (Ui.iconButton) with its click and tooltip; returns its width. */
+    int iconBtn(GuiGraphics g, BuildWindow.Host host, int x, int y, String icon, boolean on, String act, Object arg, List<Component> tip,
+            int mx, int my) {
+        Ui.iconButton(g, icon, x, y, on, mx, my);
+        int w = Ui.CHIP_H + 2;
+        btn(x, y, w, Ui.CHIP_H, act, arg);
+        if (tip != null) {
+            host.tip(x, y, w, Ui.CHIP_H, tip);
+        }
+        return w;
     }
 }

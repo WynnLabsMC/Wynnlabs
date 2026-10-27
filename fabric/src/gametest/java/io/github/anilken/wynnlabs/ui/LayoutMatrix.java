@@ -86,7 +86,7 @@ public class LayoutMatrix implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !only.equals("layout") && !only.equals("fill")) {
+        if (only != null && !only.equals("layout") && !only.equals("fill") && !only.equals("build")) {
             return;
         }
         Path out = Path.of(System.getProperty("wynnlabs.preview", "preview"));
@@ -168,6 +168,16 @@ public class LayoutMatrix implements FabricClientGameTest {
             });
             if ("fill".equals(only)) {
                 fill(ctx, shots);                          // the same data, the fill shots alone
+                return;
+            }
+            if ("build".equals(only)) {
+                // -PpreviewOnly=build: the build window's states (Home), at the preview's size only
+                ctx.getInput().resizeWindow(PreviewSize.WIDTH, PreviewSize.HEIGHT);
+                ctx.runOnClient(mc -> mc.options.guiScale().set(3));
+                ctx.waitTicks(5);
+                ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
+                ctx.waitTicks(5);
+                homeStates(ctx, PreviewSize.WIDTH + "x" + PreviewSize.HEIGHT + "@3", gui(ctx), report, out.resolve("build"));
                 return;
             }
             ctx.waitTicks(10);
@@ -717,8 +727,8 @@ public class LayoutMatrix implements FabricClientGameTest {
             }
             Plans.clearAll();
         });
-        String[] states = {"pick", "pick-import", "loading", "results", "results-high", "plan", "plan-removed", "plan-done", "plan-hint", "saved", "saved-rename",
-            "saved-edit", "road-none", "road-building", "road-stale", "road-stale-plan", "road-stale-hint"};
+        String[] states = {"pick", "pick-import", "loading", "results", "results-end", "results-high", "plan", "plan-removed", "plan-done", "plan-hint", "saved", "saved-rename",
+            "saved-edit", "pick-none", "results-none", "saved-none", "road-none", "road-building", "road-stale", "road-stale-plan", "road-stale-hint"};
         for (String s : states) {
             ctx.runOnClient(mc -> homeState(s));
             measure(ctx, where + " home-" + s, gui, report, areas);
@@ -811,15 +821,28 @@ public class LayoutMatrix implements FabricClientGameTest {
         Locks.useTuning(builds.tuning());
         long now = System.currentTimeMillis();
         switch (s) {
-            case "pick" -> w.previewPick("thunder", AROUND, builds.tuning());
+            case "pick" -> BuildPreviews.pick(w, "thunder", AROUND, builds.tuning());
             // a link WynnBuilder wrote: six pieces (a bow the Shaman cannot use), powders, a tome
             case "pick-import" -> w.previewImport("https://wynnbuilder.github.io/builder/#CZ0W9W5G000uQG0500m454+GhcXYfy-200k-Jn0");
             case "loading" -> {
-                w.previewPick("thunder", AROUND, builds.tuning());
+                BuildPreviews.pick(w, "thunder", AROUND, builds.tuning());
                 Around.previewLoading = new double[] {0.45, 2, 12873, 7621};
             }
-            case "results" -> w.previewResults(builds, 1);
-            case "results-high" -> w.previewResults(buildsHigh, 0);
+            case "results" -> BuildPreviews.results(w, builds, 1);
+            case "results-end" -> {
+                // the details scrolled to their end: "what to get" reachable on a small window
+                BuildPreviews.results(w, builds, 1);
+                w.results.detailScroll = 10_000;
+            }
+            // the empty states: no item matches; no build fits the budget; nothing saved
+            case "pick-none" -> BuildPreviews.pick(w, "zzqq", AROUND, builds.tuning());
+            case "results-none" -> BuildPreviews.results(w, new Around.Result(3, AROUND, builds.tuning().withBudget(640), builds.level(),
+                    List.of(), null, true, false), 0);
+            case "saved-none" -> {
+                Plans.clearAll();
+                BuildPreviews.saved(w, 0, null, null);
+            }
+            case "results-high" -> BuildPreviews.results(w, buildsHigh, 0);
             case "plan", "plan-hint" -> {
                 w.close();
                 Plans.apply(planOf(builds.builds().get(0), "Covetous Thunder build", now));
@@ -862,7 +885,7 @@ public class LayoutMatrix implements FabricClientGameTest {
                     Plans.apply(Plans.saved().get(4));
                 }
                 List<Plans.Build> all = Plans.saved();
-                w.previewSaved(3, s.equals("saved-rename") ? all.get(4).id() : null, s.equals("saved-edit") ? all.get(5).id() : null);
+                BuildPreviews.saved(w, 3, s.equals("saved-rename") ? all.get(4).id() : null, s.equals("saved-edit") ? all.get(5).id() : null);
             }
             case "road-stale-plan", "road-stale-hint" -> {
                 // out of date with a plan applied (and its better-build hint): the plan's view, nothing over it
@@ -901,7 +924,7 @@ public class LayoutMatrix implements FabricClientGameTest {
     private static void scrollDrag(ClientGameTestContext ctx, String where, Map<String, List<String>> report) {
         ctx.runOnClient(mc -> {
             Locks.use(List.of());
-            BuildWindow.INSTANCE.previewPick("", List.of(), Tuning.Choice.PLAIN);
+            BuildPreviews.pick(BuildWindow.INSTANCE, "", List.of(), Tuning.Choice.PLAIN);
         });
         ctx.waitTicks(3);
         String problem = ctx.computeOnClient(mc -> {
@@ -954,7 +977,7 @@ public class LayoutMatrix implements FabricClientGameTest {
                 Locks.use(AROUND);
                 Locks.useTuning(builds.tuning());
                 Around.use(builds);
-                BuildWindow.INSTANCE.previewResults(builds, 1);
+                BuildPreviews.results(BuildWindow.INSTANCE, builds, 1);
             });
             ctx.waitTicks(3);
             String problem = ctx.computeOnClient(mc -> {

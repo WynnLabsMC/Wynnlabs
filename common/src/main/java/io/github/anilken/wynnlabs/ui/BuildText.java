@@ -100,4 +100,23 @@ final class BuildText {
     static String budgetText(long budget) {
         return budget <= 0 ? L.t("wynnlabs.pick.budget_none") : Prices.fmt(budget);
     }
+
+    /** A result tag's glyph and colour (best, cheap, tanky, fast). */
+    static String labelIcon(String l) {
+        return switch (l) {
+            case "best" -> "trophy";
+            case "cheap" -> "diamond";
+            case "tanky" -> "heart";
+            default -> "bolt";
+        };
+    }
+
+    static int labelColour(String l) {
+        return switch (l) {
+            case "best" -> 0xFF8A6A1C;
+            case "cheap" -> Theme.GOOD;
+            case "tanky" -> 0xFF2F5E8A;
+            default -> 0xFF2C7A7E;
+        };
+    }
 }
