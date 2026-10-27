@@ -12,6 +12,7 @@ import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.Slot;
 import io.github.anilken.wynnlabs.quests.QuestBook;
@@ -78,7 +79,7 @@ final class MilestonePicks {
         badSources = sources;
         // when this milestone lets you get it
         laterVersion = CandidateRules.laterVersions(run.state, info -> !tiers.contains(info.tier().name())
-                && (run.owned.contains(info.name()) || !Shopping.excluded(info, sources)) && run.affordable.test(info));
+                && (run.owned.contains(info.name()) || !ShoppingSources.excluded(info, sources)) && run.affordable.test(info));
         listingsMatter = m - run.level <= (int) Rules.sub("shopping", "aheadLevels", 5);
         gear = new ArrayList<>(first ? run.lockRows : List.of());   // the chosen items: rows of the first milestone
         if (first && run.plan != null) {
@@ -147,7 +148,7 @@ final class MilestonePicks {
                 if (info.requirements().level() > m || there != null && there.key().equals(cand.key()) || !affordable.test(info)) {
                     continue;
                 }
-                if (Shopping.excluded(info, badSources) || Exclusive.clash(baseline, slot, Exclusive.group(info)) != null) {
+                if (ShoppingSources.excluded(info, badSources) || Exclusive.clash(baseline, slot, Exclusive.group(info)) != null) {
                     continue;
                 }
                 double obj = SetJudge.full(baseline, slot, cand, m, earned);
@@ -171,8 +172,8 @@ final class MilestonePicks {
         Option first = before == null ? null : RoadmapRows.option(best, bestSlot, baseline, before, m, earned);
         baseline.put(bestSlot, OwnedGear.pieceOf(best));
         RoadmapRows.place(placed, Roadmap.RING2, bestSlot);
-        String src = Shopping.sourceOf(best);
-        return new Gear(Roadmap.RING2, best, bestGain, Shopping.where(src), Prices.buyText(best.name()), null, null,
+        String src = ShoppingSources.sourceOf(best);
+        return new Gear(Roadmap.RING2, best, bestGain, ShoppingSources.where(src), Prices.buyText(best.name()), null, null,
                 new ArrayList<>(), List.of(), first == null ? List.of() : List.of(first));
     }
 
@@ -317,7 +318,7 @@ final class MilestonePicks {
             }
             // a quest the piece asks for that you have not done: not before its level
             // (Sodeta Boots want Lost Soles); from there on it stays, with a caution
-            QuestBook.Entry quest = Shopping.questPending(run.state, info);
+            QuestBook.Entry quest = ShoppingSources.questPending(run.state, info);
             if (quest != null && quest.level() > m) {
                 RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_quest", quest.name(), quest.level());
                 return;
@@ -330,11 +331,11 @@ final class MilestonePicks {
             if (!future && info.set().isPresent()) {
                 // a set piece alone may rank below the best forty and still pay with its set
                 // by where it comes from in the world (a listed piece's source reads TRADE_MARKET)
-                if (!Shopping.excluded(info, badSources)) {
+                if (!ShoppingSources.excluded(info, badSources)) {
                     setGear.add(info);
                 }
             }
-            if (!future && (!Shopping.excluded(info, badSources) || run.owned.contains(info.name()))) {
+            if (!future && (!ShoppingSources.excluded(info, badSources) || run.owned.contains(info.name()))) {
                 // for the search's sets around another weapon: ranked anew there, not by the score below
                 wide.computeIfAbsent(t, k -> new ArrayList<>()).add(info);
             }
@@ -376,8 +377,8 @@ final class MilestonePicks {
                 if (slotUsed != null && Build.needsRespec(run.baseline, run.prevAlloc, slotUsed, cand, earned)) {
                     sc -= Rules.sub("shopping", "respecPenaltyPercent", 3);
                 }
-                if (Shopping.excluded(info, badSources) && (!run.owned.contains(info.name()) || OwnedGear.buysOwned(cand))) {
-                    RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_source", Shopping.origin(info));
+                if (ShoppingSources.excluded(info, badSources) && (!run.owned.contains(info.name()) || OwnedGear.buysOwned(cand))) {
+                    RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_source", ShoppingSources.origin(info));
                     return;               // never offer what cannot be obtained
                 }
                 RoadmapTrace.trace(m, t, info, L.t("wynnlabs.road.trace_ranked", RoadmapTrace.pct(sc), slotUsed)
@@ -396,7 +397,7 @@ final class MilestonePicks {
             // (Wynnventory's live listings) only wins when it is clearly better than one that has
             double factor = 1;
             if (allocM != null && listingsMatter && Shopping.tradable(info)) {
-                String src = Shopping.origin(info);
+                String src = ShoppingSources.origin(info);
                 boolean merchant = src.startsWith("MERCHANT") || src.startsWith("DUNGEON_MERCHANT");
                 if (!merchant) {
                     factor = CandidateRules.availability(run.state.price(info.name()));
@@ -508,7 +509,7 @@ final class MilestonePicks {
                     double pickBy = full;
                     if (run.owned.contains(info.name()) && !buy) {
                         pickBy += Rules.sub("shopping", "ownedBonusPercent", 2);
-                    } else if (Shopping.effort(info)) {
+                    } else if (ShoppingSources.effort(info)) {
                         pickBy -= Rules.sub("shopping", "untradableEffortPercent", 5);
                     }
                     // a fresh copy of the one you wear must beat it by the full bar, never the
@@ -567,14 +568,14 @@ final class MilestonePicks {
 
         /** The pick's row with its alternatives and comparison panel, and the pick put into the run's set. */
         private void addRow() {
-            String source = Shopping.sourceOf(top);
+            String source = ShoppingSources.sourceOf(top);
             Damage.Piece topPiece = judgedAs.getOrDefault(top.name(), OwnedGear.pieceOf(top));
-            if (source == null || Shopping.excluded(top, badSources)
+            if (source == null || ShoppingSources.excluded(top, badSources)
                     && (!run.owned.contains(top.name()) || OwnedGear.buysOwned(topPiece))) {
                 return;                       // what cannot be had, unless you have it already
             }
             String price = Prices.buyText(top.name());
-            String altSource = alt == null ? null : Shopping.sourceOf(alt);
+            String altSource = alt == null ? null : ShoppingSources.sourceOf(alt);
             double gain = allocM != null ? (Double.isNaN(topReal) ? topScore : topReal) : topScore - run.best.getOrDefault(t, 0.0);
             if (emptyBuild) {
                 gain = Double.NaN;              // against an empty hand a % means nothing
@@ -583,8 +584,8 @@ final class MilestonePicks {
             Build.Eval before = allocM != null ? Build.allocate(run.baseline, m, earned) : null;
             List<String> others = alternatives();
             List<Option> options = panel(before, topPiece);
-            gear.add(new Gear(t.name(), top, gain, Shopping.where(source), price, alt,
-                    altSource == null ? null : Shopping.where(altSource), detail, others, options));
+            gear.add(new Gear(t.name(), top, gain, ShoppingSources.where(source), price, alt,
+                    altSource == null ? null : ShoppingSources.where(altSource), detail, others, options));
             if (allocM != null) {
                 run.baseline.put(topSlot != null ? topSlot : Build.slotOf(t, 0), topPiece);
                 RoadmapRows.place(run.placed, t.name(), topSlot != null ? topSlot : Build.slotOf(t, 0));

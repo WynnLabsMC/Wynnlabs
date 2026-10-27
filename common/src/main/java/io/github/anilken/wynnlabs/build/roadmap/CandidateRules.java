@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.Slot;
 
@@ -84,7 +85,7 @@ final class CandidateRules {
      * upgrades" before the endgame level).
      */
     static boolean panelAllows(ItemData info, int m) {
-        return !badTiers(m).contains(info.tier().name()) && !Shopping.excluded(info, badSources(m));
+        return !badTiers(m).contains(info.tier().name()) && !ShoppingSources.excluded(info, badSources(m));
     }
 
     /**

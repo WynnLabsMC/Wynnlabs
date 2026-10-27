@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.ItemData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -49,30 +50,30 @@ class UnobtainableTest {
     void aPieceWithNoKnownSourceIsLeftOut() throws Exception {
         shaman();
         ItemData cloak = gear("Ornate Shadow Cloak");
-        assertTrue(Shopping.unknownSource(cloak));
+        assertTrue(ShoppingSources.unknownSource(cloak));
         assertFalse(Shopping.tradable(cloak));
         // left out with no rule asking for it
-        assertTrue(Shopping.excluded(cloak, List.of()), "an untradable piece with no source cannot be had");
+        assertTrue(ShoppingSources.excluded(cloak, List.of()), "an untradable piece with no source cannot be had");
         // a piece with a known source is not
         ItemData known = GameState.current().allGear()
-                .filter(i -> !Shopping.unknownSource(i) && i.restriction().equals("NONE")
+                .filter(i -> !ShoppingSources.unknownSource(i) && i.restriction().equals("NONE")
                         && GameState.current().obtain(i).stream().anyMatch(o -> o.type().equals("MERCHANT")))
                 .findFirst().orElseThrow();
-        assertFalse(Shopping.excluded(known, List.of()), known.name());
+        assertFalse(ShoppingSources.excluded(known, List.of()), known.name());
     }
 
     @Test
     void aTradablePieceWithAPriceCanBeBought() throws Exception {
         FixtureState s = shaman();
         ItemData masterwork = gear("Masterwork Olympic");
-        assertTrue(Shopping.unknownSource(masterwork));
+        assertTrue(ShoppingSources.unknownSource(masterwork));
         assertTrue(Shopping.tradable(masterwork));
-        assertTrue(Shopping.excluded(masterwork, List.of()), "no source and no price: nothing says it can be had");
+        assertTrue(ShoppingSources.excluded(masterwork, List.of()), "no source and no price: nothing says it can be had");
         s.data.prices().put(masterwork.name(), new Prices.Price(200_000, 250_000.0, 250_000.0, null, null,
                 GameState.current().now(), GameState.current().now(), 3));
-        assertFalse(Shopping.excluded(masterwork, List.of()), "the Trade Market sells it");
+        assertFalse(ShoppingSources.excluded(masterwork, List.of()), "the Trade Market sells it");
         // the rule list still has the last word
-        assertTrue(Shopping.excluded(masterwork, List.of("UNKNOWN")));
+        assertTrue(ShoppingSources.excluded(masterwork, List.of("UNKNOWN")));
     }
 
     @Test
@@ -91,8 +92,8 @@ class UnobtainableTest {
         BuildSources.forgetReads();
 
         ItemData mine = gear("Diverted Loyalty");
-        assertTrue(Shopping.unknownSource(mine));
-        assertTrue(Shopping.excluded(mine, List.of()), "not a buy");
+        assertTrue(ShoppingSources.unknownSource(mine));
+        assertTrue(ShoppingSources.excluded(mine, List.of()), "not a buy");
         assertTrue(Roadmap.ownedCounts(GameState.current()).containsKey(mine.name()), "but yours: the road map keeps it");
         assertEquals(L.t("wynnlabs.results.unknown_have"), BuildSources.sourceText(mine.name()));
         // one you do not have reads as before

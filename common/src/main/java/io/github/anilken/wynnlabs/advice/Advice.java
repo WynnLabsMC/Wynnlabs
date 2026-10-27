@@ -17,6 +17,7 @@ import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.game.WynntilsItems;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Klass;
@@ -31,7 +32,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -432,7 +432,7 @@ public final class Advice {
                             + (Roadmap.stale() != null ? " (" + L.t("wynnlabs.advice.road_stale") + ")" : "")
                     : next == null ? L.t("wynnlabs.advice.nothing_better")
                     : L.t("wynnlabs.advice.next_target", next.info().name(), next.info().requirements().level(),
-                            Shopping.where(next.source()));
+                            ShoppingSources.where(next.source()));
             var gi = gear.rolled();
             String tier = gear.data().tier().name();
             if (gi != null && gi.hasOverall()

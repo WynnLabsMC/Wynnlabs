@@ -6,6 +6,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.ItemData;
 import net.minecraft.world.item.ItemStack;
@@ -108,10 +109,10 @@ public final class BuildSources {
                 return "coin";
             }
         }
-        String src = Shopping.origin(info);
+        String src = ShoppingSources.origin(info);
         boolean known = src != null && !src.isBlank() && !src.toUpperCase(Locale.ROOT).startsWith("UNKNOWN");
         if (known) {
-            return kindIcon(Shopping.kind(src));
+            return kindIcon(ShoppingSources.kind(src));
         }
         if ("QUEST_ITEM".equals(info.restriction())) {
             return "script";
@@ -144,12 +145,12 @@ public final class BuildSources {
         if (info == null) {
             return null;
         }
-        String src = Shopping.origin(info);
+        String src = ShoppingSources.origin(info);
         if (src == null || src.isBlank() || src.toUpperCase(Locale.ROOT).startsWith("UNKNOWN")) {
             return null;
         }
         if (source(name)[1] != null) {
-            return L.t("wynnlabs.homev.source_also", Shopping.where(src));
+            return L.t("wynnlabs.homev.source_also", ShoppingSources.where(src));
         }
         String[] parts = src.split(": ", 2);
         String place = parts.length > 1 ? parts[1].trim() : "";
@@ -184,7 +185,7 @@ public final class BuildSources {
         if (info == null) {
             return new Object[] {L.t("wynnlabs.results.price_unknown"), null};
         }
-        String src = Shopping.origin(info);
+        String src = ShoppingSources.origin(info);
         boolean tradable = Shopping.tradable(info);
         if (tradable) {
             Prices.Price p = GameState.current().price(name);
@@ -194,10 +195,10 @@ public final class BuildSources {
         }
         boolean known = src != null && !src.isBlank() && !src.toUpperCase(Locale.ROOT).startsWith("UNKNOWN");
         if (known && src.startsWith("QUEST")) {
-            return new Object[] {L.t("wynnlabs.results.quest", Shopping.where(src)), null};
+            return new Object[] {L.t("wynnlabs.results.quest", ShoppingSources.where(src)), null};
         }
         if (known) {
-            return new Object[] {L.cap(Shopping.where(src)), null};
+            return new Object[] {L.cap(ShoppingSources.where(src)), null};
         }
         if ("QUEST_ITEM".equals(info.restriction())) {
             return new Object[] {L.t("wynnlabs.results.quest_reward"), null};

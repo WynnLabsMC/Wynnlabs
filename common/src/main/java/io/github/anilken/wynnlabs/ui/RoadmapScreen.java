@@ -524,10 +524,10 @@ public final class RoadmapScreen extends Screen {
         int y0 = layout.y();
         // the window: a wooden frame around the panel (outside it, so nothing inside moves),
         // planks under the rail and parchment under the page
-        Kit.window(g, x0 - 5, y0 - 5, w + 10, h + 10);
-        Kit.railPlain(g, x0, y0, railW(), h, railW());
+        KitFrame.window(g, x0 - 5, y0 - 5, w + 10, h + 10);
+        KitFrame.railPlain(g, x0, y0, railW(), h, railW());
         // the page: content keeps 10px from the parchment's sides (14 at the top, 8 at the bottom)
-        Kit.paper(g, x0 + railW() + 2, y0 + 2, w - railW() - 4, h - 4);
+        KitFrame.paper(g, x0 + railW() + 2, y0 + 2, w - railW() - 4, h - 4);
         pagePanel = new int[] {x0 + railW() + 2, y0 + 2, w - railW() - 4, h - 4};      // a drawer dims exactly this
 
         // the damage (7) and the deaths (3) live on the tree page: their targets open it with that drawer
@@ -611,7 +611,7 @@ public final class RoadmapScreen extends Screen {
         // close (drawn last, so the crafting tab's saved panel beside it never covers it): a red seal just outside the window's top-right corner (Esc does the same)
         int[] cr = closeRect;
         boolean closeHover = cr != null && mx >= cr[0] && mx < cr[0] + cr[2] && my >= cr[1] && my < cr[1] + cr[3];
-        closeRect = Kit.closeOutside(g, width, x0, y0, w, closeHover);
+        closeRect = KitFrame.closeOutside(g, width, x0, y0, w, closeHover);
         int bx = closeRect[0];
         int by = closeRect[1];
         if (closeHover) {

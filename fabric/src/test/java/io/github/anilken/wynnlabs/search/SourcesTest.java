@@ -2,7 +2,7 @@ package io.github.anilken.wynnlabs.search;
 
 import io.github.anilken.wynnlabs.build.BuildSources;
 import io.github.anilken.wynnlabs.market.Prices;
-import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -162,7 +162,7 @@ class SourcesTest {
             if (t.obtain == null) {
                 continue;
             }
-            String home = BuildSources.kindIcon(Shopping.kind(t.obtain));
+            String home = BuildSources.kindIcon(ShoppingSources.kind(t.obtain));
             if (!home.equals("question-mark")) {
                 assertEquals(home, SourceRank.badge(t), t.name());
             }

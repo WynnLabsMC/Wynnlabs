@@ -13,7 +13,7 @@ import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.market.Prices;
-import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.model.Slot;
@@ -67,8 +67,8 @@ final class RoadmapRows {
         GameState.current().requestPrices(List.of(info.name()));
         String pr = Prices.buyText(info.name());
         String price = pr == null ? null : pr.contains(" (") ? pr.substring(0, pr.indexOf(" (")) : pr;
-        String src = Shopping.sourceOf(info);
-        return new Option(info, gain, price, src == null ? "?" : Shopping.where(src), Cautions.of(info),
+        String src = ShoppingSources.sourceOf(info);
+        return new Option(info, gain, price, src == null ? "?" : ShoppingSources.where(src), Cautions.of(info),
                 String.join(", ", sk), down, pct, before.result(), after.result());
     }
 
@@ -125,12 +125,12 @@ final class RoadmapRows {
                     .toList();
             options.addAll(PanelOptions.others(ranked, info -> option(info, slot, build, before, m, earned), m));
         }
-        String src = Shopping.sourceOf(pick);
+        String src = ShoppingSources.sourceOf(pick);
         List<String> detail = new ArrayList<>();
         if (before != null && after != null) {
             detail.addAll(RoadmapGains.explain(before, after));
         }
-        gear.add(new Gear(rowName, pick, gain, Shopping.where(src), Prices.buyText(pick.name()), null, null,
+        gear.add(new Gear(rowName, pick, gain, ShoppingSources.where(src), Prices.buyText(pick.name()), null, null,
                 detail, List.of(), options));
         build.put(slot, piece);
         place(placed, rowName, slot);

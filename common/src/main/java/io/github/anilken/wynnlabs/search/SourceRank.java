@@ -2,7 +2,7 @@ package io.github.anilken.wynnlabs.search;
 
 import io.github.anilken.wynnlabs.build.BuildSources;
 import io.github.anilken.wynnlabs.core.Rules;
-import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -56,7 +56,7 @@ public final class SourceRank {
                 break;
         }
         if (t.obtain != null) {
-            String home = BuildSources.kindIcon(Shopping.kind(t.obtain));
+            String home = BuildSources.kindIcon(ShoppingSources.kind(t.obtain));
             if (!home.equals("question-mark")) {
                 return home;
             }

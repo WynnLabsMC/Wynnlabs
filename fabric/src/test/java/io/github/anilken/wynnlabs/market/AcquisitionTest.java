@@ -128,16 +128,16 @@ class AcquisitionTest {
                         admiral, List.of(new Obtain("DUNGEON_MERCHANT", Optional.of("Ice Barrows")))),
                 Map.of("Cloak of Luminosity", price(2000, 2500, now - 3_600_000L, 18),
                         "Gone Boots", price(2000, 2500, null, 0)), List.of());
-        assertEquals("TRADE_MARKET", Shopping.sourceOf(cloak));
-        assertEquals(L.t("wynnlabs.shop.where_market"), Shopping.where(Shopping.sourceOf(cloak)));
-        assertEquals(Shopping.where("QUEST: Lights Out"), Shopping.alsoFrom(cloak));
-        assertEquals("quest", Shopping.kind(cloak));            // the world source still decides
+        assertEquals("TRADE_MARKET", ShoppingSources.sourceOf(cloak));
+        assertEquals(L.t("wynnlabs.shop.where_market"), ShoppingSources.where(ShoppingSources.sourceOf(cloak)));
+        assertEquals(ShoppingSources.where("QUEST: Lights Out"), ShoppingSources.alsoFrom(cloak));
+        assertEquals("quest", ShoppingSources.kind(cloak));            // the world source still decides
         // nothing listed now: the quest is the way
-        assertEquals("QUEST: Lights Out", Shopping.sourceOf(gone));
-        assertNull(Shopping.alsoFrom(gone));
+        assertEquals("QUEST: Lights Out", ShoppingSources.sourceOf(gone));
+        assertNull(ShoppingSources.alsoFrom(gone));
         // an untradable dungeon merchant piece takes a run; a tradable one is bought
-        assertTrue(Shopping.effort(admiral));
-        assertFalse(Shopping.effort(cloak));
+        assertTrue(ShoppingSources.effort(admiral));
+        assertFalse(ShoppingSources.effort(cloak));
     }
 
     @Test
@@ -151,10 +151,10 @@ class AcquisitionTest {
                 Map.of("Seasonal Boots", price(2000, 2500, 1_760_000_000_000L - 3_600_000L, 6),
                         "Raid Boots", price(2000, 2500, 1_760_000_000_000L - 3_600_000L, 6)), List.of());
         List<String> bad = List.of("UNAVAILABLE", "RAID", "EVENT");
-        assertFalse(Shopping.excluded(world, bad));             // repeatable any time
-        assertTrue(Shopping.excluded(seasonal, bad));           // seasonal, listed or not
-        assertTrue(Shopping.excluded(raid, bad));               // raid rewards stay hidden anywhere
-        assertFalse(Shopping.excluded(seasonal, List.of("RAID")));
+        assertFalse(ShoppingSources.excluded(world, bad));             // repeatable any time
+        assertTrue(ShoppingSources.excluded(seasonal, bad));           // seasonal, listed or not
+        assertTrue(ShoppingSources.excluded(raid, bad));               // raid rewards stay hidden anywhere
+        assertFalse(ShoppingSources.excluded(seasonal, List.of("RAID")));
     }
 
     @Test
@@ -162,8 +162,8 @@ class AcquisitionTest {
         ItemData ornament = boots("Merchant Boots", "NONE", Optional.empty());
         install(tmp, Map.of(ornament, List.of(new Obtain("MERCHANT", Optional.of("Ragni")))),
                 Map.of("Merchant Boots", price(2000, 2500, 1_760_000_000_000L - 3_600_000L, 6)), List.of());
-        assertEquals("MERCHANT: Ragni", Shopping.sourceOf(ornament));
-        assertEquals(L.t("wynnlabs.shop.where_market"), Shopping.alsoFrom(ornament));
+        assertEquals("MERCHANT: Ragni", ShoppingSources.sourceOf(ornament));
+        assertEquals(L.t("wynnlabs.shop.where_market"), ShoppingSources.alsoFrom(ornament));
     }
 
     @Test
@@ -177,19 +177,19 @@ class AcquisitionTest {
                         1_759_000_000_000L, "QUEST", null),
                 new QuestBook.Entry("WynnExcavation Site D", "COMPLETED", 52, "SHORT", 0, true, null, null, null, null,
                         null, 1_759_000_000_000L, "QUEST", null)));
-        QuestBook.Entry pending = Shopping.questPending(GameState.current(), sodeta);
+        QuestBook.Entry pending = ShoppingSources.questPending(GameState.current(), sodeta);
         assertEquals("Lost Soles", pending.name());
         assertEquals(63, pending.level());
         assertTrue(Cautions.of(sodeta).contains(L.t("wynnlabs.caution.quest_first", "Lost Soles")));
-        assertNull(Shopping.questPending(GameState.current(), royal));     // done
-        assertNull(Shopping.questPending(GameState.current(), free));      // the book does not know it
+        assertNull(ShoppingSources.questPending(GameState.current(), royal));     // done
+        assertNull(ShoppingSources.questPending(GameState.current(), free));      // the book does not know it
     }
 
     @Test
     void anEmptyQuestBookGatesNothing(@TempDir Path tmp) throws Exception {
         ItemData sodeta = boots("Sodeta Boots", "NONE", Optional.of("Lost Soles"));
         install(tmp, Map.of(sodeta, List.of(new Obtain("LOOT_CHEST", Optional.empty()))), Map.of(), List.of());
-        assertNull(Shopping.questPending(GameState.current(), sodeta));
+        assertNull(ShoppingSources.questPending(GameState.current(), sodeta));
         assertFalse(Cautions.of(sodeta).contains(L.t("wynnlabs.caution.quest_first", "Lost Soles")));
     }
 }

@@ -12,6 +12,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.MenuWatcher;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.quests.Grind;
@@ -277,7 +278,7 @@ public final class Profile {
         for (Shopping.Pick p : Shopping.list()) {
             int lv = p.info().requirements().level();
             if (lv > from && lv <= level && p.rank() == 1) {
-                gear.add(p.info().name() + " (" + Shopping.where(p.source()) + ")");
+                gear.add(p.info().name() + " (" + ShoppingSources.where(p.source()) + ")");
             }
         }
         if (!gear.isEmpty()) {

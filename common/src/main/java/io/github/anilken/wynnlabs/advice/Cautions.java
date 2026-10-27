@@ -2,7 +2,7 @@ package io.github.anilken.wynnlabs.advice;
 
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.GameState;
-import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.StatRange;
 import io.github.anilken.wynnlabs.quests.QuestBook;
@@ -51,7 +51,7 @@ public final class Cautions {
             return out;
         }
         // a quest it asks for that the quest book says is not done (Royal amulets: WynnExcavation Site D)
-        QuestBook.Entry quest = Shopping.questPending(GameState.current(), info);
+        QuestBook.Entry quest = ShoppingSources.questPending(GameState.current(), info);
         if (quest != null) {
             out.add(L.t("wynnlabs.caution.quest_first", quest.name()));
         }

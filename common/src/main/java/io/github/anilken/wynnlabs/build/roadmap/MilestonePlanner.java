@@ -20,6 +20,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.Slot;
@@ -371,13 +372,13 @@ final class MilestonePlanner {
             }
             String slotName = info.slot().name();
             gear.removeIf(x -> x.slot().equals(slotName));
-            String src = Shopping.sourceOf(info);
+            String src = ShoppingSources.sourceOf(info);
             // the old default note in rules.json ("topluluk önerisi") means: the localized default
             String note = Rules.subText("roadmap", "targetNote", null);
             if (note == null || note.isBlank() || note.equals("topluluk önerisi")) {
                 note = L.t("wynnlabs.road.target_note");
             }
-            gear.add(new Gear(slotName, info, Double.NaN, src == null ? "?" : Shopping.where(src) + " · "
+            gear.add(new Gear(slotName, info, Double.NaN, src == null ? "?" : ShoppingSources.where(src) + " · "
                     + note, Prices.buyText(info.name()),
                     null, null, List.of(), List.of(), List.of()));
             if (baseline != null) {
@@ -522,8 +523,8 @@ final class MilestonePlanner {
                 detail.addAll(RoadmapGains.explain(before, after));
             }
             Option first = before == null ? null : RoadmapRows.option(info, slot, start, before, level, earned);
-            String src = Shopping.sourceOf(info);
-            rows.add(new Gear(row, info, Double.NaN, src == null ? "?" : Shopping.where(src), Prices.buyText(info.name()),
+            String src = ShoppingSources.sourceOf(info);
+            rows.add(new Gear(row, info, Double.NaN, src == null ? "?" : ShoppingSources.where(src), Prices.buyText(info.name()),
                     null, null, detail, List.of(), first == null ? List.of() : List.of(first)));
             RoadmapRows.place(placed, row, slot);
         }

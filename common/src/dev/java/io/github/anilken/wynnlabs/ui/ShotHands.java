@@ -39,7 +39,6 @@ public final class ShotHands {
 
     // the private fields reached by reflection (ShotNamesTest checks each one exists)
     static final Peek.Ref TABS = new Peek.Ref(RoadmapScreen.class, "TABS");
-    static final Peek.Ref PLAN_PILLS = new Peek.Ref(HomePage.class, "planPills");
     static final Peek.Ref PILL_PLAN = new Peek.Ref(Plans.Pills.class, "planId");
     static final Peek.Ref PILL_PICKED = new Peek.Ref(Plans.Pills.class, "picked");
     static final Peek.Ref DETAIL_LABEL = new Peek.Ref(HomePage.class, "detailLabel");
@@ -49,7 +48,7 @@ public final class ShotHands {
 
     /** Every reflected field, for the test. */
     public static List<Peek.Ref> refs() {
-        return List.of(TABS, PLAN_PILLS, PILL_PLAN, PILL_PICKED, DETAIL_LABEL, WINDOW_UNSEEN, WINDOW_FROM_HINT, TREE_SCROLL);
+        return List.of(TABS, PILL_PLAN, PILL_PICKED, DETAIL_LABEL, WINDOW_UNSEEN, WINDOW_FROM_HINT, TREE_SCROLL);
     }
 
     /** A link WynnBuilder wrote (data 2.2.5.0): six pieces, a bow with powders, a tome, a level. */
@@ -177,7 +176,7 @@ public final class ShotHands {
     }
 
     private static Plans.Pills pills() {
-        return (Plans.Pills) PLAN_PILLS.get(null);
+        return HomeLevels.planPills;
     }
 
     // ---- the steps ----

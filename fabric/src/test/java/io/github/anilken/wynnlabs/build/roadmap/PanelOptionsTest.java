@@ -2,7 +2,7 @@ package io.github.anilken.wynnlabs.build.roadmap;
 
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
-import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -67,8 +67,8 @@ class PanelOptionsTest {
     @Test
     void sourcesReadForPeople() throws Exception {
         FixtureState.load(shaman()).install("en");
-        assertEquals("Legendary Island (challenge)", Shopping.where("CHALLENGE: Legendary Island"));
-        assertEquals("The Canyon Colossus raid", Shopping.where("RAID: The Canyon Colossus"));
-        assertEquals("Scavenger's Workshop (tinkering)", Shopping.where("TINKERING: Scavenger's Workshop"));
+        assertEquals("Legendary Island (challenge)", ShoppingSources.where("CHALLENGE: Legendary Island"));
+        assertEquals("The Canyon Colossus raid", ShoppingSources.where("RAID: The Canyon Colossus"));
+        assertEquals("Scavenger's Workshop (tinkering)", ShoppingSources.where("TINKERING: Scavenger's Workshop"));
     }
 }

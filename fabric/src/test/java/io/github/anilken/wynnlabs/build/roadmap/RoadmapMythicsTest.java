@@ -6,7 +6,7 @@ import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.GameState;
-import io.github.anilken.wynnlabs.market.Shopping;
+import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.BaseStats;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.Klass;
@@ -76,7 +76,7 @@ class RoadmapMythicsTest {
         assertEquals(109, any.get("Olympic"));
         assertFalse(Roadmap.lastOfItsKind(olympic, 120, any), "with every later version counted, Olympic is replaced");
         List<String> bad = Roadmap.badSources(120);
-        Map<String, Integer> gettable = Roadmap.laterVersions(GameState.current(), i -> !Shopping.excluded(i, bad));
+        Map<String, Integer> gettable = Roadmap.laterVersions(GameState.current(), i -> !ShoppingSources.excluded(i, bad));
         assertNull(gettable.get("Olympic"), "the Masterwork one cannot be had");
         assertTrue(Roadmap.lastOfItsKind(olympic, 120, gettable), "so Olympic stays the best of its kind at Lv 120");
     }

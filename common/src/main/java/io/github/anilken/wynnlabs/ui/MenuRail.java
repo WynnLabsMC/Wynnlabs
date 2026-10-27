@@ -150,7 +150,7 @@ final class MenuRail extends MenuPaint {
         }
         // Settings and Help at the bottom, under an engraved rule
         int fy = Math.max(ry + Theme.SP_4 + Theme.SP_3, y + h - Theme.SP_4 - 2 * step + Theme.SP_1);
-        Kit.railRule(g, edge, fy - Theme.SP_3 - 1, right - Theme.SP_3 - edge);
+        KitFrame.railRule(g, edge, fy - Theme.SP_3 - 1, right - Theme.SP_3 - edge);
         row(g, SETTINGS, left, right, edge, fy, rowH, mx, my);
         row(g, HELP, left, right, edge, fy + step, rowH, mx, my);
     }
@@ -237,14 +237,14 @@ final class MenuRail extends MenuPaint {
         }
         for (int i = 0; i < SETTINGS; i++) {
             if (i == GROUP_AT[1]) {
-                Kit.railRule(g, cx + Theme.SP_1, ry + Theme.SP_1 - 1, CELL - 2 * Theme.SP_1);
+                KitFrame.railRule(g, cx + Theme.SP_1, ry + Theme.SP_1 - 1, CELL - 2 * Theme.SP_1);
                 ry += Theme.SP_4;
             }
             cell(g, i, cx, ry, rowH, mx, my);
             ry += step;
         }
         int fy = Math.max(ry + Theme.SP_4, y + h - Theme.SP_3 - 2 * step + Theme.SP_1);
-        Kit.railRule(g, cx + Theme.SP_1, fy - Theme.SP_3 - 1, CELL - 2 * Theme.SP_1);
+        KitFrame.railRule(g, cx + Theme.SP_1, fy - Theme.SP_3 - 1, CELL - 2 * Theme.SP_1);
         cell(g, SETTINGS, cx, fy, rowH, mx, my);
         cell(g, HELP, cx, fy + step, rowH, mx, my);
     }

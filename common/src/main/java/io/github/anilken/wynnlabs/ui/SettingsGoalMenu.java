@@ -35,7 +35,7 @@ final class SettingsGoalMenu extends MenuPaint implements MenuTab.Popup {
     @Override
     public void draw(GuiGraphics g, int mx, int my, List<int[]> boxes) {
         rows.clear();
-        boxes.add(UiMenu.draw(g, font(), UiMenu.Spec.under(at, menu.width, menu.height), state, HomePage.goalItems(), mx, my,
+        boxes.add(UiMenu.draw(g, font(), UiMenu.Spec.under(at, menu.width, menu.height), state, HomeGoals.items(), mx, my,
                 r -> rows.add(new int[] {r.x(), r.y(), r.w(), r.h(), Integer.parseInt(r.item().id())})));
     }
 
