@@ -133,8 +133,9 @@ final class RoadmapGains {
             if (Double.isNaN(without) || without <= 0) {
                 continue;
             }
-            gear.set(i, new Gear(g.slot(), g.info(), (fullJ / without - 1) * 100, g.source(), g.price(), g.alt(),
-                    g.altSource(), g.detail(), g.alternatives(), g.options()));
+            double rowGain = (fullJ / without - 1) * 100;
+            gear.set(i, new Gear(g.slot(), g.info(), rowGain, g.source(), g.price(), g.alt(),
+                    g.altSource(), g.detail(), g.alternatives(), setGain(g.options(), rowGain)));
         }
     }
 
@@ -386,5 +387,27 @@ final class RoadmapGains {
     private static String signed(double v) {
         long n = Math.round(v);
         return n > 0 ? "+" + n : String.valueOf(n);
+    }
+
+    /**
+     * The options with a set's pick (first, marked) at its row's gain, and the others judged in
+     * that set moved with it (their gains are on the pick's scale): the panel and the row agree.
+     */
+    private static List<Roadmap.Option> setGain(List<Roadmap.Option> options, double rowGain) {
+        if (options == null || options.isEmpty() || !options.get(0).set()) {
+            return options;
+        }
+        double ratio = (1 + rowGain / 100) / (1 + options.get(0).gain() / 100);
+        List<Roadmap.Option> out = new java.util.ArrayList<>();
+        for (Roadmap.Option o : options) {
+            out.add(o.set() ? o.withGain(((1 + o.gain() / 100) * ratio - 1) * 100) : o);
+        }
+        out.set(0, options.get(0).withGain(rowGain));
+        // the pick first, the others best gain first again (only those judged in the set moved)
+        List<Roadmap.Option> rest = new java.util.ArrayList<>(out.subList(1, out.size()));
+        rest.sort((x, y) -> Double.compare(y.gain(), x.gain()));
+        out.subList(1, out.size()).clear();
+        out.addAll(rest);
+        return out;
     }
 }

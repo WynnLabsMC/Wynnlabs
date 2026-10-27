@@ -2151,7 +2151,7 @@
             {
               "name": "Achilles",
               "level": 86,
-              "gain": 0.0,
+              "gain": 16.5,
               "from": "Corrupted Underworld Crypt dungeon merchant",
               "tradable": false
             },
@@ -2428,14 +2428,14 @@
             {
               "name": "Windborne",
               "level": 100,
-              "gain": 0.0,
+              "gain": 4.7,
               "from": "The Canyon Colossus raid",
               "tradable": true
             },
             {
               "name": "Gemini",
               "level": 95,
-              "gain": 0.0,
+              "gain": 0.3,
               "from": "dropped by mobs",
               "tradable": true
             },
@@ -2454,25 +2454,25 @@
               "tradable": false
             },
             {
-              "name": "Greaves of the Veneer",
-              "level": 89,
-              "gain": -2.5,
-              "from": "dropped by mobs",
-              "tradable": true
-            },
-            {
               "name": "Nuance",
               "level": 90,
-              "gain": -2.7,
+              "gain": -7.8,
               "from": "dropped by mobs",
               "tradable": true
             },
             {
               "name": "Tophet",
               "level": 85,
-              "gain": -3.7,
+              "gain": -8.2,
               "from": "Corrupted Underworld Crypt dungeon merchant",
               "tradable": false
+            },
+            {
+              "name": "Greaves of the Veneer",
+              "level": 89,
+              "gain": -13.3,
+              "from": "dropped by mobs",
+              "tradable": true
             }
           ]
         },
@@ -2489,50 +2489,50 @@
             {
               "name": "Diamond Steam Ring",
               "level": 95,
-              "gain": 0.0,
+              "gain": 23.3,
               "from": "Legendary Island (challenge)",
               "tradable": false
             },
             {
               "name": "Intensity",
               "level": 100,
-              "gain": 0.9,
+              "gain": 24.7,
               "from": "The Qira Hive quest",
               "tradable": false
-            },
-            {
-              "name": "Microchip",
-              "level": 85,
-              "gain": -0.3,
-              "from": "Relos merchant",
-              "tradable": true
             },
             {
               "name": "Rune of Safe Passage",
               "level": 92,
-              "gain": -0.6,
+              "gain": 22.7,
               "from": "Corrupted Ice Barrows dungeon merchant",
-              "tradable": false
-            },
-            {
-              "name": "Coral Ring",
-              "level": 93,
-              "gain": -0.9,
-              "from": "The Qira Hive quest",
               "tradable": false
             },
             {
               "name": "Byte",
               "level": 91,
-              "gain": -1.0,
+              "gain": 22.3,
               "from": "Fallen Factory dungeon merchant",
               "tradable": false
             },
             {
+              "name": "Microchip",
+              "level": 85,
+              "gain": 20.8,
+              "from": "Relos merchant",
+              "tradable": true
+            },
+            {
               "name": "Summa",
               "level": 95,
-              "gain": -4.4,
+              "gain": 19.2,
               "from": "Geyser Pit altar",
+              "tradable": false
+            },
+            {
+              "name": "Coral Ring",
+              "level": 93,
+              "gain": 12.7,
+              "from": "The Qira Hive quest",
               "tradable": false
             }
           ]

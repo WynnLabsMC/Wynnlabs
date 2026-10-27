@@ -222,8 +222,14 @@ final class HomeOptions extends MenuPaint {
         Type.LABEL.draw(g, font(), t, x + (sealW - Type.LABEL.width(font(), t)) / 2, Type.LABEL.yIn(y, Ui.CHIP_H), ink);
     }
 
-    /** "alert-triangle" for a downside, "arrows-horizontal" for skill points to move, else null. */
+    /**
+     * "hierarchy" for a set's pick (judged with the rest of its set), "alert-triangle" for a
+     * downside, "arrows-horizontal" for skill points to move, else null.
+     */
     private static String flag(Roadmap.Option o) {
+        if (o.set()) {
+            return "hierarchy";
+        }
         if (!o.cautions().isEmpty()) {
             return "alert-triangle";
         }
@@ -234,6 +240,9 @@ final class HomeOptions extends MenuPaint {
     private List<Component> rowTip(Roadmap.Option o) {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(o.info().name()).withStyle(o.info().tier().colour()));
+        if (o.set()) {
+            tip.add(L.c("wynnlabs.home.option_set").withStyle(ChatFormatting.AQUA));
+        }
         int lv = o.info().requirements().level();
         if (lv > Wyn.level()) {
             tip.add(L.c("wynnlabs.home.chip_wear_at", lv).withStyle(ChatFormatting.GOLD));

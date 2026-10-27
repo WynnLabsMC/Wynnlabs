@@ -170,6 +170,30 @@ class RoadmapOnDemandTest {
         assertFalse(Roadmap.isBuilding());
     }
 
+    /** A map an older version saved (its key without this version's map mark) is built again once, on load. */
+    @Test
+    void aMapFromAnOlderVersionIsBuiltAgainOnce() throws Exception {
+        Roadmap.build();
+        Saver.flush();
+        Path f = tmp.resolve(GameState.current().characterId()).resolve("roadmap.json");
+        JsonObject o = com.google.gson.JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
+        String key = o.get("key").getAsString();
+        assertTrue(key.endsWith(":v" + Roadmap.mapVersion()), key);
+        o.addProperty("key", key.substring(0, key.lastIndexOf(":v")));      // as #162 and before saved it
+        Files.writeString(f, o.toString(), StandardCharsets.UTF_8);
+        Roadmap.forget();
+        int v = Roadmap.version();
+        assertFalse(Roadmap.cached().isEmpty(), "the old map shows at once");
+        Roadmap.awaitIdle();
+        assertTrue(Roadmap.version() > v + 1, "and is built again");
+        assertNull(Roadmap.stale(), "now current");
+        // a map this version saved is not
+        Saver.flush();
+        Roadmap.forget();
+        Roadmap.cached();
+        assertFalse(Roadmap.isBuilding(), "a current map is only read");
+    }
+
     @Test
     void theEmptyStateOnlyWithNoFileAndABrokenFileIsNone() throws Exception {
         assertFalse(Roadmap.hasMap(), "no file: the button");

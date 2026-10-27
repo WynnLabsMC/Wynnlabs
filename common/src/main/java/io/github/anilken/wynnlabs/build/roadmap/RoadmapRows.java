@@ -120,6 +120,7 @@ final class RoadmapRows {
         // from, the pick alone there or else as the whole set it comes with, so its row still
         // opens the panel
         Map<String, Damage.Piece> base = build;
+        Build.Eval setEval = null;
         if (first == null && start != null) {
             Build.Eval from = Build.allocate(start, m, earned);
             if (from != null) {
@@ -127,7 +128,8 @@ final class RoadmapRows {
                 before = from;
                 first = option(pick, piece, slot, start, from, m, earned);
                 if (first == null && set != null) {
-                    first = setOption(pick, gain, from, Build.allocate(set, m, earned));
+                    setEval = Build.allocate(set, m, earned);
+                    first = setOption(pick, gain, from, setEval);
                 }
             }
         }
@@ -135,6 +137,10 @@ final class RoadmapRows {
             options.add(first);
             Map<String, Damage.Piece> judgeIn = base;
             Build.Eval judgeFrom = before;
+            // a set's pick: the others are judged in that set with the slot swapped, so their gain
+            // is on the pick's own scale; one the set cannot wear is judged in the starting set
+            Option setPick = first.set() ? first : null;
+            Build.Eval setJudged = setEval;
             List<ItemData> pool = t != null && t.isWeapon() ? SetJudge.weaponPool(pools) : pools.get(t);
             // the pool is ranked: only its best and the Trade Market's best are judged (all
             // forty took most of a map that the beam cache had otherwise made quick)
@@ -142,7 +148,10 @@ final class RoadmapRows {
                     .filter(info -> info != pick && !info.name().equals(pick.name()) && info.requirements().level() <= m
                             && CandidateRules.panelAllows(info, m) && Exclusive.clash(judgeIn, slot, Exclusive.group(info)) == null)
                     .toList();
-            options.addAll(PanelOptions.others(ranked, info -> option(info, slot, judgeIn, judgeFrom, m, earned), m));
+            options.addAll(PanelOptions.others(ranked, info -> {
+                Option o = setPick == null ? null : inSet(info, slot, set, setJudged, judgeFrom, setPick.gain(), m, earned);
+                return o != null ? o : option(info, slot, judgeIn, judgeFrom, m, earned);
+            }, m));
         }
         String src = ShoppingSources.sourceOf(pick);
         List<String> detail = new ArrayList<>();
@@ -200,8 +209,9 @@ final class RoadmapRows {
     }
 
     /**
-     * The pick of a set that is not wearable on its own, as the panel's first choice: its row's
-     * gain, and the set's numbers against the set the milestone started from; null without them.
+     * The pick of a set that is not wearable on its own, as the panel's first choice, marked as a
+     * set's: its row's gain (else what the whole set adds), and the set's numbers against the set
+     * the milestone started from; null without them.
      */
     private static Option setOption(ItemData pick, double gain, Build.Eval from, Build.Eval set) {
         if (set == null || from.result().objective() <= 0) {
@@ -216,8 +226,39 @@ final class RoadmapRows {
         String pr = Prices.buyText(pick.name());
         String price = pr == null ? null : pr.contains(" (") ? pr.substring(0, pr.indexOf(" (")) : pr;
         String src = ShoppingSources.sourceOf(pick);
-        return new Option(pick, gain, price, src == null ? "?" : ShoppingSources.where(src), Cautions.of(pick), "", false, pct,
-                from.result(), set.result());
+        double g = gain != 0 && !Double.isNaN(gain) ? gain : (set.result().objective() / from.result().objective() - 1) * 100;
+        return new Option(pick, g, price, src == null ? "?" : ShoppingSources.where(src), Cautions.of(pick), "", false, pct,
+                from.result(), set.result(), true);
+    }
+
+    /**
+     * {@code info} in the set's slot instead of the set's pick, marked as judged in the set: its
+     * gain on the pick's scale ({@code pickGain} times how the swap moves the set), its numbers
+     * against {@code from} (what you wear now) like the pick's; null when the set cannot wear it.
+     */
+    private static Option inSet(ItemData info, String slot, Map<String, Damage.Piece> set, Build.Eval setEval, Build.Eval from,
+            double pickGain, int m, int earned) {
+        if (setEval == null || setEval.result().objective() <= 0 || from == null) {
+            return null;
+        }
+        Map<String, Damage.Piece> trial = new LinkedHashMap<>(set);
+        trial.put(slot, OwnedGear.pieceOf(info));
+        Build.Eval after = Build.allocate(trial, m, earned);
+        if (after == null) {
+            return null;
+        }
+        double gain = ((1 + pickGain / 100) * after.result().objective() / setEval.result().objective() - 1) * 100;
+        double[] a = from.result().factors();
+        double[] b = after.result().factors();
+        double[] pct = new double[Math.min(a.length, b.length)];
+        for (int i = 0; i < pct.length; i++) {
+            pct[i] = a[i] > 0 ? (b[i] / a[i] - 1) * 100 : 0;
+        }
+        String pr = Prices.buyText(info.name());
+        String price = pr == null ? null : pr.contains(" (") ? pr.substring(0, pr.indexOf(" (")) : pr;
+        String src = ShoppingSources.sourceOf(info);
+        return new Option(info, gain, price, src == null ? "?" : ShoppingSources.where(src), Cautions.of(info), "", false, pct,
+                from.result(), after.result(), true);
     }
 
     /** A row that powders a piece you have rather than naming a piece to get. */

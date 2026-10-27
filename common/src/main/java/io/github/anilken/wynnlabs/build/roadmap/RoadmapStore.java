@@ -119,6 +119,7 @@ final class RoadmapStore {
                 j.add("factorPct", doubles(op.factorPct()));
                 j.add("from", result(op.from()));
                 j.add("to", result(op.to()));
+                j.addProperty("set", op.set());
                 opts.add(j);
             }
         }
@@ -254,7 +255,7 @@ final class RoadmapStore {
             }
             opts.add(new Roadmap.Option(oi, j.get("gain").getAsDouble(), str(j.get("price")), str(j.get("source")),
                     strings(j.get("cautions")), str(j.get("skills")), j.get("respec").getAsBoolean(), doubles(j.get("factorPct")),
-                    result(j.get("from")), result(j.get("to"))));
+                    result(j.get("from")), result(j.get("to")), j.has("set") && j.get("set").getAsBoolean()));
         }
         return new Roadmap.Gear(o.get("slot").getAsString(), info, o.get("gain").getAsDouble(), str(o.get("source")),
                 str(o.get("price")), alt, str(o.get("altSource")), strings(o.get("detail")), strings(o.get("alternatives")), opts);

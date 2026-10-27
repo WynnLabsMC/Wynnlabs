@@ -45,7 +45,19 @@ public final class Roadmap {
      * the gain split into the parts the build score multiplies (Damage.FACTORS).
      */
     public record Option(ItemData info, double gain, String price, String source, List<String> cautions, String skills,
-            boolean respec, double[] factorPct, Damage.Result from, Damage.Result to) {}
+            boolean respec, double[] factorPct, Damage.Result from, Damage.Result to, boolean set) {
+
+        /** A choice judged on its own in the slot (every option but a set's pick). */
+        public Option(ItemData info, double gain, String price, String source, List<String> cautions, String skills,
+                boolean respec, double[] factorPct, Damage.Result from, Damage.Result to) {
+            this(info, gain, price, source, cautions, skills, respec, factorPct, from, to, false);
+        }
+
+        /** This option with its gain set to {@code g} (a set's pick, when its row's gain is known). */
+        public Option withGain(double g) {
+            return new Option(info, g, price, source, cautions, skills, respec, factorPct, from, to, set);
+        }
+    }
 
     /**
      * {@code vsWorn}: slot type name ("HELMET", "RING", "RELIK" …) → the % the build of this
@@ -348,7 +360,8 @@ public final class Roadmap {
     /**
      * The character's road map: the one built last (this session, or read back from the file of
      * the last one), empty when none was ever built. Never starts a build: the J menu's button,
-     * its refresh and the explicit actions ({@link #forceRefresh}) do.
+     * its refresh and the explicit actions ({@link #forceRefresh}) do; only a saved map an older
+     * version of the mod made ({@link #mapVersion}) is built again once, in the background.
      */
     public static List<Step> cached() {
         String id = GameState.current().characterId();
@@ -373,6 +386,19 @@ public final class Roadmap {
         cachedKey = l.key();
         lastFromFile = true;
         version++;
+        if (!l.key().endsWith(":v" + mapVersion())) {
+            forceRefresh();                     // made by an older version: shown until the new one is in
+        }
+    }
+
+    /**
+     * What the map's rows and panels are made of, part of its key: raised when a saved map lacks
+     * something the menu now shows (2: a set's pick and its options judged in the set), so a map
+     * from before is built again once on load; the beam cache's sets stay (BeamCache.modelVersion
+     * is the scoring's). A method, not a field: a field added by a hot swap keeps no value.
+     */
+    public static int mapVersion() {
+        return 2;
     }
 
     /** Tests: the saved map is looked for again, and nothing is kept in memory. */
@@ -490,7 +516,7 @@ public final class Roadmap {
         // the day it was built: a switch to English left "mob'lardan düşer" on the rows. A map an
         // older scoring model made is out of date too
         return state.characterId() + ":" + state.level() + ":" + L.code() + ":" + Rules.hash() + ":"
-                + plan.toString().hashCode() + ":m" + BeamCache.modelVersion();
+                + plan.toString().hashCode() + ":m" + BeamCache.modelVersion() + ":v" + mapVersion();
     }
 
     private static void refresh() {

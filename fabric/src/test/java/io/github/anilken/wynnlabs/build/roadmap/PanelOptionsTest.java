@@ -89,6 +89,31 @@ class PanelOptionsTest {
         assertTrue(without.isEmpty(), "rows without a panel: " + without);
     }
 
+    /** A set's pick shows its row's gain in the panel, never a 0 % against a set it cannot be worn in alone. */
+    @Test
+    void aSetPickShowsItsRowsGain() throws Exception {
+        FixtureState.load(shaman()).install("en");
+        int sets = 0;
+        for (Roadmap.Step s : Roadmap.build()) {
+            for (Roadmap.Gear g : s.gear()) {
+                if (g.options() == null || g.options().isEmpty() || !g.options().get(0).set()) {
+                    continue;
+                }
+                sets++;
+                Roadmap.Option pick = g.options().get(0);
+                String at = "Lv " + s.level() + " " + g.slot() + " " + g.info().name();
+                assertTrue(pick.gain() != 0 || g.gain() == 0, at + ": a set's pick at 0 %");
+                assertEquals(g.gain(), pick.gain(), 1e-6, at + ": the panel and the row agree");
+                for (Roadmap.Option o : g.options()) {
+                    assertTrue(o.gain() != 0 || o.to() == null || o.from() == null
+                            || o.to().objective() == o.from().objective(), at + ": " + o.info().name() + " at 0 %");
+                }
+            }
+        }
+        Fixtures.note(sets + " set picks");
+        assertTrue(sets > 0, "the fixture has set picks");
+    }
+
     @Test
     void sourcesReadForPeople() throws Exception {
         FixtureState.load(shaman()).install("en");
