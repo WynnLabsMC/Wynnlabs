@@ -382,7 +382,7 @@ public class JMenuPreview implements FabricClientGameTest {
         return null;
     }
 
-    /** -PpreviewOnly=search or bank: the page's search field empty, then typed in. */
+    /** -PpreviewOnly=search: the page's search field empty, then typed in. */
     private static void searchFieldShots(ClientGameTestContext ctx, Path out, String name, int tab, String typed) {
         ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(tab));
         ctx.waitTicks(10);
@@ -390,7 +390,7 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.runOnClient(mc -> {
             RoadmapScreen s = (RoadmapScreen) mc.screen;
             s.page(tab).slashTyped();
-            (tab == RoadmapScreen.TAB_BANK ? s.bank.search : s.search.box).setValue(typed);
+            s.search.box.setValue(typed);
         });
         ctx.waitTicks(40);
         shot(ctx, out, name + "-typed");
@@ -402,16 +402,13 @@ public class JMenuPreview implements FabricClientGameTest {
             endgameShots(ctx, out);
             return;
         }
-        if (part.equals("search") || part.equals("bank")) {
-            boolean bank = part.equals("bank");
-            if (bank) {
-                var fx = FixtureState.load(Fixtures.root().resolve(System.getProperty("wynnlabs.previewFixture", "shaman-44")));
-                ctx.runOnClient(mc -> io.github.anilken.wynnlabs.market.Vault.preview(fx.bankStacks()));
-            } else {
-                ctx.waitFor(mc -> io.github.anilken.wynnlabs.search.ItemIndex.get().missing() == null, 20 * 60);
-            }
-            searchFieldShots(ctx, out, bank ? "bank-tab" : "search-tab", bank ? RoadmapScreen.TAB_BANK : RoadmapScreen.TAB_SEARCH,
-                    bank ? "Emerald" : "lucky rab");
+        if (part.equals("bank")) {
+            BankPreview.shots(ctx, out);
+            return;
+        }
+        if (part.equals("search")) {
+            ctx.waitFor(mc -> io.github.anilken.wynnlabs.search.ItemIndex.get().missing() == null, 20 * 60);
+            searchFieldShots(ctx, out, "search-tab", RoadmapScreen.TAB_SEARCH, "lucky rab");
             return;
         }
         if (part.equals("tree")) {

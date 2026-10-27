@@ -35,30 +35,35 @@ final class UiMenu {
      * hairline above it; {@code tip} its tooltip.
      */
     record Item(String id, String icon, String label, String sub, String meta, boolean chosen, boolean link, boolean dim,
-                boolean groupStart, List<Component> tip) {
+                boolean groupStart, List<Component> tip, int tint) {
 
         static Item of(String id, String icon, String label, String meta, boolean chosen) {
-            return new Item(id, icon, label, null, meta, chosen, false, false, false, null);
+            return new Item(id, icon, label, null, meta, chosen, false, false, false, null, 0);
         }
 
         Item sub(String s) {
-            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip);
+            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip, tint);
         }
 
         Item group() {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip, tint);
         }
 
         Item asLink() {
-            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip);
+            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip, tint);
         }
 
         Item asDim() {
-            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip);
+            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip, tint);
         }
 
         Item tip(List<Component> t) {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t, tint);
+        }
+
+        /** A colour of its own (a tier): a dot before the name and the name in it. */
+        Item tint(int colour) {
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, colour);
         }
     }
 
@@ -175,14 +180,15 @@ final class UiMenu {
     /** The panel's width for these items: the widest label or second line, the icon and the right note. */
     static int width(Font font, List<Item> items, int min) {
         int w = min;
-        boolean icons = items.stream().anyMatch(i -> i.icon() != null);
+        boolean icons = items.stream().anyMatch(i -> i.icon() != null || i.tint() != 0);
+        int tick = items.stream().anyMatch(Item::chosen) ? ICON + Theme.SP_2 : 0;
         for (Item it : items) {
             int lw = Type.LABEL.width(font, it.label());
             if (it.sub() != null) {
                 lw = Math.max(lw, Type.META.width(font, it.sub()));
             }
             int mw = it.meta() == null ? 0 : Type.META.width(font, it.meta()) + Theme.SP_5;
-            w = Math.max(w, 2 * Theme.SP_3 + (icons ? ICON + Theme.SP_2 : 0) + lw + mw);
+            w = Math.max(w, 2 * Theme.SP_3 + (icons ? ICON + Theme.SP_2 : 0) + lw + mw + tick);
         }
         return w;
     }
@@ -268,7 +274,7 @@ final class UiMenu {
         int x = b[0];
         int y = b[1];
         Kit.softCard(g, x, y, w, h);
-        boolean icons = items.stream().anyMatch(i -> i.icon() != null);
+        boolean icons = items.stream().anyMatch(i -> i.icon() != null || i.tint() != 0);
         int rw = w - (scrolls ? ScrollBar.HIT : 0);
         int ry = y + Theme.SP_2;
         for (int i = st.scroll; i < st.scroll + visible && i < items.size(); i++) {
@@ -288,15 +294,29 @@ final class UiMenu {
             int tx = x + Theme.SP_3;
             if (it.icon() != null) {
                 Art.icon(g, it.icon(), tx, Type.BODY.onCaps(ty, ICON), ICON, it.link() ? Theme.LINK : it.chosen() ? Theme.INK : Theme.INK_3);
+            } else if (it.tint() != 0) {
+                int dy = Type.BODY.onCaps(ty, 6);
+                g.fill(tx + 1, dy, tx + 7, dy + 6, it.tint());          // the row's colour as a small square
             }
             if (icons) {
                 tx += ICON + Theme.SP_2;
             }
+            int right = x + rw - Theme.SP_3;
+            if (it.chosen()) {
+                // the picked row: bold, and a tick at the right
+                Art.icon(g, "check", right - ICON, Type.BODY.onCaps(ty, ICON), ICON, Theme.INK);
+                right -= ICON + Theme.SP_2;
+            }
             int metaW = it.meta() == null ? 0 : Type.META.width(font, it.meta()) + Theme.SP_3;
             Type role = it.link() ? Type.LINK : it.chosen() ? Type.LABEL : it.dim() ? Type.MUTED : Type.BODY;
-            role.draw(g, font, role.fit(font, it.label(), x + rw - Theme.SP_3 - metaW - tx), tx, ty);
+            String label = role.fit(font, it.label(), right - metaW - tx);
+            if (it.tint() != 0) {
+                role.draw(g, font, label, tx, ty, it.tint());
+            } else {
+                role.draw(g, font, label, tx, ty);
+            }
             if (it.meta() != null) {
-                Type.META.drawRight(g, font, it.meta(), x + rw - Theme.SP_3, ty + 1, Theme.INK_3);
+                Type.META.drawRight(g, font, it.meta(), right, ty + 1, Theme.INK_3);
             }
             if (it.sub() != null) {
                 Type.META.draw(g, font, Type.META.fit(font, it.sub(), x + rw - Theme.SP_3 - tx), tx, ty + Type.BODY.lineHeight, Theme.INK_3);

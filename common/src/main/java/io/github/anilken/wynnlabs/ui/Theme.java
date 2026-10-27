@@ -53,6 +53,8 @@ public final class Theme {
     public static final int TIER_MYTHIC = 0xFF67389C;
     public static final int TIER_FABLED = 0xFF902B48;
     public static final int TIER_SET = 0xFF285C16;
+    /** Crafted (the game's dark aqua): bluer than Legendary's teal, so the two stay apart on paper. */
+    public static final int TIER_CRAFTED = 0xFF1F5F86;
 
     // wood and gold
     static final int WOOD = 0xFF6E5440;

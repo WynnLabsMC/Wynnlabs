@@ -36,7 +36,10 @@ wynnlabs.aspect.unlocked                inside "( )" after an ability's name
 wynnlabs.endgame.m_none                 inside "( )" after an ability's name
 wynnlabs.endgame.m_planned              inside "( )" after an ability's name
 wynnlabs.endgame.m_unlocked             inside "( )" after an ability's name
-wynnlabs.bank.page_empty                " (empty)" after a page's stack count
+wynnlabs.bank.not_read                  "not read" after a page's name
+wynnlabs.bank.where_line                "page 6 · slot 14 · 1 pcs" after the bank's name in the drawer
+wynnlabs.bank.slot_no                   "slot 5" after a page's name in the drawer
+wynnlabs.bank.all_worth                 "all ~3 LE" after an item's price
 wynnlabs.craft.old                      inside "( )" after a price
 wynnlabs.daily.alt_slot_empty           inside "( )" after a character's level
 wynnlabs.daily.alt_worn                 inside "( )" after a character's level

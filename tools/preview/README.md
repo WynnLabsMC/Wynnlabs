@@ -19,7 +19,9 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
   (the kind menu, a cave, Recommended with places) from a small built-in sample of caves and places.
 - `-PpreviewOnly=settings`: only the settings (a few pages, a search, the changed list).
 - `-PpreviewOnly=tree`: only the tree page (three deaths seeded), its damage and deaths drawers, and its search typed in.
-- `-PpreviewOnly=search` / `-PpreviewOnly=bank`: only that tab, its search field empty and typed in.
+- `-PpreviewOnly=search`: only that tab, its search field empty and typed in.
+- `-PpreviewOnly=bank`: the bank tab on the fixture's bank: whole, searched, a kind chip, the banks menu,
+  a slot's drawer, the list to sell, a bank read in part and one not read (`BankPreview`).
 - `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).
 - Another fixture: `-Dwynnlabs.previewFixture=synthetic` in the run's VM options
   (`fabric/build.gradle`, `loom.runs` → `clientGameTest`).

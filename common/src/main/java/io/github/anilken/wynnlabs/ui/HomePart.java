@@ -130,6 +130,7 @@ abstract class HomePart {
             case RARE -> Theme.TIER_RARE;
             case UNIQUE -> Theme.TIER_UNIQUE;
             case SET -> Theme.TIER_SET;
+            case CRAFTED -> Theme.TIER_CRAFTED;
             default -> Theme.INK;
         };
     }
