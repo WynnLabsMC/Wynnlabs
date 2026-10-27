@@ -26,7 +26,7 @@ import java.util.List;
  * type chips and level range over the list of what the character can use, the strip, the chosen
  * items and "Suggest build"; a loading view while the search runs; WynnBuilder's import); Results
  * (the ranked builds and the picked one's details, "Apply build N"; kept while you look back at
- * the items); Saved (Apply, Edit, Rename, Delete). Esc closes a menu, a rename, then the window,
+ * the items); Saved (a row opens it in Edit); Edit (one saved build). Esc closes a menu, the name box, then the window,
  * never the menu. Nothing here acts in the game: Apply only changes the plan the panel shows.
  * This class holds the state; the views draw in {@link BuildPickView}, {@link BuildResultsView}
  * and {@link BuildSavedView}, the header and menus in {@link BuildFrame}, the clicks in
@@ -57,7 +57,7 @@ public final class BuildWindow {
         void detailed(Roadmap.Candidate c, int level, int rank);
     }
 
-    public enum View { PICK, RESULTS, SAVED }
+    public enum View { PICK, RESULTS, SAVED, EDIT }
 
     boolean open;
     /** The compact menu this frame: the result view in one column. */
@@ -72,6 +72,7 @@ public final class BuildWindow {
     final BuildPickView pick = new BuildPickView(this, ui);
     final BuildResultsView results = new BuildResultsView(this, ui);
     final BuildSavedView saved = new BuildSavedView(this, ui);
+    final BuildEditView editor = new BuildEditView(this, ui);
     private final BuildActions actions = new BuildActions(this);
     private final BuildFrame frame = new BuildFrame(this);
     /** The open menu: 0 none, else a MENU_* below (range, budget, priority); its anchor this frame. */
@@ -99,11 +100,15 @@ public final class BuildWindow {
     /** A saved build the picked result overwrites (Recompute), or null. */
     String overwriteId;
 
-    // ---- SAVED ----
+    // ---- SAVED and EDIT ----
+    /** Kept for the dev tools' window state; the editor's name box is always open. */
     String renameId;
+    /** The saved build the EDIT view shows, or null. */
     String editId;
-    List<String> editLocks = List.of();
+    /** Its strip as changed on the page (kept into the build each frame). */
     Tuning.Choice editTuning = Tuning.Choice.PLAIN;
+    /** The slot (index in Plans.SLOTS) a pick replaces in the edited build, or null when picking freely. */
+    Integer swapSlot;
 
     private BuildWindow() {}
 
@@ -194,18 +199,31 @@ public final class BuildWindow {
         if (plan == null) {
             return;
         }
+        // the plan's Edit opens the same editor as My builds: an unsaved plan is saved first
+        Plans.Build kept = Plans.isSaved(plan) ? plan : Plans.savePlan(System.currentTimeMillis());
+        if (kept != null) {
+            openEditor(kept.id());
+        }
+    }
+
+    /** The EDIT view on saved build {@code id}: its name in the box, its strip on the page. */
+    public void openEditor(String id) {
+        Plans.Build b = Plans.byId(id);
+        if (b == null) {
+            return;
+        }
         open = true;
-        overwriteId = null;
-        editingPlan = Plans.isSaved(plan) ? plan.id() : "";
-        chosen = new ArrayList<>(Locks.resolve(GameState.current(), plan.locks()));
-        tuning = plan.tuning();
-        Locks.set(names(chosen));
-        Locks.setTuning(tuning);
-        Around.forget();
-        result = null;
-        unseenGen = -1;
-        view = View.PICK;
-        focusSearch(true);
+        editingPlan = null;
+        editId = id;
+        editTuning = b.tuning();
+        swapSlot = null;
+        menu = 0;
+        if (rename != null) {
+            rename.setValue(b.name());
+            rename.setFocused(false);
+        }
+        view = View.EDIT;
+        focusSearch(false);
     }
 
     /** Editing the plan: "" for an unsaved one, its saved copy's id, null when not editing it. */
@@ -269,7 +287,7 @@ public final class BuildWindow {
         if (!open) {
             return null;
         }
-        if (renameId != null && view == View.SAVED) {
+        if (view == View.EDIT && rename.isFocused()) {
             return rename;
         }
         return view == View.PICK && search.isFocused() ? search : null;
@@ -380,6 +398,7 @@ public final class BuildWindow {
             case PICK -> pick.drawPick(g, page, x, y + head, w, h - head, pmx, pmy, pt);
             case RESULTS -> results.drawResults(g, page, x, y + head, w, h - head, pmx, pmy);
             case SAVED -> saved.drawSaved(g, page, x, y + head, w, h - head, pmx, pmy, pt);
+            case EDIT -> editor.draw(g, page, x, y + head, w, h - head, pmx, pmy);
         }
         if (menu != 0 && menuAt != null) {
             frame.menuList(g, mx, my);
@@ -441,6 +460,12 @@ public final class BuildWindow {
         if (v == View.RESULTS && result == null) {
             return;
         }
+        if (v != View.PICK) {
+            swapSlot = null;
+        }
+        if (v == View.EDIT && editId == null) {
+            return;
+        }
         view = v;
         menu = 0;
         focusSearch(v == View.PICK && imports().shown == null);
@@ -486,9 +511,10 @@ public final class BuildWindow {
         if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
             if (menu != 0) {
                 menu = 0;
-            } else if (renameId != null) {
-                renameId = null;
+            } else if (view == View.EDIT && rename.isFocused()) {
                 rename.setFocused(false);
+            } else if (swapSlot != null) {
+                showView(View.EDIT);                    // a swap given up: back to the build
             } else {
                 if (view == View.RESULTS) {
                     discardResults();
@@ -498,8 +524,8 @@ public final class BuildWindow {
             return true;
         }
         boolean enter = key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER;
-        if (renameId != null && enter) {
-            actions.saveRename(System.currentTimeMillis());
+        if (view == View.EDIT && rename.isFocused() && enter) {
+            rename.setFocused(false);                   // the name is kept as it is typed
             return true;
         }
         if (view == View.RESULTS && result != null && !result.builds().isEmpty()) {

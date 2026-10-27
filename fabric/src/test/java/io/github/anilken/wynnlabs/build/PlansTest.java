@@ -201,23 +201,19 @@ class PlansTest {
     }
 
     @Test
-    void editPreloadsTheWindow() {
-        Locks.use(List.of());
-        Locks.useTuning(Tuning.Choice.PLAIN);
-        try {
-            Plans.Build a = build("Thunder plan", List.of("Covetous Thunder", "Morph-Emerald"), "Yume");
-            Plans.apply(a);
-            BuildWindow.INSTANCE.editPlan(Plans.current());
-            assertTrue(BuildWindow.INSTANCE.isOpen());
-            assertEquals(BuildWindow.View.PICK, BuildWindow.INSTANCE.view(), "the picker");
-            assertEquals(List.of("Covetous Thunder", "Morph-Emerald"), BuildWindow.INSTANCE.chosenNames(), "the plan's chosen items");
-            assertEquals(a.tuning(), BuildWindow.INSTANCE.tuning(), "and its strip");
-            assertEquals(a.locks(), Locks.names(), "kept as the window's choice");
-            BuildWindow.INSTANCE.close();
-        } finally {
-            Locks.use(null);
-            Locks.useTuning(null);
-        }
+    void editOpensTheEditor() {
+        // the plan's Edit opens the same editor as My builds: an unsaved plan is saved first
+        Plans.Build a = build("Thunder plan", List.of("Covetous Thunder", "Morph-Emerald"), "Yume");
+        Plans.apply(a);
+        BuildWindow.INSTANCE.editPlan(Plans.current());
+        assertTrue(BuildWindow.INSTANCE.isOpen());
+        assertEquals(BuildWindow.View.EDIT, BuildWindow.INSTANCE.view(), "the editor");
+        assertTrue(Plans.isSaved(Plans.current()), "the plan saved and linked");
+        assertEquals(1, Plans.saved().size());
+        // a saved plan opens as it is, no second copy
+        BuildWindow.INSTANCE.editPlan(Plans.current());
+        assertEquals(1, Plans.saved().size());
+        BuildWindow.INSTANCE.close();
     }
 
     @Test

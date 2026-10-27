@@ -18,15 +18,17 @@ import java.util.Map;
 /**
  * What the build window's click areas do ({@link BuildControls.Btn#act}): the tabs, the picker's
  * filters, strip and chosen items, the menus (level range, budget), Suggest, the WynnBuilder
- * import, the results (pick, apply, details), and the saved builds (apply, edit, rename, delete,
+ * import, the results (pick, apply, details), and the saved builds (apply, open in the editor,
  * undo, the edit card). Only the mod's plan changes; nothing happens in the game.
  */
 final class BuildActions {
 
     private final BuildWindow win;
+    private final BuildEditActions editActs;
 
     BuildActions(BuildWindow win) {
         this.win = win;
+        this.editActs = new BuildEditActions(win);
     }
 
     boolean click(double mx, double my, int button) {
@@ -34,7 +36,8 @@ final class BuildActions {
         BuildPickView pick = win.pick;
         BuildSavedView saved = win.saved;
         // the scrollbars first: a press there never reaches the rows
-        ScrollBar bar = view == BuildWindow.View.PICK ? pick.listBar : view == BuildWindow.View.SAVED ? saved.savedBar : win.results.detailBar;
+        ScrollBar bar = view == BuildWindow.View.PICK ? pick.listBar : view == BuildWindow.View.SAVED ? saved.savedBar
+                : view == BuildWindow.View.RESULTS ? win.results.detailBar : null;
         if (win.menu == 0 && bar != null && button == 0 && bar.mouseClicked(mx, my)) {
             sync();
             return true;
@@ -111,6 +114,10 @@ final class BuildActions {
         long now = System.currentTimeMillis();
         GameState state = GameState.current();
         BuildPickView pick = win.pick;
+        if (hit.act().startsWith("e.")) {
+            editActs.run(hit.act(), hit.arg(), now);  // the EDIT view's buttons
+            return;
+        }
         switch (hit.act()) {
             case "close" -> {
                 win.discardResults();               // ✕ drops the list: the picker next time
@@ -135,6 +142,10 @@ final class BuildActions {
                 pick.listScroll = 0;
             }
             case "item" -> {
+                if (win.swapSlot != null && win.editId != null) {
+                    editActs.swapIn((ItemData) hit.arg(), now);       // the edited build's slot gets it
+                    return;
+                }
                 win.chosen = Locks.toggle(win.chosen, (ItemData) hit.arg());
                 win.changed();
             }
@@ -189,13 +200,13 @@ final class BuildActions {
                 Around.cancel();
                 win.awaitGen = -1;
                 if (win.overwriteId != null) {
-                    win.showView(BuildWindow.View.SAVED);
+                    win.showView(BuildWindow.View.EDIT);
                     win.overwriteId = null;
                 }
             }
             case "back" -> {
                 // to the items: the results stay (their tab) until the choice changes
-                win.showView(win.overwriteId != null ? BuildWindow.View.SAVED : BuildWindow.View.PICK);
+                win.showView(win.overwriteId != null ? BuildWindow.View.EDIT : BuildWindow.View.PICK);
             }
             case "card" -> win.card = (int) hit.arg();
             case "apply" -> apply(now);
@@ -215,30 +226,6 @@ final class BuildActions {
                     win.hostApplied();
                 }
             }
-            case "edit" -> {
-                Plans.Build b = Plans.byId((String) hit.arg());
-                if (b != null) {
-                    win.editId = b.id();
-                    win.editLocks = new ArrayList<>(b.locks());
-                    win.editTuning = b.tuning();
-                }
-            }
-            case "rename" -> {
-                Plans.Build b = Plans.byId((String) hit.arg());
-                if (b != null) {
-                    win.renameId = b.id();
-                    win.rename.setValue(b.name());
-                    win.rename.setFocused(true);
-                }
-            }
-            case "renameOk" -> saveRename(now);
-            case "renameCancel" -> win.renameId = null;
-            case "delete" -> {
-                Plans.delete((String) hit.arg(), now);
-                if (hit.arg().equals(win.editId)) {
-                    win.editId = null;
-                }
-            }
             case "undo" -> Plans.undo(now);
             case "addCurrent" -> {
                 Plans.Build cur = Plans.current();
@@ -248,35 +235,7 @@ final class BuildActions {
                     win.saved.savedScroll = Integer.MAX_VALUE;            // scrolled to it (clamped when drawn)
                 }
             }
-            case "editUnlock" -> {
-                List<String> l = new ArrayList<>(win.editLocks);
-                l.remove((String) hit.arg());
-                win.editLocks = l;
-            }
             case "editFocus" -> win.editTuning = win.editTuning.withFocus((int) hit.arg());
-            case "editAdd", "editRecompute" -> {
-                // the Choose-items list preloaded with this build's chosen items and strip
-                win.chosen = new ArrayList<>(Locks.resolve(state, win.editLocks));
-                win.tuning = win.editTuning;
-                Locks.set(BuildWindow.names(win.chosen));
-                Locks.setTuning(win.tuning);
-                win.overwriteId = win.editId;
-                Around.forget();
-                win.result = null;
-                if (hit.act().equals("editRecompute")) {
-                    win.awaitGen = Around.request(BuildWindow.names(win.chosen), win.tuning, false);
-                }
-                win.showView(BuildWindow.View.PICK);
-            }
-            case "editSaveNew" -> {
-                Plans.Build b = Plans.byId(win.editId);
-                if (b != null) {
-                    Plans.save(new Plans.Build("", "", win.editLocks, win.editTuning, b.items(), b.score(), b.level(), now, now), now);
-                    win.saved.savedScroll = Integer.MAX_VALUE;
-                }
-                win.editId = null;
-            }
-            case "editCancel" -> win.editId = null;
             default -> { }
         }
     }
@@ -338,11 +297,10 @@ final class BuildActions {
         }
         Plans.Build fresh = new Plans.Build("p" + now, "", r.around(), r.tuning(), items, c.score(), r.level(), now, now);
         if (win.overwriteId != null) {
-            Plans.overwrite(win.overwriteId, fresh, now);
+            Plans.overwrite(win.overwriteId, fresh, now);       // Undo on the edit page for a few seconds
+            win.openEditor(win.overwriteId);
             win.overwriteId = null;
-            win.editId = null;
             win.discardResults();
-            win.showView(BuildWindow.View.SAVED);
             if (win.host() != null) {
                 win.host().applied();
             }
@@ -358,13 +316,5 @@ final class BuildActions {
         win.editingPlan = null;
         win.discardResults();                           // applied: the plan holds it now
         win.hostApplied();
-    }
-
-    void saveRename(long now) {
-        if (win.renameId != null) {
-            Plans.rename(win.renameId, win.rename.getValue(), now);
-        }
-        win.renameId = null;
-        win.rename.setFocused(false);
     }
 }

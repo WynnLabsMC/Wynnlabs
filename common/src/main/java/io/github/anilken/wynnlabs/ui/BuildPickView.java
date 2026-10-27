@@ -170,6 +170,17 @@ final class BuildPickView {
         } else {
             drawList(g, host, x, cy, w, listH, mx, my);
         }
+        if (win.swapSlot != null) {
+            // picking for a slot of the edited build: say so where the strip and Suggest were
+            int[][] hit = new int[1][];
+            int nh = trayY + Ui.BUTTON_H - stripY;
+            Ui.notice(g, ui.font, Ui.Level.INFO, List.of(L.t("wynnlabs.edit.swap_for", BuildEditView.slotName(win.swapSlot))),
+                    new Ui.Action("arrow-left", L.t("wynnlabs.pick.cancel")), x, stripY, w, nh, mx, my, hit);
+            if (hit[0] != null) {
+                ui.btn(hit[0][0], hit[0][1], hit[0][2], hit[0][3], "tab", BuildWindow.View.EDIT);
+            }
+            return;
+        }
         strip(g, host, x, stripY, w, mx, my);
         drawChips(g, host, x, trayY, w, problem, mx, my);
     }

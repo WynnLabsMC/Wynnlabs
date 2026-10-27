@@ -275,6 +275,8 @@ public final class Plans {
             if (b.id().equals(id)) {
                 Build r = new Build(b.id(), b.name(), fresh.locks(), fresh.tuning(), fresh.items(), fresh.score(), fresh.level(),
                         b.created(), now, fresh.points());
+                overwritten = b;
+                overwrittenWhen = now;
                 book.saved.set(i, r);
                 if (book.current != null && book.current.id().equals(id)) {
                     book.current = r;
@@ -284,6 +286,55 @@ public final class Plans {
             }
         }
         return null;
+    }
+
+    /** The build as it was before the last overwrite, for Undo; null when none. */
+    private static Build overwritten;
+    private static long overwrittenWhen;
+
+    /** The build an overwrite replaced that can still be brought back, or null. */
+    public static synchronized Build overwriteUndoable(long now) {
+        return overwritten != null && now - overwrittenWhen <= UNDO_MS ? overwritten : null;
+    }
+
+    /** Undo an overwrite: the build as it was before, the current plan with it when it is that build. */
+    public static synchronized boolean undoOverwrite(long now) {
+        Build b = overwriteUndoable(now);
+        if (b == null) {
+            return false;
+        }
+        overwritten = null;
+        return put(b, b.updated());
+    }
+
+    /**
+     * An edit to a saved build (its name, kept items, pieces, strip, score), kept at once under
+     * its id, name and creation; the current plan follows when it is that build. False when no
+     * saved build has that id.
+     */
+    public static synchronized boolean update(Build b, long now) {
+        load();
+        Build old = byId(b.id());
+        if (old == null) {
+            return false;
+        }
+        String n = b.name().isBlank() ? old.name() : clip(b.name().strip());
+        return put(new Build(b.id(), n, b.locks(), b.tuning(), b.items(), b.score(), b.level(), old.created(), now, b.points()), now);
+    }
+
+    private static boolean put(Build r, long now) {
+        load();
+        for (int i = 0; i < book.saved.size(); i++) {
+            if (book.saved.get(i).id().equals(r.id())) {
+                book.saved.set(i, r);
+                if (book.current != null && book.current.id().equals(r.id())) {
+                    book.current = r;
+                }
+                save();
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String clip(String s) {

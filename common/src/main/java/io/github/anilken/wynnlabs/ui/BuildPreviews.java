@@ -41,16 +41,16 @@ final class BuildPreviews {
         w.open = true;
         w.view = BuildWindow.View.SAVED;
         w.saved.savedScroll = scroll;
-        w.renameId = renaming;
-        if (renaming != null) {
-            Plans.Build b = Plans.byId(renaming);
-            w.rename.setValue(b == null ? "" : b.name() + " 2");
-        }
-        w.editId = editing;
-        if (editing != null) {
-            Plans.Build b = Plans.byId(editing);
-            w.editLocks = b == null ? List.of() : new ArrayList<>(b.locks());
-            w.editTuning = b == null ? Tuning.Choice.PLAIN : b.tuning();
+        w.renameId = null;
+        String id = renaming != null ? renaming : editing;
+        if (id != null) {
+            // the editor on that build; renaming: its name being typed
+            w.openEditor(id);
+            if (renaming != null) {
+                Plans.Build b = Plans.byId(renaming);
+                w.rename.setValue(b == null ? "" : b.name() + " 2");
+                w.rename.setFocused(true);
+            }
         }
     }
 }

@@ -101,6 +101,15 @@ public final class Around {
         }
     }
 
+    /**
+     * A saved build's score after an edit by hand (a piece swapped or taken out): at the level it
+     * was found at (yours when unknown), with its own strip; NaN when it cannot be worn there.
+     */
+    public static double rescore(Plans.Build b) {
+        int level = b.level() > 0 ? b.level() : GameState.current().level();
+        return scoreAt(b, level, b.tuning());
+    }
+
     /** A plan's score at {@code level} with its pieces and the tuning it was found with (NaN when it cannot be worn there). */
     static double scoreAt(Plans.Build plan, int level, Tuning.Choice tuning) {
         java.util.Map<String, Damage.Piece> set = BuildStats.piecesOf(plan);

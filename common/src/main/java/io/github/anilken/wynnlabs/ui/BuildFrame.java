@@ -26,6 +26,7 @@ final class BuildFrame {
             {BuildWindow.View.PICK, "target", L.t("wynnlabs.pick.tab")},
             {BuildWindow.View.RESULTS, "sparkles", win.result == null ? null : L.t("wynnlabs.results.tab", win.result.builds().size())},
             {BuildWindow.View.SAVED, "bookmark", L.t("wynnlabs.saved.tab", saves)},
+            {BuildWindow.View.EDIT, "edit", editName()},
         };
         for (Object[] t : tabs) {
             if (t[2] == null) {
@@ -58,6 +59,12 @@ final class BuildFrame {
 
     /** The Priority menu's "None" row. */
     static final int LEAN_NONE = 99;
+
+    /** The edited build's name for its tab, or null when none is open. */
+    private String editName() {
+        Plans.Build b = win.editId == null ? null : Plans.byId(win.editId);
+        return b == null ? null : Type.BODY.fit(win.ui.font, b.name(), 120);
+    }
 
     /** The open menu (level range, budget or priority) over everything, its rows clickable. */
     void menuList(GuiGraphics g, int mx, int my) {

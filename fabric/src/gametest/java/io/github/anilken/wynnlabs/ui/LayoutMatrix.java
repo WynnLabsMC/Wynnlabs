@@ -728,7 +728,7 @@ public class LayoutMatrix implements FabricClientGameTest {
             Plans.clearAll();
         });
         String[] states = {"pick", "pick-priority", "pick-import", "loading", "results", "results-end", "results-high", "plan", "plan-removed", "plan-done", "plan-hint", "saved", "saved-rename",
-            "saved-edit", "pick-none", "results-none", "saved-none", "road-none", "road-building", "road-stale", "road-stale-plan", "road-stale-hint"};
+            "saved-edit", "edit-swap", "pick-none", "results-none", "saved-none", "road-none", "road-building", "road-stale", "road-stale-plan", "road-stale-hint"};
         for (String s : states) {
             ctx.runOnClient(mc -> homeState(s));
             measure(ctx, where + " home-" + s, gui, report, areas);
@@ -880,7 +880,7 @@ public class LayoutMatrix implements FabricClientGameTest {
                 Plans.apply(new Plans.Build("pdone", "Heavensent build", weapon == null ? List.of() : List.of(weapon), Tuning.Choice.PLAIN,
                         items, 7475, GameState.current().level(), now, now));
             }
-            case "saved", "saved-rename", "saved-edit" -> {
+            case "saved", "saved-rename", "saved-edit", "edit-swap" -> {
                 if (Plans.saved().size() < 14) {
                     Plans.clearAll();
                     for (int i = 0; i < 14; i++) {
@@ -891,7 +891,14 @@ public class LayoutMatrix implements FabricClientGameTest {
                     Plans.apply(Plans.saved().get(4));
                 }
                 List<Plans.Build> all = Plans.saved();
-                BuildPreviews.saved(w, 3, s.equals("saved-rename") ? all.get(4).id() : null, s.equals("saved-edit") ? all.get(5).id() : null);
+                BuildPreviews.saved(w, 3, s.equals("saved-rename") ? all.get(4).id() : null,
+                        s.equals("saved-edit") || s.equals("edit-swap") ? all.get(5).id() : null);
+                if (s.equals("edit-swap")) {
+                    // the editor's swap: the items filtered to the helmet slot, the notice over the foot
+                    w.pick.type = BuildEditView.PICK_TYPE[0];
+                    w.showView(BuildWindow.View.PICK);
+                    w.swapSlot = 0;
+                }
             }
             case "road-stale-plan", "road-stale-hint" -> {
                 // out of date with a plan applied (and its better-build hint): the plan's view, nothing over it
