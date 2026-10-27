@@ -1,37 +1,213 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.api.AiLink;
+import io.github.anilken.wynnlabs.api.AiSteps;
 import io.github.anilken.wynnlabs.api.WynnLabs;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Settings;
 
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
-/** The AI assistant tab: the local API's switches, its state, address, skill and endpoints. */
+/**
+ * The AI assistant page (Settings › AI). A live status card (connected, last request and today's
+ * count; on and never asked; off; the port busy) with the local API's switch; "Connect your
+ * assistant": the tool, then three numbered steps, each with its one action, the next one lit and
+ * the done ones ticked (the third ticks itself on the first request), and the address and port
+ * under them; "What it can read", grouped, and "What it can write", with the write switch. The
+ * status reads the server's own counters, at most twice a second. Writes still need the switch and
+ * the X-Wynninv header; the server listens on 127.0.0.1 only.
+ */
 final class AiTab extends MenuTab {
+
+    /** A click area of this frame and what it does. */
+    record Click(int[] rect, Runnable run) {}
+
+    private final List<Click> clicks = new ArrayList<>();
+    private final AiPageParts parts = new AiPageParts(this);
+    private final UiDrawer drawer;
+    private final ScrollBar bar = new ScrollBar();
+    AiSteps.Tool tool = AiSteps.Tool.CLAUDE_CODE;
+    boolean promptCopied;
+    boolean addressCopied;
+    private boolean claudeInstalled;
+    private long checkedAt;
+    /** The status card's words, worked out at most twice a second. */
+    AiSteps.State state = AiSteps.State.OFF;
+    String statusSub = "";
+    private long statusAt;
+    /** The last action's failure, shown as an error notice until the next action. */
+    String failure;
+    private int scroll;
+    private int scrollMax;
+    private int[] view = new int[4];
+    private int popupFrom;
+    private boolean inPopup;
+    int mouseX;
+    int mouseY;
 
     AiTab(RoadmapScreen menu) {
         super(menu);
+        drawer = new UiDrawer(menu);
     }
 
-    // ---- the tab ----
+    @Override
+    void beginFrame() {
+        clicks.clear();
+    }
+
+    /** A click area: on the page, clipped to its visible part; in the drawer, as it is (the drawer clips). */
+    void click(int x, int y, int w, int h, Runnable run) {
+        if (inPopup) {
+            clicks.add(new Click(new int[] {x, y, w, h}, run));
+            return;
+        }
+        int top = Math.max(y, view[1]);
+        int bottom = Math.min(y + h, view[1] + view[3]);
+        if (bottom > top) {
+            clicks.add(new Click(new int[] {x, top, w, bottom - top}, run));
+        }
+    }
+
+    /** A tooltip while the mouse is on the box. */
+    void tip(int x, int y, int w, int h, List<Component> lines) {
+        boolean seen = inPopup || mouseY >= view[1] && mouseY < view[1] + view[3];
+        if (seen && mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h) {
+            menu.hits.add(new MenuHit(x, y, w, h, null, lines, null));
+        }
+    }
+
+    // ---- the facts, cached ----
+
+    private void refresh() {
+        long now = System.currentTimeMillis();
+        if (now - statusAt < 500) {
+            return;
+        }
+        statusAt = now;
+        long last = AiLink.lastAt();
+        state = AiSteps.state(Settings.on("localApi"), AiLink.state, last);
+        statusSub = switch (state) {
+            case OFF -> L.t("wynnlabs.ai.sub_off");
+            case NEW -> L.t("wynnlabs.ai.sub_new");
+            case BUSY -> L.t("wynnlabs.ai.busy_hint");
+            case CONNECTED -> L.t("wynnlabs.ai.last_request", ago(last), AiLink.lastPath(), AiLink.today());
+        };
+        if (now - checkedAt > 2000) {
+            checkedAt = now;
+            try {
+                claudeInstalled = Files.isRegularFile(AiLink.claudeSkill());
+            } catch (RuntimeException e) {
+                claudeInstalled = false;
+            }
+        }
+    }
+
+    /** Whether the chosen tool's own step was done. */
+    boolean toolDone() {
+        return switch (tool) {
+            case CLAUDE_CODE -> claudeInstalled;
+            case CHAT -> promptCopied;
+            case OTHER -> addressCopied;
+        };
+    }
+
+    // ---- drawing ----
 
     @Override
     void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my, float pt) {
-        drawAiTab(g, x, y, w, h, mx, my);
+        mouseX = mx;
+        mouseY = my;
+        drawer.page(x, y, w, h);
+        refresh();
+        boolean compact = menu.layout.compact();
+        view = new int[] {x - Theme.SP_2, y, w + 2 * Theme.SP_2, h};
+        g.enableScissor(view[0], view[1], view[0] + view[2], view[1] + view[3]);
+        int cw = scrollMax > 0 ? w - ScrollBar.W - Theme.SP_3 : w;
+        int top = y - scroll;
+        int end = parts.page(g, x, top, cw, top + h, compact, mx, my);
+        g.disableScissor();
+        int total = end - top;
+        scrollMax = Math.max(0, total - h);
+        scroll = Math.max(0, Math.min(scroll, scrollMax));
+        bar.place(x + w - ScrollBar.W, y, h, h, total, scroll);
+        bar.draw(g, mx, my);
     }
 
-    /** Its switches and buttons are the settings' kind of click ({@link SettingsTab#toggleClicked}). */
+    /** "All ›" on a small window: every read endpoint in the drawer. */
+    void openReads() {
+        drawer.show(L.t("wynnlabs.ai.reads"), (g, x, y, w, top, bottom, mx, my) -> parts.allReads(g, x, y, w, mx, my) - y);
+    }
+
+    // ---- the popups: the drawer ----
+
+    private final Popup popups = new Popup() {
+        @Override
+        public boolean open() {
+            return drawer.open();
+        }
+
+        @Override
+        public void draw(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+            mouseX = mx;
+            mouseY = my;
+            popupFrom = clicks.size();
+            inPopup = true;
+            drawer.draw(g, mx, my, boxes);
+            inPopup = false;
+        }
+
+        @Override
+        public void close() {
+            drawer.close();
+        }
+
+        @Override
+        public boolean clicked(MouseButtonEvent event, boolean doubleClick) {
+            if (drawer.clicked(event, doubleClick)) {
+                return true;
+            }
+            for (int i = clicks.size() - 1; i >= popupFrom; i--) {
+                if (in(event.x(), event.y(), clicks.get(i).rect())) {
+                    clicks.get(i).run().run();
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public void scrolled(double x, double y, double v) {
+            drawer.scrolled(x, y, v);
+        }
+    };
+
+    @Override
+    Popup popup() {
+        return popups;
+    }
+
+    // ---- input ----
+
     @Override
     boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        return menu.settings.toggleClicked(event, doubleClick);
+        if (bar.mouseClicked(event.x(), event.y())) {
+            scroll = bar.offset();
+            return true;
+        }
+        for (int i = clicks.size() - 1; i >= 0; i--) {
+            if (in(event.x(), event.y(), clicks.get(i).rect())) {
+                clicks.get(i).run().run();
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -39,173 +215,74 @@ final class AiTab extends MenuTab {
         return false;
     }
 
-    private int rowPitch = SettingsTab.SET_ROW;
-
-    /** A switch with its description (the AI tab's rows); the whole row is clickable. */
-    private void drawSettingRow(GuiGraphics g, Object[] row, int x, int y, int w, int mx, int my) {
-        boolean hover = mx >= x && mx < x + w && my >= y && my < y + rowPitch - 2;
-        if (hover) {
-            g.fill(x - 3, y - 1, x + w, y + rowPitch - 3, Theme.CARD_HOVER);
+    @Override
+    boolean barDragged(double x, double y) {
+        if (drawer.drag(x, y)) {
+            return true;
         }
-        String k = (String) row[1];
-        boolean on = Settings.on(k);
-        pill(g, x, y + 9, on);
-        String title = L.t(Settings.LABELS.get(k));
-        String desc = L.t(Settings.DESC.get(k));
-        ink(g, fit(title, w - 26), x + 26, y + 5, on ? 0xFFE8E6DF : MUTED);
-        // a taller row (the AI tab's) has room for the description's second line
-        descWrap(g, desc, x + 26, y + 17, w - 26, rowPitch > SettingsTab.SET_ROW ? 2 : 1);
-        menu.toggles.add(new Object[] {new int[] {x, y, w, rowPitch - 2}, k});
-        if (hover) {
-            rowTip(x, y, w, rowPitch - 2, title, desc);
+        if (bar.mouseDragged(y)) {
+            scroll = bar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    void barReleased() {
+        drawer.release();
+        bar.mouseReleased();
+    }
+
+    @Override
+    void mouseScrolled(double x, double y, double v) {
+        scroll = Math.max(0, Math.min(scrollMax, scroll - (int) Math.signum(v) * Theme.SP_7));
+    }
+
+    // ---- the actions ----
+
+    void flip(String key) {
+        Settings.set(key, !Settings.on(key));
+        if (key.equals("localApi")) {
+            WynnLabs.syncServer();
+            statusAt = 0;
         }
     }
 
-    /**
-     * The AI assistant panel: the API's state (a dot, the last request, today's count), its
-     * address with copy and the port with −/+, the skill buttons, and the endpoint list.
-     */
-    private void drawAiPanel(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        // status card
-        String st = AiLink.state;
-        int dot = st.equals("listening") ? 0xFF5DCAA5 : st.equals("busy") ? 0xFFE24B4A : 0xFF6E6C78;
-        // compact: one line, the state and then its note, to leave the endpoints some room
-        boolean slim = menu.layout.compact();
-        Kit.card(g, x, y, w, slim ? 18 : 34, 0);
-        Art.box(g, x + 8, y + 6, 7, 7, 3, dot, 0);
-        String head = st.equals("listening") ? L.t("wynnlabs.ai.listening")
-                : st.equals("busy") ? L.t("wynnlabs.ai.busy", AiLink.port) : L.t("wynnlabs.ai.off");
-        String headCut = fit(head, w - 30);
-        ink(g, Component.literal(headCut).withStyle(UiFont::bold), x + 20, y + 5, 0xFFFFFFFF, false);
-        String sub;
-        if (st.equals("listening")) {
-            sub = AiLink.lastAt() == 0 ? L.t("wynnlabs.ai.no_requests")
-                    : L.t("wynnlabs.ai.last_request", ago(AiLink.lastAt()), AiLink.lastPath(), AiLink.today());
-        } else if (st.equals("busy")) {
-            sub = L.t("wynnlabs.ai.busy_hint");
-        } else {
-            sub = L.t("wynnlabs.ai.off_hint");
-        }
-        int ry;
-        if (slim) {
-            int hw = font().width(Component.literal(headCut).withStyle(UiFont::bold)) + 8;
-            desc(g, sub, x + 20 + hw, y + 6, w - 28 - hw);
-            ry = y + 23;
-        } else {
-            desc(g, sub, x + 20, y + 19, w - 28);
-            ry = y + 40;
-        }
-        // address and port
-        String url = AiLink.url();
-        ink(g, url, x + 2, ry + 3, 0xFF85B7EB, false);
-        int bx = x + 8 + font().width(url);
-        String copy = L.t("wynnlabs.ai.copy");
-        int cw = font().width(copy) + 14;
-        boolean ch = mx >= bx && mx < bx + cw && my >= ry && my < ry + 13;
-        Kit.button(g, bx, ry, cw, 13, ch ? Kit.HOVER : Kit.REST);
-        onWood(g, copy, bx + 7, ry + 3, ch ? Kit.HOVER : Kit.REST);
-        menu.toggles.add(new Object[] {new int[] {bx, ry, cw, 13}, "#aicopy"});
-        String portLabel = L.t("wynnlabs.ai.port", AiLink.port);
-        int pw = font().width(portLabel);
-        int px = x + w - (pw + 40);
-        stepButton(g, px, ry, "−", mx, my, "#aiport:-1");
-        ink(g, portLabel, px + 18, ry + 3, 0xFFFAC775, false);
-        stepButton(g, px + 22 + pw, ry, "+", mx, my, "#aiport:1");
-        ry += 20;
-        // the skill
-        String[][] btns = {{L.t("wynnlabs.ai.export"), "#aiexport"}, {L.t("wynnlabs.ai.install"), "#aiinstall"},
-            {L.t("wynnlabs.ai.prompt"), "#aiprompt"}};
-        int sx = x;
-        for (String[] b : btns) {
-            int bw = font().width(b[0]) + 14;
-            boolean hov = mx >= sx && mx < sx + bw && my >= ry && my < ry + 15;
-            Kit.button(g, sx, ry, bw, 15, hov ? Kit.ON : Kit.REST);
-            onWood(g, b[0], sx + 7, ry + 4, hov ? Kit.ON : Kit.REST);
-            menu.toggles.add(new Object[] {new int[] {sx, ry, bw, 15}, b[1]});
-            sx += bw + 6;
-        }
-        if (aiNote != null) {
-            desc(g, aiNote, x, ry + 19, w);
-        }
-        ry += slim && aiNote == null ? 21 : 32;
-        // endpoints, two columns when they do not fit
-        ink(g, L.t("wynnlabs.ai.endpoints"), x, ry, FAINT, false);
-        ry += Kit.Ui.LINE;
-        int rowH = Kit.Ui.LINE_DENSE;
-        int fitRows = Math.max(1, (y + h - ry) / rowH);
-        int all = AiLink.ENDPOINTS.size();
-        // as many columns of at least 240px as the width holds (up to 3), two when one would not fit
-        int cols = Math.max(all > fitRows ? 2 : 1, Math.min(3, w / 240));
-        int per = (all + cols - 1) / cols;
-        // what still does not fit: the last column's last row says how many are left out
-        int shown = all;
-        if (per > fitRows) {
-            per = fitRows;
-            shown = per * cols - 1;
-        }
-        int colW = (w - (cols - 1) * 12) / cols;
-        for (int i = 0; i < shown; i++) {
-            AiLink.Endpoint e = AiLink.ENDPOINTS.get(i);
-            int ex = x + (i / per) * (colW + 12);
-            int ey = ry + (i % per) * rowH;
-            ink(g, e.path(), ex, ey, 0xFF85B7EB, false);
-            int pwid = font().width(e.path()) + 6;
-            desc(g, L.t(e.key()), ex + pwid, ey + 1, colW - pwid);
-        }
-        if (shown < all) {
-            int ex = x + (cols - 1) * (colW + 12);
-            int ey = ry + (per - 1) * rowH;
-            String more = L.t("wynnlabs.ai.more", all - shown);
-            ink(g, more, ex, ey, FAINT, false);
-            List<Component> tip = new ArrayList<>();
-            for (int i = shown; i < all; i++) {
-                AiLink.Endpoint e = AiLink.ENDPOINTS.get(i);
-                tip.add(Component.literal(e.path() + "  ").withStyle(ChatFormatting.AQUA)
-                        .append(Component.literal(L.t(e.key())).withStyle(ChatFormatting.GRAY)));
-            }
-            menu.hits.add(new MenuHit(ex, ey - 1, font().width(more), rowH, null, tip, null));
-        }
-    }
-
-    private String aiNote;
-
-    /** The AI assistant tab: the API and write switches, then status, address, skill and endpoints. */
-    private void drawAiTab(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        // two switches side by side, their descriptions on two lines rather than cut
-        rowPitch = SettingsTab.SET_ROW + 9;
-        int colW = (w - 18) / 2;
-        drawSettingRow(g, new Object[] {"switch", "localApi"}, x, y, colW, mx, my);
-        drawSettingRow(g, new Object[] {"switch", "apiWrite"}, x + colW + 18, y, colW, mx, my);
-        int top = rowPitch + (menu.layout.compact() ? 0 : 6);
-        rowPitch = SettingsTab.SET_ROW;
-        drawAiPanel(g, x, y + top, w, h - top, mx, my);
-    }
-
-    void aiClick(String id) {
+    /** Runs an action: a short note in the menu's flash line, or the failure as an error notice. */
+    void act(String what) {
+        failure = null;
         try {
-            switch (id) {
-                case "#aicopy" -> {
+            switch (what) {
+                case "copy" -> {
                     Minecraft.getInstance().keyboardHandler.setClipboard(AiLink.url());
-                    aiNote = L.t("wynnlabs.ai.copied_url");
+                    addressCopied = true;
+                    menu.flash(L.t("wynnlabs.ai.copied_url"));
                 }
-                case "#aiexport" -> aiNote = L.t("wynnlabs.ai.exported", AiLink.export());
-                case "#aiinstall" -> aiNote = L.t("wynnlabs.ai.installed", AiLink.installClaude());
-                case "#aiprompt" -> {
+                case "export" -> menu.flash(L.t("wynnlabs.ai.exported", AiLink.export()));
+                case "install" -> {
+                    menu.flash(L.t("wynnlabs.ai.installed", AiLink.installClaude()));
+                    checkedAt = 0;
+                    statusAt = 0;
+                }
+                case "prompt" -> {
                     Minecraft.getInstance().keyboardHandler.setClipboard(AiLink.prompt());
-                    aiNote = L.t("wynnlabs.ai.copied_prompt");
+                    promptCopied = true;
+                    menu.flash(L.t("wynnlabs.ai.copied_prompt"));
                 }
+                case "port-", "port+" -> port(Settings.number("localApiPort", 47591) + (what.equals("port+") ? 1 : -1));
+                case "free" -> port(AiLink.nextFreePort(AiLink.port));
                 default -> {
-                    if (id.startsWith("#aiport:")) {
-                        int p = Math.max(1024, Math.min(65535, Settings.number("localApiPort", 47591)
-                                + Integer.parseInt(id.substring(8))));
-                        Settings.setNumber("localApiPort", p);
-                        WynnLabs.syncServer();
-                        aiNote = null;
-                    }
+                    // not an action of ours
                 }
             }
         } catch (Exception e) {
-            aiNote = L.t("wynnlabs.ai.failed", e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage()));
+            failure = L.t("wynnlabs.ai.failed", e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage()));
         }
+    }
+
+    private void port(int p) {
+        Settings.setNumber("localApiPort", Math.max(1024, Math.min(65535, p)));
+        WynnLabs.syncServer();
+        statusAt = 0;
     }
 }

@@ -423,11 +423,6 @@ final class Kit {
         outline(g, x, y, w, h, focused ? Theme.GOLD_DEEP : Theme.INK_2);
     }
 
-    /** A sliding switch (19×11). */
-    static void toggle(GuiGraphics g, int x, int y, boolean on) {
-        nine(g, on ? "switch_on" : "switch_off", x, y, 19, 11);
-    }
-
     /** A section title: the title in ink where it always was, then a brass ◆ and a rule to {@code x + w}. */
     static void section(GuiGraphics g, Font font, String title, int x, int y, int w) {
         g.drawString(font, title, x, y, Theme.INK_2, false);

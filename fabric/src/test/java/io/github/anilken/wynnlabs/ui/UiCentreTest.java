@@ -106,4 +106,20 @@ class UiCentreTest {
         assertEquals("756k", HomeHero.compact(755_771));
         assertEquals("1.2M", HomeHero.compact(1_234_567));
     }
+
+    @Test
+    void theSwitchKnobSitsOnTheTracksMiddleOnAWholePixel() {
+        // the circle (its shadow left out) centred on the track: same middle, whole-pixel gap
+        assertEquals(0, (UiToggle.H - UiToggle.KNOB_D) % 2, "the gap is the same above and below");
+        assertEquals(UiToggle.H / 2f, UiToggle.KNOB_INSET + UiToggle.KNOB_D / 2f, 0.0001f);
+        // the slide: from where it was to where it goes, eased, done after SLIDE_MS
+        assertEquals(0f, UiToggle.slide(true, 0), 0.0001f);
+        assertEquals(1f, UiToggle.slide(true, UiToggle.SLIDE_MS), 0.0001f);
+        assertEquals(0f, UiToggle.slide(false, UiToggle.SLIDE_MS + 50), 0.0001f);
+        float half = UiToggle.slide(true, UiToggle.SLIDE_MS / 2);
+        assertTrue(half > 0.5f && half < 1f, "eased out: past half way at half time");
+        assertEquals(1f, UiToggle.position("test-switch", true, 1000), 0.0001f);
+        assertEquals(1f, UiToggle.position("test-switch", false, 1000), 0.0001f);
+        assertEquals(0f, UiToggle.position("test-switch", false, 1000 + UiToggle.SLIDE_MS), 0.0001f);
+    }
 }

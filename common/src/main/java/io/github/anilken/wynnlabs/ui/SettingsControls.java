@@ -65,13 +65,13 @@ final class SettingsControls extends MenuPaint {
         int w;
         switch (r.kind()) {
             case "switch", "advice" -> {
-                Kit.toggle(g, right - 19, Type.BODY.onCaps(ty, 11), SettingsRows.toggleOn(r));
-                w = 19;
+                UiToggle.draw(g, right - UiToggle.W, Type.BODY.onCaps(ty, UiToggle.H), SettingsRows.toggleOn(r), r.id(), mx, my);
+                w = UiToggle.W;
             }
             case "rule" -> {
                 if (r.r().isSwitch()) {
-                    Kit.toggle(g, right - 19, Type.BODY.onCaps(ty, 11), SettingsRows.toggleOn(r));
-                    w = 19;
+                    UiToggle.draw(g, right - UiToggle.W, Type.BODY.onCaps(ty, UiToggle.H), SettingsRows.toggleOn(r), r.id(), mx, my);
+                    w = UiToggle.W;
                 } else if (emeraldBox(r, picked)) {
                     w = emerald(g, r, right, cy, mx, my);
                 } else {

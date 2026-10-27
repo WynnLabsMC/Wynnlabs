@@ -169,9 +169,9 @@ public final class TreeTab extends MenuTab {
         }
         // the same meter on the game screen: its switch, here
         boolean on = Settings.on("dpsHud");
-        int tw = 19;
-        int ty = by + (Ui.CHIP_H - 11) / 2;
-        Kit.toggle(g, r - tw, ty, on);
+        int tw = UiToggle.W;
+        int ty = by + (Ui.CHIP_H - UiToggle.H) / 2;
+        UiToggle.draw(g, r - tw, ty, on, "dpsHud", mx, my);
         String label = L.t("wynnlabs.tree.dps_hud");
         int lw = Type.META.width(font(), label);
         Type.META.draw(g, font(), label, r - tw - Theme.SP_2 - lw, Type.META.yIn(by, Ui.CHIP_H), Theme.INK_3);

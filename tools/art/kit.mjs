@@ -197,14 +197,7 @@ export function renderKit(out, density) {
   add('bar_rim', 2 * 4 + MID, 10,
     '<rect x="0.5" y="0.5" width="39" height="9" rx="4.5" fill="none" stroke="#c9973a" stroke-opacity="0.55" stroke-width="1"/>', [4, 3, 4, 3]);
 
-  // switches
-  add('switch_on', 19, 11,
-    `<defs>${grad('g', [[0, '#4f8a5a'], [1, '#3f7a4a']])}</defs>`
-    + '<rect width="19" height="11" rx="5.5" fill="#1e3a24"/><rect x="1" y="1" width="17" height="9" rx="4.5" fill="url(#g)"/>'
-    + '<circle cx="13.5" cy="5.5" r="3.6" fill="#f3e6c4"/>');
-  add('switch_off', 19, 11,
-    '<rect width="19" height="11" rx="5.5" fill="#3b2a1d"/><rect x="1" y="1" width="17" height="9" rx="4.5" fill="#5f4734"/>'
-    + '<circle cx="5.5" cy="5.5" r="3.6" fill="#c4b184"/>');
+  // switches: tools/art/toggle.py (HD track, hover and knob)
 
   // the close seal
   for (const [name, a, b] of [['close', '#c0504a', '#8a2a22'], ['close_hover', '#e0605a', '#a8342a']]) {

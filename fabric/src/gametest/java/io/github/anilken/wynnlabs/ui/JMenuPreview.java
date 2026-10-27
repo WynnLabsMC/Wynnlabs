@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -61,7 +61,7 @@ public class JMenuPreview implements FabricClientGameTest {
             // straight on the screen being checked: a filtered run never draws Home first
             int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("today") ? 1 : part.equals("tree") ? RoadmapScreen.TAB_TREE : part.equals("quests") ? 2
                     : part.equals("settings") ? 5 : part.equals("crafting") ? 10 : part.equals("bank") ? RoadmapScreen.TAB_BANK
-                    : part.equals("search") ? RoadmapScreen.TAB_SEARCH : part.equals("endgame") ? RoadmapScreen.TAB_ENDGAME : 0;
+                    : part.equals("search") ? RoadmapScreen.TAB_SEARCH : part.equals("endgame") ? RoadmapScreen.TAB_ENDGAME : part.equals("ai") ? RoadmapScreen.TAB_AI : 0;
             ctx.setScreen(() -> RoadmapScreen.on(first));
             ctx.waitForScreen(RoadmapScreen.class);
             ctx.getInput().setCursorPos(2, 2);      // the window's corner: no tooltip over the menu
@@ -384,6 +384,10 @@ public class JMenuPreview implements FabricClientGameTest {
         }
         if (part.equals("bank")) {
             BankPreview.shots(ctx, out);
+            return;
+        }
+        if (part.equals("ai")) {
+            AiPreview.shots(ctx, out, n -> shot(ctx, out, n));
             return;
         }
         if (part.equals("search")) {

@@ -21,6 +21,8 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
 - `-PpreviewOnly=tree`: only the tree page (three deaths seeded), its damage and deaths drawers, and its search typed in.
 - The game's window stays hidden during a run (the shots are drawn the same); `-PpreviewHidden=false`
   shows it, to watch a run.
+- `-PpreviewOnly=ai`: the AI assistant page (Settings › AI) in its four states: off, on and never asked, connected
+  (a real request to the local API) with writing on, and the port busy.
 - `-PpreviewOnly=search`: only that tab: the catalogue before typing, an item, its marks list, a tracked mob and
   the tracked list, a place, the Stats category and a stat, nothing found ("did you mean") and the filter menu.
   With `-PpreviewSize=1380x960` the card shows in its drawer.

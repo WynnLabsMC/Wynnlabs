@@ -18,33 +18,55 @@ import java.util.List;
  */
 public final class AiLink {
 
-    /** One read endpoint: path, its English line for the API index, its language key for the panel. */
-    public record Endpoint(String path, String en, String key) {}
+    /**
+     * One endpoint: path, its English line for the API index, its language key for the panel, and
+     * its group on the AI page ("char", "gear", "world", "bank", "mod", or "write" for the ones that
+     * change something and need writing on).
+     */
+    public record Endpoint(String path, String en, String key, String group) {
+        public boolean write() {
+            return "write".equals(group);
+        }
+    }
 
     public static final List<Endpoint> ENDPOINTS = List.of(
-            new Endpoint("/status", "in game?, class, combat level", "wynnlabs.ai.ep_status"),
-            new Endpoint("/equipped", "armour, accessories, weapon in hand", "wynnlabs.ai.ep_equipped"),
-            new Endpoint("/inventory", "all 36 inventory slots", "wynnlabs.ai.ep_inventory"),
-            new Endpoint("/character", "class, level, skill points per skill (assigned / gear / total)", "wynnlabs.ai.ep_character"),
-            new Endpoint("/abilities", "ability points, unlocked abilities, the class's whole tree", "wynnlabs.ai.ep_abilities"),
-            new Endpoint("/build", "best build from worn and carried gear with skill points", "wynnlabs.ai.ep_build"),
+            new Endpoint("/status", "in game?, class, combat level", "wynnlabs.ai.ep_status", "char"),
+            new Endpoint("/character", "class, level, skill points per skill (assigned / gear / total)", "wynnlabs.ai.ep_character", "char"),
+            new Endpoint("/abilities", "ability points, unlocked abilities, the class's whole tree", "wynnlabs.ai.ep_abilities", "char"),
+            new Endpoint("/treeplan", "the chosen ability tree plan, node by node", "wynnlabs.ai.ep_treeplan", "char"),
+            new Endpoint("/profile", "the class profile's rules behind the build scores", "wynnlabs.ai.ep_profile", "char"),
+            new Endpoint("/characters", "every character seen, with class, level and goal", "wynnlabs.ai.ep_characters", "char"),
+            new Endpoint("/equipped", "armour, accessories, weapon in hand", "wynnlabs.ai.ep_equipped", "gear"),
+            new Endpoint("/inventory", "all 36 inventory slots", "wynnlabs.ai.ep_inventory", "gear"),
+            new Endpoint("/build", "best build from worn and carried gear with skill points", "wynnlabs.ai.ep_build", "gear"),
             new Endpoint("/damage", "model vs measured damage per cast, where the DPS comes from, what-ifs, live DPS meter",
-                    "wynnlabs.ai.ep_damage"),
-            new Endpoint("/roadmap", "milestones ahead: gear to get, ability nodes, places to level", "wynnlabs.ai.ep_roadmap"),
-            new Endpoint("/roadmap/trace", "why each candidate for a slot was kept or dropped (?level=120&slot=RING)", "wynnlabs.ai.ep_trace"),
-            new Endpoint("/screenshot", "the game's screen as a PNG", "wynnlabs.ai.ep_screenshot"),
-            new Endpoint("/shopping", "best gear per slot to buy or hunt for your level and build", "wynnlabs.ai.ep_shopping"),
-            new Endpoint("/quests", "tracked quest and every quest from the quest book", "wynnlabs.ai.ep_quests"),
-            new Endpoint("/grind", "caves, dungeons, boss altars and grind spots near your level", "wynnlabs.ai.ep_grind"),
+                    "wynnlabs.ai.ep_damage", "gear"),
+            new Endpoint("/roadmap", "milestones ahead: gear to get, ability nodes, places to level", "wynnlabs.ai.ep_roadmap", "gear"),
+            new Endpoint("/roadmap/trace", "why each candidate for a slot was kept or dropped (?level=120&slot=RING)",
+                    "wynnlabs.ai.ep_trace", "gear"),
+            new Endpoint("/shopping", "best gear per slot to buy or hunt for your level and build", "wynnlabs.ai.ep_shopping", "gear"),
+            new Endpoint("/crafting/ingredients", "every crafting ingredient with its stats and where it drops",
+                    "wynnlabs.ai.ep_craft", "gear"),
+            new Endpoint("/quests", "tracked quest and every quest from the quest book", "wynnlabs.ai.ep_quests", "world"),
+            new Endpoint("/questplan", "which quests to do next and why", "wynnlabs.ai.ep_questplan", "world"),
+            new Endpoint("/grind", "caves, dungeons, boss altars and grind spots near your level", "wynnlabs.ai.ep_grind", "world"),
             new Endpoint("/discoveries", "secret discoveries in the chosen order: done, level, distance, requirements",
-                    "wynnlabs.ai.ep_discoveries"),
-            new Endpoint("/vault", "every bank page you opened, with verdicts and what to sell", "wynnlabs.ai.ep_vault"),
-            new Endpoint("/prices", "Trade Market prices the mod knows", "wynnlabs.ai.ep_prices"),
-            new Endpoint("/characters", "every character seen, with class, level and goal", "wynnlabs.ai.ep_characters"),
-            new Endpoint("/rules", "the rules behind the verdicts (POST merges, DELETE resets; needs writing on)", "wynnlabs.ai.ep_rules"),
-            new Endpoint("/advice", "your own verdicts (POST {items:[{key,verdict,note}]}; needs writing on)", "wynnlabs.ai.ep_advice"),
+                    "wynnlabs.ai.ep_discoveries", "world"),
+            new Endpoint("/deaths", "recent deaths and what killed you", "wynnlabs.ai.ep_deaths", "world"),
+            new Endpoint("/ground", "items on the ground around you (?r=12)", "wynnlabs.ai.ep_ground", "world"),
+            new Endpoint("/vault", "every bank page you opened, with verdicts and what to sell", "wynnlabs.ai.ep_vault", "bank"),
+            new Endpoint("/prices", "Trade Market prices the mod knows", "wynnlabs.ai.ep_prices", "bank"),
+            new Endpoint("/", "this list", "wynnlabs.ai.ep_index", "mod"),
+            new Endpoint("/settings", "the mod's settings", "wynnlabs.ai.ep_settings", "mod"),
+            new Endpoint("/perf", "what each part of the mod costs a frame (?reset=1 starts over)", "wynnlabs.ai.ep_perf", "mod"),
+            new Endpoint("/screenshot", "the game's screen as a PNG", "wynnlabs.ai.ep_screenshot", "mod"),
             new Endpoint("/compass", "point the compass and map pin: POST {x,y,z,label} or {points:[{x,y,z,label}]} (one at a time; with keep:true all at once and lasting), DELETE clears (?keep=1 the lasting ones); needs writing on",
-                    "wynnlabs.ai.ep_compass"));
+                    "wynnlabs.ai.ep_compass", "write"),
+            new Endpoint("/advice", "your own verdicts (POST {items:[{key,verdict,note}]}; needs writing on)", "wynnlabs.ai.ep_advice", "write"),
+            new Endpoint("/rules", "the rules behind the verdicts (POST merges, DELETE resets; needs writing on)", "wynnlabs.ai.ep_rules", "write"));
+
+    /** The page's groups, in order. */
+    public static final List<String> GROUPS = List.of("char", "gear", "world", "bank", "mod");
 
     private AiLink() {}
 
@@ -87,6 +109,21 @@ public final class AiLink {
         return "http://127.0.0.1:" + port + "/";
     }
 
+    /**
+     * The first port after {@code from} that this computer has free on 127.0.0.1 (tried by opening
+     * and closing it at once), up to 50 on; {@code from + 1} when none answers.
+     */
+    public static int nextFreePort(int from) {
+        for (int p = from + 1; p <= Math.min(65535, from + 50); p++) {
+            try (java.net.ServerSocket s = new java.net.ServerSocket(p, 1, java.net.InetAddress.getLoopbackAddress())) {
+                return p;
+            } catch (java.io.IOException taken) {
+                // in use: the next one
+            }
+        }
+        return Math.min(65535, from + 1);
+    }
+
     // ---- the skill file ----
 
     /**
@@ -111,9 +148,14 @@ public final class AiLink {
         return f;
     }
 
+    /** Where Claude Code keeps the skill (its own wynnlabs folder). */
+    public static Path claudeSkill() {
+        return Path.of(System.getProperty("user.home"), ".claude", "skills", "wynnlabs", "SKILL.md");
+    }
+
     /** Copies the skill into Claude Code's skills folder (only its own wynnlabs folder); returns the file. */
     public static Path installClaude() throws Exception {
-        Path f = Path.of(System.getProperty("user.home"), ".claude", "skills", "wynnlabs", "SKILL.md");
+        Path f = claudeSkill();
         Files.createDirectories(f.getParent());
         Files.writeString(f, skill(), StandardCharsets.UTF_8);
         return f;

@@ -396,11 +396,6 @@ class MenuPaint {
         menu.hits.add(new MenuHit(x, y, w, h, null, tip, null));
     }
 
-    /** An on/off switch: a small pill with its knob left (off) or right (on). */
-    void pill(GuiGraphics g, int x, int y, boolean on) {
-        Kit.toggle(g, x, y, on);
-    }
-
     void stepButton(GuiGraphics g, int x, int y, String s, int mx, int my, String id) {
         boolean hover = mx >= x && mx < x + 12 && my >= y && my < y + 12;
         String tex = s.equals("+") ? "wynn/gui/button/plus" : "wynn/gui/button/minus";

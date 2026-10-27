@@ -144,9 +144,7 @@ final class SettingsTab extends MenuTab {
     }
 
     private void click(String id, int[] rect) {
-        if (id.startsWith("#ai")) {
-            menu.ai.aiClick(id);
-        } else if (id.equals("#ruleunit")) {
+        if (id.equals("#ruleunit")) {
             // the next unit; the amount typed stays, so "100" E becomes 100 EB
             ruleUnit = (ruleUnit + 1) % UNIT_NAMES.length;
             ruleBox.setFocused(true);       // saved with the new unit
