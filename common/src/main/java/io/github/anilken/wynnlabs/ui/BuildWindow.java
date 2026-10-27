@@ -369,17 +369,54 @@ public final class BuildWindow {
         int y = wy + Theme.SP_5;
         int w = ww - 2 * Theme.SP_5;
         int h = wh - 2 * Theme.SP_5;
-        int head = frame.tabs(g, host, x, y, w, mx, my);
+        // an open menu owns the mouse: the window under it is drawn with the mouse away and
+        // shows no tooltip; its own clicks only close the menu (BuildActions)
+        boolean popup = menu != 0;
+        Host page = popup ? muted(host) : host;
+        int pmx = popup ? -1 : mx;
+        int pmy = popup ? -1 : my;
+        int head = frame.tabs(g, page, x, y, w, pmx, pmy);
         switch (view) {
-            case PICK -> pick.drawPick(g, host, x, y + head, w, h - head, mx, my, pt);
-            case RESULTS -> results.drawResults(g, host, x, y + head, w, h - head, mx, my);
-            case SAVED -> saved.drawSaved(g, host, x, y + head, w, h - head, mx, my, pt);
+            case PICK -> pick.drawPick(g, page, x, y + head, w, h - head, pmx, pmy, pt);
+            case RESULTS -> results.drawResults(g, page, x, y + head, w, h - head, pmx, pmy);
+            case SAVED -> saved.drawSaved(g, page, x, y + head, w, h - head, pmx, pmy, pt);
         }
         if (menu != 0 && menuAt != null) {
             frame.menuList(g, mx, my);
         } else {
             menu = 0;
         }
+    }
+
+    /** {@code host} without tooltips: the window under an open menu shows none. */
+    private static Host muted(Host host) {
+        return new Host() {
+            @Override
+            public void tip(int x, int y, int w, int h, List<Component> tip) { }
+
+            @Override
+            public void item(int x, int y, int w, int h, ItemData info, ItemStack stack, List<Component> extra) { }
+
+            @Override
+            public ItemStack icon(ItemData info) {
+                return host.icon(info);
+            }
+
+            @Override
+            public void flash(String text) {
+                host.flash(text);
+            }
+
+            @Override
+            public void applied() {
+                host.applied();
+            }
+
+            @Override
+            public void detailed(Roadmap.Candidate c, int level, int rank) {
+                host.detailed(c, level, rank);
+            }
+        };
     }
 
     // =====================================================================================

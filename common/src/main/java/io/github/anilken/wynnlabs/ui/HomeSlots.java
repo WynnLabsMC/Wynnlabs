@@ -358,8 +358,16 @@ final class HomeSlots extends HomePart {
         }
     }
 
-    /** A slot's hover and click: the upgrade's story and its comparison, else the worn item's tooltip. */
-    private void areas(Host host, SlotView v, int[] rect) {
+    /** Whether a slot's click opens its options (the comparison panel). */
+    static boolean opens(SlotView v) {
+        return v.gear() != null && v.gear().options() != null && !v.gear().options().isEmpty();
+    }
+
+    /**
+     * A slot's hover and click: the upgrade's story and its comparison (a piece with no options:
+     * the click copies its name), else the worn item's tooltip.
+     */
+    void areas(Host host, SlotView v, int[] rect) {
         if (v.index() == 0) {
             tab.firstSlot = rect.clone();
         }
@@ -376,6 +384,10 @@ final class HomeSlots extends HomePart {
         } else if (v.gear() != null) {
             host.compare(rect, v);
             host.item(rect[0], rect[1], rect[2], rect[3], v.gear().info(), ItemStack.EMPTY, v.tip());
+            if (!opens(v)) {
+                // no options to compare: the click copies the name, as its tooltip's last line says
+                host.area(rect[0], rect[1], rect[2], rect[3], null, null, v.gear().info().name());
+            }
         } else if (!v.worn().isEmpty()) {
             host.area(rect[0], rect[1], rect[2], rect[3], v.worn(), null, null);
         } else {
@@ -412,8 +424,7 @@ final class HomeSlots extends HomePart {
     void row(GuiGraphics g, Host host, SlotView v, int x, int y, int w, int s, int markW, int mx, int my) {
         ItemStack show = showOf(v);
         // a row that opens its options is lighter under the mouse, the whole row
-        boolean opens = v.gear() != null && v.gear().options() != null && !v.gear().options().isEmpty();
-        if (opens && mx >= x && mx < x + w && my >= y && my < y + s) {
+        if (opens(v) && mx >= x && mx < x + w && my >= y && my < y + s) {
             Art.box(g, x - Theme.SP_1, y - Theme.SP_1, w + 2 * Theme.SP_1, s + 2 * Theme.SP_1, 4, Theme.CARD_HOVER, 0);
         }
         int frame = v.mark() == Mark.CHOSEN ? CHOSEN : v.gear() != null || v.mark() == Mark.GET ? UP : 0;

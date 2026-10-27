@@ -10,6 +10,7 @@
     "ScreenFontAccessor",
     "GuiGraphicsBoundsMixin",
     "GuiGraphicsScaleMixin",
+    "TooltipGapMixin",
     "GuiGraphicsAccessor",
     "ContainerHoverAccessor",
     "SearchKeyMixin"

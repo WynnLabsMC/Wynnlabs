@@ -20,6 +20,8 @@ public final class MenuScale {
     /** While a scaled screen draws its tooltip: its logical size, which GuiGraphics reports as the GUI size. */
     private static int tooltipW;
     private static int tooltipH;
+    /** The menu's logical pixels per GUI pixel while its tooltip is placed (tooltipGap). */
+    private static double tooltipF;
 
     private MenuScale() {}
 
@@ -81,17 +83,28 @@ public final class MenuScale {
                 g.nextStratum();
                 tooltipW = screen.width;
                 tooltipH = screen.height;
+                tooltipF = f;
                 try {
                     tip.run();
                 } finally {
                     tooltipW = 0;
                     tooltipH = 0;
+                    tooltipF = 1;
                 }
             }
         } finally {
             UiFont.drawScale(0);
             g.pose().popMatrix();
         }
+    }
+
+    /**
+     * How much the tooltip's gap from the mouse grows while a screen drawn at the menu scale
+     * places its tooltip: the menu's logical pixels per GUI pixel, so the gap stays the game's 12
+     * GUI px on screen; 1 at any other time.
+     */
+    public static float tooltipGap() {
+        return tooltipW > 0 ? (float) Math.max(1, tooltipF) : 1f;
     }
 
     public static int tooltipWidth() {
