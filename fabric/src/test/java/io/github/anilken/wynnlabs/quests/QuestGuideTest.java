@@ -122,6 +122,9 @@ class QuestGuideTest {
                 "Merdivenden çık ve [-1079, 85, -5600] noktasındaki büyük kapıya gir.", new int[] {-1079, 85, -5600}));
         assertEquals("Yusanu ve Sui ile konuş.", QuestWiki.placeText(
                 "[120, 60, -900] noktasında Yusanu ve Sui ile konuş.", new int[] {120, 60, -900}), "more than a verb: the words after");
+        // "Lv. 96]" does not end a sentence: the slaying post's line keeps its words
+        assertEquals("Bring [20 Void Essences] to the Slaying Post [Combat Lv. 96]", QuestWiki.placeText(
+                "Bring [20 Void Essences] to the Slaying Post [Combat Lv. 96] at [14028, 122, -4226]", new int[] {14028, 122, -4226}));
         assertFalse(door.what().contains("-5600"), "a label without its coordinates: " + door.what());
         for (int i = 0; i < places.size(); i++) {
             for (int j = i + 1; j < places.size(); j++) {

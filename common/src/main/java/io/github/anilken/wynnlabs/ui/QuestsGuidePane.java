@@ -51,6 +51,8 @@ final class QuestsGuidePane extends MenuPaint {
         menu.hits.add(new MenuHit(sx, sy, gw, Ui.CHIP_H, null, null, "#qview:0"));
         Ui.iconChip(g, font(), "map-pin", pointsL, false, sx + gw + Theme.SP_1, sy, pw, tab.questDetailTab == 3, mx, my);
         menu.hits.add(new MenuHit(sx + gw + Theme.SP_1, sy, pw, Ui.CHIP_H, null, null, "#qview:3"));
+        // Track / Tracked left of them, for a quest not yet done
+        sx -= trackChip(g, name, q, sx - Theme.SP_2, sy, mx, my);
         boolean started = name.equals(QuestsData.tracked()) || q != null && "STARTED".equals(q.status());
         String title = Type.TITLE.fit(font(), QuestGuides.title(name), sx - Theme.SP_4 - x);
         Type.TITLE.draw(g, font(), title, x, y, started ? Theme.LINK : Type.TITLE.colour);
@@ -63,6 +65,23 @@ final class QuestsGuidePane extends MenuPaint {
         }
         Type.META.draw(g, font(), Type.META.fit(font(), facts, w), x, y + Type.TITLE.lineHeight + Theme.SP_1, Theme.INK_2);
         return Type.TITLE.lineHeight + Theme.SP_1 + Type.META.lineHeight + Theme.SP_3;
+    }
+
+    /**
+     * Track / Tracked as a chip ending at {@code right} on the title row, for a quest not yet
+     * done; returns the room it took with its gap (0 when none), which the title gives up.
+     */
+    int trackChip(GuiGraphics g, String name, QuestBook.Entry q, int right, int y, int mx, int my) {
+        if (q == null || "COMPLETED".equals(q.status())) {
+            return 0;
+        }
+        boolean on = name.equals(QuestsData.tracked());
+        String t = L.t(on ? "wynnlabs.quests.btn_tracked" : "wynnlabs.quests.btn_track");
+        int tw = Ui.iconChipWidth(font(), "bookmark", t, false);
+        int tx = right - tw;
+        Ui.iconChip(g, font(), "bookmark", t, false, tx, y, tw, on, mx, my);
+        menu.hits.add(new MenuHit(tx, y, tw, Ui.CHIP_H, null, null, "#qtrack:" + name));
+        return tw + Theme.SP_2;
     }
 
     /** "Lv 43 · Wynn · Orta · ~24 dk · 829 m · seviyenin %11'i" (the stage when started). */
@@ -304,7 +323,7 @@ final class QuestsGuidePane extends MenuPaint {
         }
     }
 
-    /** "Rehberi aç", tracking and the compass, along the pane's foot. */
+    /** "Rehberi aç" and the compass along the pane's foot (tracking is on the title row). */
     private void buttons(GuiGraphics g, int x, int y, int w, String name, QuestBook.Entry q, int[] at, int mx, int my) {
         String open = L.t("wynnlabs.quests.open_guide");
         int bw = Ui.iconButtonLabelWidth(font(), open);
@@ -312,14 +331,6 @@ final class QuestsGuidePane extends MenuPaint {
         menu.hits.add(new MenuHit(x, y, bw, Ui.BUTTON_H, null, null, "#guide:" + name + "\n" + QuestsData.task(name)));
         int bx = x + bw + Theme.SP_2;
         int cy = y + (Ui.BUTTON_H - Ui.CHIP_H) / 2;
-        if (q != null && !"COMPLETED".equals(q.status())) {
-            boolean on = name.equals(QuestsData.tracked());
-            String t = L.t(on ? "wynnlabs.quests.btn_tracked" : "wynnlabs.quests.btn_track");
-            int tw = Ui.iconChipWidth(font(), "bookmark", t, false);
-            Ui.iconChip(g, font(), "bookmark", t, false, bx, cy, tw, on, mx, my);
-            menu.hits.add(new MenuHit(bx, cy, tw, Ui.CHIP_H, null, null, "#qtrack:" + name));
-            bx += tw + Theme.SP_2;
-        }
         if (at != null && !menu.layout.compact()) {
             String t = L.t("wynnlabs.quests.compass");
             int tw = Ui.iconChipWidth(font(), "compass", t, false);

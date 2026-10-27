@@ -171,17 +171,18 @@ final class QuestMap extends MenuPaint {
         if (mapped.isEmpty()) {
             return false;
         }
-        List<Place> focus = new ArrayList<>();
+        // the places the view fits: the stage you are on
+        List<Place> fitTo = new ArrayList<>();
         for (Place p : mapped) {
             if (p.state() == QuestMapLayout.NOW || p.state() == QuestMapLayout.START) {
-                focus.add(p);
+                fitTo.add(p);
             }
         }
-        if (focus.isEmpty()) {
-            focus = mapped;
+        if (fitTo.isEmpty()) {
+            fitTo = mapped;
         }
         List<double[]> xz = new ArrayList<>();
-        for (Place p : focus) {
+        for (Place p : fitTo) {
             xz.add(new double[] {p.at()[0], p.at()[2]});
         }
         var pl = Minecraft.getInstance().player;
@@ -228,6 +229,9 @@ final class QuestMap extends MenuPaint {
         }
         boolean stepper = buttons && route && stages.size() > 1;
         String stepText = stepper ? L.t("wynnlabs.quests.stage_of", focus, stages.get(stages.size() - 1)) : "";
+        // never wider than the map leaves beside the zoom buttons
+        int stepRoom = w - 2 * Theme.SP_3 - (Ui.CHIP_H + 2) - Theme.SP_3 - 2 * (Ui.CHIP_H + 2) - 2 * Theme.SP_3;
+        stepText = Type.META.fit(font(), stepText, Math.max(0, stepRoom));
         int stepW = stepper ? 2 * (Ui.CHIP_H + 2) + Type.META.width(font(), stepText) + 2 * Theme.SP_3 : 0;
         if (stepper) {
             avoid.add(new double[] {Theme.SP_3, Theme.SP_3, stepW, Ui.CHIP_H});

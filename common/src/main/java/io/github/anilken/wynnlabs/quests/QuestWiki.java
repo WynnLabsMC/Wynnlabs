@@ -796,7 +796,8 @@ public final class QuestWiki {
      * the pressure plate at [x, y, z]"). A line with one place and nothing better: the whole line.
      */
     static String placeText(String line, int[] at) {
-        for (String sentence : line.split("(?<=[.!?])\\s+")) {
+        // sentences end at ". " before a word, not inside "[Combat Lv. 96]"
+        for (String sentence : line.split("(?<=[.!?])\\s+(?!\\d)")) {
             Matcher m = LOOSE.matcher(sentence);
             while (m.find()) {
                 if (Integer.parseInt(m.group(1)) != at[0] || Integer.parseInt(m.group(2)) != at[1] || Integer.parseInt(m.group(3)) != at[2]) {
@@ -817,11 +818,15 @@ public final class QuestWiki {
                     }
                 }
                 String out = placeText(part).replaceAll("(?i)\\s+(at|near|to)$", "");
-                return out.length() >= 4 ? out : placeText(sentence);
+                // a name has words: a scrap of the coordinates' text ("96]") is never one
+                return out.length() >= 4 && WORD.matcher(out).find() ? out : placeText(sentence);
             }
         }
         return placeText(line);
     }
+
+    /** Two letters in a row: text that can name a place. */
+    private static final Pattern WORD = Pattern.compile("\\p{L}{2}");
 
     /** A line as a pin label: no coordinates, wiki leftovers or doubled spaces. */
     public static String placeText(String line) {

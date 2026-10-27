@@ -209,7 +209,8 @@ final class QuestsRail extends MenuPaint {
         boolean secret = tab.questType == ContentType.SECRET_DISCOVERY;
         if (tab.questType.quest() || secret) {
             String name = secret ? QuestsSecrets.sortName() : L.t(QuestAdvisor.FILTER_NAMES[filterIndex()]);
-            int cw = UiMenu.chip(g, font(), null, name, cx, y, tab.filterOpen, mx, my);
+            // the order has the sort arrow, so it never reads like the kind's chip beside it
+            int cw = UiMenu.chip(g, font(), "arrow-down", name, cx, y, tab.filterOpen, mx, my);
             menu.hits.add(new MenuHit(cx, y, cw, Ui.CHIP_H, null, null, "#qmenu"));
             chip = new int[] {cx, y, cw, Ui.CHIP_H};
             cx += cw + Theme.SP_2;

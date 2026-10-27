@@ -102,6 +102,8 @@ final class QuestsMiniPane extends MenuPaint {
         menu.hits.add(new MenuHit(sx, sy, gw, Ui.CHIP_H, null, null, "#qview:0"));
         Ui.iconChip(g, font(), "map-pin", pointsL, false, sx + gw + Theme.SP_1, sy, pw, false, mx, my);
         menu.hits.add(new MenuHit(sx + gw + Theme.SP_1, sy, pw, Ui.CHIP_H, null, null, "#qview:3"));
+        // Track / Tracked left of them, for a quest not yet done
+        sx -= tab.guide.trackChip(g, name, q, sx - Theme.SP_2, sy, mx, my);
         Art.icon(g, gather ? "pick" : "sword", x, Type.TITLE.onCaps(y, 10), 10, Theme.INK_2);
         int tx = x + 10 + Theme.SP_2;
         Type.TITLE.draw(g, font(), Type.TITLE.fit(font(), name, sx - Theme.SP_4 - tx), tx, y);
@@ -409,7 +411,7 @@ final class QuestsMiniPane extends MenuPaint {
 
     // ---- the foot ----
 
-    /** Pusula › (the main action), Takip et. */
+    /** Pusula › (the main action); tracking is on the title row. */
     private void foot(GuiGraphics g, int x, int y, int w, String name, QuestBook.Entry q, int[] at, int mx, int my) {
         int bx = x;
         if (at != null) {
@@ -418,14 +420,6 @@ final class QuestsMiniPane extends MenuPaint {
             Ui.iconButtonLabel(g, font(), "compass", t, bx, y, bw, mx, my);
             menu.hits.add(new MenuHit(bx, y, bw, Ui.BUTTON_H, null, null, "/compass at " + at[0] + " " + at[1] + " " + at[2]));
             bx += bw + Theme.SP_2;
-        }
-        if (q != null && !"COMPLETED".equals(q.status())) {
-            boolean on = name.equals(QuestsData.tracked());
-            String t = L.t(on ? "wynnlabs.quests.btn_tracked" : "wynnlabs.quests.btn_track");
-            int tw = Ui.iconChipWidth(font(), "bookmark", t, false);
-            int cy = y + (Ui.BUTTON_H - Ui.CHIP_H) / 2;
-            Ui.iconChip(g, font(), "bookmark", t, false, bx, cy, tw, on, mx, my);
-            menu.hits.add(new MenuHit(bx, cy, tw, Ui.CHIP_H, null, null, "#qtrack:" + name));
         }
     }
 }
