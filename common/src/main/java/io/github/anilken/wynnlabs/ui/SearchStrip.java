@@ -161,6 +161,18 @@ final class SearchStrip extends MenuPaint {
                 r -= Theme.SP_2;
             }
         }
+        SearchMenus.Undo undo = tab.menus.undo();
+        if (undo != null) {
+            // just after "Remove all" / "Stop all": the way back, until it times out or the list changes
+            String t = L.t("wynnlabs.search.undo");
+            int w = Ui.iconChipWidth(font(), "arrow-left", t, false);
+            if (w <= room) {
+                r -= w;
+                Ui.iconChip(g, font(), "arrow-left", t, false, r, cy, w, false, mx, my);
+                tab.click(r, cy, w, Ui.CHIP_H, tab.menus::undoNow);
+                r -= Theme.SP_2;
+            }
+        }
         int marks = tab.card.keptMarks().size();
         if (marks > 0) {
             String t = L.t("wynnlabs.search.marked_n", marks);

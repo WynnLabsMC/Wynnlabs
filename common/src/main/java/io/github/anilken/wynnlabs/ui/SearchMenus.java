@@ -35,6 +35,41 @@ final class SearchMenus {
 
     private final SearchTab tab;
     int open = NONE;
+
+    /** What "Remove all" / "Stop all" took, for "Undo" a few seconds (or until the list changes again). */
+    record Undo(List<MapMark> marks, List<String> mobs, long until, int version) {}
+
+    private static final long UNDO_MS = 6000;
+    Undo undo;
+
+    /** The undo still on offer, or null. */
+    Undo undo() {
+        Undo u = undo;
+        if (u == null || System.currentTimeMillis() > u.until()
+                || u.marks() != null && io.github.anilken.wynnlabs.search.KeptMarks.get().version() != u.version()
+                || u.mobs() != null && !TrackedMobs.get().names().isEmpty()) {
+            undo = null;
+            return null;
+        }
+        return u;
+    }
+
+    /** "Undo": the marks or the tracked mobs back. */
+    void undoNow() {
+        Undo u = undo();
+        if (u == null) {
+            return;
+        }
+        if (u.marks() != null) {
+            tab.card.restoreMarks(u.marks());
+        } else {
+            for (String m : u.mobs()) {
+                TrackedMobs.get().toggle(m);
+            }
+        }
+        undo = null;
+        tab.menu.flash(L.t("wynnlabs.search.undone"));
+    }
     final UiMenu.State state = new UiMenu.State();
 
     SearchMenus(SearchTab tab) {
@@ -73,7 +108,10 @@ final class SearchMenus {
             return null;
         }
         boolean removable = open == MARKS || open == TRACKED;
-        return UiMenu.draw(g, tab.font(), UiMenu.Spec.under(at, tab.menu.width, tab.menu.height).rows(12), state, items, mx, my, r -> {
+        // the marked and tracked lists keep "Remove all" in a header that never scrolls away
+        int head = removable ? HEAD : 0;
+        int[] under = removable ? new int[] {at[0], at[1], at[2], at[3] + head} : at;
+        int[] b = UiMenu.draw(g, tab.font(), UiMenu.Spec.under(under, tab.menu.width, tab.menu.height).rows(12), state, items, mx, my, r -> {
             String id = r.item().id();
             tab.click(r.x(), r.y(), r.w(), r.h(), () -> pick(id, false));
             if (removable && (id.startsWith("m:") || id.startsWith("t:"))) {
@@ -82,6 +120,33 @@ final class SearchMenus {
                 tab.click(r.x() + r.w() - xw, r.y(), xw, r.h(), () -> pick(id, true));
             }
         });
+        if (!removable || b == null) {
+            return b;
+        }
+        int hy = b[1] >= at[1] + at[3] ? b[1] - head : b[1] + b[3];
+        header(g, b[0], hy, b[2], mx, my);
+        return new int[] {b[0], Math.min(b[1], hy), b[2], b[3] + head};
+    }
+
+    /** The header's height: a small button with SP_2 above and below. */
+    private static final int HEAD = Ui.SMALL_H + 2 * Theme.SP_2;
+
+    /** "229 marks" and the red "Remove all" (or "Stop all"), pinned over the list. */
+    private void header(GuiGraphics g, int x, int y, int w, int mx, int my) {
+        boolean marks = open == MARKS;
+        int n = marks ? tab.card.keptMarks().size() : TrackedMobs.get().names().size();
+        Kit.softCard(g, x, y, w, HEAD + 2);
+        String count = marks ? L.n("wynnlabs.search.marks_count", n) : n + " / " + TrackedMobs.MAX;
+        Type.META.draw(g, tab.font(), count, x + Theme.SP_3, Type.META.yIn(y, HEAD), Theme.INK_3);
+        String label = L.t(marks ? "wynnlabs.search.marks_clear" : "wynnlabs.search.track_clear");
+        int bw = 2 * Theme.SP_3 + 8 + Theme.SP_1 + Type.BODY.width(tab.font(), label);
+        int bx = x + w - Theme.SP_3 - bw;
+        int by = y + Theme.SP_2;
+        boolean hover = mx >= bx && mx < bx + bw && my >= by && my < by + Ui.SMALL_H;
+        Kit.pill(g, bx, by, bw, Ui.SMALL_H, false, hover);
+        Art.icon(g, "trash", bx + Theme.SP_3, by + Ui.iconIn(Ui.SMALL_H, 8), 8, Theme.BAD);
+        Type.BODY.draw(g, tab.font(), label, bx + Theme.SP_3 + 8 + Theme.SP_1, Type.BODY.yIn(by, Ui.SMALL_H), Theme.BAD);
+        tab.click(bx, by, bw, Ui.SMALL_H, () -> pick(marks ? "m:clear" : "t:clear", false));
     }
 
     private List<UiMenu.Item> items() {
@@ -103,7 +168,6 @@ final class SearchMenus {
                     out.add(UiMenu.Item.of("m:" + i, "map-pin", m.label(), "✕", false).sub(sub)
                             .tip(List.of(Component.literal(L.t("wynnlabs.search.mark_row_tip")))));
                 }
-                out.divide().add(UiMenu.Item.of("m:clear", "trash", L.t("wynnlabs.search.marks_clear"), null, false).asLink());
             }
             case TRACKED -> {
                 List<String> names = TrackedMobs.get().names();
@@ -111,8 +175,6 @@ final class SearchMenus {
                     out.add(UiMenu.Item.of("t:" + i, "skull", names.get(i), "✕", false)
                             .tip(List.of(Component.literal(L.t("wynnlabs.search.tracked_row_tip")))));
                 }
-                out.divide().add(UiMenu.Item.of("t:clear", "trash", L.t("wynnlabs.search.track_clear"), names.size() + " / " + TrackedMobs.MAX,
-                        false).asLink().tip(List.of(Component.literal(L.t("wynnlabs.setting_desc.mobTrack")))));
             }
             default -> {
                 // nothing open
@@ -183,7 +245,9 @@ final class SearchMenus {
 
     private void marks(String v, boolean remove) {
         if (v.equals("clear")) {
-            tab.card.clearMarks();
+            List<MapMark> was = tab.card.clearMarks();
+            undo = new Undo(was, null, System.currentTimeMillis() + UNDO_MS, io.github.anilken.wynnlabs.search.KeptMarks.get().version());
+            tab.menu.flash(L.n("wynnlabs.search.marks_removed", was.size()));
             open = NONE;
             return;
         }
@@ -210,8 +274,10 @@ final class SearchMenus {
     private void tracked(String v, boolean remove) {
         TrackedMobs t = TrackedMobs.get();
         if (v.equals("clear")) {
+            List<String> was = t.names();
             t.clear();
-            tab.menu.flash(L.t("wynnlabs.search.track_cleared"));
+            undo = new Undo(null, was, System.currentTimeMillis() + UNDO_MS, 0);
+            tab.menu.flash(L.n("wynnlabs.search.track_removed", was.size()));
             open = NONE;
             return;
         }

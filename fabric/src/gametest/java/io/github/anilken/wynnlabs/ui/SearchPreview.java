@@ -58,6 +58,15 @@ final class SearchPreview {
             t.menus.toggle(SearchMenus.MARKS);
         });
         shot(ctx, out, "search-marks");
+        // "Remove all" from the list's header: the undo chip, then undone
+        tab(ctx, t -> t.menus.pick("m:clear", false));
+        shot(ctx, out, "search-marks-undo");
+        tab(ctx, t -> t.menus.undoNow());
+        // the menu closed and opened again: the kept marks are still listed
+        ctx.setScreen(() -> RoadmapScreen.on(RoadmapScreen.TAB_SEARCH));
+        ctx.waitForScreen(RoadmapScreen.class);
+        ctx.waitTicks(10);
+        shot(ctx, out, "search-marks-kept");
         tab(ctx, t -> {
             t.menus.open = SearchMenus.NONE;
             t.card.clearMarks();

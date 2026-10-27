@@ -12,6 +12,7 @@ import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemWiki;
 import io.github.anilken.wynnlabs.search.MapMark;
+import io.github.anilken.wynnlabs.search.KeptMarks;
 import io.github.anilken.wynnlabs.search.MarkSet;
 import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceText;
@@ -33,8 +34,8 @@ import java.util.concurrent.CompletableFuture;
  * window). Then "How do I get it" / "Where" ({@link SearchCardRows}) and the sections under it
  * ({@link SearchCardSections}, a thing's {@link SearchThingCard}). Sources are worked out once per
  * choice; the wiki page loads in the background and fills in a merchant's cost when it arrives.
- * The map marks follow {@link MarkSet}: the picked row always, the rows the player marks, kept
- * after the menu closes only when asked for.
+ * The map marks follow {@link MarkSet}: the picked row while the card shows, and the marks the
+ * player asked for, which stay ({@link KeptMarks}) after the menu closes and a restart.
  */
 final class SearchCardPanel extends MenuPaint {
 
@@ -52,7 +53,7 @@ final class SearchCardPanel extends MenuPaint {
     private CompletableFuture<ItemWiki.Info> wikiLoad;
     ItemWiki.Info wiki;
     private Double gain;
-    final MarkSet marks = new MarkSet();
+    MarkSet marks = new MarkSet(KeptMarks.get());
     /** The marks on the map now (as last handed to Wynntils). */
     private List<MapMark> shown = List.of();
     int scroll;
@@ -84,7 +85,7 @@ final class SearchCardPanel extends MenuPaint {
         entry = e;
         picked = 0;
         scroll = 0;
-        marks.reset();
+        marks = new MarkSet(KeptMarks.get());
         if (!e.item()) {
             have = Sources.Owned.NONE;
             rows = Things.rows(e, SearchTab.position());
@@ -92,6 +93,7 @@ final class SearchCardPanel extends MenuPaint {
             wikiLoad = null;
             wiki = null;
             gain = null;
+            marks.reset(rows, label());
             marks();
             return;
         }
@@ -104,6 +106,7 @@ final class SearchCardPanel extends MenuPaint {
         Shopping.Pick pick = e.kind() == io.github.anilken.wynnlabs.search.Kind.GEAR ? Shopping.find(e.name()) : null;
         gain = pick == null || pick.gain() <= 0 ? null : pick.gain();
         sections.select(e);
+        marks.reset(rows, label());
         marks();
     }
 
@@ -114,18 +117,14 @@ final class SearchCardPanel extends MenuPaint {
         }
         entry = null;
         rows = List.of();
-        if (!marks.kept()) {
-            shown = List.of();
-            Wyn.showMarks(shown);
-        }
+        shown = marks.closed();
+        Wyn.showMarks(shown);
     }
 
     /** The menu closes or the tab is left: our marks leave the map unless the player asked to keep them. */
     void closed() {
-        if (!marks.kept()) {
-            shown = List.of();
-            Wyn.showMarks(shown);
-        }
+        shown = marks.closed();
+        Wyn.showMarks(shown);
     }
 
     // ---- the map marks ----
@@ -134,40 +133,63 @@ final class SearchCardPanel extends MenuPaint {
         if (entry == null) {
             return;
         }
-        ItemWiki.Info w = wiki;
-        Entry e = entry;
-        shown = marks.marks(rows, picked, s -> e.item() ? SourceText.row(s, w) : SearchThingCard.markText(e, s));
+        marks.label(label());
+        shown = marks.marks(picked);
         Wyn.showMarks(shown);
     }
 
-    /** The marks the player kept on the map (the title's "Marked N"); empty when none are kept. */
+    /** How a row's marks are named: the wiki's words once it arrived. */
+    private java.util.function.Function<Source, String> label() {
+        ItemWiki.Info w = wiki;
+        Entry e = entry;
+        return s -> e.item() ? SourceText.row(s, w) : SearchThingCard.markText(e, s);
+    }
+
+    /** The marks the player kept (the title's "Marked N"), from every card, kept across closing and restarts. */
     List<MapMark> keptMarks() {
-        return marks.kept() ? shown : List.of();
+        return KeptMarks.get().all();
     }
 
     void removeMark(MapMark m) {
         marks.remove(m);
-        marks();
+        refreshMarks();
     }
 
-    void clearMarks() {
-        marks.clear();
-        shown = List.of();
-        Wyn.showMarks(shown);
+    /** "Remove all": everything off the map; returns what was kept, for Undo. */
+    List<MapMark> clearMarks() {
+        List<MapMark> was = marks.clear();
+        refreshMarks();
+        return was;
     }
 
-    /** "All on the map": every row's places, kept after the menu closes; again: back to the picked row. */
+    /** Undo after "Remove all": the marks back. */
+    void restoreMarks(List<MapMark> was) {
+        KeptMarks.get().addAll(was);
+        marks.picked();
+        refreshMarks();
+    }
+
+    private void refreshMarks() {
+        if (entry != null) {
+            marks();
+        } else {
+            shown = marks.closed();
+            Wyn.showMarks(shown);
+        }
+    }
+
+    /** "All on the map": every row's places, kept after the menu closes; again: this card's marks off. */
     void toggleAll() {
-        marks.toggleAll();
+        int added = marks.toggleAll();
         marks();
         if (marks.all()) {
-            menu.flash(L.t("wynnlabs.search.marked"));
+            menu.flash(L.n("wynnlabs.search.marks_added", added));
         }
     }
 
     /** One row on or off the map. */
     void toggleRow(int i) {
-        marks.toggle(i, rows.size());
+        marks.toggle(i);
         marks();
         if (marks.marked(i)) {
             menu.flash(L.t("wynnlabs.search.marked"));
@@ -443,7 +465,7 @@ final class SearchCardPanel extends MenuPaint {
             return;
         }
         Area a = rows.get(picked).main();
-        marks.keep();
+        marks.keep(picked);
         marks();
         Wyn.openMap(a.x(), a.z());
     }

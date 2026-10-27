@@ -166,6 +166,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.TreePlanner", TreePlanner::onTick));
         platform.onEndTick(Perf.tick("tick.GroundMarkers", GroundMarkers::onTick));
         platform.onEndTick(Perf.tick("tick.MobTracker", MobTracker::onTick));
+        platform.onEndTick(Perf.tick("tick.KeptMarks", io.github.anilken.wynnlabs.ui.KeptMarksSync::onTick));
         platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
         platform.onEndTick(Perf.tick("tick.AutoAdvice", WornGear::snapshotArmour));
         platform.onGameMessage(QuestBook::onChat);

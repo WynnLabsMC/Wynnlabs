@@ -101,52 +101,69 @@ class SearchRedesignTest {
             List.of(Area.point(1, 60, 1), Area.point(2, 60, 2), Area.point(3, 60, 3)), 1, "box", 0, null, 0, 0, null);
     private static final List<Source> ROWS = List.of(MOB, SHOP, CHESTS);
 
-    private static int count(MarkSet m, int picked) {
-        return m.marks(ROWS, picked, Source::name).size();
+    private static MarkSet card(KeptMarks kept) {
+        MarkSet m = new MarkSet(kept);
+        m.reset(ROWS, Source::name);
+        return m;
     }
 
     @Test
     void thePickedRowShowsAndOnlyAskedMarksAreKept() {
-        MarkSet m = new MarkSet();
-        assertEquals(2, count(m, 0), "the picked row's two areas");
-        assertFalse(m.kept(), "the picked row alone leaves with the menu");
-        m.toggle(2, ROWS.size());
-        assertEquals(5, count(m, 0), "the chests added");
-        assertTrue(m.marked(2));
-        assertTrue(m.kept(), "asked for: kept");
-        m.toggle(2, ROWS.size());
+        KeptMarks kept = KeptMarks.inMemory();
+        MarkSet m = card(kept);
+        assertEquals(2, m.marks(0).size(), "the picked row's two areas");
+        assertFalse(m.kept(), "the picked row alone is not kept");
+        assertEquals(0, m.closed().size(), "the menu closed: the picked row's marks go");
+        m.toggle(2);
+        assertEquals(5, m.marks(0).size(), "the chests added");
+        assertTrue(m.marked(2) && m.kept());
+        assertEquals(3, m.closed().size(), "the menu closed: the chests stay");
+        m.toggle(2);
         assertFalse(m.kept());
-        m.toggleAll();
-        assertEquals(6, count(m, 0), "every row");
-        assertTrue(m.all() && m.kept());
-        m.toggle(1, ROWS.size());
+        assertEquals(6, m.toggleAll(), "every row's places kept");
+        assertTrue(m.all());
+        m.toggle(1);
         assertFalse(m.all());
         assertTrue(m.marked(0) && !m.marked(1) && m.marked(2), "one row off of all");
         m.toggleAll();
         m.toggleAll();
-        assertFalse(m.all());
-        assertEquals(2, count(m, 0), "all off: the picked row again");
+        assertFalse(m.all() || m.kept(), "all again, then off: nothing kept");
+        assertEquals(2, m.marks(0).size(), "the picked row again");
     }
 
     @Test
-    void singleMarksComeOffAndRemoveAllClearsUntilAPick() {
-        MarkSet m = new MarkSet();
+    void keptMarksOutliveTheCardAndRemoveAllCanBeUndone() {
+        KeptMarks kept = KeptMarks.inMemory();
+        MarkSet m = card(kept);
         m.toggleAll();
-        List<MapMark> on = m.marks(ROWS, 0, Source::name);
-        m.remove(on.get(3));
-        List<MapMark> after = m.marks(ROWS, 0, Source::name);
-        assertEquals(on.size() - 1, after.size());
-        assertFalse(after.contains(on.get(3)));
-        m.clear();
-        assertEquals(0, count(m, 0), "everything off, the picked row too");
-        assertFalse(m.kept());
-        m.picked();
-        assertEquals(2, count(m, 0), "a pick shows its row again");
-        m.toggleAll();
-        m.reset();
-        assertFalse(m.all() || m.kept());
-        assertEquals(1, count(m, 1), "a new card: its picked row only");
-        m.keep();
-        assertTrue(m.kept(), "open on map keeps them");
+        // another card (or the menu opened again): what was kept is still there
+        MarkSet next = new MarkSet(kept);
+        next.reset(List.of(SHOP), Source::name);
+        assertEquals(6, next.closed().size());
+        assertTrue(next.marked(0), "the shop is already marked from the first card");
+        List<MapMark> on = next.marks(0);
+        next.remove(on.get(3));
+        assertEquals(5, kept.all().size(), "one kept mark taken off for good");
+        List<MapMark> was = next.clear();
+        assertEquals(0, next.marks(0).size(), "everything off, the picked row too");
+        next.picked();
+        assertEquals(1, next.marks(0).size(), "a pick shows its row again");
+        kept.addAll(was);
+        assertEquals(5, kept.all().size(), "undo: the marks back");
+        next.keep(0);
+        assertTrue(next.marked(0), "open on map keeps the picked row");
+    }
+
+    @Test
+    void keptMarksSurviveARestart(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.nio.file.Path f = dir.resolve("map-marks.json");
+        KeptMarks kept = KeptMarks.at(f);
+        MarkSet m = card(kept);
+        m.toggle(2);
+        io.github.anilken.wynnlabs.core.Saver.flush();
+        KeptMarks again = KeptMarks.at(f);
+        assertEquals(3, again.all().size(), "read back after a restart");
+        assertEquals(kept.all().get(0).spot(), again.all().get(0).spot());
+        assertFalse(again.all().get(0).focus());
     }
 }
