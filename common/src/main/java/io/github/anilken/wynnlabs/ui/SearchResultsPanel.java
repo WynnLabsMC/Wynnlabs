@@ -256,8 +256,10 @@ final class SearchResultsPanel extends MenuPaint {
             } else if (MORE.equals(r.stat()) || LESS.equals(r.stat())) {
                 SearchEmptyRows.more(this, g, r, x, ry, cw, y, h, mx, my);
             } else {
-                drawRow(g, r, x, ry, cw, i == sel, compact, y, h, mx, my);
-                if (i > recentHead && i < recentEnd) {
+                boolean recentRow = i > recentHead && i < recentEnd;
+                drawRow(g, r, x, ry, cw, i == sel, compact, y, h, mx, my,
+                        recentRow ? SearchEmptyRows.forgetRoom(x, ry, cw, y, h, mx, my) : 0);
+                if (recentRow) {
                     SearchEmptyRows.forget(this, g, r, x, ry, cw, y, h, mx, my);
                 }
             }
@@ -282,6 +284,11 @@ final class SearchResultsPanel extends MenuPaint {
 
     /** One row at y (its pitch's top): the wash SP_2 around the text, the slot on the text block. */
     void drawRow(GuiGraphics g, Row r, int x, int y, int w, boolean chosen, boolean compact, int top, int h, int mx, int my) {
+        drawRow(g, r, x, y, w, chosen, compact, top, h, mx, my, 0);
+    }
+
+    /** {@link #drawRow}, the right-hand value moved left by {@code trail} (room for a button at the row's end). */
+    void drawRow(GuiGraphics g, Row r, int x, int y, int w, boolean chosen, boolean compact, int top, int h, int mx, int my, int trail) {
         int ty = y + Theme.SP_2;
         int textH = Type.BODY.lineHeight + Type.META.lineHeight;
         boolean hover = mx >= x && mx < x + w && my >= Math.max(y, top) && my < Math.min(y + ROW, top + h);
@@ -303,13 +310,13 @@ final class SearchResultsPanel extends MenuPaint {
             SearchThingCard.picture(g, e, x, sy, SLOT);
         }
         int tx = x + SLOT + Theme.SP_4;
-        int right = x + w - (rightW > 0 ? rightW + Theme.SP_5 : 0);
+        int right = x + w - (rightW > 0 ? rightW + Theme.SP_5 : 0) - trail;
         String name = e == null ? r.header() : e.name();
         int ink = hover && !chosen ? Theme.LINK : e == null ? Theme.INK : colour(e);
         Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, right - tx), tx, ty, ink);
         Type.META.draw(g, font(), Type.META.fit(font(), r.meta(), right - tx), tx, ty + Type.BODY.lineHeight, Theme.INK_3);
         if (r.right() != null) {
-            Type.BODY.drawRight(g, font(), r.right(), x + w, ty, r.rightInk());
+            Type.BODY.drawRight(g, font(), r.right(), x + w - trail, ty, r.rightInk());
         }
         int cy = Math.max(y, top);
         int ch = Math.min(y + ROW, top + h) - cy;

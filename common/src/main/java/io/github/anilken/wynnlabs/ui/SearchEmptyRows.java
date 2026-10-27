@@ -46,12 +46,23 @@ final class SearchEmptyRows {
         return tw;
     }
 
+    /** The room {@link #forget} takes at a recent row's end (its ✕ and SP_3 before it), 0 when it is not shown. */
+    static int forgetRoom(int x, int y, int w, int top, int h, int mx, int my) {
+        return forgetBy(x, y, w, top, h, mx, my) < 0 ? 0 : Ui.CHIP_H + 2 + Theme.SP_3;
+    }
+
+    /** The ✕'s top on a hovered recent row whose ✕ fits in view, else -1. */
+    private static int forgetBy(int x, int y, int w, int top, int h, int mx, int my) {
+        int by = y + Theme.SP_2 + (Type.BODY.lineHeight + Type.META.lineHeight - Ui.CHIP_H) / 2;
+        boolean rowHover = mx >= x && mx < x + w && my >= Math.max(y, top) && my < Math.min(y + SearchResultsPanel.ROW, top + h);
+        return !rowHover || by < top || by + Ui.CHIP_H > top + h ? -1 : by;
+    }
+
     /** On a hovered recent row: a small ✕ at its end that forgets it. */
     static void forget(SearchResultsPanel p, GuiGraphics g, SearchResultsPanel.Row r, int x, int y, int w, int top, int h, int mx, int my) {
         int bw = Ui.CHIP_H + 2;
-        int by = y + Theme.SP_2 + (Type.BODY.lineHeight + Type.META.lineHeight - Ui.CHIP_H) / 2;
-        boolean rowHover = mx >= x && mx < x + w && my >= Math.max(y, top) && my < Math.min(y + SearchResultsPanel.ROW, top + h);
-        if (!rowHover || by < top || by + Ui.CHIP_H > top + h) {
+        int by = forgetBy(x, y, w, top, h, mx, my);
+        if (by < 0) {
             return;
         }
         if (Ui.iconButton(g, "x", x + w - bw, by, false, mx, my)) {
