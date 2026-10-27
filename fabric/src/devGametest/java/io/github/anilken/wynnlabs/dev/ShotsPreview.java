@@ -116,6 +116,9 @@ public class ShotsPreview implements FabricClientGameTest {
                         check(tooltipOutside(dir.resolve(f), r[0], r[1]), f + ": nothing drawn past the frame");
                     }
                     check(got[0] >= size[0] - GUI && got[1] >= size[1], f + " is smaller than the window");
+                } else if (f.contains("-window-")) {
+                    // a window of the mod over the menu (the box window, the update window): its own size, smaller than the screen
+                    check(got[0] < 1920 && got[1] < 1080, f + " is " + got[0] + "×" + got[1] + ", the whole screen");
                 } else {
                     // the crafting tab's saved-recipes ribbon reaches 1 px past the close seal
                     int slack = f.contains("craft") ? GUI : 0;

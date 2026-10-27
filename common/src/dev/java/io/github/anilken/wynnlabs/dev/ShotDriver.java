@@ -1,286 +1,95 @@
 package io.github.anilken.wynnlabs.dev;
 
-import io.github.anilken.wynnlabs.build.Around;
-import io.github.anilken.wynnlabs.build.Plans;
-import io.github.anilken.wynnlabs.market.Vault;
-import io.github.anilken.wynnlabs.quests.QuestAdvisor;
-import io.github.anilken.wynnlabs.ui.BuildWindow;
-import io.github.anilken.wynnlabs.ui.CraftingTab;
-import io.github.anilken.wynnlabs.ui.EndgameTab;
-import io.github.anilken.wynnlabs.ui.HomePage;
-import io.github.anilken.wynnlabs.ui.HomeTab;
-import io.github.anilken.wynnlabs.ui.LayoutCheck;
 import io.github.anilken.wynnlabs.ui.MenuScale;
 import io.github.anilken.wynnlabs.ui.RoadmapScreen;
+import io.github.anilken.wynnlabs.ui.ShotHands;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+
 import java.util.Map;
 
 /**
- * Dev builds only: the screenshot tool's hands on the mod's own menu. It selects a tab, takes the
- * steps of a view ({@link ShotRun#views}: a filter, a sub-page, the Choose items window …), finds
- * the element a tooltip shot hovers, and puts the menu's shared views (the build window, the
- * Endgame and Crafting pages, the plan pill) back afterwards. It only sets the menu's own view
- * state, never opens a game menu, never starts a road map build or a build search.
+ * Dev builds only: the screenshot tool's hands on the mod's own menu. Each view starts on a fresh
+ * menu on its tab (every view inside it at its start), then takes its steps ({@link ShotRun#views}:
+ * a sub-page, a drawer, a menu, a window of the mod) through {@link ShotHands}, which sits in the
+ * menu's package and uses the same preview hooks the gametests do. It finds the element a tooltip
+ * shot hovers, and puts the menu's shared views (the build window, the Endgame and Crafting pages,
+ * the plan pill) back afterwards. It only shows the mod's own screens, never opens a game menu,
+ * never starts a road map build or a build search.
  */
 final class ShotDriver {
 
-    private final RoadmapScreen screen;
+    private final Minecraft mc;
+    /** The shared views as the run found them. */
+    private final Object saved;
+    /** The menu on screen, and the mod's window opened over it for a view (null: none). */
+    private RoadmapScreen screen;
+    private Screen window;
 
-    // the shared views as the run found them
-    private final Map<String, Object> window;
-    private final Map<String, Object> windowPick;
-    private final String windowSearch;
-    private final Map<String, Object> endgame;
-    private final Map<String, Object> craft;
-    private final Map<String, Object> pills;
-
-    ShotDriver(RoadmapScreen screen) {
-        this.screen = screen;
-        window = Peek.save(BuildWindow.INSTANCE, "open", "view", "editingPlan", "overwriteId", "unseenGen", "awaitGen", "result",
-                "card", "fromHint", "chosen", "tuning", "renameId");
-        windowPick = Peek.save(Peek.get(BuildWindow.INSTANCE, "pick"), "listScroll", "type", "range");
-        var box = (net.minecraft.client.gui.components.EditBox) Peek.get(BuildWindow.INSTANCE, "search");
-        windowSearch = box == null ? null : box.getValue();
-        endgame = Peek.save(EndgameTab.INSTANCE, "view", "poolTab", "litRaid", "litCamp", "filter", "listScroll", "pinned", "poolScroll");
-        craft = Peek.save(CraftingTab.INSTANCE, "view", "scroll");
-        pills = Peek.save(planPills(), "planId", "picked");
+    ShotDriver(Minecraft mc) {
+        this.mc = mc;
+        saved = ShotHands.save();
     }
 
     // ---- the tabs ----
 
     /** The tabs' numbers in rail order. */
     static int[] railOrder() {
-        Class<?> rail;
-        try {
-            rail = Class.forName("io.github.anilken.wynnlabs.ui.MenuRail");     // package-private, as the screen's own
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
-        return java.util.Arrays.stream((int[][]) Peek.get(rail, "RAIL")).flatMapToInt(java.util.Arrays::stream).toArray();
-    }
-
-    static int tabCount() {
-        return ((String[]) Peek.get(RoadmapScreen.class, "TABS")).length;
+        return ShotHands.railOrder();
     }
 
     /** A tab's name in commands and file names: "home", "craft", "endgame" … (its language key's end). */
     static String tabName(int tab) {
-        String key = ((String[]) Peek.get(RoadmapScreen.class, "TABS"))[tab];
+        String key = ShotHands.tabKeys()[tab];
         return key.substring(key.lastIndexOf("tab_") + 4);
     }
 
     static String[] tabNames() {
-        String[] names = new String[tabCount()];
+        String[] names = new String[ShotHands.tabKeys().length];
         for (int t = 0; t < names.length; t++) {
             names[t] = tabName(t);
         }
         return names;
     }
 
-    private static Plans.Pills planPills() {
-        return (Plans.Pills) Peek.get(HomePage.class, "planPills");
+    /** The menu opened on Home. */
+    void open() {
+        show(ShotHands.menu(0));
     }
 
-    /** {@code t} as a click on its rail entry opens it, with every view inside the menu back at its start. */
+    /** Whether the menu, or the window the run opened over it, is still the screen. */
+    boolean showing() {
+        return mc.screen != null && (mc.screen == screen || window != null && mc.screen == window);
+    }
+
+    /** {@code t} as a fresh menu on it: every view inside it at its start, the shared views closed. */
     void select(int t) {
-        Peek.set(screen, "tab", t);
-        Peek.set(screen.home, "detail", null);
-        Peek.set(screen.home, "goalOpen", false);
-        for (var b : new net.minecraft.client.gui.components.EditBox[] {screen.bank.search, screen.tree.treeSearch}) {
-            if (b != null) {
-                b.setFocused(false);
-                if (b == screen.bank.search) {
-                    b.setValue("");
-                }
-            }
-        }
-        screen.setFocused(null);
-        Peek.set(screen.settings, "settingsCat", 0);
-        Peek.set(screen.settings, "settingsScroll", 0);
-        Peek.set(screen.settings, "settingsDetail", false);
-        Peek.set(screen.bank, "bankFilter", 0);
-        Peek.set(screen.bank, "bankScroll", 0);
-        Peek.set(screen.bank, "bankPage", "");
-        Peek.set(screen.questsTab, "questFilter", "RECOMMENDED");
-        Peek.set(screen.questsTab, "questDetailTab", 0);
-        Peek.set(screen.questsTab, "questScroll", 0);
-        Peek.set(screen.tree, "treeScroll", 0);
-        // the shared views as the run found them (a type filter, a region from the last view gone), then closed
-        restore();
-        if (BuildWindow.INSTANCE.isOpen()) {
-            BuildWindow.INSTANCE.close();
-        }
-        EndgameTab.INSTANCE.previewPools(-1, null);
-        EndgameTab.INSTANCE.previewPoolFilter(false);
-        Peek.set(CraftingTab.INSTANCE, "view", 0);
-        Peek.set(CraftingTab.INSTANCE, "scroll", 0);
-        planPills().pickLevel();
+        ShotHands.close();
+        show(ShotHands.menu(t));
+    }
+
+    private void show(RoadmapScreen s) {
+        window = null;
+        screen = s;
+        mc.setScreen(s);
     }
 
     /** One step of a view ({@link ShotRun#views}); false when there is nothing to show for it. */
     boolean act(String step) {
-        String[] p = step.split(":");
-        switch (p[0]) {
-            case "open" -> {
-                return open(p[1]);
-            }
-            case "click" -> {
-                // a button of the build window, by its action and argument ("type:1")
-                String what = p[1] + ":" + p[2];
-                for (LayoutCheck.Area a : BuildWindow.INSTANCE.clickAreas()) {
-                    if (a.what().equals(what)) {
-                        return BuildWindow.INSTANCE.mouseClicked(a.x() + a.w() / 2.0, a.y() + a.h() / 2.0, 0);
-                    }
-                }
+        if (step.startsWith("window:")) {
+            Screen w = ShotHands.window(screen, step.substring("window:".length()));
+            if (w == null) {
                 return false;
             }
-            case "plan" -> {
-                if (Plans.current() == null) {
-                    return false;
-                }
-                planPills().pickPlan();
-                return true;
-            }
-            case "scroll" -> {
-                if (p[1].equals("tree")) {
-                    Peek.set(screen.tree, "treeScroll", 100_000);
-                } else {
-                    Peek.set(CraftingTab.INSTANCE, "scroll", 100_000);
-                }
-                return true;
-            }
-            case "craft" -> {
-                // our suggestions only when they were worked out already: never started here
-                int mode = (int) Peek.get(CraftingTab.INSTANCE, "suggestMode");
-                List<?> found = (List<?>) Peek.get(CraftingTab.INSTANCE, mode == 0 ? "sets" : "suggestions");
-                if (found.isEmpty()) {
-                    return false;
-                }
-                Peek.set(CraftingTab.INSTANCE, "view", 1);
-                return true;
-            }
-            case "endgame" -> {
-                return endgame(p);
-            }
-            case "quest" -> {
-                return quest(p);
-            }
-            case "bank" -> {
-                if (Vault.groups().isEmpty()) {
-                    return false;
-                }
-                if (p[1].equals("filter")) {
-                    Peek.set(screen.bank, "bankFilter", Integer.parseInt(p[2]));
-                    return true;
-                }
-                String word = searchWord();
-                if (word == null) {
-                    return false;
-                }
-                screen.bank.search.setValue(word);
-                return true;
-            }
-            case "settings" -> {
-                Peek.set(screen.settings, "settingsCat", Integer.parseInt(p[2]));
-                return true;
-            }
-            default -> throw new IllegalArgumentException("unknown step " + step);
-        }
-    }
-
-    /** A link WynnBuilder wrote (data 2.2.5.0): six pieces, a bow with powders, a tome, a level. */
-    private static final String IMPORT_LINK = "https://wynnbuilder.github.io/builder/#CZ0W9W5G000uQG0500m454+GhcXYfy-200k-Jn0";
-
-    private boolean open(String what) {
-        BuildWindow w = BuildWindow.INSTANCE;
-        switch (what) {
-            case "picker" -> w.openPick();
-            case "import" -> w.previewImport(IMPORT_LINK);
-            case "results" -> {
-                Around.Result r = Around.result();
-                if (r == null) {
-                    return false;               // only a result that was worked out already
-                }
-                w.openResults(r);
-            }
-            case "saved" -> {
-                if (Plans.saved().isEmpty()) {
-                    return false;
-                }
-                w.openSaved();
-            }
-            default -> throw new IllegalArgumentException("unknown window " + what);
-        }
-        var box = (net.minecraft.client.gui.components.EditBox) Peek.get(w, "search");
-        if (box != null) {
-            box.setFocused(false);              // no blinking cursor in the pictures
-        }
-        return true;
-    }
-
-    private boolean endgame(String[] p) {
-        EndgameTab e = EndgameTab.INSTANCE;
-        switch (p[1]) {
-            case "poolfilter" -> e.previewPoolFilter(true);
-            case "pools" -> e.previewPools(Integer.parseInt(p[2]), null);
-            case "region" -> {
-                // the region list's n-th row, as drawn last frame (none in the compact layout or without data)
-                int n = Integer.parseInt(p[2]);
-                List<String> regions = new ArrayList<>();
-                for (LayoutCheck.Area a : e.clickAreas()) {
-                    if (a.what() != null && a.what().startsWith("endgame:region:")) {
-                        regions.add(a.what().substring("endgame:region:".length()));
-                    }
-                }
-                if (regions.size() < n) {
-                    return false;
-                }
-                e.previewPools((int) Peek.get(e, "poolTab"), regions.get(n - 1));
-            }
-            default -> throw new IllegalArgumentException("unknown endgame step " + p[1]);
-        }
-        return true;
-    }
-
-    private boolean quest(String[] p) {
-        if (QuestAdvisor.known() == 0) {
-            return false;
-        }
-        if (p[1].equals("tab")) {
-            if (Peek.get(screen.questsTab, "questSelected") == null) {
-                return false;
-            }
-            Peek.set(screen.questsTab, "questDetailTab", Integer.parseInt(p[2]));
+            window = w;
+            mc.setScreen(w);
             return true;
         }
-        List<QuestAdvisor.Suggestion> list;
-        try {
-            list = QuestAdvisor.list(p[2]);
-        } catch (Throwable t) {
-            return false;
+        if (window != null) {
+            return ShotHands.inWindow(window, step);
         }
-        if (list.isEmpty()) {
-            return false;
-        }
-        Peek.set(screen.questsTab, "questFilter", p[2]);
-        Peek.set(screen.questsTab, "questSelected", null);
-        return true;
-    }
-
-    /** A word of the first bank item's name that the search finds it by. */
-    private static String searchWord() {
-        for (Vault.Group gr : Vault.groups()) {
-            for (String w : gr.key().split(" ")) {
-                String clean = w.replaceAll("[^\\p{L}]", "");
-                if (clean.length() >= 4) {
-                    return clean.toLowerCase(Locale.ROOT);
-                }
-            }
-        }
-        return null;
+        return ShotHands.act(screen, step);
     }
 
     // ---- what a tooltip shot hovers ----
@@ -294,38 +103,15 @@ final class ShotDriver {
         if (r != null) {
             return r;
         }
-        int[] logical = switch (part) {
-            case "slot" -> HomeTab.INSTANCE.firstSlot;
-            case "source" -> HomeTab.INSTANCE.firstPill;
-            case "poolrow" -> firstPoolRow();
-            default -> null;
-        };
+        int[] logical = ShotHands.part(screen, part);
         if (logical == null) {
             return null;
         }
         return ShotCrop.toGui(logical[0], logical[1], logical[2], logical[3], MenuScale.factor());
     }
 
-    private static int[] firstPoolRow() {
-        if ((int) Peek.get(EndgameTab.INSTANCE, "view") != EndgameTab.VIEW_POOLS) {
-            return null;
-        }
-        @SuppressWarnings("unchecked")
-        Map<String, int[]> rows = (Map<String, int[]>) Peek.get(EndgameTab.INSTANCE, "rowRects");
-        return rows.isEmpty() ? null : rows.values().iterator().next();
-    }
-
     /** The shared views back as the run found them. */
     void restore() {
-        Peek.restore(BuildWindow.INSTANCE, window);
-        Peek.restore(Peek.get(BuildWindow.INSTANCE, "pick"), windowPick);
-        var box = (net.minecraft.client.gui.components.EditBox) Peek.get(BuildWindow.INSTANCE, "search");
-        if (box != null && windowSearch != null) {
-            box.setValue(windowSearch);
-            box.setFocused(false);
-        }
-        Peek.restore(EndgameTab.INSTANCE, endgame);
-        Peek.restore(CraftingTab.INSTANCE, craft);
-        Peek.restore(planPills(), pills);
+        ShotHands.restore(saved);
     }
 }

@@ -181,13 +181,20 @@ class ShotRunTest {
         List<ShotRun.Shot> plan = ShotRun.plan(RAIL, NAMES, "all");
         List<String> names = plan.stream().map(s -> s.name() + "-" + (s.state() == null ? "main" : s.state())).toList();
         // the rail's order, each tab first as it opens, then its views
-        assertEquals(List.of("home-main", "home-slot-tip", "home-week-tip", "home-picker", "home-picker-weapon",
-                "home-picker-import", "home-picker-tip", "home-results", "home-plan", "home-plan-tip", "home-plan-source-tip",
-                "home-saved"), names.subList(0, 12));
-        assertEquals("settings-main", names.get(12));
-        assertEquals("settings-data", names.get(20));
-        assertEquals("endgame-main", names.get(21));
-        assertEquals("today-main", names.get(names.size() - 1));
+        assertEquals(List.of("home-main", "home-slot-tip", "home-week-tip", "home-tip", "home-goals", "home-archetypes",
+                "home-options", "home-picker", "home-picker-weapon", "home-picker-import", "home-picker-tip", "home-results",
+                "home-saved", "home-plan", "home-plan-tip", "home-plan-source-tip"), names.subList(0, 16));
+        assertEquals("settings-main", names.get(16));
+        assertEquals("settings-data", names.get(24));
+        assertEquals(List.of("settings-changed", "settings-window-update", "settings-window-changelog"), names.subList(25, 28));
+        assertEquals(List.of("endgame-main", "endgame-tip"), names.subList(28, 30));
+        assertEquals(List.of("today-main", "today-tip", "today-others"), names.subList(names.size() - 3, names.size()));
+        // every tab of the real rail has views past its first; none is planned twice
+        for (String tab : new String[] {"home", "today", "quests", "tree", "endgame", "bank", "craft", "search", "settings", "ai"}) {
+            List<ShotRun.Shot> v = ShotRun.views(0, tab, 0);
+            assertTrue(v.size() > 1, tab + " has no views");
+            assertEquals(v.size(), v.stream().map(ShotRun.Shot::state).distinct().count(), tab + " plans a view twice");
+        }
         assertEquals(ShotRun.FIRST_WAIT, plan.get(0).ticks());
         // the same plan every time: the numbers are stable
         assertEquals(plan, ShotRun.plan(RAIL, NAMES, "all"));
@@ -208,15 +215,16 @@ class ShotRunTest {
         assertEquals(List.of("flags true", "lang 1", "open"), game.log.subList(0, 3));
         assertEquals(List.of("en-01-settings-main.png", "en-02-settings-look.png", "en-03-settings-tips.png",
                 "en-04-settings-glow.png", "en-05-settings-coach.png", "en-06-settings-quests.png", "en-07-settings-build.png",
-                "en-08-settings-rules.png", "en-09-settings-data.png"), captured(game));
-        int look = game.log.indexOf("act settings:cat:1");
-        assertEquals(List.of("select settings", "backdrop 0", "act settings:cat:1"), game.log.subList(look - 2, look + 1));
+                "en-08-settings-rules.png", "en-09-settings-data.png", "en-10-settings-changed.png", "en-11-settings-window-update.png",
+                "en-12-settings-window-changelog.png"), captured(game));
+        int look = game.log.indexOf("act settings:cat:look");
+        assertEquals(List.of("select settings", "backdrop 0", "act settings:cat:look"), game.log.subList(look - 2, look + 1));
         int first = game.log.indexOf("grab en-02-settings-look.png 0");
         assertEquals(List.of("grab en-02-settings-look.png 0", "backdrop 1", "grab en-02-settings-look.png 1",
                 "capture en-02-settings-look.png"), game.log.subList(first, first + 4));
         // then the screen, the language and the flags back, and one message with the count
         int restore = game.log.indexOf("restore");
-        assertEquals(List.of("restore", "lang 2", "flags false", "done 9"), game.log.subList(restore, game.log.size()));
+        assertEquals(List.of("restore", "lang 2", "flags false", "done 12"), game.log.subList(restore, game.log.size()));
         assertEquals(2, game.lang);
         assertFalse(game.flags);
         assertNull(game.stop);
@@ -231,9 +239,10 @@ class ShotRunTest {
         game.missing.addAll(List.of("open:results", "plan", "open:saved", "week"));
         ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "home"), 1, false);
         runToEnd(run, game);
-        assertEquals(List.of("en-01-home-main.png", "en-02-home-slot-tip.png", "en-03-home-picker.png",
-                "en-04-home-picker-weapon.png", "en-05-home-picker-import.png", "en-06-home-picker-tip.png"), captured(game));
-        assertEquals(6, game.doneCount);
+        assertEquals(List.of("en-01-home-main.png", "en-02-home-slot-tip.png", "en-03-home-tip.png", "en-04-home-goals.png",
+                "en-05-home-archetypes.png", "en-06-home-options.png", "en-07-home-picker.png", "en-08-home-picker-weapon.png",
+                "en-09-home-picker-import.png", "en-10-home-picker-tip.png"), captured(game));
+        assertEquals(10, game.doneCount);
         assertEquals(6, run.skipped());
         // a skipped view is never grabbed
         assertTrue(only(game.log, "grab").stream().noneMatch(g -> g.contains("results") || g.contains("plan") || g.contains("saved")));
@@ -255,8 +264,8 @@ class ShotRunTest {
         assertTrue(grab < away && away < nextSelect, "the mouse away before the next view: " + game.log);
         assertNull(game.hovered);
         // a view without a hover never moves the mouse
-        assertEquals(List.of("hover slot", "hover null", "hover week", "hover null", "hover pickrow", "hover null",
-                "hover slot", "hover null", "hover source", "hover null"), only(game.log, "hover"));
+        assertEquals(List.of("hover slot", "hover null", "hover week", "hover null", "hover hit", "hover null", "hover pickrow",
+                "hover null", "hover slot", "hover null", "hover source", "hover null"), only(game.log, "hover"));
     }
 
     @Test
@@ -358,7 +367,7 @@ class ShotRunTest {
         Fake game = new Fake();
         runToEnd(new ShotRun(game, ShotRun.plan(RAIL, NAMES, "today"), -1, false), game);
         assertTrue(only(game.log, "lang").isEmpty(), game.log.toString());
-        assertEquals(List.of("tr-01-today-main.png"), captured(game));
+        assertEquals(List.of("tr-01-today-main.png", "tr-02-today-tip.png", "tr-03-today-others.png"), captured(game));
     }
 
     @Test

@@ -9,7 +9,6 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Settings;
-import io.github.anilken.wynnlabs.ui.RoadmapScreen;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -46,7 +45,7 @@ import java.util.stream.Stream;
  * pictures of the mod's own menu for the mod's pages, taken in the real game with the real
  * resource pack. Only while the Debug setting is on, and only when the player types it.
  *
- * <p>It opens the mod's menu (nothing else) and takes every view of every tab in rail order
+ * <p>It opens the mod's own menu and windows (nothing else) and takes every view of every tab in rail order
  * ({@link ShotRun#views}: sub-pages, filters, windows, tooltips), each grabbed with Minecraft's own
  * screenshot path (as F2 does) twice, over a black and a white backdrop instead of the world. The
  * picture is the mod's window alone (frame, shadow, close seal, side panels, and a tooltip past the
@@ -79,19 +78,19 @@ public final class Shots {
     private static float[] tipNow;
     private static final Map<String, float[]> PARTS = new HashMap<>();
 
-    static boolean capturing() {
+    public static boolean capturing() {
         return capturing;
     }
 
-    static int backdrop() {
+    public static int backdrop() {
         return backdrop;
     }
 
-    static int mouseX() {
+    public static int mouseX() {
         return mouseX;
     }
 
-    static int mouseY() {
+    public static int mouseY() {
         return mouseY;
     }
 
@@ -124,8 +123,8 @@ public final class Shots {
 
     // ---- what the frame drew (DevTools, the tooltip mixin) ----
 
-    /** The driven menu starts a frame: its boxes are noted afresh (the tick after it reads them). */
-    static void beginFrame() {
+    /** The driven menu or window starts a frame: its boxes are noted afresh (the tick after it reads them). */
+    public static void beginFrame() {
         frameNow = null;
         tipNow = null;
         PARTS.clear();
@@ -374,7 +373,6 @@ public final class Shots {
         private final boolean scaleUnset;
 
         private ShotRun run;
-        private RoadmapScreen screen;
         private ShotDriver driver;
         private Screen prev;
         private boolean hudWas;
@@ -454,14 +452,13 @@ public final class Shots {
         public void open() {
             Screen cur = mc.screen;
             prev = cur instanceof ChatScreen ? null : cur;   // the chat the command was typed in closes anyway
-            screen = new RoadmapScreen();
-            driver = new ShotDriver(screen);
-            mc.setScreen(screen);
+            driver = new ShotDriver(mc);
+            driver.open();
         }
 
         @Override
         public boolean showing() {
-            return mc.player != null && screen != null && mc.screen == screen;
+            return mc.player != null && driver != null && driver.showing();
         }
 
         @Override
@@ -586,8 +583,8 @@ public final class Shots {
                 overBlack.thenAccept(NativeImage::close);   // stopped between a picture's two frames
                 overBlack = null;
             }
-            // only our menu is replaced: a screen something else opened since stays
-            if (screen != null && mc.screen == screen) {
+            // only our menu (or our window over it) is replaced: a screen something else opened since stays
+            if (driver != null && driver.showing()) {
                 mc.setScreen(prev);
             }
             if (driver != null) {

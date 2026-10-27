@@ -114,15 +114,26 @@ final class ShotRun {
     /** At most this long for the last files to be written (ticks). */
     static final int DRAIN = 400;
 
-    private static final java.util.Set<String> SLOW = java.util.Set.of("craft", "tree", "endgame", "bank", "discoveries");
+    private static final java.util.Set<String> SLOW = java.util.Set.of("craft", "tree", "endgame", "bank", "search");
+    /** Ticks for a search view: the search's worker answers, the card picks its sources. */
+    static final int SEARCH_WAIT = 25;
 
-    /** The quest list's filters after the first, as the screen names them. */
+    // the menu's lists, written out so the plan needs no game (ShotNamesTest checks them against the menu)
+    /** The quest list's filters after the first (QuestAdvisor.FILTERS). */
     static final String[] QUEST_FILTERS = {"SHORT", "NEAR", "XP", "ITEM", "MINI", "ABOVE", "DONE"};
-    /** The settings' pages after About, in their order (the screen's category numbers 1 …). */
+    /** The quests tab's kinds after Recommended (ContentType). */
+    static final String[] QUEST_TYPES = {"QUEST", "MINI_QUEST", "SECRET_DISCOVERY", "WORLD_DISCOVERY", "TERRITORIAL_DISCOVERY", "CAVE",
+        "DUNGEON", "RAID", "BOSS_ALTAR", "LOOTRUN_CAMP", "TIME_TRIAL"};
+    /** The settings' pages after About, in their order (SettingsRows.SETTING_CATS). */
     static final String[] SETTING_PAGES = {"look", "tips", "glow", "coach", "quests", "build", "rules", "data"};
-    /** The bank's filter pills after All (the screen's numbers 1 …). */
-    static final String[] BANK_FILTERS = {"sell", "quest", "prof", "gear"};
-    /** Pool regions captured on each of the Pools page's sub-tabs. */
+    /** The bank's layouts after the pages. */
+    static final String[] BANK_VIEWS = {"list", "all"};
+    /** The bank's menus. */
+    static final String[] BANK_MENUS = {"filter", "tier", "banks", "sort", "view"};
+    /** The professions on the crafting tab's level road (Professions.ALL). */
+    static final String[] PROFESSIONS = {"MINING", "WOODCUTTING", "FISHING", "FARMING", "ALCHEMISM", "ARMOURING", "COOKING",
+        "JEWELING", "SCRIBING", "TAILORING", "WEAPONSMITHING", "WOODWORKING"};
+    /** Pool regions captured for the raids and for the camps. */
     static final int POOL_REGIONS = 4;
 
     /** Every view of one tab, in a stable order; the first is the tab as it opens. */
@@ -134,69 +145,137 @@ final class ShotRun {
                 out.add(shot(t, name, null, w, List.of(), null, List.of("gear", "week")));
                 out.add(shot(t, name, "slot-tip", WAIT, List.of(), "slot", List.of()));
                 out.add(shot(t, name, "week-tip", WAIT, List.of(), "week", List.of()));
-                out.add(shot(t, name, "picker", WAIT, List.of("open:picker"), null, List.of()));
+                out.add(tip(t, name));
+                out.add(view(t, name, "goals", "home:goals"));
+                out.add(view(t, name, "archetypes", "home:archetypes"));
+                out.add(view(t, name, "options", "home:options"));
+                out.add(view(t, name, "picker", "open:picker"));
                 out.add(shot(t, name, "picker-weapon", WAIT, List.of("open:picker", "click:type:1"), null, List.of()));
-                out.add(shot(t, name, "picker-import", WAIT, List.of("open:import"), null, List.of()));
+                out.add(view(t, name, "picker-import", "open:import"));
                 out.add(shot(t, name, "picker-tip", WAIT, List.of("open:picker"), "pickrow", List.of()));
                 out.add(shot(t, name, "results", WAIT, List.of("open:results"), null, List.of("results")));
+                out.add(view(t, name, "saved", "open:saved"));
                 out.add(shot(t, name, "plan", WAIT, List.of("plan"), null, List.of("gear")));
                 out.add(shot(t, name, "plan-tip", WAIT, List.of("plan"), "slot", List.of()));
                 out.add(shot(t, name, "plan-source-tip", WAIT, List.of("plan"), "source", List.of()));
-                out.add(shot(t, name, "saved", WAIT, List.of("open:saved"), null, List.of()));
             }
-            case "craft" -> {
+            case "today" -> {
                 out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(shot(t, name, "bottom", WAIT, List.of("scroll:craft"), null, List.of()));
-                out.add(shot(t, name, "suggestions", WAIT, List.of("craft:suggestions"), null, List.of()));
-            }
-            case "tree" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(shot(t, name, "end", WAIT, List.of("scroll:tree"), null, List.of()));
-            }
-            case "endgame" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(shot(t, name, "pool-filter", WAIT, List.of("endgame:poolfilter"), null, List.of()));
-                out.add(shot(t, name, "pools", WAIT, List.of("endgame:pools:0"), null, List.of("pools")));
-                out.add(shot(t, name, "pools-tip", WAIT, List.of("endgame:pools:0"), "poolrow", List.of()));
-                for (int i = 1; i <= POOL_REGIONS; i++) {
-                    out.add(shot(t, name, "pools-raid-" + i, WAIT, List.of("endgame:pools:0", "endgame:region:" + i), null, List.of()));
-                }
-                out.add(shot(t, name, "pools-camps", WAIT, List.of("endgame:pools:1"), null, List.of("pools")));
-                for (int i = 1; i <= POOL_REGIONS; i++) {
-                    out.add(shot(t, name, "pools-camp-" + i, WAIT, List.of("endgame:pools:1", "endgame:region:" + i), null, List.of()));
-                }
+                out.add(tip(t, name));
+                out.add(view(t, name, "others", "today:others"));
             }
             case "quests" -> {
                 out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(shot(t, name, "tip", WAIT, List.of(), "quest", List.of()));
-                for (int i = 1; i <= 3; i++) {
-                    out.add(shot(t, name, "detail-" + (i + 1), WAIT, List.of("quest:tab:" + i), null, List.of()));
-                }
+                out.add(tip(t, name));
+                out.add(view(t, name, "points", "quest:points"));
+                out.add(view(t, name, "menu", "quest:menu"));
+                out.add(view(t, name, "types", "quest:types"));
                 for (String f : QUEST_FILTERS) {
-                    out.add(shot(t, name, "filter-" + f.toLowerCase(Locale.ROOT), WAIT, List.of("quest:filter:" + f), null, List.of()));
+                    out.add(view(t, name, "filter-" + lower(f), "quest:filter:" + f));
+                }
+                for (String k : QUEST_TYPES) {
+                    out.add(view(t, name, "type-" + lower(k).replace('_', '-'), "quest:type:" + k));
                 }
             }
-            case "discoveries" -> {
+            case "tree" -> {
                 out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(shot(t, name, "tip", WAIT, List.of(), "disc", List.of()));
+                out.add(tip(t, name));
+                out.add(view(t, name, "end", "tree:end"));
+                out.add(view(t, name, "damage", "tree:damage"));
+                out.add(view(t, name, "deaths", "tree:deaths"));
+                out.add(view(t, name, "archetypes", "tree:archetypes"));
+                out.add(view(t, name, "search", "tree:search"));
+            }
+            case "endgame" -> {
+                out.add(shot(t, name, null, w, List.of(), null, List.of()));
+                out.add(tip(t, name));
+                out.add(view(t, name, "pool-filter", "endgame:poolfilter"));
+                out.add(shot(t, name, "raids", WAIT, List.of("endgame:pools:0"), null, List.of("pools")));
+                out.add(shot(t, name, "raids-tip", WAIT, List.of("endgame:pools:0"), "poolrow", List.of()));
+                for (int i = 1; i <= POOL_REGIONS; i++) {
+                    out.add(view(t, name, "raid-" + i, "endgame:region:raid:" + i));
+                }
+                out.add(shot(t, name, "camps", WAIT, List.of("endgame:pools:1"), null, List.of("pools")));
+                for (int i = 1; i <= POOL_REGIONS; i++) {
+                    out.add(view(t, name, "camp-" + i, "endgame:region:camp:" + i));
+                }
+                out.add(view(t, name, "log", "endgame:log"));
             }
             case "bank" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of("banklist")));
+                out.add(shot(t, name, null, w, List.of(), null, List.of()));
                 out.add(shot(t, name, "tip", WAIT, List.of(), "bankitem", List.of()));
-                for (int i = 0; i < BANK_FILTERS.length; i++) {
-                    out.add(shot(t, name, "filter-" + BANK_FILTERS[i], WAIT, List.of("bank:filter:" + (i + 1)), null, List.of()));
+                out.add(view(t, name, "search", "bank:search"));
+                for (String v : BANK_VIEWS) {
+                    out.add(view(t, name, "view-" + v, "bank:view:" + v));
+                    out.add(shot(t, name, "view-" + v + "-search", WAIT, List.of("bank:view:" + v, "bank:search"), null, List.of()));
                 }
-                out.add(shot(t, name, "search", WAIT, List.of("bank:search"), null, List.of()));
+                out.add(view(t, name, "kind-armour", "bank:kind:ARMOUR"));
+                for (String m : BANK_MENUS) {
+                    // the sort menu belongs to the list layout
+                    List<String> steps = m.equals("sort") ? List.of("bank:view:list", "bank:menu:sort") : List.of("bank:menu:" + m);
+                    out.add(shot(t, name, "menu-" + m, WAIT, steps, null, List.of()));
+                }
+                out.add(view(t, name, "item", "bank:item"));
+                out.add(view(t, name, "sell", "bank:sell"));
+            }
+            case "craft" -> {
+                out.add(shot(t, name, null, w, List.of(), null, List.of()));
+                out.add(tip(t, name));
+                out.add(view(t, name, "end", "craft:end"));
+                out.add(view(t, name, "picker", "craft:picker"));
+                out.add(view(t, name, "shop", "craft:shop"));
+                out.add(view(t, name, "saved", "craft:saved"));
+                out.add(view(t, name, "suggestions", "craft:suggestions"));
+                out.add(view(t, name, "sets", "craft:sets"));
+                out.add(view(t, name, "road", "craft:road"));
+                for (String p : PROFESSIONS) {
+                    out.add(view(t, name, "road-" + lower(p), "craft:road:" + p));
+                }
+            }
+            case "search" -> {
+                out.add(shot(t, name, null, w, List.of(), null, List.of()));
+                out.add(shot(t, name, "more", SEARCH_WAIT, List.of("search:more"), null, List.of()));
+                out.add(shot(t, name, "card", SEARCH_WAIT, List.of("search:recent"), null, List.of()));
+                out.add(shot(t, name, "card-tip", SEARCH_WAIT, List.of("search:recent"), "hit", List.of()));
+                out.add(shot(t, name, "window-box", SEARCH_WAIT, List.of("search:recent", "window:box"), null, List.of()));
+                out.add(shot(t, name, "window-box-stats", SEARCH_WAIT, List.of("search:recent", "window:box", "box:stats"), null,
+                        List.of()));
+                for (String m : new String[] {"recent", "marks", "tracked", "sort", "filter"}) {
+                    out.add(shot(t, name, "menu-" + m, SEARCH_WAIT, List.of("search:menu:" + m), null, List.of()));
+                }
+                out.add(shot(t, name, "stats", SEARCH_WAIT, List.of("search:stats"), null, List.of()));
             }
             case "settings" -> {
                 out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                for (int i = 0; i < SETTING_PAGES.length; i++) {
-                    out.add(shot(t, name, SETTING_PAGES[i], WAIT, List.of("settings:cat:" + (i + 1)), null, List.of()));
+                for (String page : SETTING_PAGES) {
+                    out.add(view(t, name, page, "settings:cat:" + page));
                 }
+                out.add(view(t, name, "changed", "settings:changed"));
+                out.add(view(t, name, "window-update", "window:update"));
+                out.add(view(t, name, "window-changelog", "window:changelog"));
+            }
+            case "ai" -> {
+                out.add(shot(t, name, null, w, List.of(), null, List.of()));
+                out.add(tip(t, name));
+                out.add(view(t, name, "reads", "ai:reads"));
             }
             default -> out.add(shot(t, name, null, w, List.of(), null, List.of()));
         }
         return out;
+    }
+
+    /** The tab as it opens with its first element that has a tooltip hovered ({@code <tab>-tip}). */
+    private static Shot tip(int t, String name) {
+        return shot(t, name, "tip", WAIT, List.of(), "hit", List.of());
+    }
+
+    /** A view of one step, no hover, no close-up. */
+    private static Shot view(int t, String name, String state, String step) {
+        return shot(t, name, state, WAIT, List.of(step), null, List.of());
+    }
+
+    private static String lower(String s) {
+        return s.toLowerCase(Locale.ROOT);
     }
 
     private static Shot shot(int t, String name, String state, int ticks, List<String> steps, String hover, List<String> closes) {

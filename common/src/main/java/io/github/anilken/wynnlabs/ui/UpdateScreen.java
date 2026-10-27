@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.ui;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
+import io.github.anilken.wynnlabs.core.DevHooks;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.core.ReleaseNotes;
@@ -113,7 +114,11 @@ public final class UpdateScreen extends Screen {
         int wh = Math.min(height - 16, 250);
         int wx = (width - ww) / 2;
         int wy = (height - wh) / 2;
-        g.fill(0, 0, width, height, 0x55201810);
+        if (DevHooks.ON && DevHooks.driving()) {
+            DevHooks.frame(g.pose(), wx - 4, wy - 4, ww + 8, wh + 8);    // the dev screenshot tool: the window alone, no dim
+        } else {
+            g.fill(0, 0, width, height, 0x55201810);
+        }
         Kit.windowShadow(g, wx, wy, ww, wh);
         g.fill(wx + 4, wy + 4, wx + ww - 4, wy + wh - 3, 0xFFEADCB4);
         Kit.softCard(g, wx, wy, ww, wh);

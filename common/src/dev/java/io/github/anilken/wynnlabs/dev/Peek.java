@@ -2,97 +2,49 @@ package io.github.anilken.wynnlabs.dev;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
- * Dev builds only: the screenshot tool reads and sets the menu's private view state (the tab, a
- * filter, a scroll) by reflection, at tick time and never in a frame, so the release code carries
- * no accessor for it. A field that is renamed fails loudly: the run stops and puts everything back,
- * and the ShotsPreview gametest catches it.
+ * Dev builds only: the few private fields of the menu the screenshot tool reads and sets by
+ * reflection, at tick time and never in a frame, so the release code carries no accessor for them.
+ * Everything else it reaches directly (ShotHands sits in the menu's own package). Each field is
+ * a {@link Ref} kept in a static constant, so ShotNamesTest checks every name against the menu's
+ * classes without the game: a renamed field fails the tests, not a run in the game.
  */
-final class Peek {
+public final class Peek {
 
     private Peek() {}
 
-    private static final Map<String, Field> FIELDS = new HashMap<>();
+    /** A field by its class and name, looked up on first use. */
+    public record Ref(Class<?> owner, String name) {
 
-    private static Field field(Class<?> c, String name) {
-        return FIELDS.computeIfAbsent(c.getName() + "#" + name, k -> {
+        /** The field; throws when it is gone. */
+        public Field field() {
             try {
-                Field f = c.getDeclaredField(name);
+                Field f = owner.getDeclaredField(name);
                 f.setAccessible(true);
                 return f;
             } catch (NoSuchFieldException e) {
-                throw new IllegalStateException("no field " + c.getSimpleName() + "." + name, e);
+                throw new IllegalStateException("no field " + owner.getSimpleName() + "." + name, e);
             }
-        });
-    }
-
-    /** {@code owner}'s field ({@code owner} a Class for a static one). */
-    static Object get(Object owner, String name) {
-        try {
-            Field f = owner instanceof Class<?> c ? field(c, name) : field(owner.getClass(), name);
-            return f.get(Modifier.isStatic(f.getModifiers()) ? null : owner);
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException(e);
         }
-    }
 
-    static void set(Object owner, String name, Object value) {
-        try {
-            Field f = owner instanceof Class<?> c ? field(c, name) : field(owner.getClass(), name);
-            f.set(Modifier.isStatic(f.getModifiers()) ? null : owner, value);
-        } catch (IllegalAccessException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    /** Some fields of {@code owner} as they are now, copied deep enough that changes after do not reach them. */
-    static Map<String, Object> save(Object owner, String... names) {
-        Map<String, Object> out = new LinkedHashMap<>();
-        for (String n : names) {
-            out.put(n, copy(get(owner, n)));
-        }
-        return out;
-    }
-
-    /** The fields back as {@link #save} found them (lists and arrays filled in place when final). */
-    @SuppressWarnings({"unchecked", "rawtypes"})
-    static void restore(Object owner, Map<String, Object> saved) {
-        for (Map.Entry<String, Object> e : saved.entrySet()) {
-            Field f = field(owner.getClass(), e.getKey());
-            Object v = e.getValue();
-            if (Modifier.isFinal(f.getModifiers())) {
-                Object now = get(owner, e.getKey());
-                if (now instanceof List l && v instanceof List s) {
-                    l.clear();
-                    l.addAll(s);
-                } else if (now instanceof int[][] a && v instanceof int[][] s) {
-                    for (int i = 0; i < a.length && i < s.length; i++) {
-                        System.arraycopy(s[i], 0, a[i], 0, Math.min(a[i].length, s[i].length));
-                    }
-                }
-                continue;
+        /** Its value on {@code target} (ignored for a static field). */
+        public Object get(Object target) {
+            try {
+                Field f = field();
+                return f.get(Modifier.isStatic(f.getModifiers()) ? null : target);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(e);
             }
-            set(owner, e.getKey(), copy(v));
         }
-    }
 
-    private static Object copy(Object v) {
-        if (v instanceof List<?> l) {
-            return new ArrayList<>(l);
-        }
-        if (v instanceof int[][] a) {
-            int[][] c = new int[a.length][];
-            for (int i = 0; i < a.length; i++) {
-                c[i] = a[i].clone();
+        public void set(Object target, Object value) {
+            try {
+                Field f = field();
+                f.set(Modifier.isStatic(f.getModifiers()) ? null : target, value);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException(e);
             }
-            return c;
         }
-        return v;
     }
 }
