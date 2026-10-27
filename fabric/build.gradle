@@ -93,6 +93,10 @@ loom.runs.matching { it.name == 'clientGameTest' }.configureEach {
     if (rootProject.hasProperty('previewSize')) {
         vmArg "-Dwynnlabs.previewSize=${rootProject.property('previewSize')}"
     }
+    // -PpreviewHidden=false: the game's window on the screen during the run (hidden by default)
+    if (rootProject.hasProperty('previewHidden')) {
+        vmArg "-Dwynnlabs.previewHidden=${rootProject.property('previewHidden')}"
+    }
     if (rootProject.hasProperty('previewTab')) {
         vmArg "-Dwynnlabs.previewTab=${rootProject.property('previewTab')}"
     }

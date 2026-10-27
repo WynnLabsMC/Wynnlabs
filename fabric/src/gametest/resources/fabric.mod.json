@@ -12,6 +12,9 @@
       "io.github.anilken.wynnlabs.ui.BoxPreview"
     ]
   },
+  "mixins": [
+    "wynnlabs-preview.mixins.json"
+  ],
   "depends": {
     "wynnlabs": "*"
   }

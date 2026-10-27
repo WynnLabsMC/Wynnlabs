@@ -19,6 +19,8 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
   (the kind menu, a cave, Recommended with places) from a small built-in sample of caves and places.
 - `-PpreviewOnly=settings`: only the settings (a few pages, a search, the changed list).
 - `-PpreviewOnly=tree`: only the tree page (three deaths seeded), its damage and deaths drawers, and its search typed in.
+- The game's window stays hidden during a run (the shots are drawn the same); `-PpreviewHidden=false`
+  shows it, to watch a run.
 - `-PpreviewOnly=search`: only that tab, its search field empty and typed in.
 - `-PpreviewOnly=bank`: the bank tab on the fixture's bank: whole, searched, a kind chip, the banks menu,
   a slot's drawer, the list to sell, a bank read in part and one not read (`BankPreview`).
