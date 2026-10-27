@@ -53,40 +53,41 @@
       "assigned": 25
     },
     "DEXTERITY": {
-      "target": 12,
+      "target": 15,
       "targetForBestBuild": 15,
       "assigned": 15
     },
     "INTELLIGENCE": {
-      "target": 10,
-      "targetForBestBuild": 15,
+      "target": 7,
+      "targetForBestBuild": 7,
       "assigned": 15
     },
     "DEFENCE": {
       "target": 12,
-      "targetForBestBuild": 8,
+      "targetForBestBuild": 12,
       "assigned": 8
     },
     "AGILITY": {
       "target": 27,
-      "targetForBestBuild": 23,
+      "targetForBestBuild": 27,
       "assigned": 23
     }
   },
   "earnedPoints": 86,
   "planned": {
-    "objective": 3768.6,
-    "spellDps": 335.3,
-    "mainAttackDps": 856.3,
-    "damagePerCast": 829,
-    "castsPer5s": 2.02,
+    "objective": 4524.0,
+    "spellDps": 657.1,
+    "mainAttackDps": 849.3,
+    "damagePerCast": 821,
+    "manaPer5s": 29.0,
+    "spellCostCutPercent": 16.6,
     "health": 1927,
-    "effectiveHealth": 2072,
-    "effectiveHealthElemental": 2216,
+    "effectiveHealth": 2211,
+    "effectiveHealthElemental": 2365,
     "parts": {
-      "damage": 1091.408,
-      "life": 2.536,
-      "mana": 1.211,
+      "damage": 1408.392,
+      "life": 2.6,
+      "mana": 1.099,
       "speed": 1.124,
       "xp": 1.0,
       "attackSpeedFeel": 1.0
@@ -95,18 +96,19 @@
     "walkSpeed": 51.0
   },
   "current": {
-    "objective": 3768.6,
-    "spellDps": 335.3,
+    "objective": 4498.4,
+    "spellDps": 663.0,
     "mainAttackDps": 856.3,
     "damagePerCast": 829,
-    "castsPer5s": 2.02,
+    "manaPer5s": 29.0,
+    "spellCostCutPercent": 20.2,
     "health": 1927,
     "effectiveHealth": 2072,
     "effectiveHealthElemental": 2216,
     "parts": {
-      "damage": 1091.408,
+      "damage": 1419.049,
       "life": 2.536,
-      "mana": 1.211,
+      "mana": 1.112,
       "speed": 1.124,
       "xp": 1.0,
       "attackSpeedFeel": 1.0
@@ -114,7 +116,7 @@
     "xpBonus": 60.0,
     "walkSpeed": 51.0
   },
-  "gainPercent": 0.0,
+  "gainPercent": 0.6,
   "minPoints": {
     "STRENGTH": 25,
     "DEXTERITY": 12,

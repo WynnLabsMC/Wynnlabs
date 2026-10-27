@@ -50,7 +50,7 @@ final class TreeDamage extends MenuPaint {
         List<DamageReport.WhatIf> ifs = report.whatIf();
         double max = 0;
         for (DamageReport.WhatIf wi : ifs) {
-            max = Math.max(max, wi.gain());
+            max = Math.max(max, wi.percent());
         }
         for (int i = 0; i < ifs.size() && i < rows; i++) {
             y = whatIf(g, x, y, w, ifs.get(i), max, i == 0, mx, my);
@@ -94,7 +94,11 @@ final class TreeDamage extends MenuPaint {
         }
     }
 
-    /** One what-if: the change, a green bar of its gain against the best, "+112"; lit when the best. */
+    /**
+     * One what-if: the change, a green bar of what it adds to the build score against the best,
+     * the DPS it adds ("+112", none for the mana stats) and the build score's change in %; lit
+     * when the best.
+     */
     private int whatIf(GuiGraphics g, int x, int y, int w, DamageReport.WhatIf wi, double max, boolean best, int mx, int my) {
         int rh = Theme.SP_2 + Type.BODY.lineHeight + Theme.SP_2;
         if (best) {
@@ -102,26 +106,26 @@ final class TreeDamage extends MenuPaint {
         }
         int ty = y + Theme.SP_2;
         long gain = Math.round(wi.gain());
-        boolean useful = wi.gain() >= 0.5;
+        boolean useful = wi.percent() >= 0.05;
         String num = (gain > 0 ? "+" : "") + QuestAdvisor.fmt(gain);
         String share = pctOf(wi.percent());
         int pw = Type.META.width(font(), "%00,0");
         int nw = Type.NUMBER.width(font(), "+00.0k");
-        Type.META.drawRight(g, font(), share, x + w, ty + 1, Theme.INK_3);
-        Type.NUMBER.drawRight(g, font(), num, x + w - pw - Theme.SP_2, ty, useful ? Theme.GOOD : Theme.INK_3);
+        Type.META.drawRight(g, font(), share, x + w, ty + 1, useful ? Theme.GOOD : Theme.INK_3);
+        Type.NUMBER.drawRight(g, font(), num, x + w - pw - Theme.SP_2, ty, wi.gain() >= 0.5 ? Theme.GOOD : Theme.INK_3);
         int labelW = Math.min(w * 42 / 100, 150);
         (useful ? Type.BODY : Type.MUTED).draw(g, font(), Type.BODY.fit(font(), L.t(wi.key()), labelW - Theme.SP_2), x, ty);
         int bx = x + labelW;
         int bw = x + w - pw - nw - 2 * Theme.SP_3 - bx;
         if (bw > 16) {
             Art.pill(g, bx, Type.BODY.onCaps(ty, 4), bw, 4, Theme.WELL, 0);
-            int fill = (int) Math.round(bw * (max > 0 ? Math.max(0, wi.gain()) / max : 0));
+            int fill = (int) Math.round(bw * (max > 0 ? Math.max(0, wi.percent()) / max : 0));
             if (fill >= 2) {
                 Art.pill(g, bx, Type.BODY.onCaps(ty, 4), fill, 4, Theme.GREEN, 0);
             }
         }
         menu.hits.add(new MenuHit(x, y, w, rh, null, List.of(Component.literal(L.t(wi.key())).withStyle(ChatFormatting.WHITE),
-                L.c("wynnlabs.damage.what_if_tip", QuestAdvisor.fmt(Math.round(wi.dps())), dec(wi.casts(), 2)).withStyle(ChatFormatting.GRAY)), null));
+                L.c("wynnlabs.damage.what_if_tip", QuestAdvisor.fmt(Math.round(wi.dps())), dec(wi.mana(), 2)).withStyle(ChatFormatting.GRAY)), null));
         return y + rh + Theme.SP_2;
     }
 
@@ -163,7 +167,7 @@ final class TreeDamage extends MenuPaint {
         ry += tab.side.head(g, L.t("wynnlabs.damage.what_if"), free, null, null, rx, ry, cw);
         double max = 0;
         for (DamageReport.WhatIf wi : report.whatIf()) {
-            max = Math.max(max, wi.gain());
+            max = Math.max(max, wi.percent());
         }
         boolean first = true;
         for (DamageReport.WhatIf wi : report.whatIf()) {

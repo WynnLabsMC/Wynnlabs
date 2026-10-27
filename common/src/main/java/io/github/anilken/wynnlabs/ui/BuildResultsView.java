@@ -295,7 +295,7 @@ final class BuildResultsView {
         Build.Plan plan = Build.plan();
         Damage.Result now = plan == null ? null : plan.current();
         Damage.Result to = c.eval().result();
-        // the changes: damage, effective health, mana regen, walk speed, each a row
+        // the changes: damage, effective health, mana back every 5 s, walk speed, each a row
         List<String[]> deltas = new ArrayList<>();
         if (now != null && now.factors().length > 0 && to.factors().length > 0) {
             deltas.add(new String[] {L.t("wynnlabs.results.d_damage"), pct(now.factors()[0], to.factors()[0])});
@@ -303,9 +303,9 @@ final class BuildResultsView {
         if (now != null) {
             deltas.add(new String[] {L.t("wynnlabs.results.d_ehp"), pct(now.ehp(), to.ehp())});
         }
-        double regenNow = plan == null || plan.worn() == null ? 0 : stat(plan.worn(), "manaRegen");
-        double regenTo = stat(c.set(), "manaRegen");
-        if (Math.abs(regenTo - regenNow) >= 0.5) {
+        double regenNow = now == null ? 0 : now.manaPer5();
+        double regenTo = to.manaPer5();
+        if (now != null && Math.abs(regenTo - regenNow) >= 0.5) {
             deltas.add(new String[] {L.t("wynnlabs.results.d_mana"), (regenTo - regenNow >= 0 ? "+" : "−") + Math.round(Math.abs(regenTo - regenNow))});
         }
         if (now != null && Math.abs(to.speed() - now.speed()) >= 1) {
@@ -425,16 +425,6 @@ final class BuildResultsView {
         }
         double p = (to / from - 1) * 100;
         return (p >= 0 ? "+" : "−") + Math.round(Math.abs(p)) + "%";
-    }
-
-    private static double stat(Map<String, Damage.Piece> set, String key) {
-        double s = 0;
-        for (Damage.Piece p : set.values()) {
-            if (p != null) {
-                s += p.stats().getOrDefault(key, 0.0);
-            }
-        }
-        return s;
     }
 
     /**

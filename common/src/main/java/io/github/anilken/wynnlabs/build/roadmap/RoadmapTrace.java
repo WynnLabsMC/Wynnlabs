@@ -73,9 +73,9 @@ final class RoadmapTrace {
             f.append(String.format(java.util.Locale.ROOT, " %s %.3f→%.3f", names[i], fx[i], fy[i]));
         }
         return String.format(java.util.Locale.ROOT,
-                "obj %.0f→%.0f spell %.0f→%.0f main %.0f→%.0f ehp %.0f→%.0f casts %.2f→%.2f speed %.0f→%.0f xp %.0f→%.0f |%s",
+                "obj %.0f→%.0f spell %.0f→%.0f main %.0f→%.0f ehp %.0f→%.0f mana/5s %.1f→%.1f cut %.3f→%.3f speed %.0f→%.0f xp %.0f→%.0f |%s",
                 x.objective(), y.objective(), x.spellDps(), y.spellDps(), x.mainDps(), y.mainDps(), x.ehp(), y.ehp(),
-                x.casts(), y.casts(), x.speed(), y.speed(), x.xp(), y.xp(), f);
+                x.manaPer5(), y.manaPer5(), x.costCut(), y.costCut(), x.speed(), y.speed(), x.xp(), y.xp(), f);
     }
 
     /**

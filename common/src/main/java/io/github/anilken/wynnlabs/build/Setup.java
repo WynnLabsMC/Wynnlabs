@@ -183,9 +183,10 @@ public final class Setup {
      * feedback raised on a fighting goal before it stopped doing so, and the Damage goal's XP
      * factor 0.3 from 3 becomes its 0 (from 3 only these); 5 turns the spell cost weight round (a cut
      * is kept positive in the item data); 6 drops the mana steal discount (mana steal counts whole)
-     * and the weights your own picks used to raise.
+     * and the weights your own picks used to raise; 7 drops the simulated fight's mana keys (the
+     * mana part comes from the stats alone).
      */
-    static final int SURVIVAL_MODEL = 6;
+    static final int SURVIVAL_MODEL = 7;
 
     /**
      * A preset's model weights: survival, regen, mana, heal, damage, survival power, then the
@@ -277,6 +278,12 @@ public final class Setup {
             if (!byHand.contains("survivalWeight")) {
                 model.addProperty("survivalWeight", w[keys.indexOf("survivalWeight")]);
             }
+        }
+        // 7: no fight is simulated for mana any more, so its length and pool keys go
+        if (from < 7) {
+            model.remove("fightSeconds");
+            model.remove("baseMana");
+            model.remove("manaMeasuredAt");
         }
         model.addProperty("survivalModel", SURVIVAL_MODEL);
     }

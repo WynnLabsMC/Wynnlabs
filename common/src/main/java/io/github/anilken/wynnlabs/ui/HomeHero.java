@@ -19,7 +19,7 @@ import java.util.Locale;
 
 /**
  * The Home's top: the character on a soft card (the class's name, the archetype as a chip, the
- * level; effective health, casts in a row and spell damage as thin bars against the next
+ * level; effective health, mana back every 5 s and spell damage as thin bars against the next
  * milestone's build; the build score on its gauge), then a row of chips for what the build is
  * scored by (the goal, powders, whether experience counts) with the nearest bank and Trade Market
  * on its right, and the experience bar. Compact: the three settings as icons under the gauge, the
@@ -142,8 +142,8 @@ final class HomeHero extends MenuPaint {
             Object[][] bars = {
                 {String.valueOf(Math.round(health)), L.t("wynnlabs.home.hud_health_label"), health, target == null ? 0 : target.health(), HP,
                     "heart", L.t("wynnlabs.home.stat_health") + " · " + L.t("wynnlabs.home.stat_ehp") + " " + Math.round(now.ehp())},
-                {String.valueOf(Math.round(now.casts())), L.t("wynnlabs.home.hud_casts_label"), now.casts(),
-                    target == null ? 0 : target.casts(), MANA, "droplet", L.t("wynnlabs.home.hud_casts_tip")},
+                {String.valueOf(Math.round(now.manaPer5())), L.t("wynnlabs.home.hud_mana_label"), now.manaPer5(),
+                    target == null ? 0 : target.manaPer5(), MANA, "droplet", L.t("wynnlabs.home.hud_mana_tip")},
                 {String.valueOf(Math.round(now.spellDps())), L.t("wynnlabs.home.hud_spell_label"), now.spellDps(),
                     target == null ? 0 : target.spellDps(), SPELL, "wand", L.t("wynnlabs.home.stat_spell")}};
             int labelCol = menu.layout.large() ? 128 : 100;

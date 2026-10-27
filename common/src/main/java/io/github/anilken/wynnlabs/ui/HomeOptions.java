@@ -360,7 +360,9 @@ final class HomeOptions extends MenuPaint {
         return switch (i) {
             case 0 -> String.valueOf(Math.round(r.spellDps()));
             case 1 -> String.valueOf(Math.round(r.ehp()));
-            case 2 -> String.format(Locale.ROOT, "%.1f", r.casts());
+            // the mana stats behind the mana part: mana back every 5 s, the spell cost cut
+            case 2 -> Math.round(r.manaPer5()) + "/5s" + (Math.abs(r.costCut()) >= 0.005
+                    ? " −" + Math.round(r.costCut() * 100) + "%" : "");
             case 3 -> signed(r.speed()) + "%";
             case 4 -> Math.round(r.xp()) + "%";
             default -> r.factors().length > 5 ? "×" + String.format(Locale.ROOT, "%.2f", r.factors()[5]) : "";

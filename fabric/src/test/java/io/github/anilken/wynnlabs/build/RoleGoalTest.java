@@ -24,7 +24,7 @@ class RoleGoalTest {
         FixtureState.uninstall();
     }
 
-    private record Far(double ehp, double heal, double damage, double perCast, double xp, double speed, double loot, double casts) {}
+    private record Far(double ehp, double heal, double damage, double perCast, double xp, double speed, double loot, double mana) {}
 
     private static Far far(Klass k, String goal) throws Exception {
         return far(k, goal, 120);
@@ -56,9 +56,9 @@ class RoleGoalTest {
         }
         Damage.Result r = e.result();
         Far f = new Far(r.ehp(), health * (1 + eff / 100) * r.casts(), r.spellDps() + r.mainDps(), r.dmgPerCast(),
-                r.xp(), r.speed(), loot, r.casts());
-        Fixtures.note(String.format("%s Lv %d: ehp %.0f, heal %.0f, damage %.0f, per cast %.0f, xp %.0f, speed %.0f, loot %.0f, casts %.2f, points %s",
-                goal, last.level(), f.ehp(), f.heal(), f.damage(), f.perCast(), f.xp(), f.speed(), f.loot(), f.casts(),
+                r.xp(), r.speed(), loot, r.manaPer5() / Math.max(0.05, 1 - r.costCut()));
+        Fixtures.note(String.format("%s Lv %d: ehp %.0f, heal %.0f, damage %.0f, per cast %.0f, xp %.0f, speed %.0f, loot %.0f, mana %.2f, points %s",
+                goal, last.level(), f.ehp(), f.heal(), f.damage(), f.perCast(), f.xp(), f.speed(), f.loot(), f.mana(),
                 java.util.Arrays.toString(e.allocation())).replaceFirst("^", k + " "));
         FixtureState.uninstall();
         return f;
@@ -88,8 +88,8 @@ class RoleGoalTest {
             Far loot = far(k, "LOOT");
             assertTrue(boss.perCast() >= damage.perCast(), k + ": boss per cast " + boss.perCast() + " vs damage " + damage.perCast());
             // packs need casting without pause, and running from one to the next
-            assertTrue(mobbing.casts() > damage.casts() || mobbing.speed() > damage.speed(),
-                    k + ": mobbing casts " + mobbing.casts() + " speed " + mobbing.speed() + " vs damage " + damage.casts() + " " + damage.speed());
+            assertTrue(mobbing.mana() > damage.mana() || mobbing.speed() > damage.speed(),
+                    k + ": mobbing mana " + mobbing.mana() + " speed " + mobbing.speed() + " vs damage " + damage.mana() + " " + damage.speed());
             assertTrue(loot.loot() > damage.loot(), k + ": loot " + loot.loot() + " vs damage " + damage.loot());
             Far xpDamage = far(k, "DAMAGE", 90);
             Far xp = far(k, "XP", 90);

@@ -20,8 +20,12 @@ import java.util.Map;
  */
 public final class DamageReport {
 
-    /** One "what if": the change in English (for the API), its language key, the DPS it gives. */
-    public record WhatIf(String change, String key, double dps, double gain, double percent, double casts) {}
+    /**
+     * One "what if": the change in English (for the API), its language key, the DPS it gives and
+     * {@code gain} over now; {@code percent} is what it adds to the build score in %, where the
+     * mana stats count too (they add no DPS); {@code mana} the mana part of the score then.
+     */
+    public record WhatIf(String change, String key, double dps, double gain, double percent, double mana) {}
 
     public record Report(Damage.Detail detail, List<WhatIf> whatIf, int freePoints) {}
 
@@ -92,6 +96,7 @@ public final class DamageReport {
     static Report compute(Build.Plan p) {
         Damage.Detail base = p.currentDetail(null, null);
         double now = base.breakdown().total();
+        double score = base.result().objective();
         List<WhatIf> out = new ArrayList<>();
         // +10 points in a skill: the model's marginal value, whether or not points are free
         for (SkillKind sk : SkillKind.values()) {
@@ -101,26 +106,26 @@ public final class DamageReport {
                 continue;                       // the game stops assigning at 100
             }
             a[i] = Math.min(100, a[i] + 10);
-            out.add(whatIf("+10 " + sk.displayName(), SKILL_KEYS[i], p.currentDetail(a, null), now));
+            out.add(whatIf("+10 " + sk.displayName(), SKILL_KEYS[i], p.currentDetail(a, null), now, score));
         }
         out.add(whatIf("+10% spell damage", "wynnlabs.damage.if_spell",
-                p.currentDetail(null, extra(Map.of("spellDamage", 10.0))), now));
+                p.currentDetail(null, extra(Map.of("spellDamage", 10.0))), now, score));
         out.add(whatIf("+10% main attack damage", "wynnlabs.damage.if_main",
-                p.currentDetail(null, extra(Map.of("mainAttackDamage", 10.0))), now));
+                p.currentDetail(null, extra(Map.of("mainAttackDamage", 10.0))), now, score));
         for (int i = 0; i < Damage.ELEMENTS.length; i++) {
             String el = Damage.ELEMENTS[i];
             out.add(whatIf("+10% " + el + " damage", ELEMENT_IF_KEYS[i],
-                    p.currentDetail(null, extra(Map.of(el + "Damage", 10.0))), now));
+                    p.currentDetail(null, extra(Map.of(el + "Damage", 10.0))), now, score));
         }
         out.add(whatIf("+1 mana regen", "wynnlabs.damage.if_mana",
-                p.currentDetail(null, extra(Map.of("manaRegen", 1.0))), now));
+                p.currentDetail(null, extra(Map.of("manaRegen", 1.0))), now, score));
         // −10 % on every spell's cost, as the game's "% Nth Spell Cost" IDs do it
         Map<String, Double> cost = new HashMap<>();
         for (String nth : new String[] {"1st", "2nd", "3rd", "4th"}) {
             cost.put(nth + "SpellCost", 10.0);          // a cut is kept positive (Wynntils)
         }
-        out.add(whatIf("-10% spell cost", "wynnlabs.damage.if_cost", p.currentDetail(null, extra(cost)), now));
-        out.sort(Comparator.comparingDouble(WhatIf::gain).reversed());
+        out.add(whatIf("-10% spell cost", "wynnlabs.damage.if_cost", p.currentDetail(null, extra(cost)), now, score));
+        out.sort(Comparator.comparingDouble(WhatIf::percent).reversed());
         int used = 0;
         for (int v : p.wornAllocation()) {
             used += v;
@@ -128,9 +133,11 @@ public final class DamageReport {
         return new Report(base, List.copyOf(out), Math.max(0, p.earned() - used));
     }
 
-    private static WhatIf whatIf(String change, String key, Damage.Detail d, double now) {
+    private static WhatIf whatIf(String change, String key, Damage.Detail d, double now, double score) {
         double dps = d.breakdown().total();
-        return new WhatIf(change, key, dps, dps - now, now > 0 ? (dps / now - 1) * 100 : 0, d.result().casts());
+        Damage.Result r = d.result();
+        double mana = r.factors().length > 2 ? r.factors()[2] : 1;
+        return new WhatIf(change, key, dps, dps - now, score > 0 ? (r.objective() / score - 1) * 100 : 0, mana);
     }
 
     /** A make-believe piece that only carries these stats, added to what you wear. */
@@ -267,8 +274,8 @@ public final class DamageReport {
                 j.addProperty("change", w.change());
                 j.addProperty("dps", r1(w.dps()));
                 j.addProperty("gain", r1(w.gain()));
-                j.addProperty("gainPercent", r1(w.percent()));
-                j.addProperty("castsPer5s", Math.round(w.casts() * 100) / 100.0);
+                j.addProperty("scoreGainPercent", r2(w.percent()));
+                j.addProperty("manaFactor", Math.round(w.mana() * 1000) / 1000.0);
                 wi.add(j);
             }
             o.add("whatIf", wi);

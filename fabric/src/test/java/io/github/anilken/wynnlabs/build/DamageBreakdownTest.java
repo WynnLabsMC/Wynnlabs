@@ -67,14 +67,19 @@ class DamageBreakdownTest {
         assertFalse(report.whatIf().isEmpty());
         double last = Double.MAX_VALUE;
         for (DamageReport.WhatIf w : report.whatIf()) {
-            assertTrue(w.gain() <= last, "sorted by gain: " + w.change());
-            last = w.gain();
+            assertTrue(w.percent() <= last, "sorted by what it adds to the build score: " + w.change());
+            last = w.percent();
         }
         double base = report.detail().breakdown().total();
         for (DamageReport.WhatIf w : report.whatIf()) {
             close(base + w.gain(), w.dps(), w.change());
             if (w.change().equals("+10% spell damage")) {
                 assertTrue(w.gain() > 0, "more spell damage helps a spell build");
+            }
+            // the mana stats add no DPS (no fight is simulated) but raise the build score
+            if (w.change().equals("+1 mana regen") || w.change().equals("-10% spell cost")) {
+                assertEquals(0, w.gain(), 1e-6, w.change() + " adds no DPS");
+                assertTrue(w.percent() > 0, w.change() + " raises the build score: " + w.percent());
             }
         }
         // the what-ifs leave the plan's own result alone

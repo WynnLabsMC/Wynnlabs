@@ -73,7 +73,7 @@ public final class Rules {
                   {"name": "Uproot", "index": 4, "cost": 30, "share": 0.25, "conv": {"neutral": 0.8, "earth": 0.3, "thunder": 0.2}},
                   {"name": "Totem", "index": 1, "cost": 30, "share": 0.2, "conv": {"neutral": 1.2, "fire": 0.3}}
                 ],
-                "mainAttackWeight": 0.5, "baseManaPer5s": 25, "baseMana": 100, "fightSeconds": 30, "maxCastsPer5s": 4,
+                "mainAttackWeight": 0.5, "baseManaPer5s": 25, "maxCastsPer5s": 4,
                 "xpWeight": 1.0, "speedWeight": 0.3, "speedCeiling": 1.35, "survivalWeight": 0.2, "survivalPower": 0.25, "ehpFloorScale": 1.0, "xpLog": 1, "regenWeight": 0.2, "negativeRegenWeight": 2.0, "manaWeight": 0.3, "skillPriority": ["INTELLIGENCE", "DEFENCE"], "skillPriorityShare": 0.6, "baseHealth": 100, "healthPerLevel": 5, "summonAlive": 0.6,
                 "incomingElements": {"neutral": 0.5, "earth": 0.1, "thunder": 0.1, "water": 0.1, "fire": 0.1, "air": 0.1}
               },

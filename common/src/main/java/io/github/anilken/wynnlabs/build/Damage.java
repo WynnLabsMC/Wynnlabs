@@ -61,7 +61,11 @@ public final class Damage {
      * {@code ehpElemental} also counts the build's elemental defences against the incoming split
      * (rules.model.incomingElements), and is what the survival factor uses. {@code pieces} and
      * {@code weapon}: the set it was worked out for (null when read back from disk), so the road
-     * map can tell which pieces a set keeps from the milestone before it.
+     * map can tell which pieces a set keeps from the milestone before it. {@code casts} is the
+     * fixed cast rate (rules.model.maxCastsPer5s): no mana is simulated. {@code factors} holds
+     * the six parts the objective multiplies ({@link #FACTORS}), then the mana stats the mana
+     * part is made of: mana back every 5 s ({@link #manaPer5}) and the share of the spells'
+     * cost the build takes off ({@link #costCut}).
      */
     public record Result(double objective, double spellDps, double mainDps, double casts, double ehp, double xp,
             double speed, double dmgPerCast, double[] factors, double ehpElemental, double health,
@@ -76,6 +80,16 @@ public final class Damage {
         public Result(double objective, double spellDps, double mainDps, double casts, double ehp, double xp,
                 double speed, double dmgPerCast, double[] factors, double ehpElemental, double health) {
             this(objective, spellDps, mainDps, casts, ehp, xp, speed, dmgPerCast, factors, ehpElemental, health, null, null);
+        }
+
+        /** Mana back every 5 s from the stats: the base, the tree, Mana Regen and Mana Steal (per 3 s); 0 when unknown. */
+        public double manaPer5() {
+            return factors.length > 6 ? factors[6] : 0;
+        }
+
+        /** The share of the spells' mana cost the build takes off (Intelligence and the cost IDs), by each spell's share; 0..1. */
+        public double costCut() {
+            return factors.length > 7 ? factors[7] : 0;
         }
     }
 
@@ -464,6 +478,19 @@ public final class Damage {
         return TreeModel.adjust("baseManaPer5s", 25);
     }
 
+    /**
+     * The mana part of the score from the build's own stats: {@code manaPer5} (mana back every
+     * 5 s) over the game's base, divided by the share of the spells' cost left after
+     * {@code costCut}, on a log scale with the weight rules.model.manaWeight; at least 0.3.
+     */
+    static double manaFactor(double manaPer5, double costCut) {
+        double ratio = Math.max(0.05, manaPer5 / BASE_MANA_PER_5) / Math.max(0.05, 1 - costCut);
+        return Math.max(0.3, 1 + model("manaWeight", 0.3) * Math.log(ratio));
+    }
+
+    /** The game's own mana back every 5 s, the mana part's yardstick. */
+    static final double BASE_MANA_PER_5 = 25;
+
     private static Result evaluate(List<Piece> pieces, Piece weapon, int[] assigned, int level, Breakdown parts) {
         double[] spellEl = parts == null ? null : new double[ELEMENTS.length];
         double[] mainEl = parts == null ? null : new double[ELEMENTS.length];
@@ -499,12 +526,12 @@ public final class Damage {
         // Spells: the cast's conversion through the damage pipeline (the tree's cuts, waves and
         // one cast per Totem are in the conversion, TreeModel); nothing measured in game scales it
         double dmgSum = 0;
-        double costSum = 0;
         double shareSum = 0;
-        // lasting spells (Totem: a hit every 0.4 s for 30 s) deal alongside the casts, as summons
-        // do, and cost their mana once per duration
+        // lasting spells (Totem: a hit every 0.4 s for 30 s) deal alongside the casts, as summons do
         double lastingDps = 0;
-        double upkeepPer5 = 0;
+        // the mana part: how much of each spell's cost the stats take off, by the spell's share
+        double cutSum = 0;
+        double cutShare = 0;
         double[] lastingEl = parts == null ? null : new double[ELEMENTS.length];
         JsonElement spellsEl = Rules.get().has("model") ? Rules.get().getAsJsonObject("model").get("spells") : null;
         // with the tree's cost changes and the spells not bought yet at this level (TreeModel)
@@ -525,13 +552,17 @@ public final class Damage {
                     sp.has("hits") ? sp.get("hits").getAsDouble() : 1);
             int idx = sp.has("index") ? sp.get("index").getAsInt() : 0;
             String nth = idx == 1 ? "1st" : idx == 2 ? "2nd" : idx == 3 ? "3rd" : "4th";
-            double cost = sp.has("cost") ? sp.get("cost").getAsDouble() : 30;
+            double baseCost = sp.has("cost") ? sp.get("cost").getAsDouble() : 30;
             // Intelligence cuts the base cost, then the raw cost IDs, then the % ones, at least 1
             // (WynnBuilder getSpellCost). The item data keeps a cut as a positive number (Wynntils
             // has "-15% 3rd Spell Cost" as 15), so a cost ID takes off what it says
-            cost = (cost * (1 - intReduction) - stat(s, "raw" + nth + "SpellCost"))
+            double cost = (baseCost * (1 - intReduction) - stat(s, "raw" + nth + "SpellCost"))
                     * (1 - stat(s, nth + "SpellCost") / 100.0);
             cost = Math.max(1, cost);
+            // what the build takes off this spell's cost (below 0 when an ID raises it), counted
+            // by its share: a cut on a spell you do not cast counts nothing
+            cutSum += share * (1 - cost / Math.max(1, baseCost));
+            cutShare += share;
             double duration = sp.has("duration") ? sp.get("duration").getAsDouble() : 0;
             boolean lasting = ClassProfiles.lasting(sp) && duration > 0;
             if (parts != null) {
@@ -543,9 +574,6 @@ public final class Damage {
             }
             if (lasting) {
                 lastingDps += dmg * multiplier / duration;
-                // one cast per Totem (Double Totem: two up, two paid for), as its damage counts each
-                double per = sp.has("perCount") ? Math.max(1, sp.get("perCount").getAsDouble()) : 1;
-                upkeepPer5 += cost * per * 5.0 / duration;
                 if (el != null) {
                     for (int i = 0; i < el.length; i++) {
                         lastingEl[i] += el[i] * multiplier / duration;
@@ -559,18 +587,17 @@ public final class Damage {
                 }
             }
             dmgSum += share * dmg * multiplier;
-            costSum += share * cost;
             shareSum += share;
         }
         double dmgPerCast = shareSum > 0 ? dmgSum / shareSum : 0;
-        double avgCost = shareSum > 0 ? costSum / shareSum : 30;
-        // mana steal counts whole, as WynnBuilder does: its value comes back every 3 seconds
-        double manaPer5 = baseManaPer5() + stat(s, "manaRegen") + stat(s, "manaSteal") * 5.0 / 3.0 - upkeepPer5;
-        // Over a fight of fightSeconds you spend your mana pool plus what comes back
-        double fight = model("fightSeconds", 30);
-        double pool = manaPool(s, intel);
-        double casts = Math.max(0, Math.min(model("maxCastsPer5s", 4),
-                (pool + manaPer5 * fight / 5.0) / avgCost / (fight / 5.0)));
+        // Spells are cast at a fixed rate (rules.model.maxCastsPer5s): no mana is simulated, so
+        // the spell damage does not hang on a guess of how a fight goes. Mana is its own part of
+        // the score below, from the build's stats alone
+        double casts = Math.max(0, model("maxCastsPer5s", 4));
+        // mana back every 5 s: the base and the tree's nodes, Mana Regen (per 5 s) and Mana Steal
+        // counted whole, as WynnBuilder does (its value comes back every 3 s)
+        double manaPer5 = baseManaPer5() + stat(s, "manaRegen") + stat(s, "manaSteal") * 5.0 / 3.0;
+        double costCut = cutShare > 0 ? cutSum / cutShare : 0;
         double spellDps = dmgPerCast * casts / 5.0;
 
         // Main attack: per hit times hits per second from the weapon's tier plus Attack Speed IDs
@@ -654,8 +681,11 @@ public final class Damage {
         // damage is not bought with paper armour: the skill points, the road map and the build
         // plan all see it, as it is part of the score
         fLife *= floorFactor(ehpElemental, ehpFloor(level));
-        // Mana comfort: being able to keep casting is worth more than the DPS number shows
-        double fMana = Math.max(0.3, 1 + model("manaWeight", 0.3) * Math.log(Math.max(0.2, casts)));
+        // Mana, from the stats alone: the mana back every 5 s over the game's base 25, divided by
+        // what is left of the spells' cost; no time and no fight are simulated. A build with no
+        // mana stats and no Intelligence is 1; +25 mana every 5 s (or half the cost off) is 2,
+        // worth manaWeight × ln 2 (+21 % at 0.3, the Mana chip triples the weight)
+        double fMana = manaFactor(manaPer5, costCut);
         // A role besides damage (the Tank and Healer goals): heals in every class are a share of
         // the caster's max health, raised by Healing Efficiency, once per cast; damage then counts
         // less (damageWeight below 1), so a tank or healer is not judged as a damage dealer
@@ -675,7 +705,7 @@ public final class Damage {
                     Math.max(1, health), summonList));
         }
         return new Result(objective, spellDps, mainDps, casts, ehp, xp, speed, dmgPerCast,
-                new double[] {totalNoFeel, fLife, fMana, fSpeed, fXp, feelFactor}, ehpElemental, Math.max(1, health),
+                new double[] {totalNoFeel, fLife, fMana, fSpeed, fXp, feelFactor, manaPer5, costCut}, ehpElemental, Math.max(1, health),
                 pieces, weapon);
     }
 
@@ -734,7 +764,9 @@ public final class Damage {
         o.addProperty("spellDps", Math.round(r.spellDps() * 10) / 10.0);
         o.addProperty("mainAttackDps", Math.round(r.mainDps() * 10) / 10.0);
         o.addProperty("damagePerCast", Math.round(r.dmgPerCast()));
-        o.addProperty("castsPer5s", Math.round(r.casts() * 100) / 100.0);
+        // the mana stats the mana part is made of (no cast rate: no mana is simulated)
+        o.addProperty("manaPer5s", Math.round(r.manaPer5() * 10) / 10.0);
+        o.addProperty("spellCostCutPercent", Math.round(r.costCut() * 1000) / 10.0);
         o.addProperty("health", Math.round(r.health()));
         o.addProperty("effectiveHealth", Math.round(r.ehp()));
         o.addProperty("effectiveHealthElemental", Math.round(r.ehpElemental()));

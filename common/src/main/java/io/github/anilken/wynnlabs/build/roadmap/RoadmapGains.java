@@ -271,7 +271,7 @@ final class RoadmapGains {
     /**
      * Why build {@code b} beats {@code a}, biggest change first, at most {@link Roadmap#WHY_LINES}
      * lines in the game's language (the {@link #explain} lines plus attack speed): spell damage,
-     * main attack, effective health, casts, walk speed, XP, attack speed; a change of skill
+     * main attack, effective health, mana, walk speed, XP, attack speed; a change of skill
      * points (or a respec) always gets the last line when there is one. No XP line at the level
      * cap, where the model gives XP no weight.
      */
@@ -282,10 +282,10 @@ final class RoadmapGains {
         rel(lines, L.t("wynnlabs.road.spell_damage"), x.spellDps(), y.spellDps());
         rel(lines, L.t("wynnlabs.road.main_attack"), x.mainDps(), y.mainDps());
         rel(lines, L.t("wynnlabs.road.effective_health"), x.ehp(), y.ehp());
-        if (Math.abs(y.casts() - x.casts()) >= 0.05 && x.casts() > 0) {
-            lines.add(new Object[] {Math.abs(y.casts() / x.casts() - 1), L.t("wynnlabs.road.casts",
-                    String.format(java.util.Locale.ROOT, "%.1f", x.casts()),
-                    String.format(java.util.Locale.ROOT, "%.1f", y.casts()))});
+        double mx = mana(x);
+        double my = mana(y);
+        if (mx > 0 && Math.abs(my / mx - 1) >= 0.01) {
+            lines.add(new Object[] {Math.abs(my / mx - 1), manaLine(mx, my)});
         }
         if (Math.round(y.speed()) != Math.round(x.speed())) {
             lines.add(new Object[] {Math.abs(y.speed() - x.speed()) / 100.0 * Rules.sub("model", "speedWeight", 0.3),
@@ -320,6 +320,17 @@ final class RoadmapGains {
         return out;
     }
 
+    /** The mana part of a build's score (Damage.FACTORS), 0 when unknown. */
+    private static double mana(Damage.Result r) {
+        return r.factors().length > 2 ? r.factors()[2] : 0;
+    }
+
+    /** "Mana: ×1.12 → ×1.25". */
+    private static String manaLine(double from, double to) {
+        return L.t("wynnlabs.road.mana", String.format(java.util.Locale.ROOT, "×%.2f", from),
+                String.format(java.util.Locale.ROOT, "×%.2f", to));
+    }
+
     /** A "name: from → to (±n %)" line weighted by its relative change; none under 2 %. */
     private static void rel(List<Object[]> lines, String name, double from, double to) {
         if (from <= 0 || Math.abs(to / from - 1) < 0.02) {
@@ -338,9 +349,8 @@ final class RoadmapGains {
         line(out, L.t("wynnlabs.road.spell_damage"), x.spellDps(), y.spellDps(), "", true);
         line(out, L.t("wynnlabs.road.main_attack"), x.mainDps(), y.mainDps(), "", true);
         line(out, L.t("wynnlabs.road.effective_health"), x.ehp(), y.ehp(), "", true);
-        if (Math.abs(y.casts() - x.casts()) >= 0.05) {
-            out.add(L.t("wynnlabs.road.casts", String.format(java.util.Locale.ROOT, "%.1f", x.casts()),
-                    String.format(java.util.Locale.ROOT, "%.1f", y.casts())));
+        if (Math.abs(mana(y) - mana(x)) >= 0.01) {
+            out.add(manaLine(mana(x), mana(y)));
         }
         if (Math.round(y.speed()) != Math.round(x.speed())) {
             out.add(L.t("wynnlabs.road.walk_speed", signed(x.speed()), signed(y.speed())));

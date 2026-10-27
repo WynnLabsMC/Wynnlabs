@@ -119,37 +119,4 @@ class SummonsCountedOnceTest {
         assertEquals(puppets + totem.perCast() / totem.duration(), with.summonTotal(), 1e-6 * with.summonTotal(),
                 "summons = the tree's puppets + the Totem's ticks, each once");
     }
-
-    /** The plan's casts per 5 s as a Lv 44 Summoner without Double and Triple Totem, {@code extra} taken. */
-    private static double castsWith(List<AbilityNode> nodes, List<String> extra) throws IOException {
-        List<String> have = new java.util.ArrayList<>(TreeModelTest.summonerAt44(nodes));
-        have.removeAll(List.of("Double Totem", "Triple Totem"));     // the Lv 44 plan has Double Totem
-        have.addAll(extra);
-        FixtureState.load(shaman44()).withTree(nodes, have).install("en");
-        JsonObject tree = new JsonObject();
-        tree.addProperty("archetype", "Summoner");
-        JsonObject pick = new JsonObject();
-        pick.add("tree", tree);
-        Rules.update(pick);
-        Rules.update(ClassProfiles.rulesFor("Summoner", false));
-        Build.Plan plan = Build.compute();
-        Build.use(plan);
-        double casts = plan.currentDetail(null, null).result().casts();
-        FixtureState.uninstall();
-        return casts;
-    }
-
-    @Test
-    void everyTotemUpIsPaidFor() throws IOException {
-        // Double and Triple Totem change no mana cost, but two and three Totems stand: each one's
-        // mana comes back once per duration, so fewer casts are left for the rest
-        List<AbilityNode> nodes = TreeModelTest.tree("shaman");
-        double one = castsWith(nodes, List.of("Aura"));
-        double two = castsWith(nodes, List.of("Aura", "Double Totem"));
-        double three = castsWith(nodes, List.of("Aura", "Double Totem", "Triple Totem"));
-        assertTrue(one > 0, "casts at all");
-        assertTrue(two < one, "two Totems cost more than one: " + one + " → " + two);
-        assertTrue(three < two, "three Totems cost more than two: " + two + " → " + three);
-        assertEquals(one - two, two - three, (one - two) * 1e-6, "one Totem's upkeep each");
-    }
 }

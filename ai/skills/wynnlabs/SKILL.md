@@ -27,7 +27,7 @@ curl -s http://127.0.0.1:47591/            # every endpoint with one line each
 | `/character` | skill points per skill: assigned, from gear, total |
 | `/abilities` | ability points, unlocked nodes, the class's whole tree |
 | `/build` | the best build from worn and carried gear, with skill points |
-| `/damage` | damage per cast by the model against the measured one, where the DPS comes from (spells, main attack, summons, per element), what +10 of each stat would add, the live DPS meter |
+| `/damage` | damage per cast by the model against the measured one, where the DPS comes from (spells, main attack, summons, per element), what +10 of each stat (and +1 mana regen, -10% spell cost) would add to DPS and to the build score, the live DPS meter |
 | `/roadmap` | upgrades ahead by level, ability nodes, places to level |
 | `/shopping` | best gear per slot to buy or hunt for the level and build |
 | `/quests` | tracked quest and the quest book with status and requirements |
