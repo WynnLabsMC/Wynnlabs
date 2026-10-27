@@ -64,6 +64,31 @@ class PanelOptionsTest {
         assertTrue(panels > 0, "some panels");
     }
 
+    /**
+     * Every row that names a piece to get opens its panel: a set's pieces too, also when the
+     * build is not wearable halfway through the set (the left column of the large Home could
+     * not be clicked: its armour came from a set and had no options).
+     */
+    @Test
+    void everyPickHasItsPanel() throws Exception {
+        FixtureState.load(shaman()).install("en");
+        List<String> without = new java.util.ArrayList<>();
+        int rows = 0;
+        for (Roadmap.Step s : Roadmap.build()) {
+            for (Roadmap.Gear g : s.gear()) {
+                if (Roadmap.isPowder(g) || Roadmap.fromBag(g)) {
+                    continue;
+                }
+                rows++;
+                if (g.options() == null || g.options().isEmpty()) {
+                    without.add("Lv " + s.level() + " " + g.slot() + " " + g.info().name());
+                }
+            }
+        }
+        assertTrue(rows > 0, "some rows");
+        assertTrue(without.isEmpty(), "rows without a panel: " + without);
+    }
+
     @Test
     void sourcesReadForPeople() throws Exception {
         FixtureState.load(shaman()).install("en");

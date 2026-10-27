@@ -97,7 +97,8 @@ final class RoadmapRows {
 
     /** Puts {@code pick} (as {@code piece}) into a build slot and makes the row it shows (the pick that held it, or a new one). */
     static void swapRow(Map<String, Damage.Piece> build, Map<String, String> placed, List<Gear> gear,
-            Map<Slot, List<ItemData>> pools, String slot, Slot t, ItemData pick, Damage.Piece piece, Build.Eval after, double gain, int m, int earned) {
+            Map<Slot, List<ItemData>> pools, String slot, Slot t, ItemData pick, Damage.Piece piece, Build.Eval after, double gain, int m, int earned,
+            Map<String, Damage.Piece> start, Map<String, Damage.Piece> set) {
         Build.Eval before = Build.allocate(build, m, earned);
         String name = null;
         for (var pe : placed.entrySet()) {
@@ -114,16 +115,34 @@ final class RoadmapRows {
         // the comparison panel: the pick, then the slot's best others with their prices, weaker
         // ones too, so a cheaper piece is one click away with what it costs you
         List<Option> options = new ArrayList<>();
+        // halfway through a set the pick may not be wearable yet (its skill points need the
+        // rest of the set): the slot's choices are then judged in the set the milestone started
+        // from, the pick alone there or else as the whole set it comes with, so its row still
+        // opens the panel
+        Map<String, Damage.Piece> base = build;
+        if (first == null && start != null) {
+            Build.Eval from = Build.allocate(start, m, earned);
+            if (from != null) {
+                base = start;
+                before = from;
+                first = option(pick, piece, slot, start, from, m, earned);
+                if (first == null && set != null) {
+                    first = setOption(pick, gain, from, Build.allocate(set, m, earned));
+                }
+            }
+        }
         if (first != null) {
             options.add(first);
+            Map<String, Damage.Piece> judgeIn = base;
+            Build.Eval judgeFrom = before;
             List<ItemData> pool = t != null && t.isWeapon() ? SetJudge.weaponPool(pools) : pools.get(t);
             // the pool is ranked: only its best and the Trade Market's best are judged (all
             // forty took most of a map that the beam cache had otherwise made quick)
             List<ItemData> ranked = (pool == null ? List.<ItemData>of() : pool).stream()
                     .filter(info -> info != pick && !info.name().equals(pick.name()) && info.requirements().level() <= m
-                            && CandidateRules.panelAllows(info, m) && Exclusive.clash(build, slot, Exclusive.group(info)) == null)
+                            && CandidateRules.panelAllows(info, m) && Exclusive.clash(judgeIn, slot, Exclusive.group(info)) == null)
                     .toList();
-            options.addAll(PanelOptions.others(ranked, info -> option(info, slot, build, before, m, earned), m));
+            options.addAll(PanelOptions.others(ranked, info -> option(info, slot, judgeIn, judgeFrom, m, earned), m));
         }
         String src = ShoppingSources.sourceOf(pick);
         List<String> detail = new ArrayList<>();
@@ -176,8 +195,29 @@ final class RoadmapRows {
             Build.Eval after = SetJudge.fullEval(build, slot, want, m, earned);
             double gain = before == null || after == null ? Double.NaN
                     : (SetJudge.judged(after, prev, m) / SetJudge.judged(before, prev, m) - 1) * 100;
-            swapRow(build, placed, gear, pools, slot, t, info, want, after, Double.isNaN(gain) ? 0 : gain, m, earned);
+            swapRow(build, placed, gear, pools, slot, t, info, want, after, Double.isNaN(gain) ? 0 : gain, m, earned, start, chosen);
         }
+    }
+
+    /**
+     * The pick of a set that is not wearable on its own, as the panel's first choice: its row's
+     * gain, and the set's numbers against the set the milestone started from; null without them.
+     */
+    private static Option setOption(ItemData pick, double gain, Build.Eval from, Build.Eval set) {
+        if (set == null || from.result().objective() <= 0) {
+            return null;
+        }
+        double[] a = from.result().factors();
+        double[] b = set.result().factors();
+        double[] pct = new double[Math.min(a.length, b.length)];
+        for (int i = 0; i < pct.length; i++) {
+            pct[i] = a[i] > 0 ? (b[i] / a[i] - 1) * 100 : 0;
+        }
+        String pr = Prices.buyText(pick.name());
+        String price = pr == null ? null : pr.contains(" (") ? pr.substring(0, pr.indexOf(" (")) : pr;
+        String src = ShoppingSources.sourceOf(pick);
+        return new Option(pick, gain, price, src == null ? "?" : ShoppingSources.where(src), Cautions.of(pick), "", false, pct,
+                from.result(), set.result());
     }
 
     /** A row that powders a piece you have rather than naming a piece to get. */
