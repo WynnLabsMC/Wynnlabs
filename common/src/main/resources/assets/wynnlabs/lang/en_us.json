@@ -2134,6 +2134,7 @@
   "wynnlabs.home.stale_click": "Click: refresh",
   "wynnlabs.results.quest_reward": "Quest reward",
   "wynnlabs.results.untradable": "Untradable",
+  "wynnlabs.results.unknown_have": "Source unknown · You have it",
   "wynnlabs.homev.slot_missing": "Missing · %s",
   "wynnlabs.homev.plan_remove": "Remove plan",
   "wynnlabs.homev.plan_remove_tip": "Back to the suggestions; your chosen items, strip and saved builds stay",

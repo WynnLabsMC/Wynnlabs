@@ -219,6 +219,7 @@ public final class Shopping {
         }
 
         Map<Slot, List<Pick>> perType = new HashMap<>();
+        java.util.Set<String> owned = Roadmap.ownedCounts(GameState.current()).keySet();
         GameState.current().allGear().forEach(info -> {
             Slot t = info.slot();
             if (!current.containsKey(t)) {
@@ -258,7 +259,8 @@ public final class Shopping {
                 return;
             }
             String source = source(info);
-            if (source == null || excluded(info, badSources)) {
+            // no known source: only what you have, or what the Trade Market prices
+            if (source == null || excluded(info, badSources) && !(owned.contains(info.name()) && unknownSource(info))) {
                 return;
             }
             // a quest it asks for that is not done yet and is above you: not a buy for now
@@ -325,7 +327,6 @@ public final class Shopping {
         List<Pick> all = new ArrayList<>();
         Map<String, Pick> names = new HashMap<>();
         boolean preferMarket = Rules.sub("shopping", "preferTradeMarket", 1) > 0;
-        java.util.Set<String> owned = Roadmap.ownedCounts(GameState.current()).keySet();
         double effort = Rules.sub("shopping", "untradableEffortPercent", 5);
         for (Slot t : slots) {
             List<Pick> sorted = new ArrayList<>(perType.getOrDefault(t, List.of()));
@@ -405,6 +406,17 @@ public final class Shopping {
         return o;
     }
 
+    /** No database or player report says where this piece comes from. */
+    public static boolean unknownSource(ItemData info) {
+        return origin(info).startsWith("UNKNOWN");
+    }
+
+    /** A tradable piece the Trade Market has a price for, listed now or seen before. */
+    static boolean priced(ItemData info) {
+        Prices.Price p = tradable(info) ? GameState.current().price(info.name()) : null;
+        return p != null && p.buyPrice() != null;
+    }
+
     /** A tradable piece with listings on the Trade Market now (its price is not only history). */
     static boolean listed(ItemData info) {
         if (!tradable(info)) {
@@ -436,10 +448,14 @@ public final class Shopping {
     /**
      * Whether rules.shopping.excludeSources keeps this piece off the list: its world source starts
      * with an entry. "EVENT" is the seasonal events only; world events (WORLD_EVENT) can be done
-     * any time and are never hidden by it.
+     * any time and are never hidden by it. A piece with no known source at all is left out too,
+     * unless the Trade Market has a price for it (then it can be bought); callers keep what you have.
      */
     public static boolean excluded(ItemData info, List<String> bad) {
         String o = origin(info);
+        if (o.startsWith("UNKNOWN") && !priced(info)) {
+            return true;
+        }
         for (String b : bad) {
             if (o.startsWith(b)) {
                 return true;

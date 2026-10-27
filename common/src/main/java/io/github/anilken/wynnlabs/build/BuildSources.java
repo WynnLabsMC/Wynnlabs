@@ -47,6 +47,12 @@ public final class BuildSources {
         return out;
     }
 
+    /** Forgets what was worn and had, so the next ask reads them again (a test's new game). */
+    static void forgetReads() {
+        wornAt = 0;
+        haveAt = 0;
+    }
+
     /** The item database's piece of this name (looked up once). */
     private static final Map<String, java.util.Optional<ItemData>> INFO = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -166,7 +172,7 @@ public final class BuildSources {
     /**
      * Where a piece comes from: {text, Trade Market price (null when none)}: this week's raid
      * pool, else its Trade Market price, a quest, its merchant, chest or drop; with no known
-     * source, a quest item as a quest reward, an untradable piece as such, a tradable one as
+     * source, a quest item as a quest reward, one you have as such, an untradable piece as such, a tradable one as
      * the Trade Market with no price; "price unknown" only when nothing is known.
      */
     public static Object[] source(String name) {
@@ -195,6 +201,10 @@ public final class BuildSources {
         }
         if ("QUEST_ITEM".equals(info.restriction())) {
             return new Object[] {L.t("wynnlabs.results.quest_reward"), null};
+        }
+        if (haveNames().contains(name) || worn().containsValue(name)) {
+            // kept because you have it: nothing says where another one comes from
+            return new Object[] {L.t("wynnlabs.results.unknown_have"), null};
         }
         if (!tradable) {
             return new Object[] {L.t("wynnlabs.results.untradable"), null};

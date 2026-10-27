@@ -2134,6 +2134,7 @@
   "wynnlabs.home.stale_click": "Tık: yenile",
   "wynnlabs.results.quest_reward": "Görev ödülü",
   "wynnlabs.results.untradable": "Takas edilemez",
+  "wynnlabs.results.unknown_have": "Kaynağı bilinmiyor · Sende var",
   "wynnlabs.homev.slot_missing": "Eksik · %s",
   "wynnlabs.homev.plan_remove": "Planı kaldır",
   "wynnlabs.homev.plan_remove_tip": "Önerilere dön; seçtiğin eşyalar, ayarlar ve kayıtlı build'ler kalır",

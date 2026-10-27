@@ -431,8 +431,20 @@ public final class Wyn {
         return guard(Feature.GEAR_DB, () -> Models.Gear.getPossibleGears(box), List.of());
     }
 
+    /**
+     * Where a piece comes from. The crowd-sourced sources go by the item's API name, so a piece
+     * renamed in game (Ornate Shadow Cloak, "Ornate Shadow Garb" in the API) is looked up by
+     * that name too when its display name finds none.
+     */
     static List<ItemObtainInfo> obtainInfo(GearInfo info) {
-        return guard(Feature.GEAR_DB, () -> Models.Gear.getObtainInfo(info), List.of());
+        return guard(Feature.GEAR_DB, () -> {
+            List<ItemObtainInfo> out = Models.Gear.getObtainInfo(info);
+            String api = info.metaInfo().apiName().orElse(null);
+            if (out.isEmpty() && api != null && !api.equals(info.name())) {
+                return Models.WynnItem.getObtainInfo(api);
+            }
+            return out;
+        }, List.of());
     }
 
     // ---- skill points ----
