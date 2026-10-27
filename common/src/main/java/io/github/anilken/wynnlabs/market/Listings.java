@@ -35,6 +35,11 @@ public final class Listings {
 
         /** Asks for one page; true when it will be fetched (queued now or already waiting). */
         boolean queue(String name, int page);
+
+        /** Page 1 again although it just came back empty: "Refresh" was pressed. */
+        default boolean queueFresh(String name) {
+            return queue(name, 1);
+        }
     }
 
     /** One answer read: its listings (this item only, no shinies), the total and whether more pages exist. */
@@ -99,7 +104,12 @@ public final class Listings {
 
         @Override
         public boolean queue(String name, int page) {
-            return Prices.queueListings(name, page);
+            return Prices.queueListings(name, page, false);
+        }
+
+        @Override
+        public boolean queueFresh(String name) {
+            return Prices.queueListings(name, 1, true);
         }
     };
 
@@ -413,7 +423,7 @@ public final class Listings {
         }
         boolean live = sender.live();
         for (String n : order) {
-            if (!live || !sender.queue(n, 1)) {
+            if (!live || !sender.queueFresh(n)) {
                 synchronized (ITEMS) {
                     if (r.pending.remove(n)) {
                         r.done++;

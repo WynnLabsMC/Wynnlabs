@@ -317,8 +317,10 @@ final class SearchResultsPanel extends MenuPaint {
         StringBuilder b = new StringBuilder();
         for (int i = 0; i < key.length(); i++) {
             char c = key.charAt(i);
-            if (Character.isUpperCase(c) && i > 0 && !Character.isUpperCase(key.charAt(i - 1))) {
-                b.append(' ');
+            char prev = i > 0 ? key.charAt(i - 1) : ' ';
+            if (i > 0 && (Character.isUpperCase(c) && !Character.isUpperCase(prev)
+                    || Character.isDigit(c) && Character.isLetter(prev))) {
+                b.append(' ');              // "raw1stSpellCost" → "Raw 1st spell cost"
             }
             b.append(Character.toLowerCase(c));
         }

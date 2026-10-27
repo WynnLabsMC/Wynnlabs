@@ -165,37 +165,28 @@ final class CraftDrawers extends CraftPanel {
 
     // ---- the picker ----
 
-    private int picker(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
-        CraftData.Recipe r = tab.recipe();
-        int lv = tab.level(r.profession());
-        List<Ingredient> lay = tab.layout();
-        int slotEff = Craft.effectiveness(lay)[slot];
-        String q = tab.pickSearch.getValue().strip().toLowerCase(Locale.ROOT);
-        CraftSearch.Goal goal = tab.goal();
-        int cy = y;
-        String main = tab.weights.isEmpty() ? null : tab.statName(tab.weights.keySet().iterator().next());
-        Type.META.draw(g, tab.font, Type.META.fit(tab.font, L.t("wynnlabs.craft.picker_sub", main == null ? "—" : main, pct(slotEff)), w),
-                x, cy, Theme.INK_3);
-        cy += Type.META.lineHeight + Theme.SP_3;
-        UiInput.Hit hit = UiInput.search(g, tab.font, tab.pickSearch, L.t("wynnlabs.craft.search_hint"), false, x, cy, w, mx, my);
-        act(x, cy, w, UiInput.H, () -> UiInput.focus(tab.pickSearch, tab.screen::setFocused), null);
-        if (hit.clear() != null) {
-            int[] c = hit.clear();
-            act(c[0], c[1], c[2], c[3], () -> tab.pickSearch.setValue(""), null);
+    private record Row(Ingredient ing, double gain, int own) {}
+
+    /** The rows the picker lists, made again only when what they come from changes (never per frame). */
+    private List<Row> pickRows = List.of();
+    private final Object[] pickFor = new Object[9];
+
+    private List<Row> rows(CraftData.Recipe r, int lv, int slotEff, String q, CraftSearch.Goal goal) {
+        Object[] k = pickFor;
+        if (k[0] == r && k[1] == tab.ingredients && k[2] == tab.stock && Integer.valueOf(slot).equals(k[3])
+                && Integer.valueOf(slotEff).equals(k[4]) && q.equals(k[5]) && Boolean.valueOf(ownedOnly).equals(k[6])
+                && goal.weights().equals(k[7]) && Integer.valueOf(lv).equals(k[8])) {
+            return pickRows;
         }
-        cy += UiInput.H + Theme.SP_3;
-        int cx = x;
-        for (int i = 0; i < 2; i++) {
-            String label = L.t(i == 0 ? "wynnlabs.craft.picker_all" : "wynnlabs.craft.picker_owned");
-            int cw = Ui.chipWidth(tab.font, label);
-            boolean on = (i == 1) == ownedOnly;
-            Ui.chip(g, tab.font, label, cx, cy, cw, on, false, false, mx, my);
-            boolean owned = i == 1;
-            act(cx, cy, cw, Ui.CHIP_H, () -> ownedOnly = owned, null);
-            cx += cw + Theme.SP_2;
-        }
-        cy += Ui.CHIP_H + Theme.SP_4;
-        record Row(Ingredient ing, double gain, int own) {}
+        k[0] = r;
+        k[1] = tab.ingredients;
+        k[2] = tab.stock;
+        k[3] = slot;
+        k[4] = slotEff;
+        k[5] = q;
+        k[6] = ownedOnly;
+        k[7] = new java.util.HashMap<>(goal.weights());
+        k[8] = lv;
         List<Row> rows = new ArrayList<>();
         for (Ingredient i : tab.ingredients) {
             if (!i.usableBy(r.profession()) || i.level() > r.maxLevel()) {
@@ -226,11 +217,62 @@ final class CraftDrawers extends CraftPanel {
             int c = Double.compare(b.gain(), a.gain());
             return c != 0 ? c : a.ing().name().compareTo(b.ing().name());
         });
+        pickRows = rows;
+        return rows;
+    }
+
+    /** The picker's last drawing time and its rows' place {x, y, w} (the preview's hover check reads them). */
+    static long pickerNanos;
+    static final int[] PICKER_ROWS = new int[3];
+
+    private int picker(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
+        long t0 = System.nanoTime();
+        try {
+            return pickerBody(g, x, y, w, top, bottom, mx, my);
+        } finally {
+            pickerNanos = System.nanoTime() - t0;
+        }
+    }
+
+    private int pickerBody(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
+        CraftData.Recipe r = tab.recipe();
+        int lv = tab.level(r.profession());
+        List<Ingredient> lay = tab.layout();
+        int slotEff = Craft.effectiveness(lay)[slot];
+        String q = tab.pickSearch.getValue().strip().toLowerCase(Locale.ROOT);
+        CraftSearch.Goal goal = tab.goal();
+        int cy = y;
+        String main = tab.weights.isEmpty() ? null : tab.statName(tab.weights.keySet().iterator().next());
+        Type.META.draw(g, tab.font, Type.META.fit(tab.font, L.t("wynnlabs.craft.picker_sub", main == null ? "—" : main, pct(slotEff)), w),
+                x, cy, Theme.INK_3);
+        cy += Type.META.lineHeight + Theme.SP_3;
+        UiInput.Hit hit = UiInput.search(g, tab.font, tab.pickSearch, L.t("wynnlabs.craft.search_hint"), false, x, cy, w, mx, my);
+        act(x, cy, w, UiInput.H, () -> UiInput.focus(tab.pickSearch, tab.screen::setFocused), null);
+        if (hit.clear() != null) {
+            int[] c = hit.clear();
+            act(c[0], c[1], c[2], c[3], () -> tab.pickSearch.setValue(""), null);
+        }
+        cy += UiInput.H + Theme.SP_3;
+        int cx = x;
+        for (int i = 0; i < 2; i++) {
+            String label = L.t(i == 0 ? "wynnlabs.craft.picker_all" : "wynnlabs.craft.picker_owned");
+            int cw = Ui.chipWidth(tab.font, label);
+            boolean on = (i == 1) == ownedOnly;
+            Ui.chip(g, tab.font, label, cx, cy, cw, on, false, false, mx, my);
+            boolean owned = i == 1;
+            act(cx, cy, cw, Ui.CHIP_H, () -> ownedOnly = owned, null);
+            cx += cw + Theme.SP_2;
+        }
+        cy += Ui.CHIP_H + Theme.SP_4;
+        List<Row> rows = rows(r, lv, slotEff, q, goal);
         if (rows.isEmpty()) {
             Type.MUTED.draw(g, tab.font, L.t("wynnlabs.craft.picker_empty"), x, cy, Theme.INK_3);
             return cy + Type.MUTED.lineHeight - y;
         }
         int rowH = Type.BODY.lineHeight + Type.META.lineHeight;
+        PICKER_ROWS[0] = x;
+        PICKER_ROWS[1] = cy;
+        PICKER_ROWS[2] = w;
         for (Row row : rows) {
             if (cy + rowH > top && cy < bottom) {
                 pickRow(g, row.ing(), row.gain(), row.own(), lv, lay, x, cy, w, rowH, mx, my);

@@ -24,8 +24,10 @@ public final class BoxVerdict {
      * "untradable"), null when no route was weighed. {@code value}: what it fetches revealed and
      * listed unidentified (the mean over its priced outcomes), null when unknown. {@code costLow}
      * .. {@code costHigh}: the fee to reveal or identify. {@code note}: the tooltip's line.
+     * {@code priced} of {@code outcomes}: how many of the box's items have a price (how sure the value is).
      */
-    public record Result(Label label, String route, Double value, int costLow, int costHigh, String note) {
+    public record Result(Label label, String route, Double value, int costLow, int costHigh, String note, int priced,
+            int outcomes) {
 
         /** The chip's word in the player's language. */
         public String text() {
@@ -51,6 +53,11 @@ public final class BoxVerdict {
         }
     }
 
+    /** The Trade Market's fee the advice takes off a sale, in %. */
+    public static double marketFee() {
+        return SellAdvice.marketFee();
+    }
+
     /** The verdict for a box, as the tooltip has it, for the player's class and level. */
     public static Result of(ItemView.Box box, Klass cls, int level) {
         return from(BoxAdvice.decide(box, cls, level), box);
@@ -68,7 +75,7 @@ public final class BoxVerdict {
         int low = v.outcomes() == 0 ? top : v.costLow();
         int high = v.outcomes() == 0 ? top : v.costHigh();
         return new Result(label, c == null ? null : c.route().name().toLowerCase(Locale.ROOT), v.expected(), low, high,
-                d.entry().note());
+                d.entry().note(), v.priced(), v.outcomes());
     }
 
     /** The Item Identifier and the Trade Market's reveal open the box: "Tanımla"; the Blacksmith: "Sat". */

@@ -3,70 +3,96 @@ package io.github.anilken.wynnlabs.ui;
 import io.github.anilken.wynnlabs.advice.BoxVerdict;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Rules;
-import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.market.Listings;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
-import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Klass;
+import io.github.anilken.wynnlabs.search.BoxInsight;
 import io.github.anilken.wynnlabs.search.BoxMarket;
 
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
  * The box contents window: every item an unidentified gear box can hold, with what the Trade
  * Market lists for it now (Wynnventory's listings: count, prices, roll percentages); or, for any
- * other tradable item, that one item's listings across the whole window. Opened by
- * {@link BoxKey} over the container screen the item is in; Esc goes back to that screen, which
- * stays open behind it, and the window closes when the server closes the container. Information
- * only: nothing is clicked, identified or sent to the server. Requests go through the mod's one
- * Wynnventory worker ({@link Listings}); the rows are rebuilt when an answer arrives, never per frame.
+ * other tradable item, that one item's listings. A soft card over the container screen the item
+ * is in: the title row (the thing, when it was read, Search, Refresh, close), the summary card
+ * (the numbers, the verdict or your roll, the answer line), the filters, then two panes (possible
+ * items or stats | listings); a small window shows one pane at a time. Esc goes back to the
+ * container, which stays open behind it; Search opens over it and Esc there comes back here.
+ * Information only: nothing is clicked, identified, listed or sent to the server. Requests go
+ * through the mod's one Wynnventory worker ({@link Listings}); the rows are rebuilt when an answer
+ * arrives or a choice changes, never per frame.
  */
 public final class BoxScreen extends Screen {
 
-    /** One item instead of a box: its row, its own overall roll (null if none shown), and whether it is unidentified. */
-    record Single(BoxMarket.Item item, Float ownRoll, boolean unidentified) {}
+    /** One item instead of a box: its row, its own overall roll (null if none shown), unidentified, its own stat rolls. */
+    record Single(BoxMarket.Item item, Float ownRoll, boolean unidentified, List<BoxMarket.StatRoll> ownStats) {
+
+        Single(BoxMarket.Item item, Float ownRoll, boolean unidentified) {
+            this(item, ownRoll, unidentified, List.of());
+        }
+    }
 
     /** The box; null for one item. */
     final ItemView.Box box;
     /** The one item; null for a box. */
     final Single single;
-    /** The hovered stack, the one item's icon. */
-    private final net.minecraft.world.item.ItemStack singleIcon;
+    final net.minecraft.world.item.ItemStack singleIcon;
     private final Screen parent;
     /** "RELIK:LEGENDARY:70-80" or "item:Name": what a refresh is for. */
     private final String boxKey;
     final List<BoxMarket.Item> items;
     final BoxItemsPanel left = new BoxItemsPanel(this);
     final BoxListingsPanel right = new BoxListingsPanel(this);
+    final BoxBar bar = new BoxBar(this);
+    /** Your own rolls by stat key: the % for the arrows, the roll for the Stats view's chips. */
+    final Map<String, Double> own = new HashMap<>();
+    private final Map<String, BoxMarket.StatRoll> ownRolls = new HashMap<>();
 
     BoxMarket.Filter filter = BoxMarket.Filter.ALL;
     BoxMarket.Sort sort = BoxMarket.Sort.ROLL;
+    /** Only the items that add to your build. */
+    boolean buildOnly;
+    /** A small window's one-item view: 0 the listings, 1 the stats. */
+    int tab;
     /** The row shown on the right, by name. */
     String selected;
 
     List<BoxMarket.Row> rows = List.of();
-    private BoxMarket.Summary summary;
-    private BoxVerdict.Result verdict;
-    private String builtFor = "";
+    BoxMarket.Summary summary;
+    BoxVerdict.Result verdict;
+    BoxInsight.Identify identify;
+    /** "+N build" by item: the shopping list's gain for what fits your class and level (positive only). */
+    private final Map<String, Integer> gains = new HashMap<>();
+    /** What the rows were built for: the stores' versions and the choices (compared each frame, nothing built). */
+    private int builtListings = -1;
+    private int builtPrices = -1;
+    private Object[] builtChoices = new Object[6];
     private int verdictFor = -1;
+    /** Counts the rebuilds: what was made from the rows (the summary card) is made again when it moves. */
+    int generation;
+    /** Whether the window is small (one pane at a time), set each frame. */
+    boolean compact;
 
     /** This frame's click areas: {x, y, w, h} and what a click does. */
     record Hit(int x, int y, int w, int h, Runnable action) {}
 
-    final List<Hit> hits = new ArrayList<>();
+    private final List<Hit> hits = new ArrayList<>();
+    private List<Component> tip;
 
     public BoxScreen(ItemView.Box box, Screen parent) {
         super(Component.translatable("wynnlabs.box.title"));
@@ -75,7 +101,7 @@ public final class BoxScreen extends Screen {
         this.singleIcon = null;
         this.parent = parent;
         this.boxKey = box.slot().name() + ":" + box.tier().name() + ":" + box.low() + "-" + box.high();
-        this.items = items(box);
+        this.items = BoxBar.items(box);
         // the player's own class and level first: those are what they would look at first
         Klass cls = GameState.current().classType();
         int level = GameState.current().level();
@@ -102,24 +128,16 @@ public final class BoxScreen extends Screen {
         this.boxKey = "item:" + one.item().name();
         this.items = List.of(one.item());
         this.selected = one.item().name();
+        for (BoxMarket.StatRoll s : one.ownStats()) {
+            if (s.percent() != null) {
+                own.put(s.key(), s.percent());
+                ownRolls.put(s.key(), s);
+            }
+        }
         if (one.unidentified()) {
             filter = BoxMarket.Filter.UNID;
         }
         Listings.request(List.of(one.item().name()));
-    }
-
-    /** The box's possible items, as Wynntils lists them, each once. */
-    static List<BoxMarket.Item> items(ItemView.Box box) {
-        List<BoxMarket.Item> out = new ArrayList<>();
-        java.util.Set<String> seen = new java.util.HashSet<>();
-        for (ItemData d : GameState.current().possibleGears(box)) {
-            if (seen.add(d.name())) {
-                Klass k = d.requirements().klass().orElse(d.slot().klass());
-                out.add(new BoxMarket.Item(d.name(), d.slot(), d.tier(), d.level(), k, box.tier().identificationCost(d.level()),
-                        Shopping.tradable(d)));
-            }
-        }
-        return out;
     }
 
     @Override
@@ -130,20 +148,30 @@ public final class BoxScreen extends Screen {
         super.init();
     }
 
-    /** The rows again when an answer came, the filter or the sort changed, or the prices moved. */
+    /** The rows again when an answer came, a choice changed, or the prices moved. */
     private void rebuild() {
         boolean live = Listings.live();
         if (!rolled()) {
             filter = BoxMarket.Filter.ALL;
             sort = BoxMarket.Sort.PRICE;
         }
-        String key = Listings.version + "/" + Prices.version + "/" + filter + "/" + sort + "/" + live;
-        if (key.equals(builtFor)) {
+        Object[] c = builtChoices;
+        if (builtListings == Listings.version && builtPrices == Prices.version && c[0] == filter && c[1] == sort
+                && Boolean.valueOf(live).equals(c[2]) && Boolean.valueOf(buildOnly).equals(c[3]) && java.util.Objects.equals(c[4], selected)) {
             return;
         }
-        builtFor = key;
+        builtListings = Listings.version;
+        builtPrices = Prices.version;
+        c[0] = filter;
+        c[1] = sort;
+        c[2] = live;
+        c[3] = buildOnly;
+        c[4] = selected;
+        BoxChips.forget();
+        generation++;
         Map<String, BoxMarket.Held> held = new HashMap<>();
         Map<String, Double> past = new HashMap<>();
+        gains.clear();
         for (BoxMarket.Item it : items) {
             BoxMarket.Held h = Listings.held(it.name());
             if (h != null) {
@@ -153,14 +181,24 @@ public final class BoxScreen extends Screen {
             if (p != null && p.typical() != null) {
                 past.put(it.name(), p.typical());
             }
+            Shopping.Pick pick = Shopping.find(it.name());
+            if (pick != null && pick.gain() > 0) {
+                gains.put(it.name(), (int) Math.max(1, Math.round(pick.gain())));
+            }
         }
-        rows = BoxMarket.rows(items, held, past, live, filter, sort);
+        List<BoxMarket.Row> all = BoxMarket.rows(items, held, past, live, filter, sort);
+        if (buildOnly && box != null && !gains.isEmpty()) {
+            all = all.stream().filter(r -> gains.containsKey(r.name())).toList();
+        }
+        rows = all;
         if (box != null && (verdictFor != Prices.version || verdict == null)) {
             verdictFor = Prices.version;
             verdict = BoxVerdict.of(box, GameState.current().classType(), GameState.current().level());
+            identify = BoxInsight.identify(verdict.value(), verdict.priced(), verdict.outcomes(), verdict.costLow(), verdict.costHigh(),
+                    BoxVerdict.marketFee());
         }
         summary = BoxMarket.summary(rows, verdict == null ? null : verdict.value());
-        if (selected == null && !rows.isEmpty()) {
+        if ((selected == null || rows.stream().noneMatch(r -> r.name().equals(selected))) && !rows.isEmpty()) {
             selected = rows.get(0).name();
         }
     }
@@ -173,6 +211,26 @@ public final class BoxScreen extends Screen {
             }
         }
         return null;
+    }
+
+    /** "+N" for the item when it adds to your build, else 0. */
+    int gainOf(String name) {
+        return gains.getOrDefault(name, 0);
+    }
+
+    /** How many of the box's items add to your build. */
+    int fitting() {
+        return gains.size();
+    }
+
+    /** Your own roll of a stat as a listing's stat (the Stats view's chips); null when not shown. */
+    BoxMarket.StatRoll ownRoll(String key) {
+        return ownRolls.get(key);
+    }
+
+    /** "Unidentified Leggings": the box's own name (Search knows some of them). */
+    String boxName() {
+        return box == null ? single.item().name() : "Unidentified " + MenuPaint.nice(box.slot().name());
     }
 
     @Override
@@ -203,160 +261,121 @@ public final class BoxScreen extends Screen {
         MenuScale.render(this, g, mx, my, (x, y) -> draw(g, x, y, pt));
     }
 
-    private int[] closeRect;
-
     private void draw(GuiGraphics g, int mx, int my, float pt) {
+        long t0 = System.nanoTime();
         super.render(g, mx, my, pt);
         rebuild();
         hits.clear();
-        // a window over the container, not a second menu: about four fifths of the screen at most
-        int w = Math.min(width - 20, Math.max(360, Math.min(480, width * 4 / 5)));
-        int h = Math.min(height - 20, Math.max(220, Math.min(280, height * 4 / 5)));
-        int x = (width - w) / 2;
-        int y = (height - h) / 2;
-        Kit.window(g, x - 5, y - 5, w + 10, h + 10);
-        Kit.paper(g, x, y, w, h);
-        int[] cr = closeRect;
-        boolean closeHover = cr != null && mx >= cr[0] && mx < cr[0] + cr[2] && my >= cr[1] && my < cr[1] + cr[3];
-        closeRect = Kit.closeOutside(g, width, x, y, w, closeHover);
-        int in = x + 10;
-        int iw = w - 20;
-        header(g, in, y + 12, iw, mx, my);      // clear of the frame's top edge
-        if (single != null) {
-            right.singleChips(g, in, y + 28, single);
+        tip = null;
+        int ww = Math.min(width - 16, Math.max(340, Math.min(520, width * 4 / 5)));
+        int wh = Math.min(height - 16, Math.max(230, Math.min(330, height * 4 / 5)));
+        compact = ww < 420;
+        int wx = (width - ww) / 2;
+        int wy = (height - wh) / 2;
+        g.fill(0, 0, width, height, 0x55201810);
+        Kit.windowShadow(g, wx, wy, ww, wh);
+        g.fill(wx + 4, wy + 4, wx + ww - 4, wy + wh - 3, 0xFFEADCB4);
+        Kit.softCard(g, wx, wy, ww, wh);
+        // an open menu owns the mouse: the page is drawn with it away, the menu then with it
+        boolean popup = bar.menuOpen();
+        int pmx = popup ? -1 : mx;
+        int pmy = popup ? -1 : my;
+        int x = wx + Theme.SP_5;
+        int y = wy + Theme.SP_5;
+        int w = ww - 2 * Theme.SP_5;
+        int bottom = wy + wh - Theme.SP_5;
+        y = bar.title(g, x, y, w, pmx, pmy);
+        if (box != null && items.isEmpty()) {
+            UiEmpty.draw(g, font, x, y, w, bottom - y, compact, "box", L.t("wynnlabs.box.unread_title"),
+                    List.of(L.t("wynnlabs.box.unread_step1"), L.t("wynnlabs.box.unread_step2")), null, null, pmx, pmy);
         } else {
-            chips(g, in, y + 28, iw, mx, my);
+            y = page(g, x, y, w, bottom, pmx, pmy);
         }
-        filters(g, in, y + 46, iw, mx, my);
-        int top = rolled() ? y + 66 : y + 48;     // no rolls: no filter row, the list right under the chips
-        int bottom = y + h - 16;
-        Kit.hair(g, in, top - 4, iw, 1, Theme.LINE);
-        if (items.isEmpty()) {
-            // Wynntils' gear data is not in yet: say so, keep the fee
-            ink(g, fit(L.t("wynnlabs.box.unknown_contents"), iw), in, top + 4, Theme.INK_2);
-        } else if (single != null) {
-            // one item: its stats on the left (what the listings' rolls are out of), its listings on the right
-            int leftW = Math.max(150, Math.min(200, iw * 2 / 5));
-            BoxStatsPanel.draw(this, g, single.item().name(), in, top, leftW, bottom - top);
-            right.draw(g, in + leftW + 8, top, iw - leftW - 8, bottom - top, mx, my);
-        } else {
-            int leftW = Math.max(180, Math.min(260, iw * 2 / 5));
-            left.draw(g, in, top, leftW, bottom - top, mx, my);
-            right.draw(g, in + leftW + 8, top, iw - leftW - 8, bottom - top, mx, my);
+        if (popup) {
+            hits.clear();
+            tip = null;
+            g.nextStratum();
+            bar.drawMenu(g, mx, my);
         }
-        String foot = !Listings.live() ? L.t("wynnlabs.box.live_off")
-                : single != null ? L.t("wynnlabs.box.footer_item") : L.t("wynnlabs.box.footer");
-        // clear of the page's corner ornaments
-        small(g, fit(foot, (int) ((iw - 12) / MenuPaint.DESC_SCALE)), in + 6, y + h - 13, Listings.live() ? Theme.INK_3 : Theme.WARN);
+        if (tip != null) {
+            Glossary.draw(g, font, tip, mx, my, width);
+        }
+        drawNanos = System.nanoTime() - t0;
     }
 
-    /** Box name, tier, level range, class, fee; on the right the refresh button and its state. */
-    private void header(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        String refreshText = L.t("wynnlabs.box.refresh");
-        int bw = font.width(refreshText) + 12;
-        int bx = x + w - bw;
+    /** The last frame's drawing time and the last magnifier drawn {x, y, w, h}: what the preview checks. */
+    static long drawNanos;
+    final int[] searchRect = new int[4];
+
+    /** Under the title: the live-off notice, the summary card, the filters, the panes. */
+    private int page(GuiGraphics g, int x, int y, int w, int bottom, int mx, int my) {
+        if (!Listings.live()) {
+            int[][] hit = new int[1][];
+            y += Ui.notice(g, font, Ui.Level.WARNING, List.of(L.t("wynnlabs.box.off_notice")),
+                    new Ui.Action("settings", L.t("wynnlabs.box.off_action")), x, y, w, 40, mx, my, hit) + Theme.SP_4;
+            if (hit[0] != null) {
+                int[] a = hit[0];
+                hit(a[0], a[1], a[2], a[3], () -> minecraft.setScreen(RoadmapScreen.setting("priceApi", this)));
+            }
+        }
+        y += BoxSummary.draw(this, g, x, y, w, mx, my) + Theme.SP_4;
+        y = bar.filters(g, x, y, w, mx, my);
+        int gap = Theme.SP_5;
+        if (single != null) {
+            int lw = Math.max(150, Math.min(210, w * 2 / 5));
+            if (compact) {
+                if (tab == 1) {
+                    BoxStatsPanel.draw(this, g, single.item().name(), x, y, w, bottom - y);
+                } else {
+                    right.draw(g, x, y, w, bottom - y, mx, my);
+                }
+            } else {
+                BoxStatsPanel.draw(this, g, single.item().name(), x, y, lw - Theme.SP_2, bottom - y);
+                Kit.hair(g, x + lw + gap / 2 - 1, y, 1, bottom - y, 0x40A08A5A);
+                right.draw(g, x + lw + gap, y, w - lw - gap, bottom - y, mx, my);
+            }
+        } else if (compact) {
+            right.draw(g, x, y, w, bottom - y, mx, my);
+        } else {
+            int lw = Math.max(170, Math.min(250, w * 42 / 100));
+            left.draw(g, x, y, lw, bottom - y, mx, my);
+            Kit.hair(g, x + lw + gap / 2 - 1, y, 1, bottom - y, 0x40A08A5A);
+            right.draw(g, x + lw + gap, y, w - lw - gap, bottom - y, mx, my);
+        }
+        return bottom;
+    }
+
+    // ---- shared pieces ----
+
+    boolean canRefresh() {
         Listings.Refresh r = Listings.refreshOf(boxKey);
-        boolean live = Listings.live();
-        boolean running = r != null && r.running();
-        boolean hover = mx >= bx && mx < bx + bw && my >= y - 3 && my < y + 11;
-        int state = !live || running ? Kit.REST : hover ? Kit.HOVER : Kit.REST;
-        Kit.button(g, bx, y - 3, bw, 14, state);
-        g.drawString(font, refreshText, bx + 6, y, live && !running ? Kit.buttonText(state) : Theme.CREAM_DIM, live && !running);
-        if (live && !running) {
-            hits.add(new Hit(bx, y - 3, bw, 14, () -> Listings.refresh(boxKey, tradableNames(), selected)));
-        }
-        String status = running ? L.t("wynnlabs.box.refreshing", r.done(), r.total()) : updated(r);
-        int sw = status.isEmpty() ? 0 : font.width(status);
-        if (sw > 0) {
-            ink(g, status, bx - 6 - sw, y, running ? Theme.WARN : Theme.INK_3);
-        }
-        if (single != null) {
-            right.singleHeader(g, x, y, bx - 10 - sw - x, single, singleIcon);
-            return;
-        }
-        String name = "Unidentified " + MenuPaint.nice(box.slot().name());
-        String klass = items.isEmpty() || items.get(0).klass() == null || items.get(0).klass() == Klass.NONE ? ""
-                : " · " + MenuPaint.nice(items.get(0).klass().name());
-        int fee = verdict == null ? box.tier().identificationCost(box.high()) : -1;
-        String cost = fee >= 0 ? fee + " E"
-                : verdict.costLow() == verdict.costHigh() ? verdict.costLow() + " E" : verdict.costLow() + "-" + verdict.costHigh() + " E";
-        String rest = " · " + MenuPaint.nice(box.tier().name()) + " · Lv " + box.low() + "-" + box.high() + klass + " · "
-                + L.t("wynnlabs.box.identify_cost", cost);
-        int room = bx - 10 - sw - x;
-        String head = fit(name, room);
-        ink(g, head, x, y, HomePart.tierColour(box.tier()));
-        int nx = x + font.width(head);
-        ink(g, fit(rest, room - font.width(head)), nx, y, Theme.INK_2);
+        return Listings.live() && (r == null || !r.running());
     }
 
-    /** "Güncellendi 2 dk önce": the last refresh, else the newest answer among the box's items. */
-    private String updated(Listings.Refresh r) {
-        long t = r != null && !r.running() ? r.finishedAt() : 0;
-        if (t == 0) {
-            for (BoxMarket.Item it : items) {
-                t = Math.max(t, Listings.fetchedAt(it.name()));
-            }
-        }
-        return t <= 0 ? "" : L.t("wynnlabs.box.updated", MenuPaint.ago(t));
-    }
-
-    List<String> tradableNames() {
-        List<String> out = new ArrayList<>();
-        for (BoxMarket.Item it : items) {
-            if (it.tradable()) {
-                out.add(it.name());
-            }
-        }
-        return out;
-    }
-
-    /** The summary chips, then the filter and sort chips on the line under them. */
-    private void chips(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        int cx = x;
-        BoxMarket.Summary s = summary;
-        cx += chip(g, cx, y, L.t("wynnlabs.box.average", money(s == null ? null : s.average())), Theme.PLAQUE, Theme.INK) + 4;
-        cx += chip(g, cx, y, L.t("wynnlabs.box.best", money(s == null ? null : s.best())), Theme.PLAQUE, Theme.INK) + 4;
-        if (verdict != null) {
-            int fill = switch (verdict.label()) {
-                case IDENTIFY -> Theme.SEAL_2;
-                case SELL -> Theme.MARK_SELL;
-                case KEEP -> Theme.NEAR;
-            };
-            int vw = chip(g, cx, y, verdict.text(), fill, Theme.SEAL_TEXT);
-            if (mx >= cx && mx < cx + vw && my >= y && my < y + 14) {
-                // the route, what the word means and why this box got it
-                Glossary.draw(g, font, verdict.tipLines().stream().map(Glossary::grey).toList(), mx, my, width);
-            }
-            cx += vw + 4;
-        }
-        if (cx < x + w - 60) {
-            chip(g, cx, y, fit(L.t("wynnlabs.box.unidentified_value", money(s == null ? null : s.unidentified())), x + w - cx),
-                    Theme.PLAQUE, Theme.INK);
+    void refresh() {
+        if (canRefresh()) {
+            Listings.refresh(boxKey, items.stream().filter(BoxMarket.Item::tradable).map(BoxMarket.Item::name).toList(), selected);
         }
     }
 
-    /** Hepsi / Tanımlı / Tanımsız on the left, the sort on the right. */
-    private void filters(GuiGraphics g, int x, int fy, int w, int mx, int my) {
-        if (!rolled()) {
-            return;                             // an ingredient or material: no rolls, no identifying, sorted by price
-        }
-        int fx = x;
-        BoxMarket.Filter[] fs = BoxMarket.Filter.values();
-        for (BoxMarket.Filter f : fs) {
-            String label = L.t("wynnlabs.box.filter." + f.name().toLowerCase(Locale.ROOT));
-            fx += toggle(g, fx, fy, label, filter == f, mx, my, () -> filter = f) + 4;
-        }
-        String sortLabel = L.t(sort == BoxMarket.Sort.ROLL ? "wynnlabs.box.sort_roll" : "wynnlabs.box.sort_price");
-        int sw = font.width(sortLabel) + 12;
-        toggle(g, x + w - sw, fy, sortLabel, false, mx, my,
-                () -> sort = sort == BoxMarket.Sort.ROLL ? BoxMarket.Sort.PRICE : BoxMarket.Sort.ROLL);
+    Listings.Refresh refreshState() {
+        return Listings.refreshOf(boxKey);
     }
 
-    /**
-     * Whether this window's items have rolls: a box (gear), or one piece of gear. Ingredients,
-     * materials and the like sell without rolls, so their roll column, the identified filter and
-     * the roll sort are left out.
-     */
+    void hit(int x, int y, int w, int h, Runnable action) {
+        if (w > 0 && h > 0) {
+            hits.add(new Hit(x, y, w, h, action));
+        }
+    }
+
+    /** This frame's tooltip (the first one asked for wins). */
+    void tip(List<Component> lines) {
+        if (tip == null) {
+            tip = lines;
+        }
+    }
+
+    /** Whether the items have rolls (gear); ingredients and materials sell without, so no roll filter or sort. */
     boolean rolled() {
         if (single == null) {
             return true;
@@ -366,7 +385,7 @@ public final class BoxScreen extends Screen {
                 : single.item().slot() != io.github.anilken.wynnlabs.model.Slot.UNKNOWN;
     }
 
-    /** "72%" or "%72", as the language writes it. */
+    /** "72%" or "%72". */
     static String pct(Object v) {
         return L.t("wynnlabs.box.pct", v);
     }
@@ -376,62 +395,8 @@ public final class BoxScreen extends Screen {
         return v == null ? "?" : Prices.fmt(v);
     }
 
-    int chip(GuiGraphics g, int x, int y, String text, int fill, int ink) {
-        int cw = font.width(text) + 10;
-        Kit.seal(g, x, y, cw, 14, fill);
-        g.drawString(font, text, x + 5, y + 3, ink, false);
-        return cw;
-    }
-
-    /** A wooden chip, gold when on; returns its width. */
-    int toggle(GuiGraphics g, int x, int y, String label, boolean on, int mx, int my, Runnable action) {
-        int cw = font.width(label) + 12;
-        boolean hover = mx >= x && mx < x + cw && my >= y && my < y + 14;
-        int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
-        Kit.button(g, x, y, cw, 14, state);
-        g.drawString(font, label, x + 6, y + 3, Kit.buttonText(state), false);
-        hits.add(new Hit(x, y, cw, 14, action));
-        return cw;
-    }
-
-    // ---- text on paper ----
-
-    void ink(GuiGraphics g, String s, int x, int y, int colour) {
-        Kit.text(g, font, s, x, y, Theme.paperRgb(colour));
-    }
-
-    /** Text at the description size (0.85×). */
-    void small(GuiGraphics g, String s, int x, int y, int colour) {
-        Component c = Component.literal(s);
-        if (Settings.on("webFont")) {
-            Kit.text(g, font, c.copy().withStyle(st -> UiFont.sized(st, MenuPaint.DESC_SCALE)), x, y, Theme.paperRgb(colour));
-            return;
-        }
-        g.pose().pushMatrix();
-        g.pose().translate(x, y);
-        g.pose().scale(MenuPaint.DESC_SCALE, MenuPaint.DESC_SCALE);
-        Kit.text(g, font, c, 0, 0, Theme.paperRgb(colour));
-        g.pose().popMatrix();
-    }
-
-    /** {@code s} cut to {@code w} px with "…". */
-    String fit(String s, int w) {
-        if (w <= 0) {
-            return "";
-        }
-        if (font.width(s) <= w) {
-            return s;
-        }
-        return font.plainSubstrByWidth(s, Math.max(0, w - font.width("…"))) + "…";
-    }
-
-    net.minecraft.client.gui.Font font() {
+    Font font() {
         return font;
-    }
-
-    /** Text width at the description size. */
-    int smallWidth(String s) {
-        return (int) Math.ceil(font.width(s) * MenuPaint.DESC_SCALE);
     }
 
     /** The high-roll threshold (rules boxHighRoll, 80 %). */
@@ -446,16 +411,15 @@ public final class BoxScreen extends Screen {
         event = MenuScale.event(event);
         double ex = event.x();
         double ey = event.y();
-        int[] cr = closeRect;
-        if (cr != null && ex >= cr[0] && ex < cr[0] + cr[2] && ey >= cr[1] && ey < cr[1] + cr[3]) {
-            onClose();
+        if (bar.menuOpen()) {
+            bar.menuClick(ex, ey);
             return true;
         }
         if (left.mouseClicked(ex, ey) || right.mouseClicked(ex, ey)) {
             return true;
         }
         for (Hit h : List.copyOf(hits)) {
-            if (ex >= h.x() && ex < h.x() + h.w() && ey >= h.y() && ey < h.y() + h.h()) {
+            if (BoxChips.in(ex, ey, h.x(), h.y(), h.w(), h.h())) {
                 h.action().run();
                 return true;
             }
@@ -467,6 +431,9 @@ public final class BoxScreen extends Screen {
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
         double f = MenuScale.factor();
         MouseButtonEvent e = MenuScale.event(event);
+        if (bar.menuOpen()) {
+            return bar.menuDrag(e.y());
+        }
         if (left.mouseDragged(e.y()) || right.mouseDragged(e.y())) {
             return true;
         }
@@ -475,6 +442,7 @@ public final class BoxScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        bar.menuRelease();
         left.mouseReleased();
         right.mouseReleased();
         return super.mouseReleased(MenuScale.event(event));
@@ -484,9 +452,35 @@ public final class BoxScreen extends Screen {
     public boolean mouseScrolled(double x, double y, double h, double v) {
         x = MenuScale.at(x);
         y = MenuScale.at(y);
+        if (bar.menuOpen()) {
+            bar.menuWheel(v);
+            return true;
+        }
         if (!left.mouseScrolled(x, y, v)) {
             right.mouseScrolled(x, y, v);
         }
         return true;
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        int k = event.key();
+        if (bar.menuOpen()) {
+            if (k == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+                bar.closeMenu();
+                return true;
+            }
+            bar.menuKey(k);
+            return true;
+        }
+        if ((k == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || k == org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE) && right.toggle()) {
+            return true;
+        }
+        if (k == org.lwjgl.glfw.GLFW.GLFW_KEY_UP || k == org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN) {
+            if (right.key(k == org.lwjgl.glfw.GLFW.GLFW_KEY_UP ? -1 : 1)) {
+                return true;
+            }
+        }
+        return super.keyPressed(event);
     }
 }

@@ -274,6 +274,9 @@ class MenuPaint {
 
     static String ago(long t) {
         long min = (System.currentTimeMillis() - t) / 60000;
+        if (min < 1) {
+            return L.t("wynnlabs.screen.ago_now");
+        }
         if (min < 60) {
             return L.t("wynnlabs.screen.ago_min", min);
         }

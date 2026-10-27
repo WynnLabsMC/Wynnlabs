@@ -6,6 +6,7 @@ import io.github.anilken.wynnlabs.market.Shopping;
 import io.github.anilken.wynnlabs.mixin.ContainerHoverAccessor;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
+import io.github.anilken.wynnlabs.model.Roll;
 import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.Tier;
 import io.github.anilken.wynnlabs.search.BoxMarket;
@@ -23,6 +24,8 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.world.inventory.Slot;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -83,7 +86,7 @@ public final class BoxKey {
                 }
                 Klass k = d.requirements().klass().orElse(d.slot().klass());
                 return new BoxScreen.Single(new BoxMarket.Item(d.name(), d.slot(), d.tier(), d.level(), k, 0, true),
-                        v.rolled() == null ? null : v.rolled().overall(), v.unidentified());
+                        v.rolled() == null ? null : v.rolled().overall(), v.unidentified(), ownStats(v.rolled()));
             }
             case INGREDIENT, MATERIAL, POWDER, POTION, DUNGEON_KEY, OTHER -> {
                 if (v.name() == null || v.name().isBlank()) {
@@ -97,6 +100,22 @@ public final class BoxKey {
                 return null;
             }
         }
+    }
+
+    /** Your own rolls as the listings' stats: the key, the value and its % between the stat's lowest and highest. */
+    static List<BoxMarket.StatRoll> ownStats(ItemView.Rolled rolled) {
+        if (rolled == null) {
+            return List.of();
+        }
+        List<BoxMarket.StatRoll> out = new ArrayList<>();
+        for (Roll r : rolled.rolls()) {
+            if (r.range() == null || r.range().max() == r.range().min()) {
+                continue;
+            }
+            double p = 100.0 * (r.value() - r.range().min()) / (r.range().max() - r.range().min());
+            out.add(new BoxMarket.StatRoll(r.key(), (double) r.value(), Math.max(0, Math.min(100, p))));
+        }
+        return out;
     }
 
     /**

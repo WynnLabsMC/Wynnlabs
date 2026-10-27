@@ -11,16 +11,15 @@ import java.util.List;
 
 /**
  * The listings of an item without rolls (an ingredient, a material) as a one-line table: the
- * exact price of one, the amount and how long ago the listing was seen, under a small header
- * with the column names. Listings seen 3+ hours before the newest are faded, as in the
- * rolled rows.
+ * exact price of one, the amount and how long ago the listing was seen, under the column names
+ * and a hairline. Listings seen long before the newest are grey, as in the rolled rows.
  */
 final class BoxPlainRows {
 
-    /** One listing's line. */
-    static final int ROW = 12;
-    /** The column names' line above the list. */
-    static final int HEAD = 12;
+    /** One listing's line and the gap after it. */
+    static final int ROW = Type.BODY.lineHeight + Theme.SP_2;
+    /** The column names' line, its hairline and the gap under it. */
+    static final int HEAD = Type.META.lineHeight + Theme.SP_1 + 1 + Theme.SP_3;
 
     private BoxPlainRows() {}
 
@@ -30,43 +29,24 @@ final class BoxPlainRows {
     }
 
     static void header(BoxScreen s, GuiGraphics g, int x, int y, int w) {
-        s.small(g, L.t("wynnlabs.box.col_unit"), x + 4, y + 1, Theme.INK_3);
-        right(s, g, L.t("wynnlabs.box.col_amount"), amountEdge(x, w), y + 1);
-        right(s, g, L.t("wynnlabs.box.col_seen"), x + w - 4, y + 1);
-        Kit.hair(g, x, y + HEAD - 2, w, 1, Theme.LINE);
+        Type.META.draw(g, s.font(), L.t("wynnlabs.box.col_unit"), x, y, Theme.INK_3);
+        Type.META.drawRight(g, s.font(), L.t("wynnlabs.box.col_amount"), amountEdge(x, w), y, Theme.INK_3);
+        Type.META.drawRight(g, s.font(), L.t("wynnlabs.box.col_seen"), x + w, y, Theme.INK_3);
+        Kit.hair(g, x, y + Type.META.lineHeight + Theme.SP_1, w, 1, Theme.LINE);
     }
 
-    private static void right(BoxScreen s, GuiGraphics g, String t, int rx, int y) {
-        s.small(g, t, rx - s.smallWidth(t), y, Theme.INK_3);
-    }
-
-    static void row(BoxScreen s, GuiGraphics g, BoxMarket.Listing l, int i, int x, int y, int w) {
-        Kit.row(g, x, y, w, ROW, i, false);
+    static void row(BoxScreen s, GuiGraphics g, BoxMarket.Listing l, int x, int y, int w) {
+        boolean grey = l.possiblySold();
         int ax = amountEdge(x, w);
         String n = "×" + l.amount();
-        int nw = s.font().width(n);
-        s.ink(g, n, ax - nw, y + 2, Theme.INK_2);
-        cell(s, g, BoxListingsPanel.exact(l.price()), x + 4, ax - nw - x - 10, y);
+        int nw = Type.BODY.width(s.font(), n);
+        Type.BODY.drawRight(g, s.font(), n, ax, y, grey ? Theme.INK_3 : Theme.INK);
+        String p = io.github.anilken.wynnlabs.market.Prices.fmt(l.price());
+        Type.NUMBER.draw(g, s.font(), Type.NUMBER.fit(s.font(), p, ax - nw - Theme.SP_3 - x), x, y, grey ? Theme.INK_3 : Theme.PRICE);
         if (l.seenAt() > 0) {
             String a = age(Math.min(l.seenAt(), System.currentTimeMillis()));
-            s.small(g, a, x + w - 4 - s.smallWidth(a), y + 3, l.possiblySold() ? Theme.WARN : Theme.INK_3);
+            Type.META.drawRight(g, s.font(), a, x + w, y + 1, grey ? Theme.WARN : Theme.INK_3);
         }
-        if (l.possiblySold()) {
-            g.fill(x, y, x + w, y + ROW, 0x99D8C595);              // faded: paper over it
-        }
-    }
-
-    /**
-     * A price from the left edge {@code at}: at the normal size when it fits, else at the
-     * description size, else cut with "…".
-     */
-    private static void cell(BoxScreen s, GuiGraphics g, String t, int at, int room, int y) {
-        if (s.font().width(t) <= room) {
-            s.ink(g, t, at, y + 2, Theme.PRICE);
-            return;
-        }
-        String f = s.smallWidth(t) <= room ? t : s.fit(t, (int) (room / MenuPaint.DESC_SCALE));
-        s.small(g, f, at, y + 3, Theme.PRICE);
     }
 
     /** "8 dk", "2 sa", "3 g": the short age of a listing. */
@@ -90,9 +70,9 @@ final class BoxPlainRows {
         return n;
     }
 
-    /** " ✫✫" for an ingredient's tier, else "". */
-    static String stars(String name) {
+    /** An ingredient's stars (0 for anything else). */
+    static int stars(String name) {
         Entry e = ItemIndex.get().byName(name);
-        return e == null || e.stars() <= 0 ? "" : " " + "✫".repeat(e.stars());
+        return e == null ? 0 : Math.max(0, e.stars());
     }
 }

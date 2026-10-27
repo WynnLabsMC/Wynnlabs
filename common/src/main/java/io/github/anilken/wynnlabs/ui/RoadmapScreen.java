@@ -115,6 +115,15 @@ public final class RoadmapScreen extends Screen {
         return s;
     }
 
+    /** The menu on the settings tab with setting {@code id} picked; Esc goes back to {@code parent}. */
+    public static RoadmapScreen setting(String id, Screen parent) {
+        RoadmapScreen s = new RoadmapScreen();
+        s.tab = TAB_SETTINGS;
+        s.parent = parent;
+        s.settings.showSetting(id);
+        return s;
+    }
+
     /** The menu opened straight on tab {@code t} (previews and tests: nothing else is drawn first). */
     static RoadmapScreen on(int t) {
         RoadmapScreen s = new RoadmapScreen(false);

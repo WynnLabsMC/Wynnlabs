@@ -433,6 +433,19 @@ final class SettingsTab extends MenuTab {
         return SectionSwitches.keys(SETTING_CATS[cat], keys);
     }
 
+    /** Opened on one setting (the box window's "Turn on" for live prices): its category, its row picked. */
+    void showSetting(String id) {
+        for (int c = 0; c < SETTING_CATS.length; c++) {
+            List<SetRow> rows = SettingsRows.settingRows(SETTING_CATS[c]);
+            for (int r = 0; r < rows.size(); r++) {
+                if (id.equals(rows.get(r).id())) {
+                    previewSettings(c, r, false);
+                    return;
+                }
+            }
+        }
+    }
+
     /** The preview's shots: this category with this row picked ({@code detail} is no longer a separate page). */
     void previewSettings(int cat, int row, boolean detail) {
         settingsCat = cat;

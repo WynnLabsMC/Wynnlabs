@@ -417,6 +417,14 @@ public final class Prices {
     private static final java.util.concurrent.atomic.AtomicInteger LISTINGS_PENDING = new java.util.concurrent.atomic.AtomicInteger();
     private static final java.util.Set<String> QUEUED = ConcurrentHashMap.newKeySet();
     private static final Map<String, Long> MISSES = new ConcurrentHashMap<>();
+    /** Names whose last request got no answer (a rate limit, a server error): asked again after {@link #RETRY_MS}. */
+    private static final Map<String, Long> FAILS = new ConcurrentHashMap<>();
+    private static final long RETRY_MS = 2 * 60 * 1000L;
+
+    private static boolean failedLately(String name, long now) {
+        Long f = FAILS.get(name);
+        return f != null && now - f < RETRY_MS;
+    }
 
     /**
      * "~4 EB (en düşük 3 EB, 5 ilan)" for a tooltip, asking Wynnventory in the background when
@@ -611,7 +619,7 @@ public final class Prices {
             Price p = PRICES.get(name);
             Long missed = MISSES.get(name);
             if ((p != null && now - p.seen() < MAX_AGE) || (missed != null && now - missed < MAX_AGE / 6)
-                    || !QUEUED.add(name)) {
+                    || failedLately(name, now) || !QUEUED.add(name)) {
                 continue;
             }
             FETCHER.submit(() -> {
@@ -643,6 +651,14 @@ public final class Prices {
         boolean ok = false;
         try {
             ok = fetchPage(name, k, page);
+            if (ok && page <= 1) {
+                FAILS.remove(name);
+            }
+        } catch (Exception e) {
+            if (page <= 1) {
+                FAILS.put(name, System.currentTimeMillis());   // a timeout: no answer, asked again later
+            }
+            throw e;
         } finally {
             Listings.finished(name, page, ok);  // the box window's row leaves "loading" either way
         }
@@ -665,8 +681,12 @@ public final class Prices {
             return false;
         }
         if (res.statusCode() != 200) {
-            if (page <= 1) {
+            // only "not found" is an answer; a rate limit (429) or a server error is no answer at all:
+            // the box window says the service did not answer, and the item is asked again later
+            if (page <= 1 && res.statusCode() == 404) {
                 MISSES.put(name, System.currentTimeMillis());
+            } else if (page <= 1) {
+                FAILS.put(name, System.currentTimeMillis());
             }
             return false;
         }
@@ -737,7 +757,7 @@ public final class Prices {
      * key, switch and one-per-second pace, whatever the age of its price. True when it will be
      * fetched: queued now, or already waiting. A page-1 name that just failed waits as usual.
      */
-    static boolean queueListings(String name, int page) {
+    static boolean queueListings(String name, int page, boolean fresh) {
         if (!apiReady()) {
             return false;
         }
@@ -746,7 +766,8 @@ public final class Prices {
             return true;
         }
         Long missed = MISSES.get(name);
-        if (page <= 1 && missed != null && System.currentTimeMillis() - missed < MAX_AGE / 6) {
+        if (!fresh && page <= 1 && (missed != null && System.currentTimeMillis() - missed < MAX_AGE / 6
+                || failedLately(name, System.currentTimeMillis()))) {
             return false;
         }
         String k = key();

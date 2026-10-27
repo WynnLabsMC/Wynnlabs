@@ -123,9 +123,12 @@ final class SearchTab extends MenuTab {
      */
     void show(String key) {
         wanted = key;
+        Entry found = ItemIndex.get().byKey(key);
+        String query = found != null ? found.name() : key.substring(key.indexOf(':') + 1);
         if (box != null) {
-            Entry e = ItemIndex.get().byKey(key);
-            box.setValue(e != null ? e.name() : key.substring(key.indexOf(':') + 1));
+            box.setValue(query);
+        } else {
+            typedBefore = query;                // the box is made on the first frame: it starts with it
         }
         selName = key;
         category = SearchCategory.ALL;

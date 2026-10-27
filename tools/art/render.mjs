@@ -51,7 +51,7 @@ function meta(file, gui, border) {
 const ICONS = [
   'home', 'sun', 'map-2', 'building-bank', 'skull', 'settings', 'world', 'clock', 'clock-hour-4',
   'trending-up', 'x', 'gift', 'check', 'pick', 'coin', 'map-pin', 'diamond', 'bolt', 'arrow-up-right',
-  'wand', 'plus', 'minus', 'chevron-right', 'chevron-left', 'chevron-down', 'compass', 'star', 'alert-triangle', 'ticket',
+  'wand', 'plus', 'minus', 'chevron-right', 'chevron-left', 'chevron-down', 'chevron-up', 'compass', 'star', 'alert-triangle', 'ticket',
   'sword', 'shield', 'heart', 'flame', 'droplet', 'leaf', 'search', 'filter', 'list-check', 'target',
   'trophy', 'route', 'bookmark', 'refresh', 'info-circle', 'lock', 'user', 'package', 'shopping-cart',
   'arrow-up', 'arrow-down', 'player-play', 'eye', 'sparkles', 'tag', 'box', 'hierarchy', 'hammer',

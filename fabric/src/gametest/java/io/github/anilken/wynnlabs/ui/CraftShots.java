@@ -52,6 +52,7 @@ final class CraftShots {
         ctx.runOnClient(mc -> tab.drawers.openPicker(2));
         ctx.waitTicks(4);
         shot.accept("craft-drawer-picker");
+        hover(ctx);
         ctx.runOnClient(mc -> {
             tab.drawers.close();
             tab.drawers.openShop();
@@ -149,5 +150,30 @@ final class CraftShots {
             }
         }
         return new int[] {200, 120, 30, UiTierSeal.H};
+    }
+
+    /** The mouse moved over the picker's rows, one step a frame for 120 frames: its mean and worst time, to craft-hover.txt. */
+    private static void hover(ClientGameTestContext ctx) {
+        double scale = ctx.computeOnClient(mc -> (double) MenuScale.effective());
+        int[] at = ctx.computeOnClient(mc -> CraftDrawers.PICKER_ROWS.clone());
+        long sum = 0;
+        long worst = 0;
+        int n = 120;
+        for (int i = 0; i < n; i++) {
+            ctx.getInput().setCursorPos((at[0] + 20 + (i % 5) * 9) * scale, (at[1] + 4 + (i % 30) * 5) * scale);
+            ctx.waitTicks(1);
+            long t = ctx.computeOnClient(mc -> CraftDrawers.pickerNanos);
+            sum += t;
+            worst = Math.max(worst, t);
+        }
+        String line = "picker: mean " + sum / n / 1000 + " us, worst " + worst / 1000 + " us" + System.lineSeparator();
+        try {
+            java.nio.file.Path out = java.nio.file.Path.of(System.getProperty("wynnlabs.preview", "preview"));
+            java.nio.file.Files.writeString(out.resolve("craft-hover.txt"), line);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException(e);
+        }
+        ctx.getInput().setCursorPos(2, 2);
+        ctx.waitTicks(2);
     }
 }

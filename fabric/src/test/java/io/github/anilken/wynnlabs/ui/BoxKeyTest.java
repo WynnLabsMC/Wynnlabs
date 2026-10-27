@@ -109,7 +109,7 @@ class BoxKeyTest {
     @Test
     void theFixtureBoxListsExactlyItsPossibilities() throws Exception {
         FixtureState.load(Fixtures.root().resolve("shaman-44")).install("en");
-        List<BoxMarket.Item> items = BoxScreen.items(new ItemView.Box(Slot.LEGGINGS, Tier.UNIQUE, 66, 70));
+        List<BoxMarket.Item> items = BoxBar.items(new ItemView.Box(Slot.LEGGINGS, Tier.UNIQUE, 66, 70));
         assertEquals(List.of("Anger Point", "Atoll", "Canopy", "Flame Beaters", "Ironclad", "Leg of the Scared", "Prayer",
                 "Reflection"), items.stream().map(BoxMarket.Item::name).toList());
         assertTrue(items.stream().allMatch(i -> i.identifyCost() == Tier.UNIQUE.identificationCost(i.level())));

@@ -162,3 +162,12 @@ wynnlabs.search.hidden_by_filters  a kind before it: "Ingredient · hidden by th
 wynnlabs.search.keys               the keys of the search tab, starting with the arrows
 wynnlabs.ai.on                      "on" after a write endpoint on the AI page
 wynnlabs.ai.off                     "off" after a write endpoint on the AI page
+wynnlabs.box.answer_few_numbers     the numbers after the box answer's bold head
+wynnlabs.box.answer_no_cost_numbers  the numbers after the box answer's bold head
+wynnlabs.box.answer_numbers         the numbers after the box answer's bold head
+wynnlabs.box.answer_short           the numbers after the box answer's bold head
+wynnlabs.box.filter_build_none_short "none" after the build chip's icon on a small window
+wynnlabs.box.rank_few_numbers       the numbers after the roll answer's bold head
+wynnlabs.box.rank_suggest           the price after the roll answer's bold head
+wynnlabs.box.stats_range            "lowest … highest" at the right of a stats heading
+wynnlabs.screen.ago_now             "just now" inside "Updated %s" and the like

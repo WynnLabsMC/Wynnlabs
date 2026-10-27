@@ -16,17 +16,18 @@ import java.util.List;
 import java.util.Map;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 /**
- * The left column of the one-item window: what the item is (kind, level, class, skill points
- * it asks for) and its stats with their roll ranges, so the listings' percentages on the right
- * read against something. An item without rolls (an ingredient, a material) also gets one line
- * on where it comes from: the easiest way besides the market. Lines past the column's height
- * are left out.
+ * The one-item window's stats: for gear, "Yours 72%" with your own rolls as the listings' chips
+ * and every stat's lowest … highest on the right (so the listings' percentages read against
+ * something); for an item without rolls (an ingredient, a material), what it needs and where it is
+ * used, then its stats. Under them one line on where it comes from besides the market. Lines past
+ * the column's height are left out.
  */
 final class BoxStatsPanel {
 
-    /** The easiest source, read once per item and then every few seconds, never per frame. */
+    /** The easiest source, read once per item and then every half minute, never per frame. */
     private static String readFor;
     private static long readAt;
     private static Source from;
@@ -35,66 +36,116 @@ final class BoxStatsPanel {
 
     static void draw(BoxScreen s, GuiGraphics g, String name, int x, int y, int w, int h) {
         Entry e = ItemIndex.get().byName(name);
-        Kit.hair(g, x + w + 3, y - 2, 1, h + 2, Theme.LINE);
+        BoxChips.use(name);
+        int bottom = y + h;
         if (e == null) {
-            s.ink(g, s.fit(L.t("wynnlabs.box.stats_unknown"), w), x, y, Theme.INK_3);
+            if (s.single != null && s.single.ownRoll() != null && !s.own.isEmpty()) {
+                // no item data yet: yours as chips all the same, without the ranges
+                int cy = head(s, g, L.t("wynnlabs.box.own_seal", BoxScreen.pct(Math.round(s.single.ownRoll()))), null, x, y, w);
+                for (io.github.anilken.wynnlabs.search.BoxMarket.StatRoll st : s.single.ownStats()) {
+                    if (cy + BoxChips.H > bottom) {
+                        return;
+                    }
+                    BoxChips.draw(g, s.font(), st, null, false, false, x, cy);
+                    cy += BoxChips.H + Theme.SP_2;
+                }
+                return;
+            }
+            Type.MUTED.draw(g, s.font(), Type.MUTED.fit(s.font(), L.t("wynnlabs.box.stats_unknown"), w), x, y, Theme.INK_3);
             return;
         }
-        List<String[]> rows = new ArrayList<>();       // {name, value, "bad"?} or {heading}
-        rows.add(new String[] {L.t("wynnlabs.box.stats_needs")});
-        rows.add(new String[] {L.t("wynnlabs.box.stats_level"), String.valueOf(e.level()), ""});
-        if (e.klass() != null && e.klass() != Klass.NONE) {
-            rows.add(new String[] {L.t("wynnlabs.box.stats_class"), SearchResultsPanel.words(e.klass().name()), ""});
-        }
-        for (Map.Entry<String, Integer> sk : e.skills().entrySet()) {
-            if (sk.getValue() != null && sk.getValue() > 0) {
-                rows.add(new String[] {SearchResultsPanel.words(sk.getKey()), String.valueOf(sk.getValue()), ""});
+        int cy = y;
+        if (!s.rolled()) {
+            List<String[]> needs = new ArrayList<>();
+            needs.add(new String[] {L.t("wynnlabs.box.stats_level"), String.valueOf(e.level())});
+            if (e.klass() != null && e.klass() != Klass.NONE) {
+                needs.add(new String[] {L.t("wynnlabs.box.stats_class"), SearchResultsPanel.words(e.klass().name())});
             }
+            for (Map.Entry<String, Integer> sk : e.skills().entrySet()) {
+                if (sk.getValue() != null && sk.getValue() > 0) {
+                    needs.add(new String[] {SearchResultsPanel.words(sk.getKey()), String.valueOf(sk.getValue())});
+                }
+            }
+            if (e.kind() == Kind.INGREDIENT && !e.professions().isEmpty()) {
+                List<String> prof = new ArrayList<>();
+                e.professions().forEach(p -> prof.add(SearchResultsPanel.words(p)));
+                needs.add(new String[] {L.t("wynnlabs.box.stats_used_in"), String.join(", ", prof)});
+            }
+            cy = head(s, g, L.t("wynnlabs.box.stats_needs"), null, x, cy, w);
+            for (String[] r : needs) {
+                if (cy + Type.BODY.lineHeight > bottom) {
+                    return;
+                }
+                pair(s, g, r[0], r[1], Theme.INK, x, cy, w);
+                cy += Type.BODY.lineHeight + Theme.SP_1;
+            }
+            cy += Theme.SP_3;
         }
-        if (e.kind() == Kind.INGREDIENT && !e.professions().isEmpty()) {
-            List<String> prof = new ArrayList<>();
-            e.professions().forEach(p -> prof.add(SearchResultsPanel.words(p)));
-            rows.add(new String[] {L.t("wynnlabs.box.stats_used_in"), String.join(", ", prof), ""});
-        }
+        Map<String, Double> own = s.own;
+        boolean yours = s.rolled() && s.single != null && s.single.ownRoll() != null;
         if (!e.stats().isEmpty() || !e.modifiers().isEmpty()) {
-            rows.add(new String[] {L.t("wynnlabs.box.stats_rolls")});
+            if (cy + Type.LABEL.lineHeight > bottom) {
+                return;
+            }
+            String title = yours ? L.t("wynnlabs.box.own_seal", BoxScreen.pct(Math.round(s.single.ownRoll()))) : L.t("wynnlabs.box.stats_title");
+            cy = head(s, g, title, L.t("wynnlabs.box.stats_range"), x, cy, w);
         }
         for (Entry.Stat st : e.stats()) {
-            String range = st.min() == st.max() ? signed(st.min()) : signed(st.min()) + " … " + signed(st.max());
-            rows.add(new String[] {SearchResultsPanel.statName(st.key()), range, st.max() < 0 && st.min() < 0 ? "bad" : ""});
+            Double p = own.get(st.key());
+            int rowH = BoxChips.H + Theme.SP_2;
+            if (cy + rowH > bottom) {
+                return;
+            }
+            String range = st.min() == st.max() ? BoxChips.signed(st.min()) : BoxChips.signed(st.min()) + " … " + BoxChips.signed(st.max());
+            if (p != null) {
+                // yours as the listings' chip, the range on the right
+                Type.META.drawRight(g, s.font(), range, x + w, Type.META.yIn(cy, BoxChips.H), Theme.INK_3);
+                BoxChips.draw(g, s.font(), s.ownRoll(st.key()), null, false, false, x, cy);
+            } else {
+                // no roll of yours: the same pill with its value (a fixed stat) or its range
+                if (st.min() != st.max()) {
+                    Type.META.drawRight(g, s.font(), range, x + w, Type.META.yIn(cy, BoxChips.H), Theme.INK_3);
+                }
+                String v = st.min() == st.max() ? " " + range : "";
+                BoxChips.plain(g, s.font(), BoxChips.name(st.key()) + v, st.max() < 0 && st.min() < 0 ? Theme.BAD : Theme.INK_2, x, cy);
+            }
+            cy += rowH;
         }
         for (Map.Entry<String, Integer> m : e.modifiers().entrySet()) {
-            rows.add(new String[] {SearchResultsPanel.statName(m.getKey()), signed(m.getValue()), m.getValue() < 0 ? "bad" : ""});
-        }
-        int cy = y;
-        for (String[] r : rows) {
-            if (cy + 10 > y + h) {
-                break;
+            if (cy + Type.BODY.lineHeight > bottom) {
+                return;
             }
-            if (r.length == 1) {
-                cy += cy == y ? 0 : 3;
-                s.ink(g, s.fit(r[0], w), x, cy, Theme.INK);
-                Kit.hair(g, x, cy + 10, w, 1, Theme.LINE);
-                cy += 13;
-                continue;
-            }
-            int vw = s.font().width(r[1]);
-            s.ink(g, s.fit(r[0], w - vw - 6), x, cy, Theme.INK_3);
-            s.ink(g, r[1], x + w - vw, cy, "bad".equals(r[2]) ? Theme.BAD : Theme.GOOD);
-            cy += 11;
+            pair(s, g, SearchResultsPanel.statName(m.getKey()), BoxChips.signed(m.getValue()), m.getValue() < 0 ? Theme.BAD : Theme.GOOD, x, cy, w);
+            cy += Type.BODY.lineHeight + Theme.SP_1;
         }
-        if (!s.rolled()) {
-            more(s, g, e, x, cy, w, y + h);
+        source(s, g, e, x, cy, w, bottom);
+    }
+
+    /** A section's LABEL title, a META note on the right, a hairline; returns the first line's y. */
+    private static int head(BoxScreen s, GuiGraphics g, String title, String note, int x, int y, int w) {
+        Type.LABEL.draw(g, s.font(), title, x, y, Theme.INK);
+        if (note != null) {
+            Type.META.drawRight(g, s.font(), Type.META.fit(s.font(), note, w - Type.LABEL.width(s.font(), title) - Theme.SP_3), x + w, y + 1,
+                    Theme.INK_3);
         }
+        int hy = y + Type.LABEL.lineHeight + Theme.SP_1;
+        Kit.hair(g, x, hy, w, 1, Theme.LINE);
+        return hy + 1 + Theme.SP_3;
+    }
+
+    private static void pair(BoxScreen s, GuiGraphics g, String name, String value, int ink, int x, int y, int w) {
+        int vw = Type.BODY.width(s.font(), value);
+        Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), name, w - vw - Theme.SP_3), x, y, Theme.INK_2);
+        Type.BODY.drawRight(g, s.font(), value, x + w, y, ink);
     }
 
     /**
-     * The easiest way to get the item besides the market, as one line under the stats: its
-     * badge, a short text and how far away it is, from {@code cy} down to {@code bottom}.
+     * The easiest way to get the item besides the market, as one line under the stats: its badge,
+     * a short text and how far away it is, from {@code cy} down to {@code bottom}.
      */
-    private static void more(BoxScreen s, GuiGraphics g, Entry e, int x, int cy, int w, int bottom) {
+    private static void source(BoxScreen s, GuiGraphics g, Entry e, int x, int cy, int w, int bottom) {
         long now = System.currentTimeMillis();
-        if (!e.name().equals(readFor) || now - readAt > 3000) {
+        if (!e.name().equals(readFor) || now - readAt > 30_000) {
             readFor = e.name();
             readAt = now;
             from = null;
@@ -106,25 +157,22 @@ final class BoxStatsPanel {
             }
         }
         Source src = from;
-        cy += 4;
-        if (src == null || cy + 14 > bottom) {
+        cy += Theme.SP_3;
+        if (src == null || cy + 1 + Theme.SP_3 + KindBadge.MIN > bottom) {
             return;
         }
         Kit.hair(g, x, cy, w, 1, Theme.LINE);
-        cy += 5;
-        int bs = Kit.kindBadge(g, x, cy - 2, KindBadge.MIN, KindBadge.of(src));
+        cy += 1 + Theme.SP_3;
+        int bs = Kit.kindBadge(g, x, Type.BODY.onCaps(cy, KindBadge.MIN), KindBadge.MIN, KindBadge.of(src));
         double[] pos = SearchTab.position();
         Area a = src.main();
         double d = Compass.distance(a, pos);
         String dist = a == null || Double.isNaN(d) ? "" : RoadmapScreen.dist((int) Math.round(d));
-        int dw = dist.isEmpty() ? 0 : s.smallWidth(dist) + 6;
-        s.ink(g, s.fit(SourceText.row(src, null), w - bs - 3 - dw), x + bs + 3, cy, Theme.INK_2);
+        int dw = dist.isEmpty() ? 0 : Type.META.width(s.font(), dist) + Theme.SP_3;
+        int tx = x + bs + Theme.SP_3;
+        Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), SourceText.row(src, null), x + w - dw - tx), tx, cy, Theme.INK);
         if (!dist.isEmpty()) {
-            s.small(g, dist, x + w - s.smallWidth(dist), cy + 1, Theme.INK_3);
+            Type.META.drawRight(g, s.font(), dist, x + w, cy + 1, Theme.INK_3);
         }
-    }
-
-    private static String signed(int v) {
-        return v > 0 ? "+" + v : String.valueOf(v);
     }
 }
