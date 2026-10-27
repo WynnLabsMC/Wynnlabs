@@ -1,8 +1,10 @@
 package io.github.anilken.wynnlabs.advice;
 
 import io.github.anilken.wynnlabs.core.Settings;
+import io.github.anilken.wynnlabs.game.Turkish;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.List;
 import java.util.Map;
@@ -69,6 +71,7 @@ class MarketSlotsTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void theNoteInTurkish() {
         com.google.gson.JsonObject tr = new com.google.gson.JsonObject();
         tr.addProperty("langOverride", 2);

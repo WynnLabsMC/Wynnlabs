@@ -5,9 +5,11 @@ import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
+import io.github.anilken.wynnlabs.game.Turkish;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -21,7 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The secret discovery guide: shipped data, order, done state, requirements and the wiki check. */
+/**
+ * The secret discovery guide: shipped data, order, done state, requirements and the wiki check.
+ * The Turkish cases run with -PwithTurkish.
+ */
 class DiscoveriesTest {
 
     @AfterEach
@@ -39,14 +44,11 @@ class DiscoveriesTest {
     }
 
     @Test
-    void bothLanguagesShipTheSameEntries() {
+    void shippedEntriesHaveSteps() {
         List<Discoveries.Entry> en = Discoveries.entries(false);
-        List<Discoveries.Entry> tr = Discoveries.entries(true);
         assertTrue(en.size() >= 100, "entries: " + en.size());
-        assertEquals(names(en), names(tr));
-        for (int i = 0; i < en.size(); i++) {
-            assertEquals(en.get(i).steps().size(), tr.get(i).steps().size(), en.get(i).id());
-            assertFalse(en.get(i).steps().isEmpty(), en.get(i).id());
+        for (Discoveries.Entry e : en) {
+            assertFalse(e.steps().isEmpty(), e.id());
         }
         Discoveries.Entry frog = Discoveries.englishOf("A Croaking Cryptid");
         assertNotNull(frog);
@@ -55,6 +57,17 @@ class DiscoveriesTest {
         int[] door = frog.steps().get(0).at();
         assertEquals(List.of(-2206, 11, -1435), List.of(door[0], door[1], door[2]));
         assertTrue(frog.steps().get(0).text().contains("\"...Hi?\""));
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
+    void bothLanguagesShipTheSameEntries() {
+        List<Discoveries.Entry> en = Discoveries.entries(false);
+        List<Discoveries.Entry> tr = Discoveries.entries(true);
+        assertEquals(names(en), names(tr));
+        for (int i = 0; i < en.size(); i++) {
+            assertEquals(en.get(i).steps().size(), tr.get(i).steps().size(), en.get(i).id());
+        }
         // Turkish text, English names and dialogue options
         Discoveries.Entry tr0 = tr.get(names(tr).indexOf("A Croaking Cryptid"));
         String trDoor = tr0.steps().get(0).text();
@@ -143,33 +156,68 @@ class DiscoveriesTest {
 
     @Test
     void unchangedPageKeepsTheShippedText() throws Exception {
-        Discoveries.Entry tr = Discoveries.entries(true).stream().filter(e -> e.id().equals("Colossal Ruins")).findFirst().orElseThrow();
-        Discoveries.Guide g = Discoveries.guide(tr, DiscoveryWiki.steps(page()));
-        assertFalse(g.newer());
-        assertEquals(tr.steps(), g.steps());
+        unchangedPageKeepsTheShippedText(false);
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
+    void unchangedPageKeepsTheShippedTurkishText() throws Exception {
+        Discoveries.Guide g = unchangedPageKeepsTheShippedText(true);
         assertTrue(g.steps().get(0).text().contains("büyü"), g.steps().get(0).text());
+    }
+
+    private static Discoveries.Entry colossalRuins(boolean inTurkish) {
+        return Discoveries.entries(inTurkish).stream().filter(e -> e.id().equals("Colossal Ruins")).findFirst().orElseThrow();
+    }
+
+    private static Discoveries.Guide unchangedPageKeepsTheShippedText(boolean inTurkish) throws Exception {
+        Discoveries.Entry shipped = colossalRuins(inTurkish);
+        Discoveries.Guide g = Discoveries.guide(shipped, DiscoveryWiki.steps(page()));
+        assertFalse(g.newer());
+        assertEquals(shipped.steps(), g.steps());
+        return g;
     }
 
     @Test
     void changedPageShowsTheLiveEnglishSteps() throws Exception {
-        Discoveries.Entry tr = Discoveries.entries(true).stream().filter(e -> e.id().equals("Colossal Ruins")).findFirst().orElseThrow();
+        changedPageShowsTheLiveEnglishSteps(false);
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
+    void changedPageShowsTheLiveEnglishStepsOverTheTurkish() throws Exception {
+        changedPageShowsTheLiveEnglishSteps(true);
+    }
+
+    private static void changedPageShowsTheLiveEnglishSteps(boolean inTurkish) throws Exception {
+        Discoveries.Entry shipped = colossalRuins(inTurkish);
         String changed = page().replace("*Go to the ruin on the island in front of you.", "*Walk to the ruin on the island ahead.");
-        Discoveries.Guide g = Discoveries.guide(tr, DiscoveryWiki.steps(changed));
+        Discoveries.Guide g = Discoveries.guide(shipped, DiscoveryWiki.steps(changed));
         assertTrue(g.newer());
         assertEquals("Walk to the ruin on the island ahead.", g.steps().get(1).text());
         // no page (offline, guides off): the shipped steps
-        assertFalse(Discoveries.guide(tr, null).newer());
+        assertFalse(Discoveries.guide(shipped, null).newer());
     }
 
     @Test
     void routeListsEveryEntryWithDoneLevelAndDistance() throws Exception {
+        routeListsEveryEntry("en");
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
+    void routeListsEveryEntryInTurkish() throws Exception {
+        routeListsEveryEntry("tr");
+    }
+
+    private static void routeListsEveryEntry(String language) throws Exception {
         List<java.nio.file.Path> folders = Fixtures.folders();
         org.junit.jupiter.api.Assumptions.assumeFalse(folders.isEmpty(), Fixtures::none);
         FixtureState state = FixtureState.load(folders.get(0));
         try {
-            state.install("tr");
+            state.install(language);
             JsonObject o = Discoveries.json();
-            assertEquals("tr", o.get("language").getAsString());
+            assertEquals(language, o.get("language").getAsString());
             assertEquals(Discoveries.entries(false).size(), o.get("count").getAsInt());
             var list = o.getAsJsonArray("discoveries");
             assertEquals(Discoveries.entries(false).size(), list.size());

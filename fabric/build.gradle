@@ -152,6 +152,8 @@ test {
     systemProperty 'wynnlabs.fixtures', fixtures.absolutePath
     systemProperty 'wynnlabs.updateFixtures', rootProject.hasProperty('updateFixtures')
     systemProperty 'wynnlabs.debugDump', rootProject.hasProperty('debugDump')
+    // -PwithTurkish: also run the Turkish test cases (and their .tr fixtures); without it the tests are English only
+    systemProperty 'wynnlabs.testTurkish', rootProject.hasProperty('withTurkish')
     // -PdumpQuests: write the shipped quest guides (en.json) from the pages tools/quests/fetch.py kept
     systemProperty 'wynnlabs.dumpQuests', rootProject.hasProperty('dumpQuests')
     systemProperty 'wynnlabs.projectDir', rootProject.projectDir.absolutePath

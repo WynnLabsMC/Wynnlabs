@@ -6,12 +6,15 @@ import com.google.gson.JsonParser;
 
 import io.github.anilken.wynnlabs.coach.Coach;
 import io.github.anilken.wynnlabs.coach.DeathCoach;
+import io.github.anilken.wynnlabs.game.Turkish;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.quests.QuestWiki;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.List;
 
@@ -22,7 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Text that is saved or kept in memory is worded when shown: worded in English, then the menu
  * switched to Turkish, it reads Turkish (and back). Files from older versions, worded already,
- * follow the switch too where their lines can be matched back to a key.
+ * follow the switch too where their lines can be matched back to a key. The tests run in English;
+ * the switch to Turkish (and every Turkish line) only with -PwithTurkish, skipped otherwise.
  */
 class TextFollowsLanguageTest {
 
@@ -33,6 +37,11 @@ class TextFollowsLanguageTest {
         JsonObject s = new JsonObject();
         s.addProperty("langOverride", pick);
         Settings.use(s);
+    }
+
+    /** The English part has passed; what follows is Turkish, run only with -PwithTurkish. */
+    private static void turkishFromHere() {
+        Assumptions.assumeTrue(Boolean.getBoolean(Turkish.PROPERTY), "Turkish only with -PwithTurkish");
     }
 
     @AfterEach
@@ -48,6 +57,7 @@ class TextFollowsLanguageTest {
         Words w = Words.of("wynnlabs.death.area_level", 48, 44);
         Words back = Words.fromJson(JsonParser.parseString(w.json().toString()));
         assertEquals("Area Lv. 48, you're Lv. 44", back.text());
+        turkishFromHere();
         language(TR);
         assertEquals("Bölge Lv. 48, sen 44", back.text());
         // a nested argument is worded with it
@@ -58,12 +68,13 @@ class TextFollowsLanguageTest {
 
     @Test
     void oldWordedTextMatchesBackToItsKeyInEitherLanguage() {
-        Words fromTr = Words.unword("Bölge Lv. 48, sen 44", List.of("wynnlabs.death.one_off", "wynnlabs.death.area_level"));
-        Words fromEn = Words.unword("Area Lv. 48, you're Lv. 44", List.of("wynnlabs.death.area_level"));
-        assertEquals("wynnlabs.death.area_level", fromTr.key());
-        assertEquals(List.of("48", "44"), fromTr.args());
-        assertEquals(fromTr, fromEn);
+        Words fromEn = Words.unword("Area Lv. 48, you're Lv. 44", List.of("wynnlabs.death.one_off", "wynnlabs.death.area_level"));
+        assertEquals("wynnlabs.death.area_level", fromEn.key());
+        assertEquals(List.of("48", "44"), fromEn.args());
         assertNull(Words.unword("something else entirely", List.of("wynnlabs.death.area_level")));
+        turkishFromHere();
+        Words fromTr = Words.unword("Bölge Lv. 48, sen 44", List.of("wynnlabs.death.one_off", "wynnlabs.death.area_level"));
+        assertEquals(fromEn, fromTr);
         // "%%" is a plain percent sign, not an argument
         Words pct = Words.unword(" (build +%12)", List.of("wynnlabs.auto.build_gain"));
         assertEquals(List.of("12"), pct.args());
@@ -91,6 +102,7 @@ class TextFollowsLanguageTest {
                 "Put a few points into Defence (now 3)",
                 "You had no healing potions left; bring some"), back.adviceText());
 
+        turkishFromHere();
         language(TR);
         assertEquals("Nivla Woods yakını", back.place());
         assertEquals("Bölge Lv. 48, sen 44", back.adviceText().get(0));
@@ -98,6 +110,7 @@ class TextFollowsLanguageTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void aDeathsFileWordedInTurkishReadsEnglishInAnEnglishMenu() {
         // what an older version saved while the menu was Turkish: worded lines, no "notes"
         JsonObject o = new JsonObject();
@@ -143,11 +156,13 @@ class TextFollowsLanguageTest {
         notes.add(Words.of("wynnlabs.coach.tip_rate", "12.5k").json());
         last.add("notes", notes);
         assertEquals(List.of(L.t("wynnlabs.coach.tip_mana"), "Average 12.5k XP/h"), Coach.sessionTips(last));
+        turkishFromHere();
         language(TR);
         assertEquals(L.t("wynnlabs.coach.tip_rate", "12.5k"), Coach.sessionTips(last).get(1));
     }
 
     @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void oldSessionTipsWordedInEnglishReadTurkish() {
         language(EN);
         String worded = L.t("wynnlabs.coach.tip_deaths_at", L.t("wynnlabs.death.area_near", "Nivla Woods"));
@@ -171,6 +186,7 @@ class TextFollowsLanguageTest {
         language(EN);
         Vault.Stored st = stored("Sell it at the Trade Market", "en_us");
         assertEquals("Sell it at the Trade Market", Vault.noteNow(st));
+        turkishFromHere();
         language(TR);
         assertNull(Vault.noteNow(st), "worded in English: none until the page is read again in Turkish");
         assertEquals("Trade Market'te sat", Vault.noteNow(stored("Trade Market'te sat", "tr_tr")));
@@ -186,6 +202,7 @@ class TextFollowsLanguageTest {
             language(EN);
             Prices.problem = Words.of("wynnlabs.price.problem_key", 401);
             String en = Prices.problem.text();
+            turkishFromHere();
             language(TR);
             assertEquals(L.t("wynnlabs.price.problem_key", 401), Prices.problem.text());
             assertTrue(!en.equals(Prices.problem.text()), "the line changes with the language");
@@ -200,11 +217,12 @@ class TextFollowsLanguageTest {
     void anUnnamedQuestPointIsWordedWhenShown() {
         String page = "{{Infobox}}\n== Stage 1 ==\n{{RenderLocation | x = 1000 | y = 70 | z = 2000 }}\n"
                 + "{{RenderLocation | x = 3000 | y = 70 | z = 4000 }}\n» Go and look\n";
-        language(TR);
+        language(EN);
         QuestWiki.Info info = QuestWiki.parse(page);
         assertEquals(List.of("point", "point"), info.stages().get(0).names(), "the parse is the same in every language");
-        assertEquals("Nokta", QuestWiki.places(info, 0).get(0).what());
-        language(EN);
         assertEquals("Point", QuestWiki.places(info, 0).get(0).what());
+        turkishFromHere();
+        language(TR);
+        assertEquals("Nokta", QuestWiki.places(info, 0).get(0).what());
     }
 }

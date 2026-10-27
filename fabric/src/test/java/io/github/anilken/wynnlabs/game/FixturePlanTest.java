@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.List;
 
@@ -18,7 +19,17 @@ class FixturePlanTest {
 
     @Test
     void roadmap() throws Exception {
-        FixtureRun.each("road map", List.of("en", "tr"), (fx, dir, lang) ->
+        roadmap("en");
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
+    void roadmapTurkish() throws Exception {
+        roadmap("tr");
+    }
+
+    private static void roadmap(String language) throws Exception {
+        FixtureRun.each("road map (" + language + ")", List.of(language), (fx, dir, lang) ->
                 Expected.check(dir, "roadmap." + lang + ".json", Roadmap.json(), Expected::json));
     }
 

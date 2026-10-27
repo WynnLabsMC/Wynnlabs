@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.endgame;
 import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.core.Saver;
 import io.github.anilken.wynnlabs.core.Settings;
+import io.github.anilken.wynnlabs.game.Turkish;
 import io.github.anilken.wynnlabs.model.AspectEntry;
 import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.PoolAspect;
@@ -10,6 +11,7 @@ import io.github.anilken.wynnlabs.model.Tier;
 import io.github.anilken.wynnlabs.model.WeeklyPool;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -99,6 +101,7 @@ class RaidPoolTest {
         assertEquals("6 days ago", RaidPool.ageText(seen + 6 * DAY));
         assertFalse(RaidPool.stale(seen + RaidPool.STALE_MS));
         assertTrue(RaidPool.stale(seen + RaidPool.STALE_MS + 1));
+        Assumptions.assumeTrue(Boolean.getBoolean(Turkish.PROPERTY), "the Turkish part only with -PwithTurkish");
         english(2);
         assertEquals("2 gün önce", RaidPool.ageText(seen + 2 * DAY));
         assertEquals("az önce", RaidPool.ageText(seen));

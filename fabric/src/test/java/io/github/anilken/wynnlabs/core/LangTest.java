@@ -1,12 +1,14 @@
 package io.github.anilken.wynnlabs.core;
 
 import com.google.gson.JsonObject;
+import io.github.anilken.wynnlabs.game.Turkish;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** L without the game: the bundled language files, formatted like I18n does. */
+/** L without the game: the bundled language files, formatted like I18n does (Turkish with -PwithTurkish). */
 class LangTest {
 
     private static void language(int pick) {
@@ -28,6 +30,7 @@ class LangTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void turkishWithArguments() {
         language(2);
         assertEquals(" (build +%12)", L.t("wynnlabs.auto.build_gain", 12));
@@ -52,6 +55,7 @@ class LangTest {
     }
 
     @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void turkishCountsHaveOneForm() {
         language(2);
         assertEquals("1 gün önce", L.n("wynnlabs.screen.ago_days", 1));
@@ -73,9 +77,11 @@ class LangTest {
         assertEquals("3 days ago", L.cap("3 days ago", "en_us"));
         assertEquals("+10 Strength", L.cap("+10 Strength", "en_us"));
         assertEquals("", L.cap("", "en_us"));
+        assertEquals("Initial", L.cap("initial", "en_us"));
     }
 
     @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void capIsTurkishInTurkish() {
         assertEquals("İlk raid'den sonra", L.cap("ilk raid'den sonra", "tr_tr"));
         assertEquals("Ilık", L.cap("ılık", "tr_tr"));

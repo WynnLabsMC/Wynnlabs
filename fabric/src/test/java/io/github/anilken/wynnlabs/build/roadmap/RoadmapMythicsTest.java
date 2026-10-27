@@ -6,6 +6,7 @@ import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.GameState;
+import io.github.anilken.wynnlabs.game.Turkish;
 import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.model.BaseStats;
 import io.github.anilken.wynnlabs.model.ItemData;
@@ -17,6 +18,7 @@ import io.github.anilken.wynnlabs.model.StatRange;
 import io.github.anilken.wynnlabs.model.Tier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * whose later version you cannot get stays in below the level window, a weapon that only this
  * set cannot wear is left to the search's sets around weapons (it needs a few points from gear),
  * only one no set can wear is skipped as impossible, Immolation's -650 % healing no longer makes
- * its score NaN, and the trace speaks the mod's language throughout.
+ * its score NaN, and the trace speaks the mod's language throughout (Turkish with -PwithTurkish).
  */
 class RoadmapMythicsTest {
 
@@ -184,8 +186,18 @@ class RoadmapMythicsTest {
     }
 
     @Test
+    void theMythicsReachTheSearch() throws Exception {
+        mythicsReachTheSearch("en");
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void theMythicsReachTheSearchAndTheTraceSpeaksOneLanguage() throws Exception {
-        shaman("tr");
+        mythicsReachTheSearch("tr");
+    }
+
+    private static void mythicsReachTheSearch(String language) throws Exception {
+        shaman(language);
         List<String> relik = java.util.Collections.synchronizedList(new ArrayList<>());
         List<String> notes = java.util.Collections.synchronizedList(new ArrayList<>());
         Roadmap.trace = (m, t, line) -> {
@@ -237,6 +249,9 @@ class RoadmapMythicsTest {
         assertTrue(notes.stream().noneMatch(l -> l.contains("NaN")), notes.stream().filter(l -> l.contains("NaN")).toList().toString());
         assertTrue(notes.stream().anyMatch(l -> l.startsWith("Lv 110 ") && l.contains(L.t("wynnlabs.road.trace_start_weapon", "Immolation"))),
                 "no start around Immolation at Lv 110");
+        if (!language.equals("tr")) {
+            return;
+        }
         // one language: nothing English in a Turkish trace
         List<String> english = new ArrayList<>();
         for (List<String> list : List.of(relik, notes)) {
