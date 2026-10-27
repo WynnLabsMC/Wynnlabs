@@ -14,7 +14,7 @@ import java.nio.file.Path;
 
 /**
  * The quest guide window without the game ({@code -PpreviewOnly=guide}): a shipped guide (Jungle
- * Fever) on the recorded Shaman, over the world. Nothing is fetched.
+ * Fever) on the recorded Shaman at its second stage, over the world. Nothing is fetched.
  */
 public class GuidePreview implements FabricClientGameTest {
 
@@ -39,7 +39,7 @@ public class GuidePreview implements FabricClientGameTest {
                 Wyn.clearDown();
             });
             ctx.getInput().setCursorPos(2, 2);
-            ctx.setScreen(() -> new GuideScreen("Jungle Fever", ""));
+            ctx.setScreen(() -> new GuideScreen("Jungle Fever", "Talk to Detlas's Banker about the cure for Worid"));
             ctx.waitTicks(20);
             ctx.takeScreenshot(TestScreenshotOptions.of("guide-window").disableCounterPrefix().withDestinationDir(out));
             ctx.runOnClient(mc -> mc.setScreen(null));

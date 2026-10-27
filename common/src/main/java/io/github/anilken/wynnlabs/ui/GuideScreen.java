@@ -208,19 +208,12 @@ final class GuideScreen extends Screen {
         int h = Math.min(height - 20, large ? 480 : 320);
         int x = (width - w) / 2;
         int y = (height - h) / 2;
-        // a soft card over the dimmed game, as the box and update windows
-        g.fill(0, 0, width, height, 0x55201810);
-        Kit.windowShadow(g, x, y, w, h);
-        g.fill(x + 4, y + 4, x + w - 4, y + h - 3, 0xFFEADCB4);
-        Kit.softCard(g, x, y, w, h);
+        // the menu's window over the dimmed game: the wooden frame, the parchment page, the close seal
+        KitFrame.dialog(g, width, height, x, y, w, h);
         int left = x + Theme.SP_6;
         int right = x + w - Theme.SP_6;
-        // header: the title, how far along you are, and close at the right end
-        int ty = y + Theme.SP_4;
-        int cx = right - (Ui.CHIP_H + 2);
-        Ui.iconButton(g, "x", cx, Type.TITLE.onCaps(ty, Ui.CHIP_H), false, mx, my);
-        closeRect = new int[] {cx, Type.TITLE.onCaps(ty, Ui.CHIP_H), Ui.CHIP_H + 2, Ui.CHIP_H};
-        right = cx - Theme.SP_4;
+        // header: the title and how far along you are at the right end
+        int ty = y + Theme.SP_7;                                   // the title clear of the parchment's corner ornaments
         Type.TITLE.draw(g, font, Type.TITLE.fit(font, QuestGuides.title(quest), w / 2), left, ty);
         List<QuestWiki.Stage> st = stages;
         if (st != null && current >= 0) {
@@ -230,10 +223,9 @@ final class GuideScreen extends Screen {
             Type.META.drawRight(g, font, p, right - bw - Theme.SP_3, ty + 4, Type.META.colour);
         }
         int rule = ty + Type.TITLE.lineHeight + Theme.SP_4;
-        right = x + w - Theme.SP_6;
         Kit.hair(g, left, rule, right - left, 1, Theme.LINE);
         int top = rule + 1 + Theme.SP_5;
-        int foot = y + h - Theme.SP_4 - Type.META.lineHeight;
+        int foot = y + h - Theme.SP_5 - Type.META.lineHeight;     // clear of the parchment's rim
         int bottom = foot - Theme.SP_5;
         footer(g, left, right, foot, st != null);
         if (views != null) {
@@ -242,12 +234,14 @@ final class GuideScreen extends Screen {
             GuideRail.draw(this, g, mx, my, left, top, lw, bottom);
             Kit.hair(g, split, top, 1, bottom - top, Theme.LINE);
             GuidePane.draw(this, g, mx, my, split + Theme.SP_5, top, right - split - Theme.SP_5, bottom, large);
-            if (zoom != null) {
-                drawZoom(g);
-            }
-            return;
+        } else {
+            wiki.draw(g, mx, my, left, top, right, bottom);
         }
-        wiki.draw(g, mx, my, left, top, right, bottom);
+        int[] cr = KitFrame.closeAt(width, x, y, w);
+        closeRect = KitFrame.closeOutside(g, width, x, y, w, zoom == null && in(mx, my, cr));
+        if (views != null && zoom != null) {
+            drawZoom(g);
+        }
     }
 
     /** Key hints (drawn arrows, not the pixel font's), or a moment's message; the source on the right. */

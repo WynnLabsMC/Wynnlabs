@@ -1,7 +1,6 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.advice.BoxVerdict;
-import io.github.anilken.wynnlabs.core.DevHooks;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.GameState;
@@ -273,28 +272,29 @@ public final class BoxScreen extends Screen {
         compact = ww < 420;
         int wx = (width - ww) / 2;
         int wy = (height - wh) / 2;
-        if (DevHooks.ON && DevHooks.driving()) {
-            DevHooks.frame(g.pose(), wx - 4, wy - 4, ww + 8, wh + 8);    // the dev screenshot tool: the window alone, no dim
-        } else {
-            g.fill(0, 0, width, height, 0x55201810);
-        }
-        Kit.windowShadow(g, wx, wy, ww, wh);
-        g.fill(wx + 4, wy + 4, wx + ww - 4, wy + wh - 3, 0xFFEADCB4);
-        Kit.softCard(g, wx, wy, ww, wh);
+        // the menu's window over the dimmed game: the wooden frame, the parchment page, the close seal
+        KitFrame.dialog(g, width, height, wx, wy, ww, wh);
         // an open menu owns the mouse: the page is drawn with it away, the menu then with it
         boolean popup = bar.menuOpen();
         int pmx = popup ? -1 : mx;
         int pmy = popup ? -1 : my;
-        int x = wx + Theme.SP_5;
-        int y = wy + Theme.SP_5;
-        int w = ww - 2 * Theme.SP_5;
-        int bottom = wy + wh - Theme.SP_5;
+        int x = wx + Theme.SP_6;
+        int y = wy + Theme.SP_7;                       // clear of the parchment's rim and corner ornaments
+        int w = ww - 2 * Theme.SP_6;
+        int bottom = wy + wh - Theme.SP_6;
         y = bar.title(g, x, y, w, pmx, pmy);
         if (box != null && items.isEmpty()) {
             UiEmpty.draw(g, font, x, y, w, bottom - y, compact, "box", L.t("wynnlabs.box.unread_title"),
                     List.of(L.t("wynnlabs.box.unread_step1"), L.t("wynnlabs.box.unread_step2")), null, null, pmx, pmy);
         } else {
             y = page(g, x, y, w, bottom, pmx, pmy);
+        }
+        int[] cr = KitFrame.closeAt(width, wx, wy, ww);
+        boolean closeHover = !popup && mx >= cr[0] && mx < cr[0] + cr[2] && my >= cr[1] && my < cr[1] + cr[3];
+        KitFrame.closeOutside(g, width, wx, wy, ww, closeHover);
+        hit(cr[0], cr[1], cr[2], cr[3], this::onClose);
+        if (closeHover) {
+            tip(List.of(L.c("wynnlabs.box.close")));
         }
         if (popup) {
             hits.clear();

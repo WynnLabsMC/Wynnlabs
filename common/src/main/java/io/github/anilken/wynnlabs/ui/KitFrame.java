@@ -65,21 +65,43 @@ final class KitFrame {
     }
 
     /**
+     * A window of its own over the game (the quest guide, the box, the update notes): the dim, the
+     * wooden frame around the panel {@code x, y, w, h} (outside it, as the menu's) and the parchment
+     * page filling it. The dev screenshot tool drives it without the dim.
+     */
+    static void dialog(GuiGraphics g, int screenW, int screenH, int x, int y, int w, int h) {
+        if (!(DevHooks.ON && DevHooks.driving())) {
+            g.fill(0, 0, screenW, screenH, 0x55201810);
+        }
+        window(g, x - 5, y - 5, w + 10, h + 10);
+        paper(g, x + 2, y + 2, w - 4, h - 4);
+    }
+
+    /**
      * The red close seal on the window's top-right corner, over the brass nail there (the window
      * drawn by {@link #window} 5px around the panel). Returns its click rectangle.
      */
     static int[] closeOutside(GuiGraphics g, int screenW, int px, int py, int pw, boolean hover) {
+        int[] r = closeAt(screenW, px, py, pw);
+        int x = r[0];
+        int y = r[1];
+        int size = r[2];
+        close(g, x, y, size, hover);
+        LayoutCheck.frame(g.pose(), x, y, size, size);
+        if (DevHooks.ON) {
+            DevHooks.frame(g.pose(), x, y, size, size);           // the dev screenshot tool's crop keeps the seal
+        }
+        return new int[] {x, y, size, size};
+    }
+
+    /** Where {@link #closeOutside} puts the seal {x, y, w, h}: known before it is drawn, for its hover. */
+    static int[] closeAt(int screenW, int px, int py, int pw) {
         int size = 14;
         int x = px + pw + 2 - size / 2;         // the nail sits 3px in from the frame's outer corner
         int y = py - 2 - size / 2;
         // a window with no room past the corner: pushed in until it is whole, over the frame's corner
         x = Math.min(x, screenW - size);
         y = Math.max(y, 0);
-        close(g, x, y, size, hover);
-        LayoutCheck.frame(g.pose(), x, y, size, size);
-        if (DevHooks.ON) {
-            DevHooks.frame(g.pose(), x, y, size, size);           // the dev screenshot tool's crop keeps the seal
-        }
         return new int[] {x, y, size, size};
     }
 

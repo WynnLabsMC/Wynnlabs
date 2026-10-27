@@ -64,13 +64,8 @@ final class BoxBar {
     /** Draws the title row and its hairline; returns where the page starts. */
     int title(GuiGraphics g, int x, int y, int w, int mx, int my) {
         int h = Ui.CHIP_H;
-        // the right end: close, Refresh, the magnifier (one item), when it was read
+        // the right end: Refresh, the magnifier (one item), when it was read (close is the frame's seal)
         int bx = x + w - (Ui.CHIP_H + 2);
-        if (Ui.iconButton(g, "x", bx, y, false, mx, my)) {
-            s.tip(List.of(L.c("wynnlabs.box.close")));
-        }
-        s.hit(bx, y, Ui.CHIP_H + 2, h, s::onClose);
-        bx -= Ui.CHIP_H + 2 + Theme.SP_2;
         Listings.Refresh r = s.refreshState();
         boolean running = r != null && r.running();
         boolean can = s.canRefresh();

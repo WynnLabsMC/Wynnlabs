@@ -2,7 +2,6 @@ package io.github.anilken.wynnlabs.ui;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import io.github.anilken.wynnlabs.core.DevHooks;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.core.ReleaseNotes;
@@ -114,38 +113,35 @@ public final class UpdateScreen extends Screen {
         int wh = Math.min(height - 16, 250);
         int wx = (width - ww) / 2;
         int wy = (height - wh) / 2;
-        if (DevHooks.ON && DevHooks.driving()) {
-            DevHooks.frame(g.pose(), wx - 4, wy - 4, ww + 8, wh + 8);    // the dev screenshot tool: the window alone, no dim
-        } else {
-            g.fill(0, 0, width, height, 0x55201810);
-        }
-        Kit.windowShadow(g, wx, wy, ww, wh);
-        g.fill(wx + 4, wy + 4, wx + ww - 4, wy + wh - 3, 0xFFEADCB4);
-        Kit.softCard(g, wx, wy, ww, wh);
-        int x = wx + Theme.SP_5;
-        int y = wy + Theme.SP_5;
-        int w = ww - 2 * Theme.SP_5;
-        int bottom = wy + wh - Theme.SP_5;
+        // the menu's window over the dimmed game: the wooden frame, the parchment page, the close seal
+        KitFrame.dialog(g, width, height, wx, wy, ww, wh);
+        int x = wx + Theme.SP_6;
+        int y = wy + Theme.SP_7;                       // clear of the parchment's rim and corner ornaments
+        int w = ww - 2 * Theme.SP_6;
+        int bottom = wy + wh - Theme.SP_6;
         boolean newer = s.status() == UpdateCheck.Status.NEWER;
-        // the title row: the state's tile, the version, the close button
+        // the title row: the state's tile and the version (close is the frame's seal)
         int tile = 22;
         Art.box(g, x, y, tile, tile, 6, 0xFFF6E7B8, Theme.GOLD_DEEP);
         Art.icon(g, newer ? "arrow-up" : "check", x + 6, y + 6, 10, newer ? Theme.GOLD_DEEP : Theme.GOOD);
-        int cx = x + w - (Ui.CHIP_H + 2);
-        if (Ui.iconButton(g, "x", cx, y, false, mx, my)) {
+        int[] cr = KitFrame.closeAt(width, wx, wy, ww);
+        boolean closeHover = mx >= cr[0] && mx < cr[0] + cr[2] && my >= cr[1] && my < cr[1] + cr[3];
+        KitFrame.closeOutside(g, width, wx, wy, ww, closeHover);
+        if (closeHover) {
             tip = List.of(L.c("wynnlabs.update.close"));
         }
-        hits.add(new Hit(cx, y, Ui.CHIP_H + 2, Ui.CHIP_H, this::onClose));
+        hits.add(new Hit(cr[0], cr[1], cr[2], cr[3], this::onClose));
+        int room = x + w;
         int tx = x + tile + Theme.SP_3;
         String title = newer ? L.t("wynnlabs.update.screen_newer", s.latest()) : L.t("wynnlabs.about.uptodate_title");
-        Type.HEADING.draw(g, font, Type.HEADING.fit(font, title, cx - Theme.SP_3 - tx), tx, y - 1, Theme.INK);
+        Type.HEADING.draw(g, font, Type.HEADING.fit(font, title, room - tx), tx, y - 1, Theme.INK);
         String mine = vName(s.own());
         String sub = s.published() > 0 ? L.t("wynnlabs.about.newer_sub", mine, MenuPaint.ago(s.published()))
                 : L.t("wynnlabs.about.newer_sub_nodate", mine);
         if (newer && s.asset() != null) {
             sub += " · " + mb(s.asset().size()) + " MB";
         }
-        Type.META.draw(g, font, Type.META.fit(font, sub, cx - Theme.SP_3 - tx), tx, y + Type.HEADING.lineHeight, Theme.INK_3);
+        Type.META.draw(g, font, Type.META.fit(font, sub, room - tx), tx, y + Type.HEADING.lineHeight, Theme.INK_3);
         y += tile + Theme.SP_4;
         // Özet / Değişiklikler as chip tabs
         if (newer) {

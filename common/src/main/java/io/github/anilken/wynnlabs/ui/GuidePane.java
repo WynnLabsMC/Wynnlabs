@@ -57,7 +57,7 @@ final class GuidePane {
             points.add(st.at());
         }
         // the stage's title, and the seal when it is the one you are on
-        int y = top;
+        int y = top + Theme.SP_2;                   // on the stage list's first line (its rows keep SP_2 inside their wash)
         String head = QuestWiki.stageTitle(st.title()) + " / " + n;
         Type.LABEL.draw(g, font, head, x, y, Theme.ACCENT);
         if (s.sel == s.current) {
