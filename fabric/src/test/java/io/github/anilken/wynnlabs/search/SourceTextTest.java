@@ -50,7 +50,7 @@ class SourceTextTest {
 
     @Test
     void cardRowsAndBriefHints() {
-        assertEquals("In your bag ×3", SourceText.row(row(Source.Type.BAG, null, null, 0, 0), null));
+        assertEquals("In inventory ×3", SourceText.row(row(Source.Type.BAG, null, null, 0, 0), null));
         assertEquals("Lv 73–81 loot chests", SourceText.row(row(Source.Type.LOOT_CHEST, null, null, 73, 81), null));
         assertEquals("~2.1 LE", SourceText.brief(Source.Type.MARKET, PRICE, 77));
         assertEquals("Lv 73–81", SourceText.brief(Source.Type.MOB_BAND, null, 77));

@@ -9,7 +9,7 @@
           "level": 17,
           "tier": "RARE",
           "gain": 11.2,
-          "from": "Add 2 tier III powders (any element gives the same health), about 2 EB",
+          "from": "Add 2 tier III powders (any element, same HP), about 2 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -20,7 +20,7 @@
           "level": 19,
           "tier": "RARE",
           "gain": 5.6,
-          "from": "Add 1 tier III powder (any element gives the same health), about 1 EB",
+          "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -31,7 +31,7 @@
           "level": 17,
           "tier": "UNIQUE",
           "gain": 5.6,
-          "from": "Add 1 tier III powder (any element gives the same health), about 1 EB",
+          "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -42,7 +42,7 @@
           "level": 20,
           "tier": "RARE",
           "gain": 5.6,
-          "from": "Add 1 tier III powder (any element gives the same health), about 1 EB",
+          "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -64,7 +64,7 @@
           "level": 19,
           "tier": "LEGENDARY",
           "gain": 85.2,
-          "from": "dropped by mobs",
+          "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
@@ -72,7 +72,7 @@
               "name": "Helter Skelter",
               "level": 19,
               "gain": 75.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -107,7 +107,7 @@
               "name": "Gestation",
               "level": 23,
               "gain": 66.7,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -142,7 +142,7 @@
               "name": "Presto",
               "level": 16,
               "gain": 48.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -224,7 +224,7 @@
               "name": "Tarnish",
               "level": 21,
               "gain": 18.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -256,7 +256,7 @@
           "level": 20,
           "tier": "LEGENDARY",
           "gain": 15.0,
-          "from": "dropped by mobs",
+          "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
@@ -264,14 +264,14 @@
               "name": "Neolithic",
               "level": 20,
               "gain": 14.7,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Memorial",
               "level": 19,
               "gain": 2.8,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -332,7 +332,7 @@
               "name": "Tribal Tunic",
               "level": 18,
               "gain": 4.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -400,7 +400,7 @@
               "name": "Omnitread Boots",
               "level": 15,
               "gain": -4.8,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -468,7 +468,7 @@
               "name": "Red String",
               "level": 16,
               "gain": -1.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             }
           ]
@@ -522,7 +522,7 @@
               "name": "Red String",
               "level": 16,
               "gain": -1.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             }
           ]
@@ -595,7 +595,7 @@
               "name": "Charm of the Flea",
               "level": 20,
               "gain": 7.6,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -701,7 +701,7 @@
               "name": "Black Boots",
               "level": 33,
               "gain": 3.0,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -740,7 +740,7 @@
           "level": 28,
           "tier": "UNIQUE",
           "gain": 3.7,
-          "from": "dropped by mobs",
+          "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
@@ -748,7 +748,7 @@
               "name": "Dynamic",
               "level": 28,
               "gain": 4.7,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -776,7 +776,7 @@
               "name": "Fortitude",
               "level": 28,
               "gain": 1.9,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -893,7 +893,7 @@
               "name": "Spirit Calling",
               "level": 28,
               "gain": 0.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -907,7 +907,7 @@
               "name": "Charm of the Flea",
               "level": 20,
               "gain": -0.9,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -1015,7 +1015,7 @@
               "name": "Fire Relic Helmet",
               "level": 30,
               "gain": -7.2,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -1102,14 +1102,14 @@
               "name": "Enhanced Panorama",
               "level": 30,
               "gain": 0.7,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Evalach",
               "level": 27,
               "gain": 0.0,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -1141,7 +1141,7 @@
           "level": 28,
           "tier": "UNIQUE",
           "gain": 0.5,
-          "from": "dropped by mobs",
+          "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
@@ -1149,7 +1149,7 @@
               "name": "Barrage",
               "level": 28,
               "gain": 1.5,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -1195,7 +1195,7 @@
           "level": 28,
           "tier": "UNIQUE",
           "gain": 0.5,
-          "from": "dropped by mobs",
+          "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
@@ -1203,7 +1203,7 @@
               "name": "Barrage",
               "level": 28,
               "gain": 1.5,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -1260,7 +1260,7 @@
           "level": 33,
           "tier": "RARE",
           "gain": 7.7,
-          "from": "dropped by mobs",
+          "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
@@ -1268,7 +1268,7 @@
               "name": "Vagabond",
               "level": 33,
               "gain": 6.6,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -1324,7 +1324,7 @@
               "name": "Santa's Coat",
               "level": 32,
               "gain": -7.6,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {
@@ -1385,7 +1385,7 @@
               "name": "Seismic Chaps",
               "level": 32,
               "gain": -2.6,
-              "from": "dropped by mobs",
+              "from": "mob drop",
               "tradable": true
             },
             {

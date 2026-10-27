@@ -9,7 +9,7 @@
           "level": 17,
           "tier": "RARE",
           "gain": 11.2,
-          "from": "2 adet III. seviye toz ekle (her element aynı canı verir), yaklaşık 2 EB",
+          "from": "2 adet tier III powder ekle (her element aynı HP), ~2 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -20,7 +20,7 @@
           "level": 19,
           "tier": "RARE",
           "gain": 5.6,
-          "from": "1 adet III. seviye toz ekle (her element aynı canı verir), yaklaşık 1 EB",
+          "from": "1 adet tier III powder ekle (her element aynı HP), ~1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -31,7 +31,7 @@
           "level": 17,
           "tier": "UNIQUE",
           "gain": 5.6,
-          "from": "1 adet III. seviye toz ekle (her element aynı canı verir), yaklaşık 1 EB",
+          "from": "1 adet tier III powder ekle (her element aynı HP), ~1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -42,7 +42,7 @@
           "level": 20,
           "tier": "RARE",
           "gain": 5.6,
-          "from": "1 adet III. seviye toz ekle (her element aynı canı verir), yaklaşık 1 EB",
+          "from": "1 adet tier III powder ekle (her element aynı HP), ~1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -53,7 +53,7 @@
           "level": 17,
           "tier": "UNIQUE",
           "gain": 26.6,
-          "from": "1× Su III toz ekle, yaklaşık 1 EB",
+          "from": "1× Water III powder ekle, ~1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -64,7 +64,7 @@
           "level": 19,
           "tier": "LEGENDARY",
           "gain": 85.2,
-          "from": "mob'lardan düşer",
+          "from": "mob drop'u",
           "price": null,
           "tradable": true,
           "options": [
@@ -72,42 +72,42 @@
               "name": "Helter Skelter",
               "level": 19,
               "gain": 75.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Cruel Sun",
               "level": 24,
               "gain": 121.6,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Grindcore",
               "level": 25,
               "gain": 98.1,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Technicolor Phase",
               "level": 21,
               "gain": 81.2,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Intestine Lasso",
               "level": 25,
               "gain": 74.7,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Gestation",
               "level": 23,
               "gain": 66.7,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
@@ -121,35 +121,35 @@
               "name": "Flux and Flow",
               "level": 25,
               "gain": 61.4,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Beachside Conch",
               "level": 25,
               "gain": 53.1,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Prog",
               "level": 18,
               "gain": 50.0,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Presto",
               "level": 16,
               "gain": 48.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Ivy Whip",
               "level": 19,
               "gain": 6.1,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
@@ -167,7 +167,7 @@
           "level": 18,
           "tier": "LEGENDARY",
           "gain": 26.3,
-          "from": "Decrepit Sewers zindanı",
+          "from": "Decrepit Sewers dungeon'ı",
           "price": null,
           "tradable": true,
           "options": [
@@ -175,77 +175,77 @@
               "name": "Lemon Legs",
               "level": 18,
               "gain": 44.3,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Conductor",
               "level": 25,
               "gain": 53.3,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Relay",
               "level": 24,
               "gain": 32.0,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Back Protector",
               "level": 24,
               "gain": 25.9,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Raecard",
               "level": 22,
               "gain": 22.1,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Selchar's Famous Breeches",
               "level": 25,
               "gain": 21.1,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Tribal Pants",
               "level": 18,
               "gain": 19.3,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Tarnish",
               "level": 21,
               "gain": 18.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Spinneret",
               "level": 19,
               "gain": 14.9,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Skeletal Legs",
               "level": 23,
               "gain": 14.9,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Cloudburst",
               "level": 19,
               "gain": 13.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             }
           ]
@@ -256,7 +256,7 @@
           "level": 20,
           "tier": "LEGENDARY",
           "gain": 15.0,
-          "from": "mob'lardan düşer",
+          "from": "mob drop'u",
           "price": null,
           "tradable": true,
           "options": [
@@ -264,49 +264,49 @@
               "name": "Neolithic",
               "level": 20,
               "gain": 14.7,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Memorial",
               "level": 19,
               "gain": 2.8,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Mercenary Hood",
               "level": 19,
               "gain": -3.0,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Cephalothorax",
               "level": 16,
               "gain": -4.0,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Straw Helmet",
               "level": 20,
               "gain": -5.0,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Bear Mask",
               "level": 15,
               "gain": -5.1,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Tribal Cap",
               "level": 18,
               "gain": -5.2,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             }
           ]
@@ -317,7 +317,7 @@
           "level": 20,
           "tier": "LEGENDARY",
           "gain": 6.8,
-          "from": "The Hunger of Gerts Part 1 görevi",
+          "from": "The Hunger of Gerts Part 1 quest'i",
           "price": null,
           "tradable": false,
           "options": [
@@ -325,42 +325,42 @@
               "name": "The Scarecrow's Vest",
               "level": 20,
               "gain": 8.3,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Tribal Tunic",
               "level": 18,
               "gain": 4.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Maltic's Aid",
               "level": 18,
               "gain": -3.2,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Abdomen",
               "level": 20,
               "gain": -3.9,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Tepid Plate",
               "level": 20,
               "gain": -6.3,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Ragni Fatigues",
               "level": 15,
               "gain": -8.3,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             }
           ]
@@ -371,7 +371,7 @@
           "level": 18,
           "tier": "UNIQUE",
           "gain": 9.2,
-          "from": "Detlas tüccarı",
+          "from": "Detlas merchant'ı",
           "price": null,
           "tradable": true,
           "options": [
@@ -379,42 +379,42 @@
               "name": "Shajone",
               "level": 18,
               "gain": 6.3,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Hunger",
               "level": 17,
               "gain": 2.1,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Stingy",
               "level": 20,
               "gain": -2.2,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Omnitread Boots",
               "level": 15,
               "gain": -4.8,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Tribal Boots",
               "level": 18,
               "gain": -6.2,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Steel Toed Boots",
               "level": 19,
               "gain": -7.8,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             }
           ]
@@ -425,7 +425,7 @@
           "level": 20,
           "tier": "UNIQUE",
           "gain": 2.3,
-          "from": "sandık",
+          "from": "loot chest",
           "price": null,
           "tradable": true,
           "options": [
@@ -433,42 +433,42 @@
               "name": "Zap",
               "level": 20,
               "gain": 2.0,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Sparkle",
               "level": 16,
               "gain": 0.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Quatrain",
               "level": 16,
               "gain": 0.2,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Lizard",
               "level": 18,
               "gain": 0.0,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Major",
               "level": 20,
               "gain": -0.1,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Red String",
               "level": 16,
               "gain": -1.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             }
           ]
@@ -479,7 +479,7 @@
           "level": 20,
           "tier": "UNIQUE",
           "gain": 4.9,
-          "from": "sandık",
+          "from": "loot chest",
           "price": null,
           "tradable": true,
           "options": [
@@ -487,42 +487,42 @@
               "name": "Zap",
               "level": 20,
               "gain": 1.2,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Sparkle",
               "level": 16,
               "gain": 0.2,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Quatrain",
               "level": 16,
               "gain": 0.1,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Lizard",
               "level": 18,
               "gain": 0.0,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Major",
               "level": 20,
               "gain": -0.2,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Red String",
               "level": 16,
               "gain": -1.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             }
           ]
@@ -533,7 +533,7 @@
           "level": 20,
           "tier": "UNIQUE",
           "gain": 3.1,
-          "from": "Detlas tüccarı",
+          "from": "Detlas merchant'ı",
           "price": null,
           "tradable": true,
           "options": [
@@ -541,35 +541,35 @@
               "name": "Gust",
               "level": 20,
               "gain": 3.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Slap",
               "level": 15,
               "gain": 3.3,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Spider Bracelet",
               "level": 19,
               "gain": 2.4,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "The Meddler",
               "level": 19,
               "gain": 1.0,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Bejeweled Bracelet",
               "level": 17,
               "gain": -1.1,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             }
           ]
@@ -580,7 +580,7 @@
           "level": 20,
           "tier": "RARE",
           "gain": 7.3,
-          "from": "Detlas tüccarı",
+          "from": "Detlas merchant'ı",
           "price": null,
           "tradable": true,
           "options": [
@@ -588,35 +588,35 @@
               "name": "Spider's Eye Pendant",
               "level": 20,
               "gain": 8.2,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Charm of the Flea",
               "level": 20,
               "gain": 7.6,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Amulet of the Necromancer",
               "level": 18,
               "gain": 5.9,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Simple Coin",
               "level": 18,
               "gain": 4.6,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Diaconate",
               "level": 15,
               "gain": 4.4,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             }
           ]
@@ -624,7 +624,7 @@
       ],
       "abilities": [],
       "places": [
-        "1|Nemract Cave Mağara (Lv. 19)"
+        "1|Nemract Cave Cave (Lv. 19)"
       ],
       "skillPoints": 0
     },
@@ -637,7 +637,7 @@
           "level": 25,
           "tier": "LEGENDARY",
           "gain": 27.2,
-          "from": "Detlas tüccarı",
+          "from": "Detlas merchant'ı",
           "price": null,
           "tradable": true,
           "options": [
@@ -645,91 +645,91 @@
               "name": "Almuj's Walker",
               "level": 25,
               "gain": 8.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Quicksand Crossers",
               "level": 34,
               "gain": 17.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Seal Breaker",
               "level": 34,
               "gain": 11.4,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Cyclo",
               "level": 21,
               "gain": 7.9,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Meanderthal",
               "level": 29,
               "gain": 7.5,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Mud",
               "level": 31,
               "gain": 6.6,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Trouble Tamer",
               "level": 32,
               "gain": 5.9,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Disco",
               "level": 27,
               "gain": 5.8,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Black Boots",
               "level": 33,
               "gain": 3.0,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Hunger",
               "level": 17,
               "gain": -2.3,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Greenhoof",
               "level": 20,
               "gain": -5.1,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Ado Saki",
               "level": 20,
               "gain": -6.1,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Aged Golden Boots",
               "level": 22,
               "gain": -14.4,
-              "from": "Ragni tüccarı",
+              "from": "Ragni merchant'ı",
               "tradable": true
             }
           ]
@@ -740,7 +740,7 @@
           "level": 28,
           "tier": "UNIQUE",
           "gain": 3.7,
-          "from": "mob'lardan düşer",
+          "from": "mob drop'u",
           "price": null,
           "tradable": true,
           "options": [
@@ -748,77 +748,77 @@
               "name": "Dynamic",
               "level": 28,
               "gain": 4.7,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Practice",
               "level": 30,
               "gain": 4.7,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Ormrod's Isolation",
               "level": 33,
               "gain": 3.6,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Ionic",
               "level": 32,
               "gain": 2.2,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Fortitude",
               "level": 28,
               "gain": 1.9,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Life Charge",
               "level": 30,
               "gain": 1.8,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Blackout",
               "level": 22,
               "gain": 1.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Intuition",
               "level": 30,
               "gain": 1.4,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Slap",
               "level": 15,
               "gain": 1.3,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "The Meddler",
               "level": 19,
               "gain": 0.9,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Spider Bracelet",
               "level": 19,
               "gain": -0.1,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             }
           ]
@@ -829,7 +829,7 @@
           "level": 27,
           "tier": "RARE",
           "gain": 2.8,
-          "from": "Decrepit Sewers zindanı",
+          "from": "Decrepit Sewers dungeon'ı",
           "price": null,
           "tradable": true,
           "options": [
@@ -837,84 +837,84 @@
               "name": "Zombie Eye Pendant",
               "level": 27,
               "gain": 4.1,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Scarab-Shelled Charm",
               "level": 32,
               "gain": 5.8,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Dark Diadem",
               "level": 24,
               "gain": 2.2,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Longevity",
               "level": 30,
               "gain": 2.1,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Slainte",
               "level": 30,
               "gain": 0.7,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Power Scale",
               "level": 28,
               "gain": 0.5,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Crystal-Blend Pendant",
               "level": 34,
               "gain": 0.4,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Webbed Glass Charm",
               "level": 32,
               "gain": 0.3,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Spirit Calling",
               "level": 28,
               "gain": 0.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Amulet of the Necromancer",
               "level": 18,
               "gain": -0.9,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Charm of the Flea",
               "level": 20,
               "gain": -0.9,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Simple Coin",
               "level": 18,
               "gain": -2.4,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             }
           ]
@@ -925,7 +925,7 @@
           "level": 28,
           "tier": "LEGENDARY",
           "gain": 52.8,
-          "from": "The Hunger of Gerts Part 1 görevi",
+          "from": "The Hunger of Gerts Part 1 quest'i",
           "price": null,
           "tradable": false,
           "options": [
@@ -933,42 +933,42 @@
               "name": "Thriller",
               "level": 28,
               "gain": 25.6,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Conclave Crossfire",
               "level": 29,
               "gain": 0.0,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Vivace",
               "level": 29,
               "gain": -4.3,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Grindcore",
               "level": 25,
               "gain": -22.4,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Boundary",
               "level": 26,
               "gain": -28.6,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Breath of the Dragon",
               "level": 27,
               "gain": -34.0,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             }
           ]
@@ -979,7 +979,7 @@
           "level": 27,
           "tier": "RARE",
           "gain": 17.8,
-          "from": "The Hunger of Gerts Part 1 görevi",
+          "from": "The Hunger of Gerts Part 1 quest'i",
           "price": null,
           "tradable": false,
           "options": [
@@ -987,42 +987,42 @@
               "name": "Black Ripper",
               "level": 27,
               "gain": 4.8,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Black Mask",
               "level": 29,
               "gain": 0.0,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Advancement",
               "level": 29,
               "gain": -1.5,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Giant's Kneecap",
               "level": 30,
               "gain": -3.4,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Fire Relic Helmet",
               "level": 30,
               "gain": -7.2,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Ice Mask",
               "level": 28,
               "gain": -8.0,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             }
           ]
@@ -1033,7 +1033,7 @@
           "level": 30,
           "tier": "LEGENDARY",
           "gain": 13.3,
-          "from": "The Hunger of Gerts Part 1 görevi",
+          "from": "The Hunger of Gerts Part 1 quest'i",
           "price": null,
           "tradable": false,
           "options": [
@@ -1041,42 +1041,42 @@
               "name": "Secondsaver",
               "level": 30,
               "gain": 1.4,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Arakadicus' Body",
               "level": 21,
               "gain": 0.0,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Nemract's Ruin",
               "level": 27,
               "gain": -1.6,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Streak",
               "level": 30,
               "gain": -7.9,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Katoa's Warmth",
               "level": 23,
               "gain": -11.5,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Garoth's Hope",
               "level": 29,
               "gain": -16.1,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             }
           ]
@@ -1087,7 +1087,7 @@
           "level": 25,
           "tier": "LEGENDARY",
           "gain": 0.7,
-          "from": "Detlas tüccarı",
+          "from": "Detlas merchant'ı",
           "price": null,
           "tradable": true,
           "options": [
@@ -1095,42 +1095,42 @@
               "name": "Conductor",
               "level": 25,
               "gain": 2.8,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Enhanced Panorama",
               "level": 30,
               "gain": 0.7,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Evalach",
               "level": 27,
               "gain": 0.0,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Spider Silk Carduroys",
               "level": 29,
               "gain": -2.3,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Relay",
               "level": 24,
               "gain": -2.6,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Nether Pants",
               "level": 27,
               "gain": -3.6,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             }
           ]
@@ -1141,7 +1141,7 @@
           "level": 28,
           "tier": "UNIQUE",
           "gain": 0.5,
-          "from": "mob'lardan düşer",
+          "from": "mob drop'u",
           "price": null,
           "tradable": true,
           "options": [
@@ -1149,42 +1149,42 @@
               "name": "Barrage",
               "level": 28,
               "gain": 1.5,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Sparkle",
               "level": 16,
               "gain": -1.0,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Quatrain",
               "level": 16,
               "gain": -1.2,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Timelocked Coal",
               "level": 28,
               "gain": -1.4,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Major",
               "level": 20,
               "gain": -1.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Field",
               "level": 30,
               "gain": -2.0,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             }
           ]
@@ -1195,7 +1195,7 @@
           "level": 28,
           "tier": "UNIQUE",
           "gain": 0.5,
-          "from": "mob'lardan düşer",
+          "from": "mob drop'u",
           "price": null,
           "tradable": true,
           "options": [
@@ -1203,42 +1203,42 @@
               "name": "Barrage",
               "level": 28,
               "gain": 1.5,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Sparkle",
               "level": 16,
               "gain": -1.0,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Quatrain",
               "level": 16,
               "gain": -1.2,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Timelocked Coal",
               "level": 28,
               "gain": -1.4,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Major",
               "level": 20,
               "gain": -1.7,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Field",
               "level": 30,
               "gain": -2.0,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             }
           ]
@@ -1260,7 +1260,7 @@
           "level": 33,
           "tier": "RARE",
           "gain": 7.7,
-          "from": "mob'lardan düşer",
+          "from": "mob drop'u",
           "price": null,
           "tradable": true,
           "options": [
@@ -1268,84 +1268,84 @@
               "name": "Vagabond",
               "level": 33,
               "gain": 6.6,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Hourslip",
               "level": 32,
               "gain": -0.6,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Standoff",
               "level": 33,
               "gain": -0.7,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Black Tunic",
               "level": 33,
               "gain": -0.8,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Nemract's Ruin",
               "level": 27,
               "gain": -1.9,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Arakadicus' Body",
               "level": 21,
               "gain": -1.9,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "The Juggernaut",
               "level": 33,
               "gain": -5.8,
-              "from": "Detlas tüccarı",
+              "from": "Detlas merchant'ı",
               "tradable": true
             },
             {
               "name": "Angel Wing Shroud",
               "level": 27,
               "gain": -7.6,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Santa's Coat",
               "level": 32,
               "gain": -7.6,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "The Scarecrow's Vest",
               "level": 20,
               "gain": -12.3,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Abdomen",
               "level": 20,
               "gain": -21.4,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Tepid Plate",
               "level": 20,
               "gain": -23.1,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             }
           ]
@@ -1356,7 +1356,7 @@
           "level": 33,
           "tier": "LEGENDARY",
           "gain": 11.9,
-          "from": "The Hunger of Gerts Part 1 görevi",
+          "from": "The Hunger of Gerts Part 1 quest'i",
           "price": null,
           "tradable": false,
           "options": [
@@ -1364,42 +1364,42 @@
               "name": "Diminution",
               "level": 33,
               "gain": 2.1,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Dead Sands",
               "level": 32,
               "gain": 0.0,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             },
             {
               "name": "Alternator",
               "level": 32,
               "gain": -0.2,
-              "from": "sandık",
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Seismic Chaps",
               "level": 32,
               "gain": -2.6,
-              "from": "mob'lardan düşer",
+              "from": "mob drop'u",
               "tradable": true
             },
             {
               "name": "Dilation",
               "level": 31,
               "gain": -2.7,
-              "from": "The Hunger of Gerts Part 1 görevi",
+              "from": "The Hunger of Gerts Part 1 quest'i",
               "tradable": false
             },
             {
               "name": "Urheus",
               "level": 32,
               "gain": -5.1,
-              "from": "Decrepit Sewers zindanı",
+              "from": "Decrepit Sewers dungeon'ı",
               "tradable": true
             }
           ]

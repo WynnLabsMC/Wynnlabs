@@ -69,13 +69,13 @@
     "where": "bag 15",
     "name": "Unidentified Chestplate",
     "verdict": "SELL",
-    "note": "Hiçbir olasılık build'ine yaramıyor (en iyisi: Sundown Poncho %-0.9). Blacksmith'e sat (takas edilemez)"
+    "note": "Hiçbir drop build'ine yaramıyor (en iyisi: Sundown Poncho %-0.9). Blacksmith'e sat (takas edilemez)"
   },
   {
     "where": "bag 16",
     "name": "Pink Wool",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bag 17",
@@ -123,25 +123,25 @@
     "where": "bank acct:Account Bank p. 1#0",
     "name": "Earth Powder I",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Earth hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#1",
     "name": "Earth Powder II",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Earth hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#2",
     "name": "Earth Powder III",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Earth hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#3",
     "name": "Earth Powder IV",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Earth hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#4",
@@ -153,49 +153,49 @@
     "where": "bank acct:Account Bank p. 1#5",
     "name": "Air Powder I",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Air hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#6",
     "name": "Air Powder II",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Air hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#7",
     "name": "Air Powder III",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Air hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#8",
     "name": "Air Powder IV",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Air hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#9",
     "name": "Thunder Powder I",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#10",
     "name": "Thunder Powder II",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#11",
     "name": "Thunder Powder III",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#12",
     "name": "Thunder Powder IV",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#13",
@@ -207,49 +207,49 @@
     "where": "bank acct:Account Bank p. 1#14",
     "name": "Fire Powder I",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#15",
     "name": "Fire Powder II",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#16",
     "name": "Fire Powder III",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#17",
     "name": "Fire Powder IV",
     "verdict": "KEEP",
-    "note": "Mage'in silahına takar; hesap bankasında tut"
+    "note": "Mage'in silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#18",
     "name": "Water Powder I",
     "verdict": "KEEP",
-    "note": "Warrior'ın silahına takar; hesap bankasında tut"
+    "note": "Warrior'ın silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#19",
     "name": "Water Powder II",
     "verdict": "KEEP",
-    "note": "Warrior'ın silahına takar; hesap bankasında tut"
+    "note": "Warrior'ın silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#20",
     "name": "Water Powder III",
     "verdict": "KEEP",
-    "note": "Warrior'ın silahına takar; hesap bankasında tut"
+    "note": "Warrior'ın silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#21",
     "name": "Water Powder IV",
     "verdict": "KEEP",
-    "note": "Warrior'ın silahına takar; hesap bankasında tut"
+    "note": "Warrior'ın silahına; hesap bankasına koy"
   },
   {
     "where": "bank acct:Account Bank p. 1#22",
@@ -261,7 +261,7 @@
     "where": "bank acct:Account Bank p. 1#23",
     "name": "Air Powder V",
     "verdict": "USE",
-    "note": "Silahına tak (envanterde sürükle), build'in Air hasarı"
+    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#24",
@@ -273,7 +273,7 @@
     "where": "bank acct:Account Bank p. 1#26",
     "name": "Unidentified Bracelet",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~640-656 E), sonra listele · Fiyat henüz yok. Hiçbir olasılık build'ine yaramıyor (en iyisi: Panic Attack %-9.1)"
+    "note": "Önce Trade Market'te aç (~640-656 E), sonra listele · Fiyat yok. Hiçbir drop build'ine yaramıyor (en iyisi: Panic Attack %-9.1)"
   },
   {
     "where": "bank acct:Account Bank p. 1#27",
@@ -405,7 +405,7 @@
     "where": "bank acct:Account Bank p. 2#18",
     "name": "Infinity",
     "verdict": "SELL",
-    "note": "Archer eşyası, sen Shaman'sın. Blacksmith'e sat (fiyat henüz bilinmiyor)"
+    "note": "Archer item'ı, sen Shaman oynuyorsun. Blacksmith'e sat (henüz fiyat yok)"
   },
   {
     "where": "bank acct:Account Bank p. 2#36",
@@ -555,7 +555,7 @@
     "where": "bank acct:Account Bank p. 4#1",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 4#2",
@@ -567,7 +567,7 @@
     "where": "bank acct:Account Bank p. 4#3",
     "name": "Unidentified Bow",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 5#0",
@@ -693,43 +693,43 @@
     "where": "bank acct:Account Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~471-485 E), sonra listele · Fiyat henüz yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~471-485 E), sonra listele · Fiyat yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#1",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#2",
     "name": "Unidentified Bow",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#3",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~444-458 E), sonra listele · Fiyat henüz yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~444-458 E), sonra listele · Fiyat yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#5",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#6",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#7",
@@ -741,7 +741,7 @@
     "where": "bank acct:Account Bank p. 6#8",
     "name": "Gleaming Titanium Boots",
     "verdict": "SELL",
-    "note": "Normal eşya, Lv. 118'te bile zayıf kalır. Trade Market'te sat, ~21.0 LE"
+    "note": "Normal item, Lv. 118'te bile zayıf. Trade Market'te sat, ~21.0 LE"
   },
   {
     "where": "bank acct:Account Bank p. 6#9",
@@ -753,25 +753,25 @@
     "where": "bank acct:Account Bank p. 6#10",
     "name": "Lotus Seedpod",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#0",
     "name": "Diamond Gem",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#1",
     "name": "Diamond Gem",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~12 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~12 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#2",
     "name": "Copper Ingot",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~13 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~13 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#3",
@@ -789,7 +789,7 @@
     "where": "bank acct:Account Bank p. 7#5",
     "name": "Copper Ingot",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~15 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~15 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 8#0",
@@ -879,37 +879,37 @@
     "where": "bank acct:Account Bank p. 9#1",
     "name": "Oat String",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#2",
     "name": "Oat Grains",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~18 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~18 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#3",
     "name": "Coagulated Clot",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~12 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~12 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#4",
     "name": "Sticky Fern",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~11 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~11 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#5",
     "name": "Putrid Gunk",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~18 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~18 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#6",
     "name": "Poison Sac",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~2 E), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~2 E), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#7",
@@ -933,13 +933,13 @@
     "where": "bank acct:Account Bank p. 9#10",
     "name": "Viscous Slime",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~9 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~9 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#11",
     "name": "Pink Pelulite",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~9 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~9 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#12",
@@ -951,7 +951,7 @@
     "where": "bank acct:Account Bank p. 9#13",
     "name": "Death Whistle Leaf",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~11 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~11 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#14",
@@ -975,7 +975,7 @@
     "where": "bank acct:Account Bank p. 9#17",
     "name": "Mineral Cinder",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~20 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~20 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#18",
@@ -987,79 +987,79 @@
     "where": "bank acct:Account Bank p. 9#19",
     "name": "Crumbly Rock",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#20",
     "name": "Wolf Fang",
     "verdict": "PRICE",
-    "note": "Fiyatı bilinmiyor: Trade Market'te üstüne bir kez gel, sonra karar veririm"
+    "note": "Fiyat yok: Trade Market'te bir kez üstüne gel, sonra karar veririm"
   },
   {
     "where": "bank acct:Account Bank p. 9#21",
     "name": "Rotten Flesh",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~12 E), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~12 E), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#22",
     "name": "Owl Feather",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~1 E), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~1 E), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#23",
     "name": "Pykrete",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#24",
     "name": "Large Lapis",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#25",
     "name": "Chitin Plate",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#26",
     "name": "Mellow Mango",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~30 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~30 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#27",
     "name": "Gelatinous Slime Chunk",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~20 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~20 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#28",
     "name": "Broken Antic Bead",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#29",
     "name": "Adventurer's Diary",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~24 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~24 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#30",
     "name": "Consecrated Ivory",
     "verdict": "PRICE",
-    "note": "Fiyatı bilinmiyor: Trade Market'te üstüne bir kez gel, sonra karar veririm"
+    "note": "Fiyat yok: Trade Market'te bir kez üstüne gel, sonra karar veririm"
   },
   {
     "where": "bank acct:Account Bank p. 9#31",
     "name": "Egg",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~22 E), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~22 E), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#32",
@@ -1071,49 +1071,49 @@
     "where": "bank acct:Account Bank p. 9#33",
     "name": "Zombie Eye",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~22 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~22 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#34",
     "name": "Snow Clump",
     "verdict": "KEEP",
-    "note": "'Slay Creatures of Nesaak Forest' görevi istiyor"
+    "note": "'Slay Creatures of Nesaak Forest' quest'i istiyor"
   },
   {
     "where": "bank acct:Account Bank p. 9#35",
     "name": "Thick Vines",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#36",
     "name": "Rotten Log",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#37",
     "name": "Pillaged Fragment",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#38",
     "name": "Frozen Ghostly Essence",
     "verdict": "PRICE",
-    "note": "Fiyatı bilinmiyor: Trade Market'te üstüne bir kez gel, sonra karar veririm"
+    "note": "Fiyat yok: Trade Market'te bir kez üstüne gel, sonra karar veririm"
   },
   {
     "where": "bank acct:Account Bank p. 9#39",
     "name": "Penguin Egg",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#40",
     "name": "Yeti Fur",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~2 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~2 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 10#0",
@@ -1143,7 +1143,7 @@
     "where": "bank acct:Account Bank p. 10#4",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#5",
@@ -1155,19 +1155,19 @@
     "where": "bank acct:Account Bank p. 10#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~130-131 E), sonra listele · Beklenen ~40 EB. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~130-131 E), sonra listele · Beklenen ~40 EB. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#7",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#8",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#9",
@@ -1185,7 +1185,7 @@
     "where": "bank acct:Account Bank p. 10#11",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te ~3 EB kalır, sınırın (10 EB) altında. Lv. 1-5, seviyenin çok altında"
+    "note": "Blacksmith'e sat: Trade Market'te ~3 EB kalır, alt sınırın (10 EB) altında. Lv. 1-5, level'ının çok altında"
   },
   {
     "where": "bank acct:Account Bank p. 10#12",
@@ -1239,7 +1239,7 @@
     "where": "bank char:char0001:Character Bank p. 1#5",
     "name": "Breathing Helmet I",
     "verdict": "KEEP",
-    "note": "Görev eşyası, satma; görev bitince işi biter"
+    "note": "Quest item'ı: quest bitene kadar satma"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#6",
@@ -1293,7 +1293,7 @@
     "where": "bank char:char0001:Character Bank p. 1#14",
     "name": "Soft Sand",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#15",
@@ -1317,7 +1317,7 @@
     "where": "bank char:char0001:Character Bank p. 1#18",
     "name": "Gold Bar",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa elden çıkar"
+    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#19",
@@ -1329,7 +1329,7 @@
     "where": "bank char:char0001:Character Bank p. 1#20",
     "name": "Climbing Helmet",
     "verdict": "KEEP",
-    "note": "Görev eşyası, satma; görev bitince işi biter"
+    "note": "Quest item'ı: quest bitene kadar satma"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#43",
@@ -1377,7 +1377,7 @@
     "where": "bank char:char0001:Character Bank p. 2#5",
     "name": "Sylar",
     "verdict": "SELL",
-    "note": "Archer eşyası, sen Shaman'sın. Trade Market'te sat, ~33 EB"
+    "note": "Archer item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~33 EB"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#6",
@@ -1455,19 +1455,19 @@
     "where": "bank char:char0003:Character Bank p. 1#11",
     "name": "Climbing Helmet",
     "verdict": "KEEP",
-    "note": "Görev eşyası, satma; görev bitince işi biter"
+    "note": "Quest item'ı: quest bitene kadar satma"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#12",
     "name": "Sage",
     "verdict": "SELL",
-    "note": "Mage eşyası, sen Shaman'sın. Trade Market'te sat, ~1.5 LE"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~1.5 LE"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#13",
     "name": "Hisel Azetir",
     "verdict": "SELL",
-    "note": "Mage eşyası, sen Shaman'sın. Blacksmith'e sat (takas edilemez)"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Blacksmith'e sat (takas edilemez)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#14",
@@ -1509,7 +1509,7 @@
     "where": "bank char:char0003:Character Bank p. 1#21",
     "name": "Climbing Helmet",
     "verdict": "KEEP",
-    "note": "Görev eşyası, satma; görev bitince işi biter"
+    "note": "Quest item'ı: quest bitene kadar satma"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#35",
@@ -1581,7 +1581,7 @@
     "where": "bank char:char0003:Character Bank p. 2#4",
     "name": "Hisel Azetir",
     "verdict": "SELL",
-    "note": "Mage eşyası, sen Shaman'sın. Blacksmith'e sat (takas edilemez)"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Blacksmith'e sat (takas edilemez)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#5",
@@ -1635,13 +1635,13 @@
     "where": "bank char:char0003:Character Bank p. 3#1",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te ~5 EB kalır, sınırın (10 EB) altında. Lv. 11-15, seviyenin çok altında"
+    "note": "Blacksmith'e sat: Trade Market'te ~5 EB kalır, alt sınırın (10 EB) altında. Lv. 11-15, level'ının çok altında"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#2",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~41-43 E), sonra listele · Beklenen ~13 EB. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~41-43 E), sonra listele · Beklenen ~13 EB. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#3",
@@ -1653,19 +1653,19 @@
     "where": "bank char:char0003:Character Bank p. 3#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~31-33 E), sonra listele · Beklenen ~16 EB. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~31-33 E), sonra listele · Beklenen ~16 EB. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#5",
     "name": "Unidentified Bracelet",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Hiçbir olasılık build'ine yaramıyor (en iyisi: Rayshyroth's Knowledge %-3.8)"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. Hiçbir drop build'ine yaramıyor (en iyisi: Rayshyroth's Knowledge %-3.8)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~34-36 E), sonra listele · Beklenen ~29 EB (2/6 olasılığın fiyatı var). Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~34-36 E), sonra listele · Beklenen ~29 EB (2/6 drop'un fiyatı var). İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#7",
@@ -1683,7 +1683,7 @@
     "where": "bank char:char0003:Character Bank p. 3#10",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~31-33 E), sonra listele · Beklenen ~16 EB. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~31-33 E), sonra listele · Beklenen ~16 EB. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#27",
@@ -1803,7 +1803,7 @@
     "where": "bank char:char0003:Character Bank p. 5#13",
     "name": "Afterimage",
     "verdict": "SELL",
-    "note": "Mage eşyası, sen Shaman'sın. Blacksmith'e sat (market ~8 EB)"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Blacksmith'e sat (market ~8 EB)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#28",
@@ -1833,7 +1833,7 @@
     "where": "bank char:char0003:Character Bank p. 5#36",
     "name": "Lichclaw",
     "verdict": "SELL",
-    "note": "Mage eşyası, sen Shaman'sın. Trade Market'te sat, ~1.0 LE"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~1.0 LE"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#37",
@@ -1863,19 +1863,19 @@
     "where": "bank char:char0003:Character Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~31-33 E), sonra listele · Beklenen ~16 EB. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~31-33 E), sonra listele · Beklenen ~16 EB. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#1",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#2",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Hiçbir olasılık build'ine yaramıyor (en iyisi: Skien Leggings %-9.7)"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. Hiçbir drop build'ine yaramıyor (en iyisi: Skien Leggings %-9.7)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#3",
@@ -1887,13 +1887,13 @@
     "where": "bank char:char0003:Character Bank p. 6#4",
     "name": "Unidentified Bracelet",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: olasılıkların hiçbirinin fiyatı yok. Hiçbir olasılık build'ine yaramıyor (en iyisi: Rayshyroth's Knowledge %-3.8)"
+    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. Hiçbir drop build'ine yaramıyor (en iyisi: Rayshyroth's Knowledge %-3.8)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#5",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te göster (~71-74 E), sonra listele · Beklenen ~41 EB. Çıkabilecek eşyaların hiçbiri Shaman için değil"
+    "note": "Önce Trade Market'te aç (~71-74 E), sonra listele · Beklenen ~41 EB. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#6",

@@ -126,7 +126,6 @@ wynnlabs.guide.used_for  "for Brie" after a part's name in the guide
 wynnlabs.guide.key_stage  after the up/down arrows in the guide footer
 wynnlabs.guide.key_option  after the left/right arrows in the guide footer
 wynnlabs.guide.key_part  after the left/right arrows in the guide footer
-wynnlabs.home.hud_health_label  after the health value on the Home card ("1927 effective health")
 wynnlabs.home.hud_mana_label  after the mana-per-5-s value on the Home card
 wynnlabs.home.hud_spell_label  after the spell damage value on the Home card
 wynnlabs.quests.share  after the other facts of a quest ("Lv 43 · Wynn · seviyenin %11'i")

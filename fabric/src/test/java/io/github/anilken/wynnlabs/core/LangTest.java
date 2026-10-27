@@ -26,7 +26,7 @@ class LangTest {
     void englishWithArguments() {
         language(1);
         assertEquals(" (build +12%)", L.t("wynnlabs.auto.build_gain", 12));
-        assertEquals("You can wear it at Lv. 44", L.t("wynnlabs.auto.wear_at_level", 44));
+        assertEquals("Equippable at Lv. 44", L.t("wynnlabs.auto.wear_at_level", 44));
     }
 
     @Test
@@ -51,7 +51,7 @@ class LangTest {
         assertEquals("3 days ago", L.n("wynnlabs.screen.ago_days", 3));
         assertEquals("0 deaths", L.n("wynnlabs.deaths.tile_count", 0));
         assertEquals("Hunt over: Wybel Fluff (1 kill)", L.n("wynnlabs.coach.hunt_ended", 1, "Wybel Fluff", 1));
-        assertEquals("Area Lv. 34 · You Lv. 60", L.t("wynnlabs.deaths.chip_zone", 34, 60));
+        assertEquals("Area Lv. 34 · You: Lv. 60", L.t("wynnlabs.deaths.chip_zone", 34, 60));
     }
 
     @Test

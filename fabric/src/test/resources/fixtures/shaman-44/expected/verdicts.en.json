@@ -75,7 +75,7 @@
     "where": "bag 16",
     "name": "Pink Wool",
     "verdict": "KEEP",
-    "note": "Low value (~5 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~5 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bag 17",
@@ -123,25 +123,25 @@
     "where": "bank acct:Account Bank p. 1#0",
     "name": "Earth Powder I",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Earth damage"
+    "note": "Apply it to your weapon (drag it on): your build does Earth damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#1",
     "name": "Earth Powder II",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Earth damage"
+    "note": "Apply it to your weapon (drag it on): your build does Earth damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#2",
     "name": "Earth Powder III",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Earth damage"
+    "note": "Apply it to your weapon (drag it on): your build does Earth damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#3",
     "name": "Earth Powder IV",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Earth damage"
+    "note": "Apply it to your weapon (drag it on): your build does Earth damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#4",
@@ -153,49 +153,49 @@
     "where": "bank acct:Account Bank p. 1#5",
     "name": "Air Powder I",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Air damage"
+    "note": "Apply it to your weapon (drag it on): your build does Air damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#6",
     "name": "Air Powder II",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Air damage"
+    "note": "Apply it to your weapon (drag it on): your build does Air damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#7",
     "name": "Air Powder III",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Air damage"
+    "note": "Apply it to your weapon (drag it on): your build does Air damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#8",
     "name": "Air Powder IV",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Air damage"
+    "note": "Apply it to your weapon (drag it on): your build does Air damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#9",
     "name": "Thunder Powder I",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#10",
     "name": "Thunder Powder II",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#11",
     "name": "Thunder Powder III",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#12",
     "name": "Thunder Powder IV",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#13",
@@ -207,49 +207,49 @@
     "where": "bank acct:Account Bank p. 1#14",
     "name": "Fire Powder I",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#15",
     "name": "Fire Powder II",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#16",
     "name": "Fire Powder III",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#17",
     "name": "Fire Powder IV",
     "verdict": "KEEP",
-    "note": "For your Mage's weapon; keep it in the account bank"
+    "note": "For your Mage's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#18",
     "name": "Water Powder I",
     "verdict": "KEEP",
-    "note": "For your Warrior's weapon; keep it in the account bank"
+    "note": "For your Warrior's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#19",
     "name": "Water Powder II",
     "verdict": "KEEP",
-    "note": "For your Warrior's weapon; keep it in the account bank"
+    "note": "For your Warrior's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#20",
     "name": "Water Powder III",
     "verdict": "KEEP",
-    "note": "For your Warrior's weapon; keep it in the account bank"
+    "note": "For your Warrior's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#21",
     "name": "Water Powder IV",
     "verdict": "KEEP",
-    "note": "For your Warrior's weapon; keep it in the account bank"
+    "note": "For your Warrior's weapon; stash it in the account bank"
   },
   {
     "where": "bank acct:Account Bank p. 1#22",
@@ -261,7 +261,7 @@
     "where": "bank acct:Account Bank p. 1#23",
     "name": "Air Powder V",
     "verdict": "USE",
-    "note": "Add it to your weapon (drag it onto the weapon): your build deals Air damage"
+    "note": "Apply it to your weapon (drag it on): your build does Air damage"
   },
   {
     "where": "bank acct:Account Bank p. 1#24",
@@ -273,7 +273,7 @@
     "where": "bank acct:Account Bank p. 1#26",
     "name": "Unidentified Bracelet",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~640-656 E), then list it there · No prices yet. No outcome helps your build (best: Panic Attack -9.1%)"
+    "note": "Reveal it at the Trade Market (~640-656 E), then list it · No prices yet. No outcome helps your build (best: Panic Attack -9.1%)"
   },
   {
     "where": "bank acct:Account Bank p. 1#27",
@@ -309,7 +309,7 @@
     "where": "bank acct:Account Bank p. 1#33",
     "name": "Scrap Chausses",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 111"
+    "note": "Equippable at Lv. 111"
   },
   {
     "where": "bank acct:Account Bank p. 1#34",
@@ -357,7 +357,7 @@
     "where": "bank acct:Account Bank p. 1#41",
     "name": "Charm of the Tempest",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 88"
+    "note": "Equippable at Lv. 88"
   },
   {
     "where": "bank acct:Account Bank p. 1#42",
@@ -405,7 +405,7 @@
     "where": "bank acct:Account Bank p. 2#18",
     "name": "Infinity",
     "verdict": "SELL",
-    "note": "Archer item; you play Shaman. Sell it to the Blacksmith (no price yet)"
+    "note": "Archer item; you're playing Shaman. Sell it to the Blacksmith (no price yet)"
   },
   {
     "where": "bank acct:Account Bank p. 2#36",
@@ -423,25 +423,25 @@
     "where": "bank acct:Account Bank p. 2#38",
     "name": "Champion Helmet",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 75"
+    "note": "Identify it once you're close to Lv. 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#39",
     "name": "Champion Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 75"
+    "note": "Identify it once you're close to Lv. 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#40",
     "name": "Champion Leggings",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 75"
+    "note": "Identify it once you're close to Lv. 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#41",
     "name": "Champion Boots",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 75"
+    "note": "Identify it once you're close to Lv. 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#43",
@@ -549,25 +549,25 @@
     "where": "bank acct:Account Bank p. 4#0",
     "name": "Unidentified Leggings",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 66"
+    "note": "Identify it once you're close to Lv. 66"
   },
   {
     "where": "bank acct:Account Bank p. 4#1",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 4#2",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 66"
+    "note": "Identify it once you're close to Lv. 66"
   },
   {
     "where": "bank acct:Account Bank p. 4#3",
     "name": "Unidentified Bow",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 5#0",
@@ -693,43 +693,43 @@
     "where": "bank acct:Account Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~471-485 E), then list it there · No prices yet. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~471-485 E), then list it · No prices yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#1",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#2",
     "name": "Unidentified Bow",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#3",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~444-458 E), then list it there · No prices yet. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~444-458 E), then list it · No prices yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#5",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#6",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#7",
@@ -741,37 +741,37 @@
     "where": "bank acct:Account Bank p. 6#8",
     "name": "Gleaming Titanium Boots",
     "verdict": "SELL",
-    "note": "Normal item, still weak even at Lv. 118. Sell it on the Trade Market, ~21.0 LE"
+    "note": "Normal item, still weak at Lv. 118. Sell it on the Trade Market, ~21.0 LE"
   },
   {
     "where": "bank acct:Account Bank p. 6#9",
     "name": "Diverted Loyalty",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 106"
+    "note": "Identify it once you're close to Lv. 106"
   },
   {
     "where": "bank acct:Account Bank p. 6#10",
     "name": "Lotus Seedpod",
     "verdict": "KEEP",
-    "note": "Low value (~3 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~3 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 7#0",
     "name": "Diamond Gem",
     "verdict": "KEEP",
-    "note": "Low value (~3 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~3 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 7#1",
     "name": "Diamond Gem",
     "verdict": "KEEP",
-    "note": "Low value (~12 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~12 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 7#2",
     "name": "Copper Ingot",
     "verdict": "KEEP",
-    "note": "Low value (~13 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~13 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 7#3",
@@ -789,7 +789,7 @@
     "where": "bank acct:Account Bank p. 7#5",
     "name": "Copper Ingot",
     "verdict": "KEEP",
-    "note": "Low value (~15 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~15 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 8#0",
@@ -879,37 +879,37 @@
     "where": "bank acct:Account Bank p. 9#1",
     "name": "Oat String",
     "verdict": "KEEP",
-    "note": "Low value (~5 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~5 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#2",
     "name": "Oat Grains",
     "verdict": "KEEP",
-    "note": "Low value (~18 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~18 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#3",
     "name": "Coagulated Clot",
     "verdict": "KEEP",
-    "note": "Low value (~12 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~12 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#4",
     "name": "Sticky Fern",
     "verdict": "KEEP",
-    "note": "Low value (~11 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~11 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#5",
     "name": "Putrid Gunk",
     "verdict": "KEEP",
-    "note": "Low value (~18 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~18 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#6",
     "name": "Poison Sac",
     "verdict": "KEEP",
-    "note": "Low value (~2 E), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~2 E), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#7",
@@ -933,13 +933,13 @@
     "where": "bank acct:Account Bank p. 9#10",
     "name": "Viscous Slime",
     "verdict": "KEEP",
-    "note": "Low value (~9 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~9 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#11",
     "name": "Pink Pelulite",
     "verdict": "KEEP",
-    "note": "Low value (~9 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~9 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#12",
@@ -951,7 +951,7 @@
     "where": "bank acct:Account Bank p. 9#13",
     "name": "Death Whistle Leaf",
     "verdict": "KEEP",
-    "note": "Low value (~11 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~11 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#14",
@@ -975,7 +975,7 @@
     "where": "bank acct:Account Bank p. 9#17",
     "name": "Mineral Cinder",
     "verdict": "KEEP",
-    "note": "Low value (~20 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~20 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#18",
@@ -987,79 +987,79 @@
     "where": "bank acct:Account Bank p. 9#19",
     "name": "Crumbly Rock",
     "verdict": "KEEP",
-    "note": "Low value (~3 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~3 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#20",
     "name": "Wolf Fang",
     "verdict": "PRICE",
-    "note": "Price unknown: hover over it once at the Trade Market, then I'll decide"
+    "note": "No price yet: hover it once at the Trade Market and I'll decide"
   },
   {
     "where": "bank acct:Account Bank p. 9#21",
     "name": "Rotten Flesh",
     "verdict": "KEEP",
-    "note": "Low value (~12 E), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~12 E), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#22",
     "name": "Owl Feather",
     "verdict": "KEEP",
-    "note": "Low value (~1 E), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~1 E), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#23",
     "name": "Pykrete",
     "verdict": "KEEP",
-    "note": "Low value (~4 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~4 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#24",
     "name": "Large Lapis",
     "verdict": "KEEP",
-    "note": "Low value (~7 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~7 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#25",
     "name": "Chitin Plate",
     "verdict": "KEEP",
-    "note": "Low value (~4 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~4 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#26",
     "name": "Mellow Mango",
     "verdict": "KEEP",
-    "note": "Low value (~30 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~30 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#27",
     "name": "Gelatinous Slime Chunk",
     "verdict": "KEEP",
-    "note": "Low value (~20 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~20 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#28",
     "name": "Broken Antic Bead",
     "verdict": "KEEP",
-    "note": "Low value (~7 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~7 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#29",
     "name": "Adventurer's Diary",
     "verdict": "KEEP",
-    "note": "Low value (~24 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~24 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#30",
     "name": "Consecrated Ivory",
     "verdict": "PRICE",
-    "note": "Price unknown: hover over it once at the Trade Market, then I'll decide"
+    "note": "No price yet: hover it once at the Trade Market and I'll decide"
   },
   {
     "where": "bank acct:Account Bank p. 9#31",
     "name": "Egg",
     "verdict": "KEEP",
-    "note": "Low value (~22 E), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~22 E), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#32",
@@ -1071,139 +1071,139 @@
     "where": "bank acct:Account Bank p. 9#33",
     "name": "Zombie Eye",
     "verdict": "KEEP",
-    "note": "Low value (~22 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~22 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#34",
     "name": "Snow Clump",
     "verdict": "KEEP",
-    "note": "The quest 'Slay Creatures of Nesaak Forest' needs it"
+    "note": "Needed for the quest 'Slay Creatures of Nesaak Forest'"
   },
   {
     "where": "bank acct:Account Bank p. 9#35",
     "name": "Thick Vines",
     "verdict": "KEEP",
-    "note": "Low value (~5 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~5 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#36",
     "name": "Rotten Log",
     "verdict": "KEEP",
-    "note": "Low value (~3 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~3 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#37",
     "name": "Pillaged Fragment",
     "verdict": "KEEP",
-    "note": "Low value (~4 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~4 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#38",
     "name": "Frozen Ghostly Essence",
     "verdict": "PRICE",
-    "note": "Price unknown: hover over it once at the Trade Market, then I'll decide"
+    "note": "No price yet: hover it once at the Trade Market and I'll decide"
   },
   {
     "where": "bank acct:Account Bank p. 9#39",
     "name": "Penguin Egg",
     "verdict": "KEEP",
-    "note": "Low value (~4 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~4 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#40",
     "name": "Yeti Fur",
     "verdict": "KEEP",
-    "note": "Low value (~2 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~2 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 10#0",
     "name": "Unidentified Relik",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#1",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#2",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#3",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#4",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 10#5",
     "name": "Unidentified Helmet",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~130-131 E), then list it there · Expected ~40 EB. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~130-131 E), then list it · Expected ~40 EB. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 10#7",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 10#8",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 10#9",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#10",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#11",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: the Trade Market would leave ~3 EB, under your 10 EB minimum. Lv. 1-5, far below your level"
+    "note": "Sell it to the Blacksmith: the Trade Market nets ~3 EB, under your 10 EB minimum. Lv. 1-5, way below your level"
   },
   {
     "where": "bank acct:Account Bank p. 10#12",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 101"
+    "note": "Identify it once you're close to Lv. 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#13",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 106"
+    "note": "Identify it once you're close to Lv. 106"
   },
   {
     "where": "bank acct:Account Bank p. 10#14",
     "name": "Meliorism",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 105"
+    "note": "Identify it once you're close to Lv. 105"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#0",
@@ -1221,7 +1221,7 @@
     "where": "bank char:char0001:Character Bank p. 1#2",
     "name": "Creeper Mask",
     "verdict": "SELL",
-    "note": "The best build uses Yume. Sell it to the Blacksmith (untradable)"
+    "note": "The best build runs Yume. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#3",
@@ -1275,7 +1275,7 @@
     "where": "bank char:char0001:Character Bank p. 1#11",
     "name": "The Chapel",
     "verdict": "SELL",
-    "note": "The best build uses Nemract's Ruin. Sell it to the Blacksmith (market ~7 EB)"
+    "note": "The best build runs Nemract's Ruin. Sell it to the Blacksmith (market ~7 EB)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#12",
@@ -1293,7 +1293,7 @@
     "where": "bank char:char0001:Character Bank p. 1#14",
     "name": "Soft Sand",
     "verdict": "KEEP",
-    "note": "Low value (~7 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~7 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#15",
@@ -1305,19 +1305,19 @@
     "where": "bank char:char0001:Character Bank p. 1#16",
     "name": "Vindicator",
     "verdict": "SELL",
-    "note": "The best build uses Grisly Gauntlet. Sell it on the Trade Market, ~33 EB"
+    "note": "The best build runs Grisly Gauntlet. Sell it on the Trade Market, ~33 EB"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#17",
     "name": "Grindcore",
     "verdict": "SELL",
-    "note": "The best build uses Heavensent. Sell it to the Blacksmith (market ~2 EB)"
+    "note": "The best build runs Heavensent. Sell it to the Blacksmith (market ~2 EB)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#18",
     "name": "Gold Bar",
     "verdict": "KEEP",
-    "note": "Low value (~5 EB), not worth the Trade Market; get rid of it if you need the space"
+    "note": "Low value (~5 EB), not worth listing; trash it if you need space"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#19",
@@ -1347,55 +1347,55 @@
     "where": "bank char:char0001:Character Bank p. 2#0",
     "name": "Meanderthal",
     "verdict": "SELL",
-    "note": "The best build uses Galloping Spurs. Sell it to the Blacksmith (market ~7 EB)"
+    "note": "The best build runs Galloping Spurs. Sell it to the Blacksmith (market ~7 EB)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#1",
     "name": "Conductor",
     "verdict": "SELL",
-    "note": "The best build uses Chained Pixels. Sell it to the Blacksmith (market ~5 EB)"
+    "note": "The best build runs Chained Pixels. Sell it to the Blacksmith (market ~5 EB)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#2",
     "name": "Adigard's Snowshoes",
     "verdict": "SELL",
-    "note": "The best build uses Galloping Spurs. Sell it to the Blacksmith (market ~17 EB)"
+    "note": "The best build runs Galloping Spurs. Sell it to the Blacksmith (market ~17 EB)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#3",
     "name": "Dynamic",
     "verdict": "SELL",
-    "note": "The best build uses Grisly Gauntlet. Sell it to the Blacksmith (market ~23 EB)"
+    "note": "The best build runs Grisly Gauntlet. Sell it to the Blacksmith (market ~23 EB)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#4",
     "name": "Relic Chestplate",
     "verdict": "SELL",
-    "note": "The best build uses Nemract's Ruin. Rolled 89%: it sells for more than the cheapest listing (~20 EB), so list it on the Trade Market"
+    "note": "The best build runs Nemract's Ruin. 89% roll: beats the cheapest listing (~20 EB), so list it on the Trade Market"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#5",
     "name": "Sylar",
     "verdict": "SELL",
-    "note": "Archer item; you play Shaman. Sell it on the Trade Market, ~33 EB"
+    "note": "Archer item; you're playing Shaman. Sell it on the Trade Market, ~33 EB"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#6",
     "name": "Reversal",
     "verdict": "SELL",
-    "note": "The best build uses Heavensent. Sell it to the Blacksmith (market ~8 EB)"
+    "note": "The best build runs Heavensent. Sell it to the Blacksmith (market ~8 EB)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#0",
     "name": "Breathing Helmet II",
     "verdict": "SELL",
-    "note": "The best build uses Yume. Sell it to the Blacksmith (untradable)"
+    "note": "The best build runs Yume. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#1",
     "name": "Marius' Prison",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 50"
+    "note": "Equippable at Lv. 50"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#2",
@@ -1407,13 +1407,13 @@
     "where": "bank char:char0003:Character Bank p. 1#3",
     "name": "Morph-Topaz",
     "verdict": "SELL",
-    "note": "The best build uses Warsong, Precious. Sell it on the Trade Market, ~1.0 LE"
+    "note": "The best build runs Warsong, Precious. Sell it on the Trade Market, ~1.0 LE"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#4",
     "name": "Morph-Topaz",
     "verdict": "SELL",
-    "note": "The best build uses Warsong, Precious. Sell it on the Trade Market, ~1.0 LE"
+    "note": "The best build runs Warsong, Precious. Sell it on the Trade Market, ~1.0 LE"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#5",
@@ -1425,25 +1425,25 @@
     "where": "bank char:char0003:Character Bank p. 1#6",
     "name": "Holy Greaves",
     "verdict": "SELL",
-    "note": "The best build uses Chained Pixels. Sell it to the Blacksmith (market ~16 EB)"
+    "note": "The best build runs Chained Pixels. Sell it to the Blacksmith (market ~16 EB)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#7",
     "name": "Little Inferno",
     "verdict": "SELL",
-    "note": "The best build uses Yume. Sell it to the Blacksmith (market ~8 EB)"
+    "note": "The best build runs Yume. Sell it to the Blacksmith (market ~8 EB)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#8",
     "name": "Darkiron Ring",
     "verdict": "SELL",
-    "note": "The best build uses Warsong, Precious. Rolled 100%: it sells for more than the cheapest listing (~16 EB), so list it on the Trade Market"
+    "note": "The best build runs Warsong, Precious. 100% roll: beats the cheapest listing (~16 EB), so list it on the Trade Market"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#9",
     "name": "Quartron's Eye",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 49"
+    "note": "Equippable at Lv. 49"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#10",
@@ -1461,43 +1461,43 @@
     "where": "bank char:char0003:Character Bank p. 1#12",
     "name": "Sage",
     "verdict": "SELL",
-    "note": "Mage item; you play Shaman. Sell it on the Trade Market, ~1.5 LE"
+    "note": "Mage item; you're playing Shaman. Sell it on the Trade Market, ~1.5 LE"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#13",
     "name": "Hisel Azetir",
     "verdict": "SELL",
-    "note": "Mage item; you play Shaman. Sell it to the Blacksmith (untradable)"
+    "note": "Mage item; you're playing Shaman. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#14",
     "name": "Morph-Ruby",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 62"
+    "note": "Identify it once you're close to Lv. 62"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#15",
     "name": "Druid's Ring",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 65"
+    "note": "Equippable at Lv. 65"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#16",
     "name": "Druid's Ring",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 65"
+    "note": "Equippable at Lv. 65"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#17",
     "name": "Durum's Serenity",
     "verdict": "SELL",
-    "note": "The best build uses Generator Amulet. Sell it to the Blacksmith (untradable)"
+    "note": "The best build runs Generator Amulet. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#18",
     "name": "Creeper Mask",
     "verdict": "SELL",
-    "note": "The best build uses Yume. Sell it to the Blacksmith (untradable)"
+    "note": "The best build runs Yume. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#19",
@@ -1515,7 +1515,7 @@
     "where": "bank char:char0003:Character Bank p. 1#35",
     "name": "Shameful Greaves",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 58"
+    "note": "Identify it once you're close to Lv. 58"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#38",
@@ -1551,49 +1551,49 @@
     "where": "bank char:char0003:Character Bank p. 1#44",
     "name": "Gigabyte",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 93"
+    "note": "Equippable at Lv. 93"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#0",
     "name": "Ultramarine Boots",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 61"
+    "note": "Equippable at Lv. 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#1",
     "name": "Ultramarine Crown",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 59"
+    "note": "Equippable at Lv. 59"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#2",
     "name": "Ultramarine Cape",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 65"
+    "note": "Equippable at Lv. 65"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#3",
     "name": "Ultramarine Belt",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 63"
+    "note": "Equippable at Lv. 63"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#4",
     "name": "Hisel Azetir",
     "verdict": "SELL",
-    "note": "Mage item; you play Shaman. Sell it to the Blacksmith (untradable)"
+    "note": "Mage item; you're playing Shaman. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#5",
     "name": "Multitool",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 76"
+    "note": "Equippable at Lv. 76"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#6",
     "name": "Dragon's Eye Bracelet",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 60"
+    "note": "Equippable at Lv. 60"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#36",
@@ -1629,277 +1629,277 @@
     "where": "bank char:char0003:Character Bank p. 3#0",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 71"
+    "note": "Identify it once you're close to Lv. 71"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#1",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: the Trade Market would leave ~5 EB, under your 10 EB minimum. Lv. 11-15, far below your level"
+    "note": "Sell it to the Blacksmith: the Trade Market nets ~5 EB, under your 10 EB minimum. Lv. 11-15, way below your level"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#2",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~41-43 E), then list it there · Expected ~13 EB. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~41-43 E), then list it · Expected ~13 EB. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#3",
     "name": "Unidentified Necklace",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 61"
+    "note": "Identify it once you're close to Lv. 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~31-33 E), then list it there · Expected ~16 EB. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~31-33 E), then list it · Expected ~16 EB. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#5",
     "name": "Unidentified Bracelet",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. No outcome helps your build (best: Rayshyroth's Knowledge -3.8%)"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. No outcome helps your build (best: Rayshyroth's Knowledge -3.8%)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~34-36 E), then list it there · Expected ~29 EB (2/6 have a price). None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~34-36 E), then list it · Expected ~29 EB (2/6 have a price). Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#7",
     "name": "Unidentified Necklace",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 61"
+    "note": "Identify it once you're close to Lv. 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#9",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 71"
+    "note": "Identify it once you're close to Lv. 71"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#10",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~31-33 E), then list it there · Expected ~16 EB. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~31-33 E), then list it · Expected ~16 EB. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#27",
     "name": "Fuse",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 75"
+    "note": "Equippable at Lv. 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#28",
     "name": "Fuse",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 75"
+    "note": "Equippable at Lv. 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#36",
     "name": "Power Cell",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 86"
+    "note": "Equippable at Lv. 86"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#9",
     "name": "Brainwash",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 96"
+    "note": "Equippable at Lv. 96"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#10",
     "name": "Sparkling Plate",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 99"
+    "note": "Equippable at Lv. 99"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#27",
     "name": "Photon",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 61"
+    "note": "Equippable at Lv. 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#28",
     "name": "Ozoth's Breath",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 49"
+    "note": "Equippable at Lv. 49"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#29",
     "name": "Euouae",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 75"
+    "note": "Equippable at Lv. 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#30",
     "name": "Royal Dusty Amulet",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 75"
+    "note": "Equippable at Lv. 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#37",
     "name": "Remikas' Sanctuary",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 68"
+    "note": "Equippable at Lv. 68"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#38",
     "name": "The Golem",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 97"
+    "note": "Equippable at Lv. 97"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#0",
     "name": "Hellion",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 91"
+    "note": "Equippable at Lv. 91"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#1",
     "name": "Hellion",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 91"
+    "note": "Equippable at Lv. 91"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#2",
     "name": "Rycar's Bravado",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 58"
+    "note": "Equippable at Lv. 58"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#3",
     "name": "Mech Core",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 86"
+    "note": "Equippable at Lv. 86"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#9",
     "name": "Purified Helmet of the Legends",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 68"
+    "note": "Equippable at Lv. 68"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#10",
     "name": "September",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 88"
+    "note": "Equippable at Lv. 88"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#11",
     "name": "Vacancy",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 89"
+    "note": "Equippable at Lv. 89"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#12",
     "name": "Flashing Boots",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 87"
+    "note": "Equippable at Lv. 87"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#13",
     "name": "Afterimage",
     "verdict": "SELL",
-    "note": "Mage item; you play Shaman. Sell it to the Blacksmith (market ~8 EB)"
+    "note": "Mage item; you're playing Shaman. Sell it to the Blacksmith (market ~8 EB)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#28",
     "name": "Ring of Generosity",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 69"
+    "note": "Equippable at Lv. 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#29",
     "name": "Ring of Generosity",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 69"
+    "note": "Equippable at Lv. 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#30",
     "name": "Tarod's Search",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 47"
+    "note": "Equippable at Lv. 47"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#31",
     "name": "Fiery Torc",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 69"
+    "note": "Equippable at Lv. 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#36",
     "name": "Lichclaw",
     "verdict": "SELL",
-    "note": "Mage item; you play Shaman. Sell it on the Trade Market, ~1.0 LE"
+    "note": "Mage item; you're playing Shaman. Sell it on the Trade Market, ~1.0 LE"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#37",
     "name": "Executioner Helmet",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 75"
+    "note": "Equippable at Lv. 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#38",
     "name": "Kizuato",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 74"
+    "note": "Equippable at Lv. 74"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#39",
     "name": "Refraction",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 74"
+    "note": "Equippable at Lv. 74"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#40",
     "name": "Cirrus",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 69"
+    "note": "Equippable at Lv. 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~31-33 E), then list it there · Expected ~16 EB. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~31-33 E), then list it · Expected ~16 EB. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#1",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. None of the possible items are for Shaman"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#2",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. No outcome helps your build (best: Skien Leggings -9.7%)"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. No outcome helps your build (best: Skien Leggings -9.7%)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#3",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 56"
+    "note": "Identify it once you're close to Lv. 56"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#4",
     "name": "Unidentified Bracelet",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: none of its outcomes has a price yet. No outcome helps your build (best: Rayshyroth's Knowledge -3.8%)"
+    "note": "Sell it to the Blacksmith: no outcome has a price yet. No outcome helps your build (best: Rayshyroth's Knowledge -3.8%)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#5",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market first (~71-74 E), then list it there · Expected ~41 EB. None of the possible items are for Shaman"
+    "note": "Reveal it at the Trade Market (~71-74 E), then list it · Expected ~41 EB. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#6",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 56"
+    "note": "Identify it once you're close to Lv. 56"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#7",
@@ -1911,37 +1911,37 @@
     "where": "bank char:char0003:Character Bank p. 6#8",
     "name": "Unidentified Bracelet",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 51"
+    "note": "Identify it once you're close to Lv. 51"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#9",
     "name": "Ogre Faceplate",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 83"
+    "note": "Equippable at Lv. 83"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#10",
     "name": "Ultramarine Crown",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 59"
+    "note": "Identify it once you're close to Lv. 59"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#11",
     "name": "Shaggy Boots",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 97"
+    "note": "Equippable at Lv. 97"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#12",
     "name": "Mech Core",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 86"
+    "note": "Equippable at Lv. 86"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#13",
     "name": "Exosphere",
     "verdict": "KEEP",
-    "note": "Identify it when you get close to Lv. 81"
+    "note": "Identify it once you're close to Lv. 81"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#14",
@@ -1953,7 +1953,7 @@
     "where": "bank char:char0003:Character Bank p. 6#15",
     "name": "Tinderbox",
     "verdict": "KEEP",
-    "note": "You can wear it at Lv. 93"
+    "note": "Equippable at Lv. 93"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#44",
