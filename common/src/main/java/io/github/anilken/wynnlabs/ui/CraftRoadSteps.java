@@ -296,6 +296,6 @@ final class CraftRoadSteps {
     }
 
     private static String dirName(String d) {
-        return d == null ? "" : " " + SearchCardPanel.dirName(d);
+        return d == null ? "" : " " + SearchCardRows.dirName(d);
     }
 }

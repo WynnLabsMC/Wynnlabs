@@ -21,7 +21,9 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
 - `-PpreviewOnly=tree`: only the tree page (three deaths seeded), its damage and deaths drawers, and its search typed in.
 - The game's window stays hidden during a run (the shots are drawn the same); `-PpreviewHidden=false`
   shows it, to watch a run.
-- `-PpreviewOnly=search`: only that tab, its search field empty and typed in.
+- `-PpreviewOnly=search`: only that tab: the catalogue before typing, an item, its marks list, a tracked mob and
+  the tracked list, a place, the Stats category and a stat, nothing found ("did you mean") and the filter menu.
+  With `-PpreviewSize=1380x960` the card shows in its drawer.
 - `-PpreviewOnly=bank`: the bank tab on the fixture's bank: whole, searched, a kind chip, the banks menu,
   a slot's drawer, the list to sell, a bank read in part and one not read (`BankPreview`).
 - `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).

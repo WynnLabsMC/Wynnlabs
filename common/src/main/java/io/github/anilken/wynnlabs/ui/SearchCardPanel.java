@@ -8,16 +8,15 @@ import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 import io.github.anilken.wynnlabs.search.Area;
-import io.github.anilken.wynnlabs.search.Compass;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemWiki;
 import io.github.anilken.wynnlabs.search.MapMark;
+import io.github.anilken.wynnlabs.search.MarkSet;
 import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceText;
 import io.github.anilken.wynnlabs.search.Sources;
 import io.github.anilken.wynnlabs.search.Things;
-import io.github.anilken.wynnlabs.search.TrackedMobs;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -26,36 +25,36 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The search tab's card for the chosen item: its icon, name, kind and level, what it asks of
- * the player (✔/✘ as tooltips mark them), the build gain when the shopping list knows it, the
- * buttons (pin the easiest place, open Wynntils' map there, the wiki), then "How do I get it":
- * every way ranked easiest first, each with its distance and direction and a pin, and a link to
- * the card of the mob, town or dungeon a row names. The folding sections below are
- * {@link SearchCardSections}. Sources are worked out once per choice; the wiki page loads in the
- * background and fills in a merchant's cost when it arrives.
- *
- * <p>A thing of the world (mob, place, dungeon, service, ...) gets the same card with its badge
- * for a picture, "Where" for its places ({@link Things#rows}) and the parts of
- * {@link SearchThingCard} below.
+ * The search tab's answer card for the chosen entry, on a soft card at the right (or in the
+ * drawer on a small window). The head: the item's icon in an HD slot (a thing's badge), its name
+ * in its rarity's colour with a copy button and the build gain, kind and level, and what it asks
+ * of the player (✔/✘). The actions: "Compass ›" to the easiest place, "Open on map", "Compass to
+ * all" for a thing of many places, "Market" and "Wiki" (pinned at the card's foot on the large
+ * window). Then "How do I get it" / "Where" ({@link SearchCardRows}) and the sections under it
+ * ({@link SearchCardSections}, a thing's {@link SearchThingCard}). Sources are worked out once per
+ * choice; the wiki page loads in the background and fills in a merchant's cost when it arrives.
+ * The map marks follow {@link MarkSet}: the picked row always, the rows the player marks, kept
+ * after the menu closes only when asked for.
  */
 final class SearchCardPanel extends MenuPaint {
 
-    private final SearchTab tab;
+    final SearchTab tab;
     final SearchCardSections sections;
     final SearchThingCard thing;
+    final SearchCardRows sources;
     Entry entry;
     List<Source> rows = List.of();
     /** The card each row links to (a mob, a town, a dungeon), null where none; as long as {@link #rows}. */
-    private List<Entry> rowLinks = List.of();
+    List<Entry> rowLinks = List.of();
     Sources.Owned have = Sources.Owned.NONE;
     /** The row the map and "open on map" follow (0: the easiest). */
     int picked;
     private CompletableFuture<ItemWiki.Info> wikiLoad;
     ItemWiki.Info wiki;
     private Double gain;
-    /** The marks stay on Wynntils' map after the menu closes ("open on map", "mark all"). */
-    private boolean kept;
-    private boolean all;
+    final MarkSet marks = new MarkSet();
+    /** The marks on the map now (as last handed to Wynntils). */
+    private List<MapMark> shown = List.of();
     int scroll;
     private int scrollMax;
     /** The name last copied with the name button, and when: its icon shows a tick for a moment. */
@@ -64,16 +63,15 @@ final class SearchCardPanel extends MenuPaint {
     /** The card's bar, kept between frames so its thumb can be dragged. */
     private final ScrollBar bar = new ScrollBar();
     private int[] view = new int[4];
+    /** The large card's box, for the wheel. */
+    private int[] box = new int[4];
 
     SearchCardPanel(SearchTab tab) {
         super(tab.menu);
         this.tab = tab;
         this.sections = new SearchCardSections(this, tab);
         this.thing = new SearchThingCard(this, tab);
-    }
-
-    String name() {
-        return entry == null ? null : entry.name();
+        this.sources = new SearchCardRows(this);
     }
 
     /** The shown entry's {@link Entry#key}, or null. */
@@ -81,13 +79,12 @@ final class SearchCardPanel extends MenuPaint {
         return entry == null ? null : entry.key();
     }
 
-    /** Shows this item: its sources from where the player stands, its wiki page asked for, the map's marks replaced. */
+    /** Shows this entry: its sources from where the player stands, its wiki page asked for, the map's marks replaced. */
     void select(Entry e) {
         entry = e;
         picked = 0;
         scroll = 0;
-        all = false;
-        kept = false;
+        marks.reset();
         if (!e.item()) {
             have = Sources.Owned.NONE;
             rows = Things.rows(e, SearchTab.position());
@@ -110,50 +107,137 @@ final class SearchCardPanel extends MenuPaint {
         marks();
     }
 
-    /** The menu closes or the tab is left: our marks leave the map unless the player asked to keep them. */
-    void closed() {
-        if (!kept) {
-            Wyn.showMarks(List.of());
-        }
-    }
-
-    private void marks() {
-        ItemWiki.Info w = wiki;
-        Entry e = entry;
-        Wyn.showMarks(MapMark.of(rows, picked, all, s -> e.item() ? SourceText.row(s, w) : SearchThingCard.markText(e, s)));
-    }
-
-    /** A row's words: the item card's source text, a thing's place label. */
-    private String rowText(Source s) {
-        return entry.item() ? SourceText.row(s, wiki) : SearchThingCard.rowText(entry, s);
-    }
-
-    void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        Kit.card(g, x, y, w, h, Theme.GOLD_DEEP);
+    /** No entry to show (nothing listed): the card goes, and its marks unless the player kept them. */
+    void clear() {
         if (entry == null) {
-            descWrap(g, L.t("wynnlabs.search.card_empty"), x + 10, y + 12, w - 20, 4);
             return;
         }
+        entry = null;
+        rows = List.of();
+        if (!marks.kept()) {
+            shown = List.of();
+            Wyn.showMarks(shown);
+        }
+    }
+
+    /** The menu closes or the tab is left: our marks leave the map unless the player asked to keep them. */
+    void closed() {
+        if (!marks.kept()) {
+            shown = List.of();
+            Wyn.showMarks(shown);
+        }
+    }
+
+    // ---- the map marks ----
+
+    void marks() {
+        if (entry == null) {
+            return;
+        }
+        ItemWiki.Info w = wiki;
+        Entry e = entry;
+        shown = marks.marks(rows, picked, s -> e.item() ? SourceText.row(s, w) : SearchThingCard.markText(e, s));
+        Wyn.showMarks(shown);
+    }
+
+    /** The marks the player kept on the map (the title's "Marked N"); empty when none are kept. */
+    List<MapMark> keptMarks() {
+        return marks.kept() ? shown : List.of();
+    }
+
+    void removeMark(MapMark m) {
+        marks.remove(m);
+        marks();
+    }
+
+    void clearMarks() {
+        marks.clear();
+        shown = List.of();
+        Wyn.showMarks(shown);
+    }
+
+    /** "All on the map": every row's places, kept after the menu closes; again: back to the picked row. */
+    void toggleAll() {
+        marks.toggleAll();
+        marks();
+        if (marks.all()) {
+            menu.flash(L.t("wynnlabs.search.marked"));
+        }
+    }
+
+    /** One row on or off the map. */
+    void toggleRow(int i) {
+        marks.toggle(i, rows.size());
+        marks();
+        if (marks.marked(i)) {
+            menu.flash(L.t("wynnlabs.search.marked"));
+        }
+    }
+
+    /** A row picked: the map's focus follows it. */
+    void pickRow(int i) {
+        picked = i;
+        marks.picked();
+        marks();
+    }
+
+    // ---- drawing ----
+
+    /** The large window's card: a soft card, the content scrolling, the actions pinned at its foot. */
+    void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
+        box = new int[] {x, y, w, h};
+        Kit.softCard(g, x, y, w, h);
+        if (entry == null) {
+            UiEmpty.draw(g, font(), x, y, w, h, true, "search", L.t("wynnlabs.search.card_empty_title"),
+                    List.of(L.t("wynnlabs.search.card_empty"), L.t("wynnlabs.search.card_empty_2")), null, null, mx, my);
+            return;
+        }
+        loadWiki();
+        int pad = Theme.SP_5;
+        int footY = y + h - pad - Ui.BUTTON_H;
+        int top = y + Theme.SP_2;
+        view = new int[] {x + 1, top, w - 2, footY - Theme.SP_4 - top};
+        int cw = w - 2 * pad - ScrollBar.W - Theme.SP_2;
+        g.enableScissor(view[0], view[1], view[0] + view[2], view[1] + view[3]);
+        int start = y + pad - scroll;
+        int end = content(g, x + pad, start, cw, false, mx, my);
+        g.disableScissor();
+        int total = end - start + pad;
+        scrollMax = Math.max(0, total - view[3]);
+        scroll = Math.min(scroll, scrollMax);
+        if (scrollMax > 0) {
+            bar.place(x + w - ScrollBar.W - Theme.SP_2, view[1], view[3], view[3], total, scroll);
+            bar.draw(g, mx, my);
+        }
+        view = new int[] {x, footY, w, Ui.BUTTON_H};
+        actions(g, x + pad, footY, w - 2 * pad, mx, my);
+    }
+
+    /** The drawer's content (a small window): everything in one column, the actions under the head. */
+    int flow(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
+        if (entry == null) {
+            return 0;
+        }
+        loadWiki();
+        view = new int[] {x - Theme.SP_2, top, w + 2 * Theme.SP_2, bottom - top};
+        return content(g, x, y, w, true, mx, my) - y;
+    }
+
+    private void loadWiki() {
         if (wiki == null && wikiLoad != null && wikiLoad.isDone()) {
             wiki = wikiLoad.getNow(ItemWiki.Info.EMPTY);
             SourceHint.forget(entry.name());        // the tooltip's line may now name a cost
             marks();
         }
-        view = new int[] {x + 1, y + 4, w - 2, h - 6};
-        g.enableScissor(view[0], view[1], view[0] + view[2], view[1] + view[3]);
-        int top = y + 8 - scroll;
-        int cy = header(g, x + 8, top, w - 16 - ScrollBar.W, mx, my);
-        cy = sources(g, x + 8, cy + 6, w - 16 - ScrollBar.W, mx, my);
-        cy = entry.item() ? sections.draw(g, x + 8, cy + 4, w - 16 - ScrollBar.W, mx, my)
-                : thing.draw(g, entry, x + 8, cy + 4, w - 16 - ScrollBar.W, mx, my);
-        g.disableScissor();
-        int total = cy - top + 6;
-        scrollMax = Math.max(0, total - view[3]);
-        scroll = Math.min(scroll, scrollMax);
-        if (scrollMax > 0) {
-            bar.place(x + w - ScrollBar.W - 2, view[1], view[3], view[3], total, scroll);
-            bar.draw(g, mx, my);
+    }
+
+    private int content(GuiGraphics g, int x, int y, int w, boolean withActions, int mx, int my) {
+        int cy = header(g, x, y, w, mx, my);
+        if (withActions) {
+            cy = actions(g, x, cy, w, mx, my) + Theme.SP_6;
         }
+        cy = sources.draw(g, x, cy, w, mx, my) + Theme.SP_5;
+        return entry.item() ? sections.draw(g, x, cy, w, mx, my) : thing.draw(g, entry, x, cy, w, mx, my);
     }
 
     /** A click area clipped to the card's visible part. */
@@ -170,289 +254,142 @@ final class SearchCardPanel extends MenuPaint {
         return mx >= view[0] && mx < view[0] + view[2] && my >= view[1] && my < view[1] + view[3];
     }
 
-    // ---- the head: picture, name, needs, buttons ----
+    /** A tooltip for a box of the card, while the mouse is on it. */
+    void tip(int x, int y, int w, int h, int mx, int my, String text) {
+        if (over(mx, my) && mx >= x && mx < x + w && my >= y && my < y + h) {
+            menu.hits.add(new MenuHit(x, y, w, h, null, List.of(Component.literal(text)), null));
+        }
+    }
+
+    // ---- the head: picture, name, needs ----
 
     private int header(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        Kit.slot(g, x, y, 36, 0);
+        int slot = 24;
         if (entry.item()) {
+            Kit.slot(g, x, y, slot, 0);
             var stack = tab.icons.of(entry);
-            bigItem(g, stack, x + 2, y + 2);
-            if (over(mx, my) && mx >= x && mx < x + 36 && my >= y && my < y + 36) {
-                menu.hits.add(new MenuHit(x, y, 36, 36, stack, null, null));
+            g.renderItem(stack, x + 4, y + 4);
+            if (over(mx, my) && mx >= x && mx < x + slot && my >= y && my < y + slot) {
+                menu.hits.add(new MenuHit(x, y, slot, slot, stack, null, null));
             }
         } else {
-            SearchThingCard.picture(g, entry, x + 2, y + 2, 32);
+            SearchThingCard.picture(g, entry, x, y, slot);
         }
-        int tx = x + 42;
-        int tw = w - 42;
-        // the name, then a small button that copies it (to paste into the Trade Market's search or chat)
-        Component nameText = Component.literal(fit(entry.name(), tw - 14)).withStyle(UiFont::bold);
-        ink(g, nameText, tx, y + 1, SearchResultsPanel.colour(entry));
-        int cx = tx + font().width(nameText) + 4;
+        int tx = x + slot + Theme.SP_4;
+        int tw = w - slot - Theme.SP_4;
+        // the name, a copy button (to paste into the Trade Market's search or chat), the build gain
+        String gainText = gain == null ? null : L.t("wynnlabs.search.gain", dec(gain, 1));
+        int gainW = gainText == null ? 0 : Type.META.width(font(), gainText) + 2 * Theme.SP_2 + Theme.SP_3;
+        int copyW = Ui.CHIP_H + 2;
+        String name = Type.HEADING.fit(font(), entry.name(), tw - copyW - Theme.SP_3 - gainW);
+        Type.HEADING.draw(g, font(), name, tx, y, SearchResultsPanel.colour(entry));
+        int cx = tx + Type.HEADING.width(font(), name) + Theme.SP_3;
+        int cyb = Type.HEADING.onCaps(y, Ui.CHIP_H);
+        boolean justCopied = entry.name().equals(copiedName) && System.currentTimeMillis() - copiedAt < 1200;
+        Ui.iconButton(g, justCopied ? "check" : "copy", cx, cyb, false, over(mx, my) ? mx : -1, my);
         String copied = entry.name();
-        boolean ch = over(mx, my) && mx >= cx && mx < cx + 10 && my >= y && my < y + 10;
-        Kit.button(g, cx, y, 10, 10, ch ? Kit.HOVER : Kit.REST);
-        // no words: the icon turns into a tick for a moment once the name is on the clipboard
-        boolean justCopied = copied.equals(copiedName) && System.currentTimeMillis() - copiedAt < 1200;
-        Art.icon(g, justCopied ? "check" : "copy", cx + 1, y + 1, 8, Kit.buttonText(ch ? Kit.HOVER : Kit.REST));
-        click(cx, y, 10, 10, () -> {
+        click(cx, cyb, copyW, Ui.CHIP_H, () -> {
             net.minecraft.client.Minecraft.getInstance().keyboardHandler.setClipboard(copied);
             copiedName = copied;
             copiedAt = System.currentTimeMillis();
         });
+        tip(cx, cyb, copyW, Ui.CHIP_H, mx, my, L.t("wynnlabs.search.copy_name"));
+        if (gainText != null) {
+            Ui.seal(g, font(), gainText, cx + copyW + Theme.SP_3, Type.HEADING.onCaps(y, Ui.SEAL_H), Theme.SEAL_2);
+        }
+        int ly = y + Type.HEADING.lineHeight + Theme.SP_1;
         String tier = entry.tier() == null ? "" : SearchResultsPanel.words(entry.tier()) + " · ";
         String lv = entry.level() > 0 ? " · Lv " + entry.level() : "";
         String kind = entry.item() ? SearchResultsPanel.kindText(entry) : SearchThingCard.typeText(entry);
-        ink(g, fit(tier + kind + lv, tw), tx, y + 12, MUTED);
-        // the needs (a thing's status) wrap to a second line when the card is narrow
+        Type.META.draw(g, font(), Type.META.fit(font(), tier + kind + lv, tw), tx, ly, Theme.INK_3);
+        ly += Type.META.lineHeight;
+        // the needs (a thing's status), on a line of their own
         Component needs = entry.item() ? sections.needs(entry) : SearchThingCard.status(entry);
         List<net.minecraft.util.FormattedCharSequence> need = font().split(needs, tw);
-        for (int i = 0; i < Math.min(2, need.size()); i++) {
-            ink(g, need.get(i), tx, y + 23 + i * 10, Theme.INK);
+        if (!need.isEmpty() && !needs.getString().isEmpty()) {
+            ink(g, need.get(0), tx, ly + 1, Theme.INK);
+            ly += Type.BODY.lineHeight;
         }
-        int cy = Math.max(y + 38, y + 23 + Math.min(2, need.size()) * 10 + 3);
-        if (gain != null) {
-            String text = L.t("wynnlabs.search.gain", dec(gain, 1));
-            int pw = font().width(text) + 10;
-            Kit.seal(g, x, cy, pw, 11, Theme.SEAL_2);
-            g.drawString(font(), text, x + 5, cy + 2, Theme.SEAL_TEXT, false);
-            cy += 14;
-        }
-        // the buttons: pin the easiest (a thing's nearest) place, Wynntils' map there, every place, the wiki
-        Area easiest = firstPlace(0);
-        boolean mapOk = easiest != null && GameState.current().running() && Wyn.up(Wyn.Feature.WAYPOINTS);
+        return Math.max(y + slot, ly) + Theme.SP_5;
+    }
+
+    // ---- the actions ----
+
+    /** "Compass ›" and the chips beside it, wrapping; returns the y under them. */
+    private int actions(GuiGraphics g, int x, int y, int w, int mx, int my) {
+        Area easiest = firstPlace();
         int bx = x;
-        String pinText = L.t(entry.item() ? "wynnlabs.search.pin_easiest" : "wynnlabs.search.pin_nearest");
-        bx += iconButton(g, bx, cy, "map-pin", pinText, easiest != null, mx, my, this::pinEasiest) + 4;
-        bx += iconButton(g, bx, cy, "map-2", L.t("wynnlabs.search.open_map"), mapOk, mx, my, this::openMap) + 4;
+        int cy = y;
+        if (easiest != null) {
+            String pin = L.t("wynnlabs.search.pin");
+            int bw = Ui.iconButtonLabelWidth(font(), pin);
+            Ui.iconButtonLabel(g, font(), "compass", pin, bx, cy, bw, over(mx, my) ? mx : -1, my);
+            click(bx, cy, bw, Ui.BUTTON_H, this::pinEasiest);
+            bx += bw + Theme.SP_3;
+        }
+        boolean mapOk = easiest != null && GameState.current().running() && Wyn.up(Wyn.Feature.WAYPOINTS);
         List<Area> every = entry.item() ? List.of() : entry.places();
-        if (every.size() > 1) {
-            if (bx + font().width(L.t("wynnlabs.search.pin_all")) + 22 > x + w) {
-                bx = x;
-                cy += 17;
-            }
-            bx += iconButton(g, bx, cy, "map-pin", L.t("wynnlabs.search.pin_all"), true, mx, my,
-                    () -> pinAll(io.github.anilken.wynnlabs.search.SourceRank.nearest(every, SearchTab.position(), every.size()))) + 4;
-        }
-        if (entry.item() || SearchThingCard.wiki(entry)) {
-            if (bx + font().width(L.t("wynnlabs.search.wiki")) + 22 > x + w) {
-                bx = x;
-                cy += 17;
-            }
-            String url = ItemWiki.url(entry.name());
-            bx += iconButton(g, bx, cy, "arrow-up-right", L.t("wynnlabs.search.wiki"), true, mx, my,
-                    () -> net.minecraft.client.gui.screens.ConfirmLinkScreen.confirmLinkNow(menu, java.net.URI.create(url), true)) + 4;
-        }
-        if (entry.item() && entry.tradable()) {
-            // the same market window the T key opens over a container: this item's listings and rolls
-            if (bx + font().width(L.t("wynnlabs.search.market")) + 22 > x + w) {
-                bx = x;
-                cy += 17;
-            }
-            Entry e = entry;
-            iconButton(g, bx, cy, "shopping-cart", L.t("wynnlabs.search.market"), true, mx, my, () -> {
-                io.github.anilken.wynnlabs.model.Tier rarity;
-                try {
-                    rarity = io.github.anilken.wynnlabs.model.Tier.valueOf(e.tier().toUpperCase(java.util.Locale.ROOT));
-                } catch (RuntimeException ex) {
-                    rarity = io.github.anilken.wynnlabs.model.Tier.NORMAL;
-                }
-                var item = new io.github.anilken.wynnlabs.search.BoxMarket.Item(e.name(),
-                        io.github.anilken.wynnlabs.model.Slot.UNKNOWN, rarity, e.level(), e.klass(), 0, true);
-                net.minecraft.client.Minecraft.getInstance().setScreen(
-                        new BoxScreen(new BoxScreen.Single(item, null, false), tab.icons.of(e), menu));
-            });
-        }
-        return cy + 14;
-    }
-
-    /** A small wooden button with an icon; greyed and inert when {@code on} is false. Returns its width. */
-    int iconButton(GuiGraphics g, int x, int y, String icon, String label, boolean on, int mx, int my, Runnable run) {
-        int bw = font().width(label) + 22;
-        boolean hover = on && over(mx, my) && mx >= x && mx < x + bw && my >= y && my < y + 14;
-        int state = hover ? Kit.HOVER : Kit.REST;
-        Kit.button(g, x, y, bw, 14, state);
-        woodIconText(g, icon, label, x + 6, y + 3, state);
-        if (!on) {
-            g.fill(x, y, x + bw, y + 14, 0x80D8C595);
-        } else {
-            click(x, y, bw, 14, run);
-        }
-        return bw;
-    }
-
-    // ---- how do I get it ----
-
-    private int sources(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        section(g, "▾ " + L.t(entry.item() ? "wynnlabs.search.how" : "wynnlabs.search.where"), x, y, w);
-        String allText = L.t("wynnlabs.search.mark_all");
-        boolean places = rows.stream().anyMatch(Source::hasPlace);
-        if (places && GameState.current().running()) {
-            int aw = font().width(allText);
-            int ax = x + w - aw;
-            boolean hover = over(mx, my) && mx >= ax && mx < ax + aw && my >= y - 1 && my < y + 9;
-            g.fill(ax - 3, y - 1, ax + aw + 2, y + 9, Theme.CARD);
-            ink(g, allText, ax, y, hover ? Theme.GOLD_DEEP : Theme.LINK);
-            click(ax - 3, y - 1, aw + 5, 10, () -> {
-                all = true;
-                kept = true;
-                marks();
-                menu.flash(L.t("wynnlabs.search.marked"));
-            });
-        }
-        int cy = y + 13;
-        double[] pos = SearchTab.position();
-        for (int i = 0; i < rows.size(); i++) {
-            Source s = rows.get(i);
-            int rh = s.hasPlace() ? 22 : 13;
-            boolean hover = over(mx, my) && mx >= x && mx < x + w && my >= cy && my < cy + rh;
-            if (i == picked && s.hasPlace()) {
-                g.fill(x - 2, cy - 1, x + w, cy + rh - 1, Theme.SELECTED);
-            } else if (hover) {
-                g.fill(x - 2, cy - 1, x + w, cy + rh - 1, Theme.CARD_HOVER);
-            }
-            Kit.seal(g, x, cy, 11, 11, Theme.sourceFill(s.badge()));
-            Art.icon(g, s.badge(), x + 1, cy + 1, 8, Theme.CREAM);
-            int pinW = s.hasPlace() ? 14 : 0;
-            // a named mob or miniboss can be tracked: its toggle sits left of the pin
-            boolean trackable = trackable(s);
-            String trackText = trackable ? trackLabel(s.name()) : null;
-            int trackW = trackable ? font().width(trackText) + 8 : 0;
-            pinW += trackW == 0 ? 0 : trackW + 2;
-            // the mob, town or dungeon the row names opens its own card
-            Entry link = i < rowLinks.size() ? rowLinks.get(i) : null;
-            int linkW = link == null ? 0 : 12;
-            pinW += linkW == 0 ? 0 : linkW + 2;
-            String text = rowText(s);
-            ink(g, fit(text, w - 16 - pinW), x + 15, cy + 1, i == 0 ? Theme.INK : MUTED);
-            if (font().width(text) > w - 16 - pinW && hover) {
-                menu.hits.add(new MenuHit(x, cy, w - pinW, rh, null, List.of(Component.literal(text)), null));
-            }
-            if (s.hasPlace()) {
-                Area a = s.main();
-                double d = Compass.distance(a, pos);
-                String dir = Compass.direction(a, pos);
-                String where = Double.isNaN(d) ? "" : RoadmapScreen.dist((int) Math.round(d))
-                        + (dir == null ? "" : " " + dirName(dir));
-                if (a.name() != null && !a.name().equals(s.name())) {
-                    where = where.isEmpty() ? a.name() : where + " · " + a.name();
-                }
-                if (s.areas().size() > 1) {
-                    where += (where.isEmpty() ? "" : " · ") + L.t("wynnlabs.search.more_places", s.areas().size() - 1);
-                }
-                scaledText(g, Component.literal(fit(where, (int) ((w - 16 - pinW) / DESC_SCALE))), x + 15, cy + 11, DESC_SCALE, FAINT);
-                int px = x + w - 12;
-                boolean ph = over(mx, my) && mx >= px && mx < px + 12 && my >= cy && my < cy + 12;
-                Kit.button(g, px, cy, 12, 12, ph ? Kit.HOVER : Kit.REST);
-                Art.icon(g, "map-pin", px + 2, cy + 2, 8, Kit.buttonText(ph ? Kit.HOVER : Kit.REST));
-                String label = text;
-                // a row of several places (loot chests, spawn areas) pins them all, nearest first
-                List<Area> rowPlaces = s.areas();
-                click(px, cy, 12, 12, () -> {
-                    if (rowPlaces.size() > 1) {
-                        pinAll(rowPlaces);
-                    } else {
-                        pin(a, label);
-                    }
-                });
-                int row = i;
-                click(x, cy - 1, w - 14, rh, () -> {
-                    picked = row;
-                    marks();
-                });
-            }
-            if (trackable) {
-                trackButton(g, x + w - (s.hasPlace() ? 14 : 0) - trackW, cy, trackW, trackText, s.name(), mx, my);
-            }
-            if (link != null) {
-                linkButton(g, x + w - (s.hasPlace() ? 14 : 0) - (trackW == 0 ? 0 : trackW + 2) - linkW, cy, link, mx, my);
-            }
-            cy += rh;
-        }
-        return tracked(g, x, cy + 2, w, mx, my);
-    }
-
-    /** Whether a row names a mob the tracker can look for. */
-    private static boolean trackable(Source s) {
-        return (s.type() == Source.Type.MOB || s.type() == Source.Type.MINIBOSS)
-                && s.name() != null && !io.github.anilken.wynnlabs.search.MobName.key(s.name()).isEmpty();
-    }
-
-    private static String trackLabel(String mob) {
-        return TrackedMobs.get().has(mob) ? "✔ " + L.t("wynnlabs.search.tracking") : L.t("wynnlabs.search.track");
-    }
-
-    /** "Track" / "✔ Tracking" on a mob row: a click flips it. */
-    private void trackButton(GuiGraphics g, int bx, int y, int bw, String label, String mob, int mx, int my) {
-        boolean on = TrackedMobs.get().has(mob);
-        boolean hover = over(mx, my) && mx >= bx && mx < bx + bw && my >= y && my < y + 11;
-        // gold while tracking, wood otherwise; the label drawn as on every wooden button (cream
-        // with a shadow, ink on gold), not in paper ink, which is unreadable on wood
-        int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
-        Kit.button(g, bx, y, bw, 11, state);
-        onWood(g, label, bx + 4, y + 2, state);
-        click(bx, y, bw, 11, () -> {
-            boolean now = TrackedMobs.get().toggle(mob);
-            menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", mob));
-        });
-    }
-
-    /** The small "open its card" button of a row that names a mob, a town or a dungeon. */
-    private void linkButton(GuiGraphics g, int bx, int y, Entry to, int mx, int my) {
-        boolean hover = over(mx, my) && mx >= bx && mx < bx + 12 && my >= y && my < y + 12;
-        Kit.button(g, bx, y, 12, 12, hover ? Kit.HOVER : Kit.REST);
-        Art.icon(g, "arrow-up-right", bx + 2, y + 2, 8, Kit.buttonText(hover ? Kit.HOVER : Kit.REST));
-        if (hover) {
-            menu.hits.add(new MenuHit(bx, y, 12, 12, null, List.of(Component.literal(L.t("wynnlabs.search.open_card", to.name()))), null));
-        }
-        click(bx, y, 12, 12, () -> tab.show(to.key()));
-    }
-
-    /** "Tracking: Reggie, Gelbor · stop all" under the rows, when any mob is tracked. */
-    private int tracked(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        List<String> names = TrackedMobs.get().names();
-        if (names.isEmpty()) {
-            return y;
-        }
-        String stop = L.t("wynnlabs.search.track_clear");
-        int sw = font().width(stop);
-        String list = L.t("wynnlabs.search.tracked_list", String.join(", ", names));
-        scaledText(g, Component.literal(fit(list, (int) ((w - sw - 8) / DESC_SCALE))), x, y + 1, DESC_SCALE, FAINT);
-        int sx = x + w - sw;
-        boolean hover = over(mx, my) && mx >= sx && mx < sx + sw && my >= y - 1 && my < y + 9;
-        ink(g, stop, sx, y, hover ? Theme.GOLD_DEEP : Theme.LINK);
-        click(sx - 2, y - 1, sw + 4, 10, () -> {
-            TrackedMobs.get().clear();
-            menu.flash(L.t("wynnlabs.search.track_cleared"));
-        });
-        return y + 11;
-    }
-
-    /** A compass point of {@link Compass#direction} in the player's language. */
-    static String dirName(String dir) {
-        return switch (dir) {
-            case "east" -> L.t("wynnlabs.grind.dir_east");
-            case "southeast" -> L.t("wynnlabs.grind.dir_southeast");
-            case "south" -> L.t("wynnlabs.grind.dir_south");
-            case "southwest" -> L.t("wynnlabs.grind.dir_southwest");
-            case "west" -> L.t("wynnlabs.grind.dir_west");
-            case "northwest" -> L.t("wynnlabs.grind.dir_northwest");
-            case "north" -> L.t("wynnlabs.grind.dir_north");
-            default -> L.t("wynnlabs.grind.dir_northeast");
+        String url = entry.item() || SearchThingCard.wiki(entry) ? ItemWiki.url(entry.name()) : null;
+        boolean mob = entry.kind() == io.github.anilken.wynnlabs.search.Kind.MOB;
+        boolean tracked = mob && io.github.anilken.wynnlabs.search.TrackedMobs.get().has(entry.name());
+        String mobName = entry.name();
+        Object[][] chips = {
+            {tracked ? "check" : "target", L.t(tracked ? "wynnlabs.search.tracking" : "wynnlabs.search.track"), mob, (Runnable) () -> {
+                boolean now = io.github.anilken.wynnlabs.search.TrackedMobs.get().toggle(mobName);
+                menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", mobName));
+            }, tracked},
+            {"map-2", L.t("wynnlabs.search.open_map"), mapOk, (Runnable) this::openMap},
+            {"compass", L.t("wynnlabs.search.pin_all"), every.size() > 1,
+                (Runnable) () -> pinAll(io.github.anilken.wynnlabs.search.SourceRank.nearest(every, SearchTab.position(), every.size()))},
+            {"shopping-cart", L.t("wynnlabs.search.market"), entry.item() && entry.tradable(), (Runnable) this::market},
+            {"arrow-up-right", L.t("wynnlabs.search.wiki"), url != null,
+                (Runnable) () -> net.minecraft.client.gui.screens.ConfirmLinkScreen.confirmLinkNow(menu, java.net.URI.create(url), true)},
         };
+        int chipY = cy + (Ui.BUTTON_H - Ui.CHIP_H) / 2;
+        for (Object[] c : chips) {
+            if (!(boolean) c[2]) {
+                continue;
+            }
+            String label = (String) c[1];
+            int cw = Ui.iconChipWidth(font(), (String) c[0], label, false);
+            if (bx + cw > x + w && bx > x) {
+                bx = x;
+                cy += Ui.BUTTON_H + Theme.SP_2;
+                chipY = cy + (Ui.BUTTON_H - Ui.CHIP_H) / 2;
+            }
+            boolean on = c.length > 4 && (boolean) c[4];
+            Ui.iconChip(g, font(), (String) c[0], label, false, bx, chipY, cw, on, over(mx, my) ? mx : -1, my);
+            click(bx, chipY, cw, Ui.CHIP_H, (Runnable) c[3]);
+            bx += cw + Theme.SP_2;
+        }
+        return cy + Ui.BUTTON_H;
     }
 
-    /** The first place of the rows from {@code from} on, or null. */
-    private Area firstPlace(int from) {
-        for (int i = from; i < rows.size(); i++) {
-            if (rows.get(i).hasPlace()) {
-                return rows.get(i).main();
+    /** The Trade Market window the T key opens over a container, for this item: its listings and rolls. */
+    private void market() {
+        Entry e = entry;
+        io.github.anilken.wynnlabs.model.Tier rarity;
+        try {
+            rarity = io.github.anilken.wynnlabs.model.Tier.valueOf(e.tier().toUpperCase(java.util.Locale.ROOT));
+        } catch (RuntimeException ex) {
+            rarity = io.github.anilken.wynnlabs.model.Tier.NORMAL;
+        }
+        var item = new io.github.anilken.wynnlabs.search.BoxMarket.Item(e.name(),
+                io.github.anilken.wynnlabs.model.Slot.UNKNOWN, rarity, e.level(), e.klass(), 0, true);
+        net.minecraft.client.Minecraft.getInstance().setScreen(new BoxScreen(new BoxScreen.Single(item, null, false), tab.icons.of(e), menu));
+    }
+
+    /** The first place of the rows, or null. */
+    private Area firstPlace() {
+        for (Source s : rows) {
+            if (s.hasPlace()) {
+                return s.main();
             }
         }
         return null;
     }
 
-    /** Enter and "📍 Easiest": the compass on the easiest place that has one. */
+    /** Enter and "Compass ›": the compass on the easiest place that has one. */
     void pinEasiest() {
         for (Source s : rows) {
             if (s.hasPlace()) {
@@ -462,7 +399,12 @@ final class SearchCardPanel extends MenuPaint {
         }
     }
 
-    private void pin(Area a, String label) {
+    /** A row's words: the item card's source text, a thing's place label. */
+    String rowText(Source s) {
+        return entry.item() ? SourceText.row(s, wiki) : SearchThingCard.rowText(entry, s);
+    }
+
+    void pin(Area a, String label) {
         String what = entry.name().length() > 32 ? entry.name().substring(0, 32) : entry.name();
         if (Waypoints.go(a.x(), a.y(), a.z(), what)) {
             menu.flash(L.t("wynnlabs.screen.guiding", what));
@@ -473,7 +415,7 @@ final class SearchCardPanel extends MenuPaint {
         }
     }
 
-    private void pinAll(List<Area> places) {
+    void pinAll(List<Area> places) {
         String what = entry.name().length() > 32 ? entry.name().substring(0, 32) : entry.name();
         List<int[]> points = new java.util.ArrayList<>();
         for (Area p : places) {
@@ -489,11 +431,7 @@ final class SearchCardPanel extends MenuPaint {
 
     /** "Open on map": the marks kept, Wynntils' map centred on the chosen row's place. */
     private void openMap() {
-        Area a = picked < rows.size() && rows.get(picked).hasPlace() ? rows.get(picked).main() : firstPlace(0);
-        if (a == null) {
-            return;
-        }
-        if (!rows.get(picked).hasPlace()) {
+        if (picked >= rows.size() || !rows.get(picked).hasPlace()) {
             for (int i = 0; i < rows.size(); i++) {
                 if (rows.get(i).hasPlace()) {
                     picked = i;
@@ -501,7 +439,11 @@ final class SearchCardPanel extends MenuPaint {
                 }
             }
         }
-        kept = true;
+        if (picked >= rows.size() || !rows.get(picked).hasPlace()) {
+            return;
+        }
+        Area a = rows.get(picked).main();
+        marks.keep();
         marks();
         Wyn.openMap(a.x(), a.z());
     }
@@ -532,7 +474,7 @@ final class SearchCardPanel extends MenuPaint {
 
     /** The wheel over the card scrolls it; true when it was over the card. */
     boolean scrolled(double x, double y, double v) {
-        if (entry == null || !over((int) x, (int) y)) {
+        if (entry == null || tab.menu.layout.compact() || !in(x, y, box)) {
             return false;
         }
         scroll = Math.max(0, Math.min(scrollMax, scroll - 20 * (int) Math.signum(v)));

@@ -28,7 +28,7 @@ class ItemIndexTest {
             assertTrue(idx.counts().getOrDefault(k, 0) > 0, k + " missing");
         }
         assertEquals(15, idx.counts().get(Kind.GEAR));
-        assertEquals(3, idx.counts().get(Kind.INGREDIENT));
+        assertEquals(4, idx.counts().get(Kind.INGREDIENT));
     }
 
     @Test

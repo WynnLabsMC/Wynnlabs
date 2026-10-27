@@ -376,20 +376,6 @@ public class JMenuPreview implements FabricClientGameTest {
         return null;
     }
 
-    /** -PpreviewOnly=search: the page's search field empty, then typed in. */
-    private static void searchFieldShots(ClientGameTestContext ctx, Path out, String name, int tab, String typed) {
-        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(tab));
-        ctx.waitTicks(10);
-        shot(ctx, out, name);
-        ctx.runOnClient(mc -> {
-            RoadmapScreen s = (RoadmapScreen) mc.screen;
-            s.page(tab).slashTyped();
-            s.search.box.setValue(typed);
-        });
-        ctx.waitTicks(40);
-        shot(ctx, out, name + "-typed");
-    }
-
     /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
     private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
         if (part.equals("endgame")) {
@@ -402,7 +388,7 @@ public class JMenuPreview implements FabricClientGameTest {
         }
         if (part.equals("search")) {
             ctx.waitFor(mc -> io.github.anilken.wynnlabs.search.ItemIndex.get().missing() == null, 20 * 60);
-            searchFieldShots(ctx, out, "search-tab", RoadmapScreen.TAB_SEARCH, "lucky rab");
+            SearchPreview.shots(ctx, out);
             return;
         }
         if (part.equals("tree")) {

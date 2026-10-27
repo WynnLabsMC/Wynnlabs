@@ -27,7 +27,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * The card's folding sections under "How do I get it": "Yours" (bag and bank pages with counts),
+ * The card's sections under "How do I get it", always open: "Yours" (bag and bank pages with counts),
  * "Stats" (gear's roll ranges, an ingredient's modifiers and professions) and "Related" (the
  * set's other pieces, items from the same place, the quest that gives it, crafting for an
  * ingredient). Also the requirement line of the card's head. Worked out once per choice.
@@ -36,9 +36,6 @@ final class SearchCardSections extends MenuPaint {
 
     private final SearchCardPanel card;
     private final SearchTab tab;
-    private boolean openOwned;
-    private boolean openStats;
-    private boolean openRelated;
     /** Names of related items (set pieces first), and the quest the item comes from (or null). */
     private List<String> related = List.of();
     private String quest;
@@ -162,32 +159,25 @@ final class SearchCardSections extends MenuPaint {
 
     // ---- drawing ----
 
+    /** "Yours", "Stats" and "Related", always open (the card scrolls); returns the y under them. */
     int draw(GuiGraphics g, int x, int y, int w, int mx, int my) {
         Entry e = card.entry;
         Sources.Owned have = card.have;
         int count = have.bag() + have.bank().values().stream().mapToInt(Integer::intValue).sum();
-        int cy = fold(g, x, y, w, L.t("wynnlabs.search.sec_owned") + (count > 0 ? " (" + count + ")" : ""), openOwned, mx, my,
-                () -> openOwned = !openOwned);
-        if (openOwned) {
-            if (count == 0) {
-                cy = line(g, L.t("wynnlabs.search.owned_none"), x, cy, w, FAINT);
-            }
-            if (have.bag() > 0) {
-                cy = line(g, L.t("wynnlabs.search.src.bag", have.bag()), x, cy, w, MUTED);
-            }
-            for (Map.Entry<String, Integer> p : have.bank().entrySet()) {
-                cy = line(g, L.t("wynnlabs.search.src.bank", p.getKey(), p.getValue()), x, cy, w, MUTED);
-            }
+        int cy = card.sources.title(g, L.t("wynnlabs.search.sec_owned"), count > 0 ? String.valueOf(count) : null, x, y, w);
+        if (count == 0) {
+            cy = card.sources.line(g, L.t("wynnlabs.search.owned_none"), x, cy, w, Theme.INK_3);
         }
-        cy = fold(g, x, cy + 2, w, L.t("wynnlabs.search.sec_stats"), openStats, mx, my, () -> openStats = !openStats);
-        if (openStats) {
-            cy = stats(g, e, x, cy, w);
+        if (have.bag() > 0) {
+            cy = card.sources.line(g, L.t("wynnlabs.search.src.bag", have.bag()), x, cy, w, Theme.INK_2);
         }
-        cy = fold(g, x, cy + 2, w, L.t("wynnlabs.search.sec_related"), openRelated, mx, my, () -> openRelated = !openRelated);
-        if (openRelated) {
-            cy = related(g, e, x, cy, w, mx, my);
+        for (Map.Entry<String, Integer> p : have.bank().entrySet()) {
+            cy = card.sources.line(g, L.t("wynnlabs.search.src.bank", p.getKey(), p.getValue()), x, cy, w, Theme.INK_2);
         }
-        return cy;
+        cy = card.sources.title(g, L.t("wynnlabs.search.sec_stats"), null, x, cy + Theme.SP_5, w);
+        cy = stats(g, e, x, cy, w);
+        cy = card.sources.title(g, L.t("wynnlabs.search.sec_related"), null, x, cy + Theme.SP_5, w);
+        return related(g, e, x, cy, w, mx, my);
     }
 
     private int stats(GuiGraphics g, Entry e, int x, int y, int w) {
@@ -195,73 +185,68 @@ final class SearchCardSections extends MenuPaint {
         if (e.kind() == Kind.INGREDIENT && !e.professions().isEmpty()) {
             List<String> prof = new ArrayList<>();
             e.professions().forEach(p -> prof.add(SearchResultsPanel.words(p)));
-            cy = line(g, L.t("wynnlabs.search.professions", String.join(", ", prof)), x, cy, w, MUTED);
+            cy = card.sources.line(g, L.t("wynnlabs.search.professions", String.join(", ", prof)), x, cy, w, Theme.INK_2);
         }
+        String wanted = tab.stat;
         for (Entry.Stat s : e.stats()) {
             String range = s.min() == s.max() ? signed(s.min()) : signed(s.min()) + " … " + signed(s.max());
-            cy = pair(g, SearchResultsPanel.statName(s.key()), range, x, cy, w, s.max() < 0 && s.min() < 0);
+            cy = pair(g, SearchResultsPanel.statName(s.key()), range, x, cy, w, s.max() < 0 && s.min() < 0, s.key().equals(wanted));
         }
         for (Map.Entry<String, Integer> m : e.modifiers().entrySet()) {
-            cy = pair(g, SearchResultsPanel.statName(m.getKey()), signed(m.getValue()), x, cy, w, m.getValue() < 0);
+            cy = pair(g, SearchResultsPanel.statName(m.getKey()), signed(m.getValue()), x, cy, w, m.getValue() < 0, false);
         }
         if (cy == y) {
-            cy = line(g, L.t("wynnlabs.search.stats_none"), x, cy, w, FAINT);
+            cy = card.sources.line(g, L.t("wynnlabs.search.stats_none"), x, cy, w, Theme.INK_3);
         }
         return cy;
     }
 
+    /** The quest it comes from, crafting for an ingredient, the set's pieces and items of the same place, as chips. */
     private int related(GuiGraphics g, Entry e, int x, int y, int w, int mx, int my) {
-        int cy = y;
+        List<Object[]> chips = new ArrayList<>();          // {icon, label, action}
         if (quest != null) {
             String q = quest;
-            cy = link(g, L.t("wynnlabs.search.quest_link", q), x, cy, w, mx, my, () -> {
+            chips.add(new Object[] {"script", L.t("wynnlabs.search.quest_link", q), (Runnable) () -> {
                 menu.questsTab.questSelected = q;
                 menu.openTab(2);
-            });
+            }});
         }
         if (e.kind() == Kind.INGREDIENT) {
-            cy = link(g, L.t("wynnlabs.search.craft_link"), x, cy, w, mx, my, () -> menu.openTab(RoadmapScreen.TAB_CRAFT));
+            chips.add(new Object[] {"hammer", L.t("wynnlabs.search.craft_link"), (Runnable) () -> menu.openTab(RoadmapScreen.TAB_CRAFT)});
         }
         for (String n : related) {
             // searched for, as the search key does: an item outside the current results would
             // otherwise give way to the first result again on the next frame
-            cy = link(g, n, x, cy, w, mx, my, () -> tab.show(n));
+            chips.add(new Object[] {"box", n, (Runnable) () -> tab.show(n)});
         }
-        if (cy == y) {
-            cy = line(g, L.t("wynnlabs.search.related_none"), x, cy, w, FAINT);
+        if (chips.isEmpty()) {
+            return card.sources.line(g, L.t("wynnlabs.search.related_none"), x, y, w, Theme.INK_3);
         }
-        return cy;
-    }
-
-    /** A folding section's title row: ▸ closed, ▾ open; a click flips it. Returns the y under it. */
-    private int fold(GuiGraphics g, int x, int y, int w, String title, boolean open, int mx, int my, Runnable flip) {
-        boolean hover = card.over(mx, my) && mx >= x && mx < x + w && my >= y && my < y + 12;
-        if (hover) {
-            g.fill(x - 2, y - 1, x + w, y + 11, Theme.CARD_HOVER);
+        int cx = x;
+        int cy = y;
+        for (Object[] c : chips) {
+            String label = Type.BODY.fit(font(), (String) c[1], w - 2 * Theme.SP_4 - 10);
+            int cw = Math.min(w, Ui.iconChipWidth(font(), (String) c[0], label, false));
+            if (cx + cw > x + w && cx > x) {
+                cx = x;
+                cy += Ui.CHIP_H + Theme.SP_2;
+            }
+            Ui.iconChip(g, font(), (String) c[0], label, false, cx, cy, cw, false, card.over(mx, my) ? mx : -1, my);
+            card.click(cx, cy, cw, Ui.CHIP_H, (Runnable) c[2]);
+            cx += cw + Theme.SP_2;
         }
-        section(g, (open ? "▾ " : "▸ ") + title, x, y + 1, w);
-        card.click(x - 2, y - 1, w + 2, 12, flip);
-        return y + 14;
+        return cy + Ui.CHIP_H;
     }
 
-    private int line(GuiGraphics g, String text, int x, int y, int w, int colour) {
-        ink(g, fit(text, w - 6), x + 6, y, colour);
-        return y + 11;
-    }
-
-    private int pair(GuiGraphics g, String name, String value, int x, int y, int w, boolean bad) {
-        int vw = font().width(value);
-        ink(g, fit(name, w - vw - 12), x + 6, y, MUTED);
-        ink(g, value, x + w - vw, y, bad ? Theme.BAD : Theme.GOOD);
-        return y + 11;
-    }
-
-    private int link(GuiGraphics g, String text, int x, int y, int w, int mx, int my, Runnable run) {
-        String t = fit(text, w - 6);
-        boolean hover = card.over(mx, my) && mx >= x && mx < x + w && my >= y - 1 && my < y + 10;
-        ink(g, t, x + 6, y, hover ? Theme.GOLD_DEEP : Theme.LINK);
-        card.click(x, y - 1, w, 11, run);
-        return y + 11;
+    private int pair(GuiGraphics g, String name, String value, int x, int y, int w, boolean bad, boolean wanted) {
+        int vw = Type.BODY.width(font(), value);
+        if (wanted) {
+            Kit.rowLit(g, x - Theme.SP_2, y - Theme.SP_2, w + 2 * Theme.SP_2, Type.BODY.lineHeight + 2 * Theme.SP_2);
+        }
+        Type role = wanted ? Type.LABEL : Type.BODY;
+        role.draw(g, font(), Type.BODY.fit(font(), name, w - vw - Theme.SP_4), x, y, wanted ? Theme.INK : Theme.INK_2);
+        role.drawRight(g, font(), value, x + w, y, bad ? Theme.BAD : Theme.GOOD);
+        return y + Type.BODY.lineHeight + Theme.SP_1 + (wanted ? Theme.SP_2 * 2 : 0);
     }
 
     private static String signed(int v) {

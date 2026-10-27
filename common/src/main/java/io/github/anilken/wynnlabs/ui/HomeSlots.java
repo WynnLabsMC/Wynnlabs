@@ -294,14 +294,11 @@ final class HomeSlots extends HomePart {
             String icon = !worn && BuildSources.haveNames().contains(name)
                     ? "building-bank" : BuildWindow.sourceIcon(name);
             // each kind of place its own colour, a light icon on it, so the kind reads at a glance
-            int fill = Theme.sourceFill(icon);
             if (compact) {
-                Kit.seal(g, cx, cy, d, d, fill);
-                Art.icon(g, icon, cx + 2, cy + 2, d - 4, Theme.CREAM);
+                Kit.kindBadge(g, cx, cy, d, KindBadge.of(icon));
             } else {
                 int bx = badgeRight ? sx + s - 10 : sx - 5;
-                Kit.seal(g, bx, sy - 5, 15, 15, fill);
-                Art.icon(g, icon, bx + 2, sy - 3, 11, Theme.CREAM);
+                Kit.kindBadge(g, bx, sy - 5, 15, KindBadge.of(icon));
             }
         }
         int is = large ? 32 : 16;
@@ -433,7 +430,7 @@ final class HomeSlots extends HomePart {
             boolean have = !worn && BuildSources.haveNames().contains(name);
             String icon = have ? "building-bank" : BuildWindow.sourceIcon(name);
             String text = have ? L.t("wynnlabs.homev.src_bank") : BuildWindow.sourceText(name);
-            sourceChip(g, icon, Theme.sourceFill(icon), text, tx, lineTop + Type.BODY.lineHeight, right - tx);
+            sourceChip(g, icon, 0, text, tx, lineTop + Type.BODY.lineHeight, right - tx);
         }
         partOwner = "slot" + v.index();
         // the pill centred on the name's capitals, ending at the row's right
@@ -445,13 +442,20 @@ final class HomeSlots extends HomePart {
         areas(host, v, new int[] {x, y, w, s});
     }
 
-    /** A source as a small chip on line {@code y}: its icon on the place's colour, then its name in small type. */
+    /**
+     * A source as a small chip on line {@code y}: its kind badge (or, with a {@code fill}, its icon
+     * on that colour: the chosen lock), then its name in small type.
+     */
     private void sourceChip(GuiGraphics g, String icon, int fill, String text, int x, int y, int room) {
-        int d = 9;
+        int d = KindBadge.MIN;
         int dy = Type.META.onCaps(y, d);
-        Kit.seal(g, x, dy, d, d, fill);
-        Art.icon(g, icon, x + 1, dy + 1, d - 2, Theme.CREAM);
-        Type.META.draw(g, font, Type.META.fit(font, text, room - d - Theme.SP_1), x + d + Theme.SP_1, y);
+        if (fill == 0) {
+            Kit.kindBadge(g, x, dy, d, KindBadge.of(icon));
+        } else {
+            Kit.tile(g, x, dy, d, fill, fill);
+            Art.icon(g, icon, x + Ui.iconIn(d, 8), dy + Ui.iconIn(d, 8), 8, Theme.CREAM);
+        }
+        Type.META.draw(g, font, Type.META.fit(font, text, room - d - Theme.SP_2), x + d + Theme.SP_2, y);
     }
 
     /** A slot's name colour as a colour (its tier's, grey for what you wear). */

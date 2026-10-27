@@ -2,21 +2,25 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.search.ItemIndex;
+import io.github.anilken.wynnlabs.search.SearchCategory;
+import io.github.anilken.wynnlabs.search.TrackedMobs;
 
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.screenshot.TestScreenshotOptions;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
  * The search tab in the J menu preview: the item index read from a game folder's Wynntils cache
- * ({@code -PpreviewWynntils=<folder>}, read only) or, without one, from the trimmed test copies;
- * then shots of a search for an ingredient and for a piece of gear, its folding sections open,
- * GUI scales 2 and 4, the empty box, and searches for a mob, a town, a service and a dungeon.
+ * ({@code -PpreviewWynntils=<folder>}, read only) or, without one, from the trimmed test copies.
+ * Shots: the catalogue before anything is typed, an item ("lucky rab"), its card with every row on
+ * the map and the "Marked" list open, a tracked mob and the "Tracked" list, a place, the Stats
+ * category and a stat, nothing found with "did you mean", and the filter menu. On a small window
+ * ({@code -PpreviewSize=1380x960}) the card is the drawer.
  */
 final class SearchPreview {
 
@@ -44,38 +48,63 @@ final class SearchPreview {
         ctx.waitFor(mc -> ItemIndex.get().missing() == null || !"loading".equals(ItemIndex.get().missing()), 20 * 60);
         ctx.getInput().setCursorPos(2, 2);
         ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(RoadmapScreen.TAB_SEARCH));
-        ctx.waitTicks(5);
-        shot(ctx, out, "search-tab-empty");
+        ctx.waitTicks(20);
+        shot(ctx, out, "search-empty");
         search(ctx, "lucky rab");
-        shot(ctx, out, "search-tab-lucky");
-        search(ctx, "papyrus");
-        shot(ctx, out, "search-tab-papyrus");
-        ctx.runOnClient(mc -> {
-            SearchCardSections s = ((RoadmapScreen) mc.screen).search.card.sections;
-            for (String f : new String[] {"openOwned", "openStats", "openRelated"}) {
-                flag(s, f);
+        shot(ctx, out, "search-item");
+        // every row of the card on the map, then the list of kept marks
+        tab(ctx, t -> {
+            t.card.toggleAll();
+            t.menus.toggle(SearchMenus.MARKS);
+        });
+        shot(ctx, out, "search-marks");
+        tab(ctx, t -> {
+            t.menus.open = SearchMenus.NONE;
+            t.card.clearMarks();
+        });
+        // a mob tracked from its card, and the tracked list
+        tab(ctx, t -> {
+            if (!TrackedMobs.get().has("Tumbleweed")) {
+                TrackedMobs.get().toggle("Tumbleweed");
             }
+            t.show("mob:Tumbleweed");
         });
-        ctx.waitTicks(5);
-        shot(ctx, out, "search-tab-papyrus-sections");
-        for (int scale : new int[] {2, 4}) {
-            ctx.runOnClient(mc -> {
-                mc.options.guiScale().set(scale);
-                mc.resizeDisplay();
-            });
-            ctx.waitTicks(5);
-            shot(ctx, out, "search-tab-gui" + scale);
-        }
-        ctx.runOnClient(mc -> {
-            mc.options.guiScale().set(3);
-            mc.resizeDisplay();
+        ctx.waitTicks(10);
+        shot(ctx, out, "search-mob-tracked");
+        tab(ctx, t -> t.menus.toggle(SearchMenus.TRACKED));
+        shot(ctx, out, "search-tracked");
+        tab(ctx, t -> t.menus.open = SearchMenus.NONE);
+        search(ctx, "cinfras");
+        shot(ctx, out, "search-place");
+        // the Stats category: its list, then one stat's items
+        search(ctx, "");
+        tab(ctx, t -> t.pickCategory(SearchCategory.STAT));
+        shot(ctx, out, "search-stats");
+        tab(ctx, t -> t.pickStat("manaSteal"));
+        shot(ctx, out, "search-stat");
+        // nothing found: the mobs category hides the ingredient ("did you mean"), then a typo
+        tab(ctx, t -> t.pickCategory(SearchCategory.MOB));
+        search(ctx, "lucky rab");
+        shot(ctx, out, "search-none-filtered");
+        tab(ctx, t -> t.pickCategory(SearchCategory.ALL));
+        search(ctx, "luckyrabit");
+        shot(ctx, out, "search-none-typo");
+        // the filter menu on the items category
+        search(ctx, "");
+        tab(ctx, t -> {
+            t.pickCategory(SearchCategory.ITEM);
+            t.menus.toggle(SearchMenus.FILTER);
         });
-        ctx.waitTicks(3);
-        // the world's things: a mob, a town, a service, a dungeon
-        for (String q : new String[] {"reggie", "cinfras", "blacksmith", "fallen factory"}) {
-            search(ctx, q);
-            shot(ctx, out, "search-all-" + q.replace(' ', '-'));
-        }
+        shot(ctx, out, "search-filter");
+        tab(ctx, t -> {
+            t.menus.open = SearchMenus.NONE;
+            t.pickCategory(SearchCategory.ALL);
+        });
+    }
+
+    private static void tab(ClientGameTestContext ctx, Consumer<SearchTab> run) {
+        ctx.runOnClient(mc -> run.accept(((RoadmapScreen) mc.screen).search));
+        ctx.waitTicks(10);
     }
 
     private static void search(ClientGameTestContext ctx, String text) {
@@ -83,18 +112,13 @@ final class SearchPreview {
             SearchTab t = ((RoadmapScreen) mc.screen).search;
             t.box.setValue(text);
             t.selName = null;
+            if ((text.equals("lucky rab") && t.category == SearchCategory.ALL || text.equals("cinfras"))
+                    && mc.screen instanceof RoadmapScreen s && s.layout.compact()) {
+                t.show(text.equals("lucky rab") ? "Lucky Rabbit's Foot" : text.equals("cinfras") ? "place:Cinfras" : text);
+                t.box.setValue(text);
+            }
         });
-        ctx.waitTicks(20);                          // the worker answers, the card picks its sources
-    }
-
-    private static void flag(Object o, String field) {
-        try {
-            Field f = o.getClass().getDeclaredField(field);
-            f.setAccessible(true);
-            f.setBoolean(o, true);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
+        ctx.waitTicks(25);                          // the worker answers, the card picks its sources
     }
 
     private static void shot(ClientGameTestContext ctx, Path out, String name) {

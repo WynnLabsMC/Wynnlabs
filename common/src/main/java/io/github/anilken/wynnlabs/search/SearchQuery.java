@@ -21,15 +21,23 @@ import java.util.function.Predicate;
  * @param kinds    kinds to list; empty means all
  * @param minLevel lowest level listed (0 for no limit)
  * @param maxLevel highest level listed ({@link Integer#MAX_VALUE} for no limit)
+ * @param stat     a stat key (camelCase, as in the data): only the items that roll it, highest roll
+ *                 first; null for none
  */
 public record SearchQuery(String text, Sort sort, Set<Kind> kinds, int minLevel, int maxLevel,
-        boolean myClass, boolean owned, boolean onMarket) {
+        boolean myClass, boolean owned, boolean onMarket, String stat) {
 
     public enum Sort { EASIEST, LEVEL, NAME, PRICE }
 
     public SearchQuery {
         kinds = kinds == null ? Set.of() : Set.copyOf(kinds);
         sort = sort == null ? Sort.EASIEST : sort;
+        stat = stat == null || stat.isBlank() ? null : stat;
+    }
+
+    public SearchQuery(String text, Sort sort, Set<Kind> kinds, int minLevel, int maxLevel,
+            boolean myClass, boolean owned, boolean onMarket) {
+        this(text, sort, kinds, minLevel, maxLevel, myClass, owned, onMarket, null);
     }
 
     /** Everything, easiest first, for this text. */
@@ -47,9 +55,31 @@ public record SearchQuery(String text, Sort sort, Set<Kind> kinds, int minLevel,
         public static final Facts NONE = new Facts(Klass.NONE, n -> false, n -> null);
     }
 
-    /** The ranked hits, how many entries of each kind pass the other filters, and the query it answers. */
-    public record Result(SearchQuery query, List<Hit> hits, Map<Kind, Integer> counts) {
+    /**
+     * The ranked hits, how many entries of each kind pass the other filters, and the query it
+     * answers. With no hits for a typed text, {@code suggestion} is the closest entry ("did you
+     * mean"): the best match the filters hid ({@code filtered}), else the nearest name; null when
+     * nothing is close.
+     */
+    public record Result(SearchQuery query, List<Hit> hits, Map<Kind, Integer> counts, Hit suggestion, boolean filtered) {
         public static final Result EMPTY = new Result(of(""), List.of(), Map.of());
+
+        public Result(SearchQuery query, List<Hit> hits, Map<Kind, Integer> counts) {
+            this(query, hits, counts, null, false);
+        }
+    }
+
+    /** The highest roll of {@code stat} on an entry, or null when it has none. */
+    public static Integer statValue(Entry e, String stat) {
+        if (stat == null) {
+            return null;
+        }
+        for (Entry.Stat s : e.stats()) {
+            if (s.key().equals(stat)) {
+                return Math.abs(s.max()) >= Math.abs(s.min()) ? s.max() : s.min();
+            }
+        }
+        return null;
     }
 
     public Result run(ItemIndex index, Facts facts) {
@@ -82,13 +112,29 @@ public record SearchQuery(String text, Sort sort, Set<Kind> kinds, int minLevel,
             if (onMarket && !(e.tradable() && price(e, f, prices) != null)) {
                 continue;
             }
+            if (stat != null && statValue(e, stat) == null) {
+                continue;
+            }
             counts.merge(e.kind(), 1, Integer::sum);
             if (kinds.isEmpty() || kinds.contains(e.kind())) {
                 kept.add(h);
             }
         }
         kept.sort(order(f, prices, owns));
-        return new Result(this, Collections.unmodifiableList(kept), Collections.unmodifiableMap(counts));
+        Hit suggestion = null;
+        boolean filtered = false;
+        if (kept.isEmpty() && !t.isEmpty()) {
+            for (Hit h : found) {
+                if (suggestion == null || h.score() > suggestion.score()) {
+                    suggestion = h;
+                }
+            }
+            filtered = suggestion != null;
+            if (suggestion == null) {
+                suggestion = ItemMatch.closest(index, t);
+            }
+        }
+        return new Result(this, Collections.unmodifiableList(kept), Collections.unmodifiableMap(counts), suggestion, filtered);
     }
 
     /** Whether the player holds the item (things are never held). */
@@ -109,6 +155,10 @@ public record SearchQuery(String text, Sort sort, Set<Kind> kinds, int minLevel,
         Comparator<Hit> byScore = Comparator.comparingInt((Hit h) -> -h.score());
         Comparator<Hit> byName = Comparator.comparing((Hit h) -> h.entry().name(), String.CASE_INSENSITIVE_ORDER)
                 .thenComparing(h -> h.entry().name());
+        if (stat != null && sort == Sort.EASIEST) {
+            // a stat asked for: the highest roll first
+            return Comparator.comparingInt((Hit h) -> -statValue(h.entry(), stat)).thenComparing(byName);
+        }
         return switch (sort) {
             case LEVEL -> Comparator.comparingInt((Hit h) -> h.entry().level()).thenComparing(byScore).thenComparing(byName);
             case NAME -> byName;

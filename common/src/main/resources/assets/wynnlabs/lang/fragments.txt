@@ -158,3 +158,5 @@ wynnlabs.endgame.row_no_runs  a part of a line on the Endgame page
 wynnlabs.endgame.session_streak  a part of a line on the Endgame page
 wynnlabs.endgame.week_nothing_new  a part of a line on the Endgame page
 wynnlabs.road.each                      " each" after a material's price on the level road
+wynnlabs.search.hidden_by_filters  a kind before it: "Ingredient · hidden by the filters"
+wynnlabs.search.keys               the keys of the search tab, starting with the arrows

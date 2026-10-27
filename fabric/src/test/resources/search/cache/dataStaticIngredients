@@ -187,5 +187,148 @@
   },
   "tier": "TIER_3",
   "type": "ingredient"
+ },
+ "Lucky Rabbit's Foot": {
+  "consumableOnlyIDs": {
+   "charges": 0,
+   "duration": 0
+  },
+  "droppedBy": [
+   {
+    "coords": [
+     [
+      1109,
+      28,
+      -1444,
+      45
+     ],
+     [
+      1333,
+      98,
+      -1468,
+      30
+     ],
+     [
+      1165,
+      101,
+      -1485,
+      20
+     ],
+     [
+      1124,
+      102,
+      -1472,
+      20
+     ]
+    ],
+    "name": "Tumbleweed"
+   },
+   {
+    "coords": [
+     [
+      1425,
+      30,
+      -1425,
+      20
+     ],
+     [
+      1438,
+      30,
+      -1467,
+      20
+     ],
+     [
+      1374,
+      30,
+      -1519,
+      25
+     ],
+     [
+      1330,
+      30,
+      -1540,
+      20
+     ],
+     [
+      1190,
+      30,
+      -1594,
+      25
+     ],
+     [
+      1103,
+      30,
+      -1538,
+      20
+     ],
+     [
+      1054,
+      30,
+      -1515,
+      20
+     ],
+     [
+      1101,
+      30,
+      -1308,
+      45
+     ]
+    ],
+    "name": "Diurnal Canyon Swooper"
+   }
+  ],
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      2220
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "ingredient.luckyRabbitsFoot"
+   }
+  },
+  "identifications": {
+   "combatExperience": {
+    "max": 8,
+    "min": 3,
+    "raw": 3
+   },
+   "lootBonus": {
+    "max": 8,
+    "min": 2,
+    "raw": 2
+   }
+  },
+  "ingredientPositionModifiers": {
+   "above": 0,
+   "left": 0,
+   "notTouching": 0,
+   "right": 0,
+   "touching": 0,
+   "under": 0
+  },
+  "internalName": "Lucky Rabbit's Foot",
+  "itemOnlyIDs": {
+   "agilityRequirement": 0,
+   "defenceRequirement": 0,
+   "dexterityRequirement": 0,
+   "durabilityModifier": -79000,
+   "intelligenceRequirement": 0,
+   "strengthRequirement": 0
+  },
+  "requirements": {
+   "level": 37,
+   "skills": [
+    "armouring",
+    "tailoring",
+    "woodworking",
+    "weaponsmithing"
+   ]
+  },
+  "tier": "TIER_2",
+  "type": "ingredient"
  }
 }

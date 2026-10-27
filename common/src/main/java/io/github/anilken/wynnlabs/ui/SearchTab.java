@@ -13,6 +13,7 @@ import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.RecentSearches;
+import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.SearchWorker;
 
@@ -20,6 +21,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
@@ -31,19 +33,16 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * The search tab ("Ara"): a search box over every item Wynntils knows and the world's things
- * (mobs, places, dungeons, services, resources, quests, NPCs, discoveries), its sort and filter
- * chips ("All" first, then one per kind with its count), the results on the left
- * ({@link SearchResultsPanel}) and the chosen entry's card on the right ({@link SearchCardPanel}).
- * Typing runs the query on a background thread ({@link SearchWorker}); the frame draws its last
- * answer. The selection follows the entry's key, so it stays put while the list changes. Shows
- * only: the one thing it changes is a compass pin or the map's marks.
+ * The search tab ("Ara"). The box across the page with the sort beside it; under it the category
+ * strip with counts, the recent searches and "Filter ▾" ({@link SearchStrip}); then the whole
+ * catalogue before anything is typed (the road map's missing pieces first), which typing and the
+ * strip only narrow ({@link SearchResultsPanel}); the chosen entry's card on the right, or in a
+ * drawer on a small window ({@link SearchCardPanel}). Typing runs the query on a background
+ * thread ({@link SearchWorker}); the frame draws its last answer. The title row shows the map
+ * marks kept and the mobs tracked. Shows only: what it changes is a compass pin, the map's marks
+ * and the list of tracked mobs.
  */
 final class SearchTab extends MenuTab {
-
-    static final String[] SORTS = {"wynnlabs.search.sort_easiest", "wynnlabs.search.sort_level", "wynnlabs.search.sort_name",
-        "wynnlabs.search.sort_price"};
-    private static final Kind[] KINDS = Kind.values();
 
     /** A click area of this frame and what it does. */
     record Click(int[] rect, Runnable run) {}
@@ -52,17 +51,25 @@ final class SearchTab extends MenuTab {
     final SearchIcons icons = new SearchIcons();
     final SearchResultsPanel results = new SearchResultsPanel(this);
     final SearchCardPanel card = new SearchCardPanel(this);
+    final SearchStrip strip = new SearchStrip(this);
+    final SearchMenus menus = new SearchMenus(this);
+    private final UiDrawer drawer;
     EditBox box;
     /** The query the menu closed with last time, put in the box when it is made. */
     String typedBefore;
     SearchQuery.Sort sort = SearchQuery.Sort.EASIEST;
+    SearchCategory category = SearchCategory.ALL;
+    /** The category's own kinds the filter menu narrowed it to (empty: all of them). */
     final Set<Kind> kinds = EnumSet.noneOf(Kind.class);
+    /** The stat the Stats category lists the items of (null: the list of stats). */
+    String stat;
     /** 0: every level, 1: up to mine, 2: mine and the ten below. */
     int levelMode;
     boolean myClass;
     boolean owned;
     boolean onMarket;
-    private boolean sortOpen;
+    int[] sortAt;
+    SearchQuery.Result lastResult;
     private SearchWorker worker;
     private SearchQuery submitted;
     private ItemIndex submittedFor;
@@ -72,9 +79,15 @@ final class SearchTab extends MenuTab {
     String selName;
     /** An entry asked for from outside (the search key over a hovered item, a card's link), chosen once the index is there. */
     private String wanted;
+    /** The first click area a popup added this frame: a click in the popup looks only from here on. */
+    private int popupFrom;
+    private int mouseX;
+    private int mouseY;
+    private UiInput.Hit searchHit;
 
     SearchTab(RoadmapScreen menu) {
         super(menu);
+        drawer = new UiDrawer(menu);
     }
 
     @Override
@@ -97,6 +110,13 @@ final class SearchTab extends MenuTab {
         clicks.add(new Click(new int[] {x, y, w, h}, run));
     }
 
+    /** A tooltip over this box while the mouse is on it. */
+    void hint(int x, int y, int w, int h, String text) {
+        if (mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h) {
+            menu.hits.add(new MenuHit(x, y, w, h, null, List.of(Component.literal(text)), null));
+        }
+    }
+
     /**
      * Opens on this entry, by its key (an item's name, a thing's "kind:name"): its name in the box
      * and its card shown (the search key over a hovered item, a card's link to a mob or an item).
@@ -108,6 +128,12 @@ final class SearchTab extends MenuTab {
             box.setValue(e != null ? e.name() : key.substring(key.indexOf(':') + 1));
         }
         selName = key;
+        category = SearchCategory.ALL;
+        stat = null;
+        if (menu.layout != null && menu.layout.compact()) {
+            Entry e = ItemIndex.get().byKey(key);
+            openDrawer(e == null ? "" : e.item() ? SearchResultsPanel.kindText(e) : SearchThingCard.typeText(e));
+        }
     }
 
     /** The tab is shown: the box takes the keys. */
@@ -126,81 +152,157 @@ final class SearchTab extends MenuTab {
             worker.close();
             worker = null;
         }
+        menus.open = SearchMenus.NONE;
+        drawer.close();
         card.closed();
+    }
+
+    // ---- the filters ----
+
+    int filtersOn() {
+        return (category.narrows() ? kinds.size() : 0) + (levelMode != 0 ? 1 : 0) + (myClass ? 1 : 0) + (owned ? 1 : 0)
+                + (onMarket ? 1 : 0);
+    }
+
+    void clearFilters() {
+        kinds.clear();
+        levelMode = 0;
+        myClass = false;
+        owned = false;
+        onMarket = false;
+        results.scroll = 0;
+    }
+
+    void pickCategory(SearchCategory c) {
+        category = c;
+        kinds.clear();
+        if (c != SearchCategory.STAT) {
+            stat = null;
+        }
+        results.scroll = 0;
+    }
+
+    void pickStat(String key) {
+        stat = key;
+        if (key != null) {
+            category = SearchCategory.STAT;
+        }
+        results.scroll = 0;
     }
 
     // ---- drawing ----
 
     @Override
+    int titleRight(GuiGraphics g, int right, int y, int room, int mx, int my) {
+        return strip.title(g, right, y, room, mx, my);
+    }
+
+    @Override
     void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my, float pt) {
+        mouseX = mx;
+        mouseY = my;
+        drawer.page(x, y, w, h);
+        boolean compact = menu.layout.compact();
         ItemIndex index = ItemIndex.get();
         if (index.missing() != null) {
             ItemIndex.startLoading(Platform.get().gameDir(), Dirs.config().resolve("chests.json"));
         }
-        // the box and the sort on one line
-        String sortLabel = L.t(SORTS[sort.ordinal()]);
-        int sortW = Ui.iconChipWidth(font(), null, sortLabel, true);
-        searchHit = UiInput.search(g, font(), box, L.t("wynnlabs.search.box_hint"), true, x, y - 1, w - sortW - Theme.SP_3, mx, my);
+        // the box across the page, the sort beside it; the key hint in the box's tooltip
+        String sortLabel = L.t(SearchMenus.SORTS[sort.ordinal()]);
+        int sortW = Ui.iconChipWidth(font(), "arrow-down", sortLabel, true);
+        searchHit = UiInput.search(g, font(), box, L.t("wynnlabs.search.box_hint"), true, x, y, w - sortW - Theme.SP_3, mx, my);
+        hint(x, y, w - sortW - Theme.SP_3, Ui.CHIP_H, L.t("wynnlabs.search.keys"));
         int sx = x + w - sortW;
-        UiMenu.chip(g, font(), null, sortLabel, sx, y - 1, sortOpen, mx, my);
-        click(sx, y - 1, sortW, Ui.CHIP_H, () -> {
-            sortOpen = !sortOpen;
-            sortMenu.reset();
-        });
+        sortAt = new int[] {sx, y, sortW, Ui.CHIP_H};
+        UiMenu.chip(g, font(), "arrow-down", sortLabel, sx, y, menus.open == SearchMenus.SORT, mx, my);
+        click(sx, y, sortW, Ui.CHIP_H, () -> menus.toggle(SearchMenus.SORT));
 
         SearchQuery q = query();
         SearchQuery.Result result = submit(q, index);
-        int cy = chips(g, x, y + 17, w, result, mx, my);
-        int bodyY = cy + 6;
-        int bodyH = y + h - 12 - bodyY;
-        // results on the left, the card on the right
-        int cardW = Math.max(170, Math.min(300, (int) (w * 0.46)));
-        int listW = w - cardW - 8;
+        lastResult = result;
+        int cy = y + Ui.CHIP_H + Theme.SP_3;
+        cy += strip.draw(g, x, cy, w, result, compact, mx, my) + Theme.SP_4;
+        int bodyH = y + h - cy;
+        int cardW = compact ? 0 : Math.max(180, Math.min(320, (w - Theme.SP_7) * 45 / 100));
+        int listW = compact ? w : w - cardW - Theme.SP_7;
         if (index.missing() != null) {
-            String why = "loading".equals(index.missing()) ? L.t("wynnlabs.search.loading") : L.t("wynnlabs.search.no_data");
-            ink(g, fit(why, listW), x, bodyY + 4, FAINT);
-        } else {
-            // an empty box lists the recent searches, unless a world kind is picked (all services, all quests)
-            boolean browse = q.kinds().stream().anyMatch(k -> !k.item());
-            List<SearchResultsPanel.Row> rows = q.text().isBlank() && !browse ? results.emptyRows(index) : results.rows(result);
-            String pick = results.draw(g, x, bodyY, listW, bodyH, rows, mx, my);
-            choose(pick, index);
+            results.loading(g, x, cy, w, bodyH, "loading".equals(index.missing()), compact, mx, my);
+            card.clear();
+            return;
         }
-        card.draw(g, x + listW + 8, bodyY, cardW, bodyH, mx, my);
-        // the keys, at the foot of the page
-        ink(g, fit(L.t("wynnlabs.search.footer"), w), x, y + h - 9, FAINT);
-        sortAt = new int[] {sx, y - 1, sortW, Ui.CHIP_H};     // its list: the popup, drawn over the page by drawPopup
+        String pick = results.draw(g, x, cy, listW, bodyH, result, compact, mx, my);
+        choose(pick, index);
+        if (!compact) {
+            card.draw(g, x + listW + Theme.SP_7, cy, cardW, bodyH, mx, my);
+        } else if (card.entry == null && drawer.showing()) {
+            drawer.close();
+        }
     }
 
-    // ---- the sort's list: a popup that owns the mouse ----
+    /** Opens the drawer on the chosen card (a small window), under the entry's name. */
+    void openDrawer(String title) {
+        drawer.show(title, card::flow);
+    }
 
-    private int[] sortAt;
+    // ---- the popups: a menu, or the card's drawer ----
 
-    /** The popups as the menu's one hook (the methods below). */
     private final Popup popups = new Popup() {
         @Override
         public boolean open() {
-            return popupOpenImpl();
+            return menus.showing() || drawer.open();
         }
 
         @Override
         public void draw(GuiGraphics g, int mx, int my, List<int[]> boxes) {
-            drawPopupImpl(g, mx, my, boxes);
+            mouseX = mx;
+            mouseY = my;
+            popupFrom = clicks.size();
+            if (menus.showing()) {
+                int[] b = menus.draw(g, mx, my);
+                if (b != null) {
+                    boxes.add(b);
+                }
+                return;
+            }
+            drawer.draw(g, mx, my, boxes);
         }
 
         @Override
         public void close() {
-            closePopupImpl();
+            menus.open = SearchMenus.NONE;
+            drawer.close();
         }
 
         @Override
-        public boolean clicked(MouseButtonEvent event) {
-            return popupClickedImpl(event);
+        public boolean clicked(MouseButtonEvent event, boolean doubleClick) {
+            if (menus.showing() && menus.state.press(event.x(), event.y())) {
+                return true;
+            }
+            if (!menus.showing() && drawer.clicked(event, doubleClick)) {
+                return true;
+            }
+            for (int i = clicks.size() - 1; i >= popupFrom; i--) {
+                Click c = clicks.get(i);
+                if (in(event.x(), event.y(), c.rect())) {
+                    c.run().run();
+                    return true;
+                }
+            }
+            return menus.showing();
+        }
+
+        @Override
+        public void scrolled(double x, double y, double v) {
+            if (menus.showing()) {
+                menus.state.wheel(v);
+            } else {
+                drawer.scrolled(x, y, v);
+            }
         }
 
         @Override
         public boolean key(int key) {
-            return popupKeyImpl(key);
+            return menus.showing() && menus.key(key);
         }
     };
 
@@ -209,119 +311,14 @@ final class SearchTab extends MenuTab {
         return popups;
     }
 
-    private boolean popupOpenImpl() {
-        return sortOpen;
-    }
-
-    private void drawPopupImpl(GuiGraphics g, int mx, int my, List<int[]> boxes) {
-        if (sortAt == null) {
-            sortOpen = false;
-            return;
-        }
-        boxes.add(sortList(g, sortAt, mx, my));
-    }
-
-    private void closePopupImpl() {
-        sortOpen = false;
-    }
-
-    private boolean popupClickedImpl(MouseButtonEvent event) {
-        for (int i = clicks.size() - 1; i >= 0; i--) {
-            Click c = clicks.get(i);
-            if (in(event.x(), event.y(), c.rect())) {
-                c.run().run();
-                return true;
-            }
-        }
-        return true;
-    }
-
-    /** The chips under the box: kinds with their counts, the level range, my class, owned, on the market. Returns the bottom. */
-    private int chips(GuiGraphics g, int x, int y, int w, SearchQuery.Result result, int mx, int my) {
-        int cx = x;
-        int cy = y;
-        List<Object[]> chips = new ArrayList<>();       // {label, on, action}
-        int total = result.counts().values().stream().mapToInt(Integer::intValue).sum();
-        chips.add(new Object[] {L.t("wynnlabs.search.kind.all") + " " + total, kinds.isEmpty(), (Runnable) kinds::clear});
-        for (Kind k : KINDS) {
-            Integer n = result.counts().get(k);
-            if (!k.item() && (n == null || n == 0) && !kinds.contains(k)) {
-                continue;                               // a world kind with nothing to show takes no room
-            }
-            String label = L.t("wynnlabs.search.kind." + k.name().toLowerCase(Locale.ROOT)) + " " + (n == null ? 0 : n);
-            chips.add(new Object[] {label, kinds.contains(k), (Runnable) () -> {
-                if (!kinds.remove(k)) {
-                    kinds.add(k);
-                }
-                results.scroll = 0;
-            }});
-        }
-        int lv = GameState.current().level();
-        String level = switch (levelMode) {
-            case 1 -> L.t("wynnlabs.search.level_upto", lv);
-            case 2 -> L.t("wynnlabs.search.level_near", Math.max(1, lv - 10), lv);
-            default -> L.t("wynnlabs.search.level_all");
-        };
-        chips.add(new Object[] {level, levelMode != 0, (Runnable) () -> levelMode = lv <= 0 ? 0 : (levelMode + 1) % 3});
-        chips.add(new Object[] {L.t("wynnlabs.search.my_class"), myClass, (Runnable) () -> myClass = !myClass});
-        chips.add(new Object[] {L.t("wynnlabs.search.owned"), owned, (Runnable) () -> owned = !owned});
-        chips.add(new Object[] {L.t("wynnlabs.search.on_market"), onMarket, (Runnable) () -> onMarket = !onMarket});
-        for (Object[] c : chips) {
-            String label = (String) c[0];
-            int cw = font().width(label) + 12;
-            if (cx + cw > x + w && cx > x) {
-                cx = x;
-                cy += 16;
-            }
-            boolean on = (boolean) c[1];
-            boolean hover = mx >= cx && mx < cx + cw && my >= cy && my < cy + 14;
-            int state = on ? Kit.ON : hover ? Kit.HOVER : Kit.REST;
-            Kit.button(g, cx, cy, cw, 14, state);
-            onWood(g, label, cx + 6, cy + 3, state);
-            Runnable run = (Runnable) c[2];
-            click(cx, cy, cw, 14, () -> {
-                run.run();
-                results.scroll = 0;
-            });
-            cx += cw + 4;
-        }
-        return cy + 14;
-    }
-
-    /** The sort's list, open under its button, over everything else. */
-    private final UiMenu.State sortMenu = new UiMenu.State();
-
-    /** The sort's list under its chip: the shared dropdown. */
-    private int[] sortList(GuiGraphics g, int[] anchor, int mx, int my) {
-        List<UiMenu.Item> items = new java.util.ArrayList<>();
-        for (int i = 0; i < SORTS.length; i++) {
-            items.add(UiMenu.Item.of(String.valueOf(i), null, L.t(SORTS[i]), null, i == sort.ordinal()));
-        }
-        return UiMenu.draw(g, font(), UiMenu.Spec.under(anchor, menu.width, menu.height), sortMenu, items, mx, my,
-                r -> click(r.x(), r.y(), r.w(), r.h(), () -> pickSort(Integer.parseInt(r.item().id()))));
-    }
-
-    private void pickSort(int i) {
-        sort = SearchQuery.Sort.values()[i];
-        sortOpen = false;
-        results.scroll = 0;
-    }
-
-    private boolean popupKeyImpl(int key) {
-        UiMenu.Item it = sortMenu.key(key);
-        if (it != null) {
-            pickSort(Integer.parseInt(it.id()));
-        }
-        return true;
-    }
-
     // ---- the query ----
 
     SearchQuery query() {
         int lv = GameState.current().level();
         int lo = levelMode == 2 ? Math.max(0, lv - 10) : 0;
         int hi = levelMode == 0 || lv <= 0 ? Integer.MAX_VALUE : lv;
-        return new SearchQuery(box.getValue(), sort, kinds, lo, hi, myClass, owned, onMarket);
+        return new SearchQuery(box.getValue(), sort, category.query(kinds), lo, hi, myClass, owned, onMarket,
+                category == SearchCategory.STAT ? stat : null);
     }
 
     /** Sends the query to the worker when it or the index changed; the last finished answer. */
@@ -366,14 +363,18 @@ final class SearchTab extends MenuTab {
         return out;
     }
 
-    /** The row the results panel shows as chosen; a new one opens its card. */
+    /** The row the results panel shows as chosen; a new one opens its card, none clears it. */
     private void choose(String pick, ItemIndex index) {
         if (wanted != null && index.byKey(wanted) != null) {
             pick = index.byKey(wanted).key();
             wanted = null;
             RecentSearches.get().add(pick);
         }
-        if (pick != null && !pick.equals(card.key())) {
+        if (pick == null) {
+            if (wanted == null) {
+                card.clear();                       // nothing listed: no card left from before
+            }
+        } else if (!pick.equals(card.key())) {
             Entry e = index.byKey(pick);
             if (e != null) {
                 card.select(e);
@@ -413,19 +414,12 @@ final class SearchTab extends MenuTab {
         for (int i = clicks.size() - 1; i >= 0; i--) {
             Click c = clicks.get(i);
             if (in(ex, ey, c.rect())) {
-                boolean wasOpen = sortOpen;
                 c.run().run();
-                if (wasOpen && sortOpen) {
-                    sortOpen = false;               // a click anywhere else closes the sort's list
-                }
                 return true;
             }
         }
-        sortOpen = false;
         return UiInput.clicked(searchHit, box, event, doubleClick, menu::setFocused);
     }
-
-    private UiInput.Hit searchHit;
 
     @Override
     boolean sharedClicks() {
@@ -434,10 +428,12 @@ final class SearchTab extends MenuTab {
 
     /** A drag with the button held: a scroll bar's thumb follows; true while one is dragged. */
     boolean mouseDragged(double x, double y) {
-        return card.barDrag(y) || results.barDrag(y);
+        return menus.state.drag(y) || drawer.drag(x, y) || card.barDrag(y) || results.barDrag(y);
     }
 
     void mouseReleased() {
+        menus.state.release();
+        drawer.release();
         card.barRelease();
         results.barRelease();
     }

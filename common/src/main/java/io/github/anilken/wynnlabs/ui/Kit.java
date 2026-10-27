@@ -365,6 +365,18 @@ final class Kit {
         nine(g, "seal", x, y, w, h, colour);
     }
 
+    /** A kind's tile: a rounded square in {@code fill}, a soft top light, a one-screen-pixel ring in {@code ring}. */
+    static void tile(GuiGraphics g, int x, int y, int size, int fill, int ring) {
+        nine(g, "tile", x, y, size, size, fill);
+        nine(g, "tile_shine", x, y, size, size);
+        nine(g, "tile_ring", x, y, size, size, ring);
+    }
+
+    /** A kind's badge (a town, a merchant, a mob, a chest ...): see {@link KindBadge}; returns the size drawn. */
+    static int kindBadge(GuiGraphics g, int x, int y, int size, KindBadge badge) {
+        return KindBadge.draw(g, x, y, size, badge);
+    }
+
     /** An outlined pill. */
     static void pillLine(GuiGraphics g, int x, int y, int w, int h, int colour) {
         nine(g, "pill_line", x, y, w, h, colour);

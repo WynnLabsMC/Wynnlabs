@@ -88,7 +88,7 @@ final class SearchThingCard extends MenuPaint {
         Area a = places.size() == 1 ? places.get(0) : nearest(places, pos);
         double d = Compass.distance(a, pos);
         String dir = Compass.direction(a, pos);
-        return RoadmapScreen.dist((int) Math.round(d)) + (dir == null ? "" : " " + SearchCardPanel.dirName(dir));
+        return RoadmapScreen.dist((int) Math.round(d)) + (dir == null ? "" : " " + SearchCardRows.dirName(dir));
     }
 
     private static String sourceType(Entry e) {
@@ -179,23 +179,9 @@ final class SearchThingCard extends MenuPaint {
         return e.kind() != Kind.SERVICE && e.kind() != Kind.RESOURCE;
     }
 
-    /** The badge drawn as a thing's picture, in a slot of {@code size}. */
+    /** The badge drawn as a thing's picture: its kind's HD badge. */
     static void picture(GuiGraphics g, Entry e, int x, int y, int size) {
-        String badge = Things.badge(e);
-        // a plain rounded square in the badge's colour: the seal's stamped look reads as an award at this size
-        int c = Theme.sourceFill(badge);
-        int r = Math.max(2, size / 8);
-        g.fill(x + r, y, x + size - r, y + size, c);
-        g.fill(x, y + r, x + size, y + size - r, c);
-        for (int i = 1; i < r; i++) {
-            int in = r - (int) Math.round(Math.sqrt((double) r * r - (double) (r - i) * (r - i)));
-            g.fill(x + in, y + i, x + r, y + i + 1, c);
-            g.fill(x + size - r, y + i, x + size - in, y + i + 1, c);
-            g.fill(x + in, y + size - i - 1, x + r, y + size - i, c);
-            g.fill(x + size - r, y + size - i - 1, x + size - in, y + size - i, c);
-        }
-        int icon = size >= 30 ? 16 : 8;
-        Art.icon(g, badge, x + (size - icon) / 2, y + (size - icon) / 2, icon, Theme.CREAM);
+        Kit.kindBadge(g, x, y, size, KindBadge.of(e));
     }
 
     /** The cross-link of an item's source row: the thing it names, or null (the effort guard keeps owned rows out). */
@@ -215,30 +201,31 @@ final class SearchThingCard extends MenuPaint {
                 case RESOURCE -> L.t("wynnlabs.search.sec_materials");
                 default -> L.t("wynnlabs.search.sec_from_here");
             };
-            section(g, "▾ " + title + " (" + items.size() + ")", x, cy + 1, w);
-            cy += 14;
+            cy = card.sources.title(g, title, String.valueOf(items.size()), x, cy, w);
             for (Entry.Origin o : items) {
                 Entry item = index.byKey(o.name());
-                cy = item == null ? line(g, o.name(), x, cy, w) : link(g, o.name(), x, cy, w, mx, my, () -> tab.show(item.key()));
+                cy = item == null ? card.sources.line(g, o.name(), x, cy, w, Theme.INK_2)
+                        : card.sources.link(g, o.name(), x, cy, w, mx, my, () -> tab.show(item.key()));
             }
+            cy += Theme.SP_3;
         }
         switch (e.kind()) {
-            case QUEST -> cy = link(g, L.t("wynnlabs.search.open_quests"), x, cy + 2, w, mx, my, () -> {
+            case QUEST -> cy = card.sources.link(g, L.t("wynnlabs.search.open_quests"), x, cy, w, mx, my, () -> {
                 menu.questsTab.questSelected = e.name();
                 menu.openTab(2);
             });
             case NPC -> {
                 for (Entry.Origin q : e.links(Entry.QUEST)) {
                     Entry quest = index.byKey("quest:" + q.name());
-                    cy = quest == null ? line(g, q.name(), x, cy, w)
-                            : link(g, L.t("wynnlabs.search.quest_link", q.name()), x, cy, w, mx, my, () -> tab.show(quest.key()));
+                    cy = quest == null ? card.sources.line(g, q.name(), x, cy, w, Theme.INK_2)
+                            : card.sources.link(g, L.t("wynnlabs.search.quest_link", q.name()), x, cy, w, mx, my, () -> tab.show(quest.key()));
                 }
             }
             case DISCOVERY -> {
                 List<Entry.Origin> id = e.links(Entry.ID);
                 if (!id.isEmpty()) {
                     String discovery = id.get(0).name();
-                    cy = link(g, L.t("wynnlabs.search.open_discoveries"), x, cy + 2, w, mx, my, () -> {
+                    cy = card.sources.link(g, L.t("wynnlabs.search.open_discoveries"), x, cy, w, mx, my, () -> {
                         menu.openTab(2);
                         menu.questsTab.secrets.show(discovery);
                     });
@@ -249,18 +236,5 @@ final class SearchThingCard extends MenuPaint {
             }
         }
         return cy;
-    }
-
-    private int line(GuiGraphics g, String text, int x, int y, int w) {
-        ink(g, fit(text, w - 6), x + 6, y, MUTED);
-        return y + 11;
-    }
-
-    private int link(GuiGraphics g, String text, int x, int y, int w, int mx, int my, Runnable run) {
-        String t = fit(text, w - 6);
-        boolean hover = card.over(mx, my) && mx >= x && mx < x + w && my >= y - 1 && my < y + 10;
-        ink(g, t, x + 6, y, hover ? Theme.GOLD_DEEP : Theme.LINK);
-        card.click(x, y - 1, w, 11, run);
-        return y + 11;
     }
 }

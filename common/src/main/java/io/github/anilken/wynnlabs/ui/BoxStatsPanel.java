@@ -112,14 +112,13 @@ final class BoxStatsPanel {
         }
         Kit.hair(g, x, cy, w, 1, Theme.LINE);
         cy += 5;
-        Kit.seal(g, x, cy - 1, 10, 10, Theme.sourceFill(src.badge()));
-        Art.icon(g, src.badge(), x + 1, cy, 8, Theme.CREAM);
+        int bs = Kit.kindBadge(g, x, cy - 2, KindBadge.MIN, KindBadge.of(src));
         double[] pos = SearchTab.position();
         Area a = src.main();
         double d = Compass.distance(a, pos);
         String dist = a == null || Double.isNaN(d) ? "" : RoadmapScreen.dist((int) Math.round(d));
         int dw = dist.isEmpty() ? 0 : s.smallWidth(dist) + 6;
-        s.ink(g, s.fit(SourceText.row(src, null), w - 13 - dw), x + 13, cy, Theme.INK_2);
+        s.ink(g, s.fit(SourceText.row(src, null), w - bs - 3 - dw), x + bs + 3, cy, Theme.INK_2);
         if (!dist.isEmpty()) {
             s.small(g, dist, x + w - s.smallWidth(dist), cy + 1, Theme.INK_3);
         }

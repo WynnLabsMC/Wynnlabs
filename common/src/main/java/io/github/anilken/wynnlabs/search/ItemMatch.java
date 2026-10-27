@@ -334,6 +334,51 @@ public final class ItemMatch {
     }
 
     /**
+     * "Did you mean": the entry whose name is nearest to {@code text} when nothing matched it,
+     * against the whole name or its start about as long as the text; at most a quarter of the
+     * letters off (one at least), from three letters. Ties: fewer edits, then the shorter name.
+     * Null when nothing is that close. Runs only on an empty answer.
+     */
+    static Hit closest(ItemIndex index, String text) {
+        String q = normalize(text);
+        if (q.length() < 3) {
+            return null;
+        }
+        int max = Math.max(1, q.length() / 4);
+        Prepared p = index.prepared;
+        List<Entry> entries = index.all();
+        int best = Integer.MAX_VALUE;
+        int at = -1;
+        for (int i = 0; i < entries.size(); i++) {
+            String name = p.names[i];
+            // the whole name, or its start about as long as the text (a letter or two either way)
+            int d = distance(q, name, name.length(), max);
+            for (int k = Math.max(1, q.length() - max); k <= Math.min(name.length(), q.length() + max); k++) {
+                d = Math.min(d, distance(q, name, k, max));
+            }
+            if (d < best || d == best && at >= 0 && name.length() < p.names[at].length()) {
+                best = d;
+                at = i;
+            }
+        }
+        return at < 0 || best == Integer.MAX_VALUE ? null : new Hit(entries.get(at), TYPO - best, Hit.Match.TYPO, null);
+    }
+
+    /** A stat items roll and how many do: for the stat list of the search tab's Stat category. */
+    public record StatCount(String key, int items) {}
+
+    /** Every stat key the items roll, most items first. */
+    public static List<StatCount> stats(ItemIndex index) {
+        Prepared p = index.prepared;
+        List<StatCount> out = new ArrayList<>(p.statKey.length);
+        for (int i = 0; i < p.statKey.length; i++) {
+            out.add(new StatCount(p.statKey[i], p.statEntries[i].length));
+        }
+        out.sort((a, b) -> b.items() != a.items() ? Integer.compare(b.items(), a.items()) : a.key().compareTo(b.key()));
+        return out;
+    }
+
+    /**
      * Damerau–Levenshtein (optimal string alignment) distance between {@code a} and the first
      * {@code len} letters of {@code b}; anything above {@code max} comes back as MAX_VALUE.
      */

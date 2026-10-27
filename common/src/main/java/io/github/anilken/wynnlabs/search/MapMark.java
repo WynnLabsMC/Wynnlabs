@@ -11,6 +11,11 @@ import java.util.function.Function;
  */
 public record MapMark(int x, int y, int z, int radius, String label, String badge, boolean focus) {
 
+    /** Where it is, as one key: a mark the player removed stays off while the same card shows. */
+    public String spot() {
+        return x + "," + y + "," + z;
+    }
+
     /** The smallest circle drawn for an area, in screen pixels, so a far zoom still shows it. */
     public static final int MIN_PX = 4;
     /** The largest, so a close zoom never draws a circle bigger than the map. */
@@ -47,9 +52,15 @@ public record MapMark(int x, int y, int z, int radius, String label, String badg
      * marks have {@code focus}.
      */
     public static List<MapMark> of(List<Source> rows, int picked, boolean all, Function<Source, String> label) {
+        return of(rows, picked, i -> all, label);
+    }
+
+    /** The same with each row's own choice: the picked row, and every row {@code marked} says yes to. */
+    public static List<MapMark> of(List<Source> rows, int picked, java.util.function.IntPredicate marked,
+            Function<Source, String> label) {
         List<MapMark> out = new ArrayList<>();
         for (int i = 0; i < rows.size(); i++) {
-            if (!all && i != picked) {
+            if (i != picked && !marked.test(i)) {
                 continue;
             }
             Source s = rows.get(i);

@@ -1521,6 +1521,66 @@ public final class Wyn {
         return guard(Feature.WAYPOINTS, () -> SearchMarks.show(marks), false);
     }
 
+    /** A Wynntils map icon: its texture and size, to draw as it is (nothing copied). */
+    public record PoiIcon(net.minecraft.resources.Identifier id, int w, int h) {}
+
+    private static final Map<String, java.util.Optional<PoiIcon>> POI = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * The icon Wynntils' map shows for a kind of place: "service:blacksmith", "service:merchant:potion"
+     * (a service's map id), "combat:dungeon", "combat:cave" (a content's), "texture:QUEST_ICON",
+     * "texture:CHEST_T3". Null when Wynntils has none or is not running. Looked up once a key.
+     */
+    public static PoiIcon poiIcon(String key) {
+        if (key == null) {
+            return null;
+        }
+        java.util.Optional<PoiIcon> known = POI.get(key);
+        if (known != null) {
+            return known.orElse(null);
+        }
+        if (!GameState.current().running()) {
+            return null;                        // asked again once the game runs
+        }
+        PoiIcon icon = guard(Feature.WAYPOINTS, () -> findPoi(key), null);
+        POI.put(key, java.util.Optional.ofNullable(icon));
+        return icon;
+    }
+
+    private static PoiIcon findPoi(String key) {
+        int c = key.indexOf(':');
+        String kind = key.substring(0, c);
+        String id = key.substring(c + 1);
+        com.wynntils.utils.render.Texture t = null;
+        switch (kind) {
+            case "service" -> {
+                for (com.wynntils.services.map.type.ServiceKind k : com.wynntils.services.map.type.ServiceKind.values()) {
+                    if (k.getMapDataId().equals(id)) {
+                        t = k.getIcon();
+                    }
+                }
+            }
+            case "combat" -> {
+                for (com.wynntils.services.map.type.CombatKind k : com.wynntils.services.map.type.CombatKind.values()) {
+                    if (k.getMapDataId().equals(id)) {
+                        t = k.getIcon();
+                    }
+                }
+            }
+            case "texture" -> {
+                try {
+                    t = com.wynntils.utils.render.Texture.valueOf(id);
+                } catch (IllegalArgumentException e) {
+                    t = null;
+                }
+            }
+            default -> {
+                // not a kind of ours
+            }
+        }
+        return t == null || t.atlas() != null ? null : new PoiIcon(t.identifier(), t.width(), t.height());
+    }
+
     /** The name of the item under the mouse on one of Wynntils' guide screens, or null. */
     public static String hoveredGuideItem(net.minecraft.client.gui.screens.Screen screen) {
         return guard(Feature.ITEMS, () -> {
