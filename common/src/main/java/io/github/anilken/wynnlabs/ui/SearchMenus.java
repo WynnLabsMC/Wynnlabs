@@ -7,6 +7,7 @@ import io.github.anilken.wynnlabs.search.Area;
 import io.github.anilken.wynnlabs.search.Compass;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.MapMark;
+import io.github.anilken.wynnlabs.search.RecentSearches;
 import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.TrackedMobs;
 
@@ -30,6 +31,8 @@ final class SearchMenus {
     static final int FILTER = 2;
     static final int MARKS = 3;
     static final int TRACKED = 4;
+    /** The recent searches under the empty, focused search box. */
+    static final int RECENT = 5;
     static final String[] SORTS = {"wynnlabs.search.sort_easiest", "wynnlabs.search.sort_level", "wynnlabs.search.sort_name",
         "wynnlabs.search.sort_price"};
 
@@ -76,6 +79,21 @@ final class SearchMenus {
         this.tab = tab;
     }
 
+    /** The empty, focused box opens the recent searches under it when the list does not show them; typing or leaving the box closes them. */
+    void recentUnderBox() {
+        boolean empty = tab.box.getValue().isEmpty();
+        // only where the list does not head with them already (another category, a filter, a stat)
+        boolean wanted = tab.box.isFocused() && empty && !RecentSearches.get().names().isEmpty() && !tab.results.showsRecent();
+        if (!tab.box.isFocused() || !empty) {
+            tab.recentDismissed = false;
+        }
+        if (open == RECENT && !wanted) {
+            open = NONE;
+        } else if (wanted && !tab.recentDismissed && open == NONE) {
+            toggle(RECENT);
+        }
+    }
+
     void toggle(int which) {
         open = open == which ? NONE : which;
         state.reset();
@@ -87,6 +105,7 @@ final class SearchMenus {
             case FILTER -> tab.strip.filterAt;
             case MARKS -> tab.strip.marksAt;
             case TRACKED -> tab.strip.trackedAt;
+            case RECENT -> tab.boxAt;
             default -> null;
         };
     }
@@ -158,6 +177,14 @@ final class SearchMenus {
                 }
             }
             case FILTER -> filterItems(out);
+            case RECENT -> {
+                io.github.anilken.wynnlabs.search.ItemIndex index = io.github.anilken.wynnlabs.search.ItemIndex.get();
+                for (String key : io.github.anilken.wynnlabs.search.RecentSearches.get().newest(io.github.anilken.wynnlabs.search.EmptyPage.FIRST_ROWS)) {
+                    var e = index.byKey(key);
+                    String label = e != null ? e.name() : key.substring(key.indexOf(':') + 1);
+                    out.add(UiMenu.Item.of("r:" + key, "clock", label, null, false));
+                }
+            }
             case MARKS -> {
                 double[] pos = SearchTab.position();
                 List<MapMark> marks = tab.card.keptMarks();
@@ -235,6 +262,11 @@ final class SearchMenus {
                 }
             }
             case 'm' -> marks(v, remove);
+            case 'r' -> {
+                open = NONE;
+                tab.recentDismissed = true;
+                tab.show(v);
+            }
             case 't' -> tracked(v, remove);
             default -> {
                 // not a row of ours
@@ -301,6 +333,10 @@ final class SearchMenus {
 
     /** Up, down and Enter while a menu is open. */
     boolean key(int key) {
+        if (open == RECENT && key != org.lwjgl.glfw.GLFW.GLFW_KEY_UP && key != org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
+                && key != org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER && key != org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
+            return false;                   // the box keeps its own keys (Backspace, the arrows across)
+        }
         UiMenu.Item it = state.key(key);
         if (it != null) {
             pick(it.id(), false);

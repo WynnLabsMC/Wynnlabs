@@ -49,7 +49,21 @@ final class SearchPreview {
         ctx.getInput().setCursorPos(2, 2);
         ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(RoadmapScreen.TAB_SEARCH));
         ctx.waitTicks(20);
+        // the empty page: before any search (the road map's missing pieces), after a few, and opened
+        ctx.runOnClient(mc -> io.github.anilken.wynnlabs.search.RecentSearches.get().clear());
+        tab(ctx, t -> t.box.setValue(""));
+        shot(ctx, out, "search-empty-new");
+        ctx.runOnClient(mc -> {
+            var r = io.github.anilken.wynnlabs.search.RecentSearches.get();
+            r.add("mob:Tumbleweed");
+            r.add("Bear Mask");
+            r.add("Lucky Rabbit's Foot");
+        });
+        tab(ctx, t -> { });
         shot(ctx, out, "search-empty");
+        tab(ctx, t -> SearchTab.expanded = true);
+        shot(ctx, out, "search-empty-more");
+        tab(ctx, t -> SearchTab.expanded = false);
         search(ctx, "lucky rab");
         shot(ctx, out, "search-item");
         // every row of the card on the map, then the list of kept marks

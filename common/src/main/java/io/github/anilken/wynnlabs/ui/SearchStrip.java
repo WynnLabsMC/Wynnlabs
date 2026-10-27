@@ -89,19 +89,20 @@ final class SearchStrip extends MenuPaint {
                 cx += sw + Theme.SP_4;
             }
         }
-        if (!compact) {
-            recent(g, cx, y, fx - Theme.SP_4 - cx, mx, my);
-        }
+        recentShown = !compact && recent(g, cx, y, fx - Theme.SP_4 - cx, mx, my);
         return Ui.CHIP_H;
     }
 
-    /** "Recent" and the last searches as chips, as many as fit. */
-    private void recent(GuiGraphics g, int x, int y, int room, int mx, int my) {
+    /** Whether the strip showed the recent searches this frame (else the list's top has them). */
+    boolean recentShown;
+
+    /** "Recent" and the last searches as chips, as many as fit; false when not even two fit. */
+    private boolean recent(GuiGraphics g, int x, int y, int room, int mx, int my) {
         List<String> names = RecentSearches.get().names();
         String head = L.t("wynnlabs.search.recent_short");
         int hw = Type.META.width(font(), head) + Theme.SP_3;
         if (names.isEmpty() || room < hw + Ui.CHIP_MIN * 2) {
-            return;
+            return false;
         }
         Type.META.draw(g, font(), head, x, Type.META.yIn(y, Ui.CHIP_H), Theme.INK_3);
         int cx = x + hw;
@@ -117,6 +118,7 @@ final class SearchStrip extends MenuPaint {
             tab.click(cx, y, cw, Ui.CHIP_H, () -> tab.show(key));
             cx += cw + Theme.SP_2;
         }
+        return true;
     }
 
     private String text(SearchCategory c, SearchQuery.Result r, int mode) {

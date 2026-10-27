@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.ui;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.model.Tier;
+import io.github.anilken.wynnlabs.search.EmptyPage;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.Hit;
 import io.github.anilken.wynnlabs.search.ItemIndex;
@@ -45,7 +46,7 @@ final class SearchResultsPanel extends MenuPaint {
         }
     }
 
-    private final SearchTab tab;
+    final SearchTab tab;
     int scroll;
     private int scrollMax;
     private List<Row> rows = List.of();
@@ -71,9 +72,10 @@ final class SearchResultsPanel extends MenuPaint {
     private void build(SearchQuery.Result result, boolean compact) {
         ItemIndex index = ItemIndex.get();
         List<String> missing = tab.missingPieces();
-        List<String> recent = compact ? RecentSearches.get().names() : List.of();
+        List<String> recent = RecentSearches.get().newest(EmptyPage.FIRST_ROWS);
         boolean blank = tab.box.getValue().isBlank();
-        Object key = List.of(System.identityHashCode(result), compact, missing, recent, tab.category, String.valueOf(tab.stat));
+        Object key = List.of(System.identityHashCode(result), compact, missing, recent, tab.category, String.valueOf(tab.stat),
+                SearchTab.expanded);
         if (key.equals(builtFor)) {
             return;
         }
@@ -89,29 +91,51 @@ final class SearchResultsPanel extends MenuPaint {
                 out.add(new Row(null, statName(s.key()), L.n("wynnlabs.search.stat_items", s.items()), s.key(), null, 0));
             }
         } else {
+            // the empty query on "All": the last searches (or, before any, the road map's missing
+            // pieces) and "More ↓"; opened, the missing pieces and the whole catalogue under them
+            boolean home = blank && tab.filtersOn() == 0 && tab.stat == null && tab.category == SearchCategory.ALL;
             boolean catalogue = blank && tab.filtersOn() == 0 && tab.stat == null
                     && (tab.category == SearchCategory.ALL || tab.category == SearchCategory.ITEM);
-            if (catalogue && !recent.isEmpty()) {
-                out.add(head(L.t("wynnlabs.search.recent"), String.valueOf(recent.size())));
-                for (String n : recent) {
-                    Entry e = index.byKey(n);
-                    if (e != null) {
-                        out.add(row(e, null));
-                    }
-                }
-            }
-            if (catalogue && !missing.isEmpty()) {
-                List<Row> mine = new ArrayList<>();
+            recentHead = -1;
+            recentEnd = -1;
+            List<Row> mine = new ArrayList<>();
+            List<Row> rs = new ArrayList<>();
+            if (catalogue) {
                 for (String n : missing) {
                     Entry e = index.byName(n);
                     if (e != null) {
                         mine.add(row(e, null));
                     }
                 }
-                if (!mine.isEmpty()) {
-                    out.add(head(L.t("wynnlabs.search.roadmap_missing"), String.valueOf(mine.size())));
-                    out.addAll(mine);
+                for (String n : recent) {
+                    Entry e = index.byKey(n);
+                    if (e != null) {
+                        rs.add(row(e, null));
+                    }
                 }
+            }
+            EmptyPage.Plan plan = EmptyPage.plan(home, catalogue, rs.size(), mine.size(), SearchTab.expanded, !result.hits().isEmpty());
+            if (plan.first() == EmptyPage.Group.RECENT) {
+                recentHead = out.size();
+                out.add(head(L.t("wynnlabs.search.recent"), String.valueOf(plan.firstCount())));
+                out.addAll(rs.subList(0, plan.firstCount()));
+                recentEnd = out.size();
+            } else if (plan.first() == EmptyPage.Group.MISSING) {
+                // a new player: the road map's missing pieces start the page instead
+                out.add(head(L.t("wynnlabs.search.roadmap_missing"), String.valueOf(mine.size())));
+                out.addAll(mine.subList(0, plan.firstCount()));
+            }
+            if (plan.button() != EmptyPage.Button.NONE) {
+                out.add(new Row(null, null, null, plan.button() == EmptyPage.Button.MORE ? MORE : LESS, null, 0));
+            }
+            if (plan.missingAfter()) {
+                out.add(head(L.t("wynnlabs.search.roadmap_missing"), String.valueOf(mine.size())));
+                out.addAll(mine);
+            }
+            if (!plan.catalogue()) {
+                rows = out;
+                layoutRows(out);
+                return;
             }
             if (!result.hits().isEmpty()) {
                 String title = blank ? L.t(tab.stat != null ? "wynnlabs.search.with_stat" : "wynnlabs.search.everything",
@@ -128,6 +152,11 @@ final class SearchResultsPanel extends MenuPaint {
             }
         }
         rows = out;
+        layoutRows(out);
+    }
+
+    /** Every row's top (headers, rows and the More button) and the right column's width. */
+    private void layoutRows(List<Row> out) {
         tops = new int[out.size() + 1];
         int y = 0;
         rightW = 0;
@@ -142,6 +171,19 @@ final class SearchResultsPanel extends MenuPaint {
         tops[out.size()] = y;
         total = y;
     }
+
+    /** Whether the list heads with the recent searches now. */
+    boolean showsRecent() {
+        return recentHead >= 0;
+    }
+
+    /** The "More ↓" / "Less ↑" row's marks (in {@link Row#stat}). */
+    static final String MORE = "#more";
+    static final String LESS = "#less";
+
+    /** The recent group's header row and the row after its last one (-1: no group). */
+    private int recentHead = -1;
+    private int recentEnd = -1;
 
     private static Row head(String title, String meta) {
         return new Row(null, title, meta, null, null, 0);
@@ -209,9 +251,15 @@ final class SearchResultsPanel extends MenuPaint {
             Row r = rows.get(i);
             int ry = y + tops[i] - scroll;
             if (!r.pickable()) {
-                header(g, r, x, ry, cw);
+                int link = i == recentHead ? SearchEmptyRows.clear(this, g, x, ry, cw, mx, my) + Theme.SP_3 : 0;
+                header(g, r, x, ry, cw - link);
+            } else if (MORE.equals(r.stat()) || LESS.equals(r.stat())) {
+                SearchEmptyRows.more(this, g, r, x, ry, cw, y, h, mx, my);
             } else {
                 drawRow(g, r, x, ry, cw, i == sel, compact, y, h, mx, my);
+                if (i > recentHead && i < recentEnd) {
+                    SearchEmptyRows.forget(this, g, r, x, ry, cw, y, h, mx, my);
+                }
             }
         }
         g.disableScissor();
@@ -272,6 +320,9 @@ final class SearchResultsPanel extends MenuPaint {
 
     /** A row clicked: a stat lists its items; an entry is chosen (and, small, its card opens). */
     void pick(Row r, boolean compact) {
+        if (MORE.equals(r.stat()) || LESS.equals(r.stat())) {
+            return;
+        }
         if (r.e() == null) {
             tab.pickStat(r.stat());
             return;

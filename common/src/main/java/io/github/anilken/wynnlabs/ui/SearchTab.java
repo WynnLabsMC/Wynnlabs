@@ -52,6 +52,12 @@ final class SearchTab extends MenuTab {
     final SearchResultsPanel results = new SearchResultsPanel(this);
     final SearchCardPanel card = new SearchCardPanel(this);
     final SearchStrip strip = new SearchStrip(this);
+    /** The empty page's "More ↓" opened: the missing pieces and the whole catalogue, for the session. */
+    static boolean expanded;
+    /** The search box's place this frame (the recent searches open under it). */
+    int[] boxAt;
+    /** The recent list was picked from or closed: it stays shut until the box is left or typed in. */
+    boolean recentDismissed;
     final SearchMenus menus = new SearchMenus(this);
     private final UiDrawer drawer;
     EditBox box;
@@ -214,6 +220,8 @@ final class SearchTab extends MenuTab {
         String sortLabel = L.t(SearchMenus.SORTS[sort.ordinal()]);
         int sortW = Ui.iconChipWidth(font(), "arrow-down", sortLabel, true);
         searchHit = UiInput.search(g, font(), box, L.t("wynnlabs.search.box_hint"), true, x, y, w - sortW - Theme.SP_3, mx, my);
+        boxAt = new int[] {x, y, w - sortW - Theme.SP_3, Ui.CHIP_H};
+        menus.recentUnderBox();
         hint(x, y, w - sortW - Theme.SP_3, Ui.CHIP_H, L.t("wynnlabs.search.keys"));
         int sx = x + w - sortW;
         sortAt = new int[] {sx, y, sortW, Ui.CHIP_H};
@@ -272,6 +280,9 @@ final class SearchTab extends MenuTab {
 
         @Override
         public void close() {
+            if (menus.open == SearchMenus.RECENT) {
+                recentDismissed = true;
+            }
             menus.open = SearchMenus.NONE;
             drawer.close();
         }

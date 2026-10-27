@@ -30,7 +30,7 @@ public final class RecentSearches {
     RecentSearches(Path file) {
         this.file = file;
         try {
-            if (Files.isRegularFile(file)) {
+            if (file != null && Files.isRegularFile(file)) {
                 String text = Files.readString(file, StandardCharsets.UTF_8);
                 JsonElement root = GSON.fromJson(text, JsonElement.class);
                 if (root != null && root.isJsonArray()) {
@@ -60,6 +60,26 @@ public final class RecentSearches {
         return List.copyOf(names);
     }
 
+    /** The newest {@code n}. */
+    public synchronized List<String> newest(int n) {
+        return List.copyOf(names.subList(0, Math.min(n, names.size())));
+    }
+
+    /** Forgets one. */
+    public synchronized void remove(String name) {
+        if (names.remove(name)) {
+            save();
+        }
+    }
+
+    /** Forgets them all. */
+    public synchronized void clear() {
+        if (!names.isEmpty()) {
+            names.clear();
+            save();
+        }
+    }
+
     /** Puts {@code name} first (moving it up when already listed), drops the oldest past {@link #MAX}, saves soon. */
     public synchronized void add(String name) {
         if (name == null || name.isBlank()) {
@@ -70,6 +90,13 @@ public final class RecentSearches {
         names.add(0, n);
         while (names.size() > MAX) {
             names.remove(names.size() - 1);
+        }
+        save();
+    }
+
+    private void save() {
+        if (file == null) {
+            return;
         }
         JsonArray arr = new JsonArray();
         names.forEach(arr::add);
