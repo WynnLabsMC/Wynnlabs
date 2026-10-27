@@ -163,19 +163,18 @@ final class CraftRecipePanel extends CraftPanel {
         return y + 3 * size + 2 * Theme.SP_3;
     }
 
-    /** "Eksik 3 malzeme · ~1,2 LE ›" (or "Alışveriş listesi ›" when nothing is missing): opens the shopping drawer. */
+    /** "Eksik 3 malzeme · ~1,2 LE" (or "Alışveriş listesi" when nothing is missing) as a chip: opens the shopping drawer. */
     private int shopLink(GuiGraphics g, CraftData.Recipe r, int x, int y, int w, int mx, int my) {
         Shopping.Needs n = needs(r);
         int missing = n.lines().size();
         long cost = n.cost();
+        // a drawer opens: a chip with the cart, the missing count as its gold seal
         String t = missing == 0 ? L.t("wynnlabs.craft.shop_link_none")
-                : L.n("wynnlabs.craft.shop_link", missing) + (cost > 0 ? " · ~" + Prices.fmt(cost) : "") + " ›";
-        String shown = Type.LINK.fit(tab.font, t, w);
-        int lw = Type.LINK.width(tab.font, shown);
-        boolean hover = in(mx, my, x, y - 2, lw, Type.LINK.lineHeight + 2);
-        Type.LINK.draw(g, tab.font, shown, x, y, hover ? Theme.INK : Theme.LINK);
-        clipped(x, y - 2, lw, Type.LINK.lineHeight + 2, () -> tab.drawers.openShop(), null, null);
-        return y + Type.LINK.lineHeight;
+                : L.n("wynnlabs.craft.shop_link", missing) + (cost > 0 ? " · ~" + Prices.fmt(cost) : "");
+        int cw = Math.min(w, Ui.iconChipWidth(tab.font, "shopping-cart", t, false));
+        Ui.iconChip(g, tab.font, "shopping-cart", Type.BODY.fit(tab.font, t, cw - 2 * Theme.SP_4 - 8 - Theme.SP_1), false, x, y, cw, false, mx, my);
+        clipped(x, y, cw, Ui.CHIP_H, () -> tab.drawers.openShop(), null, null);
+        return y + Ui.CHIP_H;
     }
 
     /** What the recipe still needs: worked out again only when the recipe, the stock or the prices change. */

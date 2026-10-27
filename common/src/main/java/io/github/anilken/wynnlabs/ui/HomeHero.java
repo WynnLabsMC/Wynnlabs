@@ -191,7 +191,7 @@ final class HomeHero extends MenuPaint {
         String pct = RoadmapScreen.pct(xp) + " XP";
         int pw = Type.META.width(font(), pct);
         int xw = w - reserve - pw - Theme.SP_3;
-        Kit.tealBar(g, x, y + 1, xw, 4, Math.max(0, Math.min(100, xp)) / 100.0, true);
+        HdBar.draw(g, x, y + 1, xw, 4, Math.max(0, Math.min(100, xp)) / 100.0, HdBar.TEAL);
         Kit.notches(g, x, y + 1, xw, 4);
         Type.META.draw(g, font(), pct, x + xw + Theme.SP_3, Type.META.yIn(y - 2, 10));
         return y + 6;

@@ -44,7 +44,9 @@ final class EndgameRecentRuns extends EndgamePanel {
         for (int i = 0; i < items.size() && i < max && ry + rowH <= mythicY - 2; i++) {
             FeedItem f = items.get(i);
             boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + rowH;
-            Kit.row(g, x, ry, w, rowH, i, hover);
+            if (hover) {
+                Art.box(g, x - Theme.SP_1, ry, w + 2 * Theme.SP_1, rowH, 3, Theme.CARD_HOVER, 0);   // plain rows: only the hovered one lit
+            }
             int ty = ry + 2;
             glyph(g, f.isRaid() ? TEX_RAID : TEX_CAMP, f.isRaid() ? "sword" : "map-pin", x + 1, ty - 1, ROW_ICON, Theme.INK_3);
             int nameW = markX - 4 - nameX;

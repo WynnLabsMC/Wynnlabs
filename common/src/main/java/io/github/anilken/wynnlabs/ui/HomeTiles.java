@@ -329,7 +329,7 @@ final class HomeTiles extends HomePart {
         if (xp >= 0 && h >= 50) {
             String p = RoadmapScreen.pct(xp);
             int bw = w - 12 - font.width(p) - 4;
-            Kit.tealBar(g, x + 6, y + h - 11, bw, 4, Math.max(0, Math.min(100, xp)) / 100.0, true);
+            HdBar.draw(g, x + 6, y + h - 11, bw, 4, Math.max(0, Math.min(100, xp)) / 100.0, HdBar.TEAL);
             ink(g, p, x + w - 6 - font.width(p), y + h - 13, Theme.INK_3);
         }
     }

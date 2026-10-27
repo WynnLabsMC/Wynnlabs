@@ -21,6 +21,7 @@ import io.github.anilken.wynnlabs.quests.Grind;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestGuides;
 import io.github.anilken.wynnlabs.quests.QuestTrail;
+import io.github.anilken.wynnlabs.ui.Hud;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -174,20 +175,14 @@ public final class Coach {
             return;
         }
         long now = System.currentTimeMillis();
-        var font = mc.font;
+        var font = Hud.font();
         if (now < warnUntil && !warnText.isEmpty()) {
             if (!warnText.equals(warnShown)) {          // built once per warning, not every frame
                 warnShown = warnText;
-                warnLine = Component.literal(warnText).withStyle(ChatFormatting.RED, ChatFormatting.BOLD);
-                warnWidth = font.width(warnLine);
+                warnLine = warnText.startsWith("⚠") ? warnText.substring(1).strip() : warnText;   // the pill has its own icon
+                warnWidth = Hud.noticeWidth(font, warnLine);
             }
-            Component c = warnLine;
-            int w = warnWidth;
-            int x = (g.guiWidth() - w) / 2;
-            int y = g.guiHeight() / 2 - 40;
-            g.fill(x - 6, y - 4, x + w + 6, y + 12, 0xB0200000);
-            g.renderOutline(x - 6, y - 4, w + 12, 16, 0xFFE24B4A);
-            g.drawString(font, c, x, y, 0xFFFFFFFF);
+            Hud.notice(g, font, g.guiWidth() / 2, g.guiHeight() / 2 - 40 - HUD_MARGIN, warnWidth, "alert-triangle", warnLine, Hud.RED);
         }
         if (huntTarget != null) {
             long min = (now - huntStart) / 60000;
@@ -196,19 +191,24 @@ public final class Coach {
             if (!said.equals(huntSaid)) {
                 huntSaid = said;
                 String price = huntPrice == null ? "" : L.t("wynnlabs.coach.hud_price", Prices.fmt(huntPrice));
-                huntLine = L.c("wynnlabs.coach.hud_hunt").withStyle(ChatFormatting.GOLD)
-                        .append(Component.literal(huntTarget).withStyle(ChatFormatting.WHITE))
-                        .append(L.cn("wynnlabs.coach.hud_progress", huntKills, huntKills, min, price).withStyle(ChatFormatting.GRAY));
+                huntLine = L.t("wynnlabs.coach.hud_hunt") + huntTarget;
+                String rest = L.n("wynnlabs.coach.hud_progress", huntKills, huntKills, min, price);
+                huntSub = rest.startsWith(" · ") ? rest.substring(3) : rest.strip();
+                huntW = Hud.panelWidth(font, huntLine, huntSub, null);
             }
-            g.drawString(font, huntLine, 6, 6, 0xFFFFFFFF);
+            Hud.panel(g, font, HUD_MARGIN, HUD_MARGIN, huntW, huntLine, Hud.GOLD, huntSub, null, Hud.GOLD);
         }
     }
 
     private static String warnShown;
-    private static Component warnLine;
+    private static String warnLine;
     private static int warnWidth;
     private static String huntSaid;
-    private static Component huntLine;
+    private static String huntLine;
+    private static String huntSub;
+    private static int huntW;
+    /** The HUD's margin from the screen's edge (the menu's SP_2). */
+    private static final int HUD_MARGIN = 4;
 
     // ---- damage meter: what a cast really deals ----
 

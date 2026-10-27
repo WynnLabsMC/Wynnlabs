@@ -12,7 +12,6 @@ import io.github.anilken.wynnlabs.ui.SettingsRows.SetRow;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,14 +42,12 @@ final class SettingsTab extends MenuTab {
     @Override
     List<EditBox> init() {
         // the Wynnventory key, pasted here instead of a file; shown as dots while typed
-        keyBox = new EditBox(font(), 0, 0, 150, 12, Component.literal("Wynnventory API key"));
+        keyBox = UiInput.box(font(), "wynnlabs.settings.key_box", null, v -> { });
         keyBox.setMaxLength(128);
         keyBox.addFormatter((text, pos) -> net.minecraft.util.FormattedCharSequence.forward("•".repeat(text.length()),
                 net.minecraft.network.chat.Style.EMPTY));
-        paperField(keyBox);
-        ruleBox = new EditBox(font(), 0, 0, 60, 12, L.c("wynnlabs.rules.type_hint"));
+        ruleBox = UiInput.box(font(), "wynnlabs.rules.type_hint", null, v -> { });
         ruleBox.setMaxLength(12);
-        paperField(ruleBox);
         ruleBoxFor = -1;
         searchBox = UiInput.box(font(), "wynnlabs.settings.search_hint", searchBox, s -> settingsScroll = 0);
         return List.of(keyBox, ruleBox, searchBox);

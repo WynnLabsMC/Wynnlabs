@@ -64,7 +64,9 @@ final class EndgameRaids extends EndgamePanel {
             boolean none = s.done() + s.failed() == 0;
             any |= !none;
             boolean hover = mx >= x && mx < x + w && my >= ry && my < ry + rowH;
-            Kit.row(g, x, ry, w, rowH, i, hover);
+            if (hover) {
+                Art.box(g, x - Theme.SP_1, ry, w + 2 * Theme.SP_1, rowH, 3, Theme.CARD_HOVER, 0);   // plain rows: only the hovered one lit
+            }
             int ty = ry + (rowH - 8) / 2;
             int c = none ? Theme.INK_3 : Theme.INK;
             ink(g, fit(s.raid(), doneR - 22 - x - 2), x + 2, ty, c);
@@ -130,7 +132,7 @@ final class EndgameRaids extends EndgamePanel {
         }
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
         if (hover) {
-            Kit.row(g, x, y, w, h, 0, true);
+            Art.box(g, x - Theme.SP_1, y, w + 2 * Theme.SP_1, h, 3, Theme.CARD_HOVER, 0);
         }
         boolean stale = tab.d.poolStale();
         int c = stale ? Theme.INK_3 : Theme.ACCENT;

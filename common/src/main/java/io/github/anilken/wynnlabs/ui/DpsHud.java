@@ -21,7 +21,7 @@ public final class DpsHud {
     private DpsHud() {}
 
     private static long textUntil;
-    private static Component head;
+    private static String head;
     private static String best;
     private static String fight;
     private static int width;
@@ -40,27 +40,22 @@ public final class DpsHud {
         if (now >= textUntil) {
             // the numbers four times a second: steady to read, and no formatting every frame
             textUntil = now + 250;
-            head = L.c("wynnlabs.dps.hud_dps", QuestAdvisor.fmt(Math.round(s.dps()))).withStyle(UiFont::bold);
+            head = L.t("wynnlabs.dps.hud_dps", QuestAdvisor.fmt(Math.round(s.dps())));
             best = L.t("wynnlabs.dps.hud_best", QuestAdvisor.fmt(Math.round(s.best())));
             fight = L.t(s.fighting() ? "wynnlabs.dps.hud_fight" : "wynnlabs.dps.hud_last_fight",
                     QuestAdvisor.fmt(Math.round(s.fightDamage())), Math.round(s.fightSeconds()));
-            width = Math.max(font.width(head), Math.max(font.width(best), font.width(fight))) + 10;
+            width = Hud.panelWidth(font, head, best, fight);
         }
-        Component head = DpsHud.head;
+        String head = DpsHud.head;
         String best = DpsHud.best;
         String fight = DpsHud.fight;
         int w = width;
-        int h = 34;
-        int x = g.guiWidth() - w - 4;
-        int y = 4;
+        int x = g.guiWidth() - w - Theme.SP_2;
+        int y = Theme.SP_2;
         // below the game's status effect icons, which sit in the same corner
         if (mc.player.getActiveEffects().stream().anyMatch(e -> e.showIcon())) {
             y += 50;
         }
-        g.fill(x, y, x + w, y + h, 0xA0101017);
-        g.fill(x, y, x + 2, y + h, s.fighting() ? 0xFFEF9F27 : 0xFF5F5E5A);
-        g.drawString(font, head, x + 6, y + 3, s.fighting() ? 0xFFFAC775 : 0xFFB4B2A9);
-        g.drawString(font, best, x + 6, y + 13, 0xFF9C9A92);
-        g.drawString(font, fight, x + 6, y + 23, 0xFF9C9A92);
+        Hud.panel(g, font, x, y, w, head, s.fighting() ? Hud.GOLD : Hud.DIM, best, fight, s.fighting() ? Hud.GOLD : Hud.MUTED);
     }
 }

@@ -51,7 +51,7 @@ final class CraftOptimiserPanel extends CraftPanel {
         String goal = tab.weights.isEmpty() ? null : tab.statName(tab.weights.keySet().iterator().next());
         int cy = tab.recipePanel.head(g, L.t("wynnlabs.craft.best"), goal == null ? null : L.t("wynnlabs.craft.best_for", goal), x, y, w);
         if (running()) {
-            Kit.tealBar(g, x, cy + 2, Math.min(w, 240), 6, searching.progress(), false);
+            HdBar.draw(g, x, cy + 2, Math.min(w, 240), 6, searching.progress(), HdBar.TEAL);
             Type.MUTED.draw(g, tab.font, L.t("wynnlabs.craft.searching"), x, cy + 2 + 6 + Theme.SP_2, Theme.INK_3);
             return cy + 2 + 6 + Theme.SP_2 + Type.MUTED.lineHeight - y;
         }

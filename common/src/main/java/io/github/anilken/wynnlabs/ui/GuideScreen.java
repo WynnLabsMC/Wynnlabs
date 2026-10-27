@@ -208,26 +208,29 @@ final class GuideScreen extends Screen {
         int h = Math.min(height - 20, large ? 480 : 320);
         int x = (width - w) / 2;
         int y = (height - h) / 2;
-        // the J menu's look: a wooden frame, parchment, dark ink without shadows
-        Kit.windowShadow(g, x - 5, y - 5, w + 10, h + 10);
-        Kit.window(g, x - 5, y - 5, w + 10, h + 10);
-        Kit.paper(g, x, y, w, h);
-        int[] cr = closeRect;
-        boolean closeHover = cr != null && in(mx, my, cr);
-        closeRect = Kit.closeOutside(g, width, x, y, w, closeHover);
+        // a soft card over the dimmed game, as the box and update windows
+        g.fill(0, 0, width, height, 0x55201810);
+        Kit.windowShadow(g, x, y, w, h);
+        g.fill(x + 4, y + 4, x + w - 4, y + h - 3, 0xFFEADCB4);
+        Kit.softCard(g, x, y, w, h);
         int left = x + Theme.SP_6;
         int right = x + w - Theme.SP_6;
-        // header: the title, and how far along you are
+        // header: the title, how far along you are, and close at the right end
         int ty = y + Theme.SP_4;
+        int cx = right - (Ui.CHIP_H + 2);
+        Ui.iconButton(g, "x", cx, Type.TITLE.onCaps(ty, Ui.CHIP_H), false, mx, my);
+        closeRect = new int[] {cx, Type.TITLE.onCaps(ty, Ui.CHIP_H), Ui.CHIP_H + 2, Ui.CHIP_H};
+        right = cx - Theme.SP_4;
         Type.TITLE.draw(g, font, Type.TITLE.fit(font, QuestGuides.title(quest), w / 2), left, ty);
         List<QuestWiki.Stage> st = stages;
         if (st != null && current >= 0) {
             int bw = 48;
-            Kit.tealBar(g, right - bw, ty + 6, bw, 5, current / (double) st.size(), false);
+            HdBar.draw(g, right - bw, ty + 6, bw, 5, current / (double) st.size(), HdBar.TEAL);
             String p = large ? L.t("wynnlabs.guide.progress", current, st.size()) : current + " / " + st.size();
             Type.META.drawRight(g, font, p, right - bw - Theme.SP_3, ty + 4, Type.META.colour);
         }
         int rule = ty + Type.TITLE.lineHeight + Theme.SP_4;
+        right = x + w - Theme.SP_6;
         Kit.hair(g, left, rule, right - left, 1, Theme.LINE);
         int top = rule + 1 + Theme.SP_5;
         int foot = y + h - Theme.SP_4 - Type.META.lineHeight;

@@ -16,6 +16,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -54,6 +55,8 @@ public final class MobTracker {
 
     private static final int MAX = 8;
     private static final int COLOUR = 0xFFFFC83C;
+    private static String noticeFor;
+    private static int noticeW;
     private static final int BEAM = 0x55FFC83C;
     private static final long NOTICE_MS = 3500;
 
@@ -237,12 +240,12 @@ public final class MobTracker {
         if (text == null || mc.player == null || mc.options.hideGui || System.currentTimeMillis() > noticeUntil) {
             return;
         }
-        int w = mc.font.width(text);
-        int x = (g.guiWidth() - w) / 2;
-        int y = g.guiHeight() / 2 - 64;
-        g.fill(x - 6, y - 4, x + w + 6, y + 12, 0xB0101017);
-        g.fill(x - 6, y - 4, x - 4, y + 12, COLOUR);
-        g.drawString(mc.font, text, x, y, 0xFFFFFFFF);
+        Font font = UiFont.get();
+        if (!text.equals(noticeFor)) {
+            noticeFor = text;                       // measured once per notice, not every frame
+            noticeW = Hud.noticeWidth(font, text);
+        }
+        Hud.notice(g, font, g.guiWidth() / 2, g.guiHeight() / 2 - 64 - Theme.SP_2, noticeW, "target", text, Hud.GOLD);
     }
 
     // ---- the markers (world) ----

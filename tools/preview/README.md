@@ -17,6 +17,7 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
 - `-PpreviewOnly=crafting`: only the crafting tab's shots.
 - `-PpreviewOnly=quests`: only the quests tab, on the fixture's quest book (Jungle Fever started), plus the content kinds
   (the kind menu, a cave, Recommended with places) from a small built-in sample of caves and places.
+- `-PpreviewOnly=guide`: the quest guide window (Jungle Fever) on the recorded Shaman.
 - `-PpreviewOnly=about`: the About page (the rail's "?") when up to date, with an update, offline, downloading, ready
   and after a failed install, and the update window (notes, changelog, downloading, ready); states given by hand.
 - `-PpreviewOnly=settings`: only the settings (a few pages, a search, the changed list).

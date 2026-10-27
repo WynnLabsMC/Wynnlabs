@@ -40,7 +40,7 @@ final class HomeGearBars extends HomePart {
             Component t = Component.literal(fit(title, w, true)).withStyle(UiFont::bold);
             Kit.text(g, font, t, cx - font.width(t) / 2, ty, Theme.INK);
             int bw = Math.min(200, w - 16);
-            Kit.tealBar(g, cx - bw / 2, ty + 14, bw, 5, road.progress(), true);
+            HdBar.draw(g, cx - bw / 2, ty + 14, bw, 5, road.progress(), HdBar.TEAL);
             String s = fit(sub, w);
             Kit.text(g, font, s, cx - font.width(s) / 2, ty + 25, Theme.INK_3);
             int by = ty + 38;
@@ -303,9 +303,9 @@ final class HomeGearBars extends HomePart {
         if (bw > 8) {
             // the kit's bar: green when complete, else the chosen items' purple
             if (done) {
-                Kit.bar(g, bx, by, bw, bh, frac, Theme.GREEN_HI, Theme.GREEN, Theme.GREEN_LO, false);
+                HdBar.draw(g, bx, by, bw, bh, frac, Theme.GREEN);
             } else {
-                Kit.bar(g, bx, by, bw, bh, frac, 0xFFB79FE0, 0xFF8A6CC0, 0xFF5A3A8A, false);
+                HdBar.draw(g, bx, by, bw, bh, frac, 0xFF8A6CC0);
             }
         }
         host.area(x, y, h == null ? w : Math.max(1, x + w - hw - 8 - x), compact ? 9 : 20, null, tip, null);

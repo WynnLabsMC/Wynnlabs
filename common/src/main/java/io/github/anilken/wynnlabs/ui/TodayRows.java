@@ -383,14 +383,15 @@ final class TodayRows extends MenuPaint {
             y += Type.NUMBER.lineHeight + Theme.SP_2;
             // the deaths and the damage: their sections under the tree's rail entry
             int lx = x;
-            for (String[] link : new String[][] {{L.t("wynnlabs.today.deaths_link"), "#qopen:3"},
-                    {L.t("wynnlabs.today.damage_link"), "#qopen:" + RoadmapScreen.TAB_DAMAGE}}) {
-                int lw = Type.LINK.width(font(), link[0]);
-                Type.LINK.draw(g, font(), link[0], lx, y);
-                menu.hits.add(new MenuHit(lx, y, lw, Type.LINK.lineHeight, null, null, link[1]));
-                lx += lw + Theme.SP_4;
+            for (String[] link : new String[][] {{"skull", L.t("wynnlabs.today.deaths_link"), "#qopen:3"},
+                    {"sword", L.t("wynnlabs.today.damage_link"), "#qopen:" + RoadmapScreen.TAB_DAMAGE}}) {
+                // another tab opens: an icon chip
+                int lw = Ui.iconChipWidth(font(), link[0], link[1], false);
+                Ui.iconChip(g, font(), link[0], link[1], false, lx, y, lw, false, mx, my);
+                menu.hits.add(new MenuHit(lx, y, lw, Ui.CHIP_H, null, null, link[2]));
+                lx += lw + Theme.SP_2;
             }
-            return y + Type.LINK.lineHeight;
+            return y + Ui.CHIP_H;
         } catch (Throwable t) {
             return y;
         }

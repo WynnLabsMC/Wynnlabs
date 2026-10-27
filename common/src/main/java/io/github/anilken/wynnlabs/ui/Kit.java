@@ -382,32 +382,6 @@ final class Kit {
         nine(g, "pill_line", x, y, w, h, colour);
     }
 
-    /**
-     * A bar: dark rim, three-row fill (light, mid, dark) up to {@code frac}. {@code rim} adds
-     * the brass ring the XP bar has.
-     */
-    static void bar(GuiGraphics g, int x, int y, int w, int h, double frac, int hi, int mid, int lo, boolean rim) {
-        if (rim) {
-            nine(g, "bar_rim", x - 1, y - 1, w + 2, h + 2);
-        }
-        nine(g, "bar", x, y, w, h);
-        int fw = (int) Math.round((w - 2) * Math.max(0, Math.min(1, frac)));
-        if (fw > 0 && h > 2) {
-            int iy = y + 1;
-            int ih = h - 2;
-            int top = Math.max(1, ih / 4);
-            int bottom = Math.max(1, ih / 4);
-            g.fill(x + 1, iy, x + 1 + fw, iy + top, hi);
-            g.fill(x + 1, iy + top, x + 1 + fw, iy + ih - bottom, mid);
-            g.fill(x + 1, iy + ih - bottom, x + 1 + fw, iy + ih, lo);
-        }
-    }
-
-    /** A teal bar (experience, progress). */
-    static void tealBar(GuiGraphics g, int x, int y, int w, int h, double frac, boolean rim) {
-        bar(g, x, y, w, h, frac, Theme.TEAL_HI, Theme.TEAL, Theme.TEAL_LO, rim);
-    }
-
     /** Notches every tenth of a bar (the XP bar). */
     static void notches(GuiGraphics g, int x, int y, int w, int h) {
         for (int i = 1; i < 10; i++) {
@@ -431,16 +405,6 @@ final class Kit {
         int lx = dx + 8;
         if (lx < x + w) {
             hair(g, lx, y + 4, x + w - lx, 1, Theme.LINE);
-        }
-    }
-
-    /** A list row's paint: a soft stripe on odd rows, a lighter fill and a gold strip on hover or selection. */
-    static void row(GuiGraphics g, int x, int y, int w, int h, int index, boolean lit) {
-        if (lit) {
-            g.fill(x, y, x + w, y + h, 0x88FFF3C8);
-            g.fill(x, y, x + 2, y + h, Theme.GOLD_DEEP);
-        } else if (index % 2 == 1) {
-            g.fill(x, y, x + w, y + h, Theme.STRIPE);
         }
     }
 

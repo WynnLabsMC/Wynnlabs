@@ -569,17 +569,20 @@ public final class HomePage extends MenuTab {
     }
 
     private void drawHome(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
+        boolean compact = menu.layout != null && menu.layout.compact();
         if (!Wyn.up(Wyn.Feature.GEAR_DB) || !Wyn.up(Wyn.Feature.CHARACTER)) {
-            ink(g, L.c("wynnlabs.wyn.home_off", Wyn.version()).withStyle(ChatFormatting.GOLD), x, y + 4, 0xFFFFFFFF);
+            UiEmpty.draw(g, font(), x, y, w, h, compact, "alert-triangle", L.t("wynnlabs.wyn.home_off", Wyn.version()), List.of(),
+                    null, null, mx, my);
             return;
         }
         if (!Rules.adviceHere()) {
             // an alt with the advice off: say so, with the switch right here
-            emptyState(g, x, y, w, h, new ItemStack(net.minecraft.world.item.Items.BARRIER),
-                    L.t("wynnlabs.home.advice_off_title"), L.t("wynnlabs.home.advice_off_1"));
-            String on = L.t("wynnlabs.home.advice_on");
-            int bw = font().width(on) + 12;
-            pickChip(g, x + (w - bw) / 2, y + h / 2 + 34, on, false, mx, my, "#qadvice:");
+            int[] box = UiEmpty.draw(g, font(), x, y, w, h, compact, "eye", L.t("wynnlabs.home.advice_off_title"),
+                    List.of(L.t("wynnlabs.home.advice_off_1")), new UiEmpty.Action("check", L.t("wynnlabs.home.advice_on"), "#qadvice:"),
+                    null, mx, my);
+            if (box != null) {
+                menu.hits.add(new MenuHit(box[0], box[1], box[2], box[3], null, null, "#qadvice:"));
+            }
             return;
         }
         if (menu.error != null) {
@@ -846,7 +849,7 @@ public final class HomePage extends MenuTab {
                     return 0;                       // the first map: its progress fills the panel instead
                 }
                 // a new map over the last one: a small bar and Cancel (the last map stays)
-                Kit.tealBar(g, x, y + 5, 24, 4, Roadmap.progress(), false);
+                HdBar.draw(g, x, y + 5, 24, 4, Roadmap.progress(), HdBar.TEAL);
                 menu.hits.add(new MenuHit(x, y, 24, 14, null, List.of(L.c("wynnlabs.home.refreshing").withStyle(ChatFormatting.GRAY)), null));
                 Ui.iconButton(g, "x", x + 27, y, false, mx, my);
                 menu.hits.add(new MenuHit(x + 27, y, Ui.CHIP_H + 2, Ui.CHIP_H, null, List.of(L.c("wynnlabs.pick.cancel").withStyle(ChatFormatting.WHITE),
@@ -1163,9 +1166,12 @@ public final class HomePage extends MenuTab {
         String[] fl = {L.t("wynnlabs.home.filter_all"), L.t("wynnlabs.home.filter_market")};
         int fx = x + w - bw - 8 - Ui.chipWidth(font(), fl[0]) - Ui.chipWidth(font(), fl[1]) - 2;
         // the title, without "options, by gain" when the filter needs its room
-        Component title = Component.literal(detailLabel).withStyle(ChatFormatting.LIGHT_PURPLE).withStyle(UiFont::bold);
-        Component full = title.copy().append(L.c("wynnlabs.home.detail_sub").withStyle(ChatFormatting.DARK_GRAY));
-        ink(g, font().width(full) + 8 <= fx - x ? full : title, x, y, 0xFFFFFFFF);
+        Type.LABEL.draw(g, font(), Type.LABEL.fit(font(), detailLabel, fx - x - Theme.SP_3), x, y, BuildControls.CHOSEN);
+        String sub = L.t("wynnlabs.home.detail_sub");
+        int subX = x + Type.LABEL.width(font(), detailLabel) + Theme.SP_3;
+        if (subX + Type.META.width(font(), sub) + Theme.SP_4 <= fx) {
+            Type.META.draw(g, font(), sub, subX, y + 1, Theme.INK_3);
+        }
         Ui.iconChip(g, font(), "chevron-left", back, false, x + w - bw, y - 3, bw, false, mx, my);
         backRect = new int[] {x + w - bw, y - 3, bw, Ui.CHIP_H};
         // the filter, left of Back: every option, or only what the Trade Market sells
@@ -1179,26 +1185,29 @@ public final class HomePage extends MenuTab {
         }
 
         // what you wear now
-        int ry = y + 14;
-        Kit.card(g, x, ry, w, 20, 0);
-        Kit.slot(g, x + 2, ry + 1, 18, 0);
+        int ry = y + Ui.CHIP_H + Theme.SP_3;
+        int nowH = 18 + 2 * Theme.SP_1;
+        Kit.softCard(g, x, ry, w, nowH);
+        int sy0 = ry + Theme.SP_1;
+        Kit.slot(g, x + Theme.SP_2, sy0, 18, 0);
         if (!detailWorn.isEmpty()) {
-            g.renderItem(detailWorn, x + 3, ry + 2);
-            menu.hits.add(new MenuHit(x + 3, ry + 2, 16, 16, detailWorn, null, null));
+            g.renderItem(detailWorn, x + Theme.SP_2 + 1, sy0 + 1);
+            menu.hits.add(new MenuHit(x + Theme.SP_2 + 1, sy0 + 1, 16, 16, detailWorn, null, null));
         }
         String wn = detailWorn.isEmpty() ? L.cap(L.t("wynnlabs.screen.empty")) : ItemJson.clean(detailWorn.getHoverName().getString());
         String nowLabel = L.t("wynnlabs.home.card_now");
-        ink(g, nowLabel, x + 24, ry + 6, FAINT);
-        ink(g, Component.literal(wn).withStyle(ChatFormatting.WHITE).withStyle(UiFont::bold),
-                x + 24 + font().width(nowLabel) + 6, ry + 6, Theme.INK);
+        int nx = x + Theme.SP_2 + 18 + Theme.SP_3;
+        int nty = Type.BODY.yIn(ry, nowH);
+        Type.META.draw(g, font(), nowLabel, nx, nty + 1, Theme.INK_3);
+        Type.LABEL.draw(g, font(), wn, nx + Type.META.width(font(), nowLabel) + Theme.SP_3, nty, Theme.INK);
         if (pick != null) {
             Damage.Result f = pick.from();
             String now = L.t("wynnlabs.home.detail_now", Math.round(f.spellDps()), Math.round(f.ehp()), signed(f.speed()));
-            ink(g, now, x + w - font().width(now) - 5, ry + 6, MUTED);
+            Type.META.drawRight(g, font(), now, x + w - Theme.SP_3, nty + 1, Theme.INK_2);
         }
 
         // the cards, best gain first, scrolled by the wheel when they are taller than the panel
-        int top = ry + 25;
+        int top = ry + nowH + Theme.SP_3;
         int bottom = y + h - 2;
         int listH = opts.size() * CARD_H;
         detailScrollMax = Math.max(0, listH - (bottom - top));
@@ -1221,8 +1230,8 @@ public final class HomePage extends MenuTab {
         detailBar.place(x + w - ScrollBar.W, top, bottom - top, bottom - top, listH, detailScroll);
         detailBar.draw(g, mx, my);
         if (opts.size() <= (detailMarket ? 0 : 1)) {
-            ink(g, L.c(detailMarket ? "wynnlabs.home.detail_none_market" : "wynnlabs.home.detail_none")
-                    .withStyle(ChatFormatting.DARK_GRAY), x, cy + 2, 0xFFFFFFFF);
+            Type.MUTED.draw(g, font(), L.t(detailMarket ? "wynnlabs.home.detail_none_market" : "wynnlabs.home.detail_none"),
+                    x, cy + Theme.SP_1, Theme.INK_3);
         }
     }
 
@@ -1233,9 +1242,12 @@ public final class HomePage extends MenuTab {
      * a large seal and a button that copies the name (for the Trade Market search).
      */
     private void drawCard(GuiGraphics g, Roadmap.Option o, int rank, boolean pick, int x, int y, int w, int mx, int my) {
-        int h = CARD_H - 8;                     // 8px between cards for the shadow
+        int h = CARD_H - Theme.SP_4;            // SP_4 between cards for the shadow
         boolean hover = mx >= x && mx < x + w && my >= y && my < y + h;
-        card(g, x, y, w, h, hover, pick ? GOOD : 0);
+        Kit.softCard(g, x, y, w, h);
+        if (pick) {
+            Kit.outline(g, x, y, w, h + 1, Theme.GOLD_DEEP);   // the road map's pick: the card's one gold
+        }
         ItemStack icon = menu.icon(o.info());
         int sy = y + (h - 40) / 2;
         Kit.slot(g, x + 4, sy, 40, tierRing(o.info()));
@@ -1247,10 +1259,15 @@ public final class HomePage extends MenuTab {
         int rw = 64;
         int rx = x + w - rw - 6;
         String build = L.t("wynnlabs.home.card_build");
-        ink(g, build, rx + rw - font().width(build), y + 8, FAINT);
+        Type.META.drawRight(g, font(), build, rx + rw, y + Theme.SP_4, Theme.INK_3);
         String total = (o.gain() >= 0 ? "+" : "−") + RoadmapScreen.pct(Math.round(Math.abs(o.gain())));
-        Kit.seal(g, rx + 4, y + 19, rw - 4, 18, o.gain() >= 0 ? (pick ? Theme.SEAL_3 : Theme.SEAL_2) : Theme.BAD);
-        g.drawString(font(), total, rx + 4 + (rw - 4 - font().width(total)) / 2, y + 24, Theme.SEAL_TEXT, false);
+        // the build's total as a light seal in the gain's colour
+        int sealY = y + Theme.SP_4 + Type.META.lineHeight + Theme.SP_1;
+        int sealH = Ui.CHIP_H + Theme.SP_1;
+        int ink = o.gain() >= 0 ? Theme.GOOD : Theme.BAD;
+        Art.box(g, rx + Theme.SP_2, sealY, rw - Theme.SP_2, sealH, sealH / 2, o.gain() >= 0 ? 0xFFE3EED8 : 0xFFF3DCD6, ink);
+        Type.NUMBER.draw(g, font(), total, rx + Theme.SP_2 + (rw - Theme.SP_2 - Type.NUMBER.width(font(), total)) / 2,
+                Type.NUMBER.yIn(sealY, sealH), ink);
         String copy = L.t("wynnlabs.home.card_copy");
         int cbw = Ui.chipWidth(font(), copy);
         Ui.chip(g, font(), copy, rx + rw - cbw, y + h - 21, cbw, hover, false, false, -1, -1);
@@ -1261,10 +1278,16 @@ public final class HomePage extends MenuTab {
         ChatFormatting tc = o.info().tier().colour();
         String where = o.price() != null ? o.price()
                 : Shopping.tradable(o.info()) ? L.cap(o.source()) : L.t("wynnlabs.home.card_untradable", L.cap(o.source()));
-        Component name = Component.literal((rank + 1) + ". ").withStyle(ChatFormatting.DARK_GRAY)
-                .append(Component.literal(o.info().name()).withStyle(tc).withStyle(UiFont::bold))
-                .append(Component.literal("  Lv. " + o.info().requirements().level()).withStyle(ChatFormatting.GRAY));
-        ink(g, name, tx, y + 8, Theme.INK);
+        // "1." and the level in META, the name in LABEL in its tier's colour
+        String num = (rank + 1) + ".";
+        String lvT = "Lv " + o.info().requirements().level();
+        int ny = y + Theme.SP_4;
+        Type.META.draw(g, font(), num, tx, ny + 1, Theme.INK_3);
+        int nameX = tx + Type.META.width(font(), num) + Theme.SP_2;
+        String nm = Type.LABEL.fit(font(), o.info().name(), tw - (nameX - tx) - Type.META.width(font(), lvT) - Theme.SP_3);
+        Kit.text(g, font(), Type.LABEL.of(nm).withStyle(tc), nameX, ny, Theme.INK);
+        Type.META.draw(g, font(), lvT, nameX + Type.LABEL.width(font(), nm) + Theme.SP_2, ny + 1, Theme.INK_3);
+        int nameEnd = nameX + Type.LABEL.width(font(), nm) + Theme.SP_2 + Type.META.width(font(), lvT);
         List<String[]> chips = new ArrayList<>();
         int lvNow = Wyn.level();
         if (o.info().requirements().level() > lvNow) {
@@ -1283,7 +1306,7 @@ public final class HomePage extends MenuTab {
         chips.add(o.skills().isEmpty() ? new String[] {L.t("wynnlabs.home.chip_no_points"), "t"}
                 : new String[] {L.t("wynnlabs.home.chip_points", o.skills()) + (o.respec() ? L.t("wynnlabs.home.chip_respec") : ""), "a"});
         // the tags follow the name on its line, as far as they fit
-        int cx = tx + font().width(name) + 8;
+        int cx = nameEnd + Theme.SP_4;
         for (String[] c : chips) {
             int bg = c[1].equals("r") ? TAG_RED : c[1].equals("a") ? TAG_AMBER
                     : c[1].equals("p") ? TAG_PURPLE : TAG_GREEN;
@@ -1293,9 +1316,9 @@ public final class HomePage extends MenuTab {
             if (cx + cw > tx + tw) {
                 break;
             }
-            cx += chip(g, cx, y + 8, c[0], bg, fg) + 3;
+            cx += chip(g, cx, ny, c[0], bg, fg) + Theme.SP_1;
         }
-        ink(g, fit(where, tw), tx, y + 20, MUTED);
+        Type.META.draw(g, font(), Type.META.fit(font(), where, tw), tx, ny + Type.LABEL.lineHeight, Theme.INK_2);
 
         // what changes: gains first (largest first), then losses
         double[] p = o.factorPct();
