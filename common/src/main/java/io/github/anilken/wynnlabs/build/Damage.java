@@ -484,8 +484,12 @@ public final class Damage {
      * {@code costCut}, on a log scale with the weight rules.model.manaWeight; at least 0.3.
      */
     static double manaFactor(double manaPer5, double costCut) {
-        double ratio = Math.max(0.05, manaPer5 / BASE_MANA_PER_5) / Math.max(0.05, 1 - costCut);
-        return Math.max(0.3, 1 + model("manaWeight", 0.3) * Math.log(ratio));
+        // its two parts apart, so the Priority menu can lean on one (Tuning: costCutLean,
+        // manaRegenLean; both 1 without it, the same score as one log of their ratio)
+        double regen = Math.log(Math.max(0.05, manaPer5 / BASE_MANA_PER_5));
+        double cut = -Math.log(Math.max(0.05, 1 - costCut));
+        return Math.max(0.3, 1 + model("manaWeight", 0.3)
+                * (Tuning.weight("manaRegenLean") * regen + Tuning.weight("costCutLean") * cut));
     }
 
     /** The game's own mana back every 5 s, the mana part's yardstick. */

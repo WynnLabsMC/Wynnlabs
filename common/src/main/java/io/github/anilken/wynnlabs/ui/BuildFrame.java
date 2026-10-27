@@ -56,13 +56,25 @@ final class BuildFrame {
         return hy + 1 + Theme.SP_4 - y;
     }
 
-    /** The open menu (level range or budget) over everything, its rows clickable. */
+    /** The Priority menu's "None" row. */
+    static final int LEAN_NONE = 99;
+
+    /** The open menu (level range, budget or priority) over everything, its rows clickable. */
     void menuList(GuiGraphics g, int mx, int my) {
         List<UiMenu.Item> items = new ArrayList<>();
         if (win.menu == BuildWindow.MENU_RANGE) {
             for (int i = 0; i < BuildPickView.RANGES.length; i++) {
                 items.add(UiMenu.Item.of(String.valueOf(i), null, BuildPickView.rangeText(i), null, i == win.pick.range));
             }
+        } else if (win.menu == BuildWindow.MENU_LEAN || win.menu == BuildWindow.MENU_EDIT_LEAN) {
+            // the leanings, any number at once: a row turns one on or off and the menu stays open
+            io.github.anilken.wynnlabs.build.Tuning.Choice t = win.menu == BuildWindow.MENU_LEAN ? win.tuning : win.editTuning;
+            for (int i = 0; i < io.github.anilken.wynnlabs.build.Tuning.LEANS.length; i++) {
+                String[] l = BuildPickView.LEANS[i];
+                items.add(UiMenu.Item.of(String.valueOf(i), l[0], L.t(l[1]), null, t.leans(io.github.anilken.wynnlabs.build.Tuning.LEANS[i]))
+                        .sub(L.t(l[2])));
+            }
+            items.add(UiMenu.Item.of(String.valueOf(LEAN_NONE), null, L.t("wynnlabs.pick.lean_none"), null, t.lean() == 0).group());
         } else {
             long now = win.menu == BuildWindow.MENU_BUDGET ? win.tuning.budget() : win.editTuning.budget();
             for (int i = 0; i < io.github.anilken.wynnlabs.build.Tuning.BUDGETS.length; i++) {

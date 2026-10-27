@@ -74,13 +74,16 @@ public final class BuildWindow {
     final BuildSavedView saved = new BuildSavedView(this, ui);
     private final BuildActions actions = new BuildActions(this);
     private final BuildFrame frame = new BuildFrame(this);
-    /** The open menu: 0 none, else {@link #MENU_RANGE}, {@link #MENU_BUDGET}, {@link #MENU_EDIT_BUDGET}; its anchor this frame. */
+    /** The open menu: 0 none, else a MENU_* below (range, budget, priority); its anchor this frame. */
     int menu;
     int[] menuAt;
     final UiMenu.State menuState = new UiMenu.State();
     static final int MENU_RANGE = 1;
     static final int MENU_BUDGET = 2;
     static final int MENU_EDIT_BUDGET = 3;
+    /** The Priority menu (the leanings), the picker's and the edit card's. */
+    static final int MENU_LEAN = 4;
+    static final int MENU_EDIT_LEAN = 5;
     /** "Import from WynnBuilder", made on first use. */
     BuildImportView imports;
 

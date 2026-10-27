@@ -87,11 +87,10 @@ final class BuildText {
         String f = L.t(t.focus() == Tuning.DAMAGE ? "wynnlabs.pick.focus_damage" : t.focus() == Tuning.TANKY ? "wynnlabs.pick.focus_tanky"
                 : "wynnlabs.pick.focus_balanced");
         StringBuilder s = new StringBuilder(f);
-        if (t.mana()) {
-            s.append(" · ").append(L.t("wynnlabs.pick.mana"));
-        }
-        if (t.speed()) {
-            s.append(" · ").append(L.t("wynnlabs.pick.speed"));
+        for (int i = 0; i < Tuning.LEANS.length; i++) {
+            if (t.leans(Tuning.LEANS[i])) {
+                s.append(" · ").append(L.t(BuildPickView.LEANS[i][1]));
+            }
         }
         s.append(" · ").append(L.t("wynnlabs.pick.budget", budgetText(t.budget())));
         return s.toString();

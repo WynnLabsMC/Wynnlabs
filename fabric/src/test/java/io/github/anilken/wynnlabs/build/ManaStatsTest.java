@@ -108,6 +108,33 @@ class ManaStatsTest {
         assertEquals(3 * (mana(plain) - 1), mana(chip) - 1, 1e-9);
     }
 
+    /** Spell cost and Mana lean on their own part of the mana score; both together are the old Mana chip. */
+    @Test
+    void theLeaningsWeighTheirOwnPart() {
+        Map<String, Double> regen = Map.of("manaRegen", 25.0);
+        Map<String, Double> cut = Map.of("3rdSpellCost", 50.0, "1stSpellCost", 50.0, "4thSpellCost", 50.0, "2ndSpellCost", 50.0);
+        Tuning.Choice cost = Tuning.Choice.PLAIN.withLean(Tuning.LEAN_COST, true);
+        Tuning.Choice mana = Tuning.Choice.PLAIN.withLean(Tuning.LEAN_MANA, true);
+        // Spell cost: the cost cut counts three times, mana back every 5 s as before
+        assertEquals(mana(score(0, regen)), mana(Tuning.with(cost, () -> score(0, regen))), 1e-9);
+        assertTrue(mana(Tuning.with(cost, () -> score(0, cut))) - 1 > 2.5 * (mana(score(0, cut)) - 1));
+        // Mana: the other way round
+        assertEquals(mana(score(0, cut)), mana(Tuning.with(mana, () -> score(0, cut))), 1e-9);
+        assertEquals(3 * (mana(score(0, regen)) - 1), mana(Tuning.with(mana, () -> score(0, regen))) - 1, 1e-9);
+    }
+
+    /** Sustain counts health regen and life steal more; nothing else in the score moves. */
+    @Test
+    void sustainWeighsRegen() {
+        Tuning.Choice sustain = Tuning.Choice.PLAIN.withLean(Tuning.LEAN_SUSTAIN, true);
+        Map<String, Double> regen = Map.of("healthRegenRaw", 200.0);
+        double plain = score(0, regen).factors()[1] / score(0, Map.of()).factors()[1];
+        double leant = Tuning.with(sustain, () -> score(0, regen).factors()[1] / score(0, Map.of()).factors()[1]);
+        assertTrue(leant > plain, "regen counts more: " + plain + " → " + leant);
+        assertEquals(mana(score(0, Map.of("manaRegen", 25.0))),
+                mana(Tuning.with(sustain, () -> score(0, Map.of("manaRegen", 25.0)))), 1e-9);
+    }
+
     @Test
     void noFightIsSimulated() {
         Damage.Result base = score(0, Map.of());

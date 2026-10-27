@@ -324,10 +324,7 @@ final class BuildPickView {
                     + Theme.SP_1;
         }
         px += Theme.SP_4;
-        px += ui.control(g, host, px, y, Ui.CHIP_H, "droplet", L.t("wynnlabs.pick.mana"), BuildControls.WOOD, t.mana(), room,
-                edit ? "editMana" : "mana", null, List.of(L.c("wynnlabs.pick.mana_tip").withStyle(ChatFormatting.GRAY)), mx, my) + Theme.SP_2;
-        px += ui.control(g, host, px, y, Ui.CHIP_H, "shoe", L.t("wynnlabs.pick.speed"), BuildControls.WOOD, t.speed(), room,
-                edit ? "editSpeed" : "speed", null, List.of(L.c("wynnlabs.pick.speed_tip").withStyle(ChatFormatting.GRAY)), mx, my) + Theme.SP_2;
+        px += leanChip(g, host, t, edit, room, px, y, mx, my) + Theme.SP_2;
         int menuId = edit ? BuildWindow.MENU_EDIT_BUDGET : BuildWindow.MENU_BUDGET;
         String budget = L.t("wynnlabs.pick.budget", BuildText.budgetText(t.budget()));
         int bw = Ui.iconChipWidth(ui.font, "coin", budget, true);
@@ -338,6 +335,52 @@ final class BuildPickView {
         if (win.menu == menuId) {
             win.menuAt = at;
         }
+    }
+
+    /** The leanings in the Priority menu's order: icon, name key, what it counts. */
+    static final String[][] LEANS = {
+        {"sparkles", "wynnlabs.pick.lean_cost", "wynnlabs.pick.lean_cost_sub"},
+        {"droplet", "wynnlabs.pick.lean_mana", "wynnlabs.pick.lean_mana_sub"},
+        {"heart", "wynnlabs.pick.lean_sustain", "wynnlabs.pick.lean_sustain_sub"},
+        {"shoe", "wynnlabs.pick.lean_speed", "wynnlabs.pick.lean_speed_sub"}};
+
+    /**
+     * The Priority chip: "Priority" with a count seal when more than one leaning is on, the one's
+     * name when one is; on a small window its icon and the count. Its menu lists the leanings.
+     */
+    private int leanChip(GuiGraphics g, BuildWindow.Host host, Tuning.Choice t, boolean edit, int room, int x, int y, int mx, int my) {
+        int n = Integer.bitCount(t.lean());
+        int one = -1;
+        for (int i = 0; i < Tuning.LEANS.length; i++) {
+            if (t.leans(Tuning.LEANS[i])) {
+                one = i;
+            }
+        }
+        String icon = n == 1 ? LEANS[one][0] : "sparkles";
+        boolean small = room <= 0;
+        String label = small ? (n > 0 ? String.valueOf(n) : "")
+                : n == 1 ? L.t(LEANS[one][1]) : n > 1 ? L.t("wynnlabs.pick.lean_n", n) : L.t("wynnlabs.pick.lean");
+        int menuId = edit ? BuildWindow.MENU_EDIT_LEAN : BuildWindow.MENU_LEAN;
+        int w = Ui.iconChipWidth(ui.font, icon, label, true);
+        if (n > 0) {
+            Ui.iconChip(g, ui.font, icon, label, true, x, y, w, true, mx, my);
+        } else {
+            UiMenu.chip(g, ui.font, icon, label, x, y, win.menu == menuId, mx, my);
+        }
+        ui.btn(x, y, w, Ui.CHIP_H, "menu", menuId);
+        List<Component> tip = new java.util.ArrayList<>();
+        tip.add(L.c("wynnlabs.pick.lean").withStyle(ChatFormatting.WHITE));
+        tip.add(L.c("wynnlabs.pick.lean_tip").withStyle(ChatFormatting.GRAY));
+        for (int i = 0; i < Tuning.LEANS.length; i++) {
+            if (t.leans(Tuning.LEANS[i])) {
+                tip.add(Component.literal("✔ " + L.t(LEANS[i][1])).withStyle(ChatFormatting.GOLD));
+            }
+        }
+        host.tip(x, y, w, Ui.CHIP_H, tip);
+        if (win.menu == menuId) {
+            win.menuAt = new int[] {x, y, w, Ui.CHIP_H};
+        }
+        return w;
     }
 
     /**

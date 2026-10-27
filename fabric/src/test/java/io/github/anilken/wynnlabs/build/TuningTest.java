@@ -70,7 +70,8 @@ class TuningTest {
         assertTrue(dmgDps > tankDps, "Damage deals more");
         // Mana and Speed weigh their stats more inside a run only
         Tuning.Choice ms = Tuning.Choice.PLAIN.withMana(true).withSpeed(true);
-        assertTrue(Tuning.with(ms, () -> Tuning.weight("manaWeight")) > 1.5);
+        assertTrue(Tuning.with(ms, () -> Tuning.weight("costCutLean")) > 1.5);
+        assertTrue(Tuning.with(ms, () -> Tuning.weight("manaRegenLean")) > 1.5);
         assertTrue(Tuning.with(ms, () -> Tuning.weight("speedWeight")) > 1.5);
     }
 
@@ -120,5 +121,27 @@ class TuningTest {
             assertTrue(set.mana());
         }
         assertEquals(640, c.withBudget(4096).withBudget(640).budget(), "down as well as up");
+    }
+
+    /** The Priority menu's leanings are saved by name; an older file's Mana switch reads as spell cost and mana. */
+    @Test
+    void leaningsSaveAndOldFilesStillRead() {
+        com.google.gson.JsonObject old = com.google.gson.JsonParser.parseString(
+                "{\"focus\":2,\"mana\":true,\"speed\":false,\"budget\":640}").getAsJsonObject();
+        Tuning.Choice c = Tuning.Choice.read(old);
+        assertEquals(Tuning.TANKY, c.focus());
+        assertTrue(c.leans(Tuning.LEAN_COST) && c.leans(Tuning.LEAN_MANA), "the old Mana: spell cost and mana");
+        assertFalse(c.leans(Tuning.LEAN_SUSTAIN) || c.leans(Tuning.LEAN_SPEED));
+        assertEquals(640, c.budget());
+
+        Tuning.Choice picked = Tuning.Choice.PLAIN.withLean(Tuning.LEAN_COST, true).withLean(Tuning.LEAN_SUSTAIN, true);
+        com.google.gson.JsonObject j = new com.google.gson.JsonObject();
+        picked.write(j);
+        assertEquals("[\"cost\",\"sustain\"]", j.get("lean").toString());
+        assertFalse(j.get("mana").getAsBoolean(), "an older version reads Mana off: only the cost is on");
+        assertEquals(picked, Tuning.Choice.read(j), "read back as written");
+        assertEquals(new Tuning.Choice(Tuning.BALANCED, true, true, 0),
+                Tuning.Choice.read(com.google.gson.JsonParser.parseString("{\"mana\":true,\"speed\":true}").getAsJsonObject()));
+        assertTrue(Tuning.Choice.read(new com.google.gson.JsonObject()).lean() == 0, "nothing saved: nothing on");
     }
 }

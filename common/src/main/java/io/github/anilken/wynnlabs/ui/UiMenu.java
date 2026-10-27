@@ -285,7 +285,10 @@ final class UiMenu {
             }
             int rh = rowH(it);
             boolean hover = mx >= x && mx < x + rw && my >= ry && my < ry + rh;
-            if (it.chosen()) {
+            // a menu with several picked rows (the build window's Priority) marks them by the tick
+            // and the bold name alone: lit rows never run into each other
+            boolean lone = (i == 0 || !items.get(i - 1).chosen()) && (i + 1 >= items.size() || !items.get(i + 1).chosen());
+            if (it.chosen() && lone) {
                 Kit.rowLit(g, x + Theme.SP_1, ry, rw - 2 * Theme.SP_1, rh);
             } else if (hover || i == st.cursor) {
                 g.fill(x + 1, ry, x + rw - 1, ry + rh, Theme.CARD_HOVER);

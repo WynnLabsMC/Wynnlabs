@@ -727,7 +727,7 @@ public class LayoutMatrix implements FabricClientGameTest {
             }
             Plans.clearAll();
         });
-        String[] states = {"pick", "pick-import", "loading", "results", "results-end", "results-high", "plan", "plan-removed", "plan-done", "plan-hint", "saved", "saved-rename",
+        String[] states = {"pick", "pick-priority", "pick-import", "loading", "results", "results-end", "results-high", "plan", "plan-removed", "plan-done", "plan-hint", "saved", "saved-rename",
             "saved-edit", "pick-none", "results-none", "saved-none", "road-none", "road-building", "road-stale", "road-stale-plan", "road-stale-hint"};
         for (String s : states) {
             ctx.runOnClient(mc -> homeState(s));
@@ -820,8 +820,14 @@ public class LayoutMatrix implements FabricClientGameTest {
         Locks.use(AROUND);
         Locks.useTuning(builds.tuning());
         long now = System.currentTimeMillis();
+        w.menu = 0;                                 // a menu one state opened closes for the next
         switch (s) {
             case "pick" -> BuildPreviews.pick(w, "thunder", AROUND, builds.tuning());
+            // the Priority menu open over the list, two leanings on
+            case "pick-priority" -> {
+                BuildPreviews.pick(w, "thunder", AROUND, builds.tuning());
+                w.menu = BuildWindow.MENU_LEAN;
+            }
             // a link WynnBuilder wrote: six pieces (a bow the Shaman cannot use), powders, a tome
             case "pick-import" -> w.previewImport("https://wynnbuilder.github.io/builder/#CZ0W9W5G000uQG0500m454+GhcXYfy-200k-Jn0");
             case "loading" -> {

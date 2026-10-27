@@ -506,11 +506,7 @@ public final class Plans {
             }
             Tuning.Choice t = Tuning.Choice.PLAIN;
             if (o.has("tuning") && o.get("tuning").isJsonObject()) {
-                JsonObject tj = o.getAsJsonObject("tuning");
-                int focus = tj.has("focus") ? tj.get("focus").getAsInt() : Tuning.BALANCED;
-                t = new Tuning.Choice(focus < Tuning.BALANCED || focus > Tuning.TANKY ? Tuning.BALANCED : focus,
-                        tj.has("mana") && tj.get("mana").getAsBoolean(), tj.has("speed") && tj.get("speed").getAsBoolean(),
-                        tj.has("budget") ? Math.max(0, tj.get("budget").getAsLong()) : 0);
+                t = Tuning.Choice.read(o.getAsJsonObject("tuning"));
             }
             List<Integer> points = null;
             if (o.has("points") && o.get("points").isJsonArray()) {
@@ -535,10 +531,7 @@ public final class Plans {
         b.locks().forEach(l::add);
         o.add("locks", l);
         JsonObject t = new JsonObject();
-        t.addProperty("focus", b.tuning().focus());
-        t.addProperty("mana", b.tuning().mana());
-        t.addProperty("speed", b.tuning().speed());
-        t.addProperty("budget", b.tuning().budget());
+        b.tuning().write(t);
         o.add("tuning", t);
         JsonObject items = new JsonObject();
         b.items().forEach(items::addProperty);

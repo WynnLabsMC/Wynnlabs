@@ -158,10 +158,7 @@ public final class Locks {
         o.add("items", a);
         Tuning.Choice t = tuning;
         JsonObject tj = new JsonObject();
-        tj.addProperty("focus", t.focus());
-        tj.addProperty("mana", t.mana());
-        tj.addProperty("speed", t.speed());
-        tj.addProperty("budget", t.budget());
+        t.write(tj);
         o.add("tuning", tj);
         String text = o.toString();
         Saver.mark(file(id), () -> text);
@@ -190,10 +187,7 @@ public final class Locks {
             names = List.copyOf(out);
             if (o.has("tuning") && o.get("tuning").isJsonObject()) {
                 JsonObject t = o.getAsJsonObject("tuning");
-                int focus = t.has("focus") ? t.get("focus").getAsInt() : Tuning.BALANCED;
-                tuning = new Tuning.Choice(focus < Tuning.BALANCED || focus > Tuning.TANKY ? Tuning.BALANCED : focus,
-                        t.has("mana") && t.get("mana").getAsBoolean(), t.has("speed") && t.get("speed").getAsBoolean(),
-                        t.has("budget") ? Math.max(0, t.get("budget").getAsLong()) : 0);
+                tuning = Tuning.Choice.read(t);
             }
         } catch (Throwable t) {
             System.out.println("[WynnLabs] could not read " + FILE + ": " + t);

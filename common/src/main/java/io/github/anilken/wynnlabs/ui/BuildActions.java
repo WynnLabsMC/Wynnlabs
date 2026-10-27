@@ -151,14 +151,6 @@ final class BuildActions {
                 win.tuning = win.tuning.withFocus((int) hit.arg());
                 win.changed();
             }
-            case "mana" -> {
-                win.tuning = win.tuning.withMana(!win.tuning.mana());
-                win.changed();
-            }
-            case "speed" -> {
-                win.tuning = win.tuning.withSpeed(!win.tuning.speed());
-                win.changed();
-            }
             case "budgetNone" -> {
                 // "No build fits the budget": the budget off, back to the items
                 win.tuning = win.tuning.withBudget(0);
@@ -262,8 +254,6 @@ final class BuildActions {
                 win.editLocks = l;
             }
             case "editFocus" -> win.editTuning = win.editTuning.withFocus((int) hit.arg());
-            case "editMana" -> win.editTuning = win.editTuning.withMana(!win.editTuning.mana());
-            case "editSpeed" -> win.editTuning = win.editTuning.withSpeed(!win.editTuning.speed());
             case "editAdd", "editRecompute" -> {
                 // the Choose-items list preloaded with this build's chosen items and strip
                 win.chosen = new ArrayList<>(Locks.resolve(state, win.editLocks));
@@ -291,8 +281,26 @@ final class BuildActions {
         }
     }
 
-    /** A row of the open menu: a level range, the picker's budget, or the edit card's budget. */
+    /** A row of the open menu: a level range, a budget, or a leaning (that menu stays open). */
     private void pickMenu(int i) {
+        if (win.menu == BuildWindow.MENU_LEAN || win.menu == BuildWindow.MENU_EDIT_LEAN) {
+            boolean picker = win.menu == BuildWindow.MENU_LEAN;
+            Tuning.Choice t = picker ? win.tuning : win.editTuning;
+            if (i == BuildFrame.LEAN_NONE) {
+                t = t.withoutLeans();
+                win.menu = 0;
+            } else {
+                int bit = Tuning.LEANS[i];
+                t = t.withLean(bit, !t.leans(bit));
+            }
+            if (picker) {
+                win.tuning = t;
+                win.changed();
+            } else {
+                win.editTuning = t;
+            }
+            return;
+        }
         switch (win.menu) {
             case BuildWindow.MENU_RANGE -> {
                 win.pick.range = i;
