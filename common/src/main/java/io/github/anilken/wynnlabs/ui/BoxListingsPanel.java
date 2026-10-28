@@ -87,7 +87,7 @@ final class BoxListingsPanel {
             return;
         }
         if (plain) {
-            BoxPlainRows.header(s, g, x, top, w - ScrollBar.W - Theme.SP_2);
+            BoxPlainRows.header(s, g, x, top, w - ScrollBar.W - Theme.SP_3);
             top += BoxPlainRows.HEAD;
         }
         boolean more = r.hasMore();
@@ -95,7 +95,7 @@ final class BoxListingsPanel {
         int listH = y + h - top - (more ? Theme.SP_3 + Ui.CHIP_H : 0);
         List<BoxMarket.Listing> ls = r.listings();
         rowX = x + Theme.SP_3;
-        rowW = w - ScrollBar.W - Theme.SP_2 - Theme.SP_3 - Theme.SP_2;
+        rowW = w - ScrollBar.W - Theme.SP_3 - Theme.SP_3 - Theme.SP_2;   // the wash ends SP_3 short of the bar
         open = Math.min(open, ls.size() - 1);
         layout(ls, plain);
         int total = rowY[ls.size()];
@@ -132,7 +132,7 @@ final class BoxListingsPanel {
     /** The item's name and "x / total listings" over a hairline; returns where the rows start. */
     private int head(GuiGraphics g, BoxMarket.Row r, int x, int y, int w, int mx, int my) {
         String count = L.t("wynnlabs.box.held_of", r.held(), Math.max(r.held(), r.count()));
-        int right = x + w - ScrollBar.W - Theme.SP_2;
+        int right = x + w - ScrollBar.W - Theme.SP_3 - Theme.SP_2;      // over the chevrons
         Type.META.drawRight(g, s.font(), count, right, y + 1, Theme.INK_3);
         int nameRoom = right - x - Type.META.width(s.font(), count) - Theme.SP_4;
         boolean link = s.box != null && s.compact;
@@ -152,7 +152,7 @@ final class BoxListingsPanel {
             s.bar.searchButton(g, bx, by, r.name(), mx, my);
         }
         int hy = y + Type.LABEL.lineHeight + Theme.SP_1;
-        Kit.hair(g, x, hy, right - x, 1, Theme.LINE);
+        Kit.hair(g, x, hy, right + Theme.SP_2 - x, 1, Theme.LINE);
         return hy + 1 + Theme.SP_3;
     }
 
