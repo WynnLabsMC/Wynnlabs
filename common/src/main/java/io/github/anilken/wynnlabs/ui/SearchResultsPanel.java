@@ -256,7 +256,7 @@ final class SearchResultsPanel extends MenuPaint {
             } else if (MORE.equals(r.stat()) || LESS.equals(r.stat())) {
                 SearchEmptyRows.more(this, g, r, x, ry, cw, y, h, mx, my);
             } else {
-                boolean recentRow = i > recentHead && i < recentEnd;
+                boolean recentRow = i > recentHead && i < recentEnd && r.e() != null;   // a stat row has no entry to forget
                 drawRow(g, r, x, ry, cw, i == sel, compact, y, h, mx, my,
                         recentRow ? SearchEmptyRows.forgetRoom(x, ry, cw, y, h, mx, my) : 0);
                 if (recentRow) {
