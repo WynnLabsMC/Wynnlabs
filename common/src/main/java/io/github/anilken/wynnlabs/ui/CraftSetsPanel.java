@@ -474,11 +474,8 @@ final class CraftSetsPanel extends CraftPanel {
         int aw = Ui.iconChipWidth(tab.font, "plus", add, true);
         int ax = x + w - aw;
         Ui.iconChip(g, tab.font, "plus", add, true, ax, y, aw, tab.open == CraftingTab.Drop.SET_COMBINE, mx, my);
-        int[] anchor = {ax, y, aw, Ui.CHIP_H};
-        tab.acts.add(new Act(ax, y, aw, Ui.CHIP_H, () -> {
-            combining = new ArrayList<>();
-            tab.toggle(CraftingTab.Drop.SET_COMBINE, anchor);
-        }, null, List.of(L.c("wynnlabs.craft.combine_tip"))));
+        combineAnchor = new int[] {ax, y, aw, Ui.CHIP_H};
+        tab.acts.add(new Act(ax, y, aw, Ui.CHIP_H, this::openCombine, null, List.of(L.c("wynnlabs.craft.combine_tip"))));
         String head = L.t("wynnlabs.craft.sets");
         int ty = Type.LABEL.yIn(y, Ui.CHIP_H);
         Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, head, ax - Theme.SP_3 - x), x, ty, Theme.INK_2);
@@ -559,15 +556,28 @@ final class CraftSetsPanel extends CraftPanel {
         }, tip);
     }
 
+    /** The Combine chip's area this frame. */
+    private int[] combineAnchor;
+
+    /** Opens (or closes) the Combine menu, nothing ticked yet. */
+    void openCombine() {
+        if (combineAnchor == null) {
+            return;
+        }
+        combining = new ArrayList<>();
+        tab.toggle(CraftingTab.Drop.SET_COMBINE, combineAnchor);
+    }
+
     /** The Combine menu's rows: every goal to tick (two to four), then the action. */
     List<UiMenu.Item> combineItems() {
         List<String> picked = combining == null ? List.of() : combining;
         UiMenu.Items items = new UiMenu.Items();
+        items.add(UiMenu.Item.heading(L.t("wynnlabs.craft.combine_pick")));
         for (String k : tab.suggestionsPanel.goalOrder()) {
             items.add(UiMenu.Item.of(k, null, L.t("wynnlabs.craft.goalset." + k), null, picked.contains(k)));
         }
-        items.divide();
-        UiMenu.Item add = UiMenu.Item.of("#add", "plus", L.t("wynnlabs.craft.combine_add", picked.size()), null, false).asLink();
+        // the action stays in view under the scrolling goals; dim until two are ticked
+        UiMenu.Item add = UiMenu.Item.of("#add", "plus", L.t("wynnlabs.craft.combine_add", picked.size()), null, false).asLink().pin();
         items.add(picked.size() < 2 || picked.size() > 4 ? add.asDim() : add);
         return items.list;
     }

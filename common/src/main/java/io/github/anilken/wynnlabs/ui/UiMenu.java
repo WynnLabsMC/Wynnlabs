@@ -33,43 +33,52 @@ final class UiMenu {
      * {@code meta} the count or note on the right (null: none); {@code chosen} the current one;
      * {@code link} drawn as an action (LINK ink) rather than a choice; {@code groupStart} a
      * hairline above it; {@code tip} its tooltip; {@code heading} a section's name over the rows
-     * after it (META, not a choice: no hover, no click, the keys pass it).
+     * after it (META, not a choice: no hover, no click, the keys pass it); {@code pinned} kept under
+     * the scrolling rows, always in view ({@link #pin}).
      */
     record Item(String id, String icon, String label, String sub, String meta, boolean chosen, boolean link, boolean dim,
-                boolean groupStart, List<Component> tip, int tint, boolean heading) {
+                boolean groupStart, List<Component> tip, int tint, boolean heading, boolean pinned) {
 
         static Item of(String id, String icon, String label, String meta, boolean chosen) {
-            return new Item(id, icon, label, null, meta, chosen, false, false, false, null, 0, false);
+            return new Item(id, icon, label, null, meta, chosen, false, false, false, null, 0, false, false);
         }
 
         /** A section's name ("Combined"): drawn small over the rows after it, never picked. */
         static Item heading(String label) {
-            return new Item(null, null, label, null, null, false, false, false, false, null, 0, true);
+            return new Item(null, null, label, null, null, false, false, false, false, null, 0, true, false);
         }
 
         Item sub(String s) {
-            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip, tint, heading);
+            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip, tint, heading, pinned);
         }
 
         Item group() {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip, tint, heading);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip, tint, heading, pinned);
         }
 
         Item asLink() {
-            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip, tint, heading);
+            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip, tint, heading, pinned);
         }
 
         Item asDim() {
-            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip, tint, heading);
+            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip, tint, heading, pinned);
         }
 
         Item tip(List<Component> t) {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t, tint, heading);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t, tint, heading, pinned);
+        }
+
+        /**
+         * Pinned under the list (an action such as "Add"): drawn below the scrolling rows, always in
+         * view, after a hairline.
+         */
+        Item pin() {
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, tint, heading, true);
         }
 
         /** A colour of its own (a tier): a dot before the name and the name in it. */
         Item tint(int colour) {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, colour, heading);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, colour, heading, pinned);
         }
     }
 
@@ -272,9 +281,20 @@ final class UiMenu {
      */
     static int[] draw(GuiGraphics g, Font font, Spec spec, State st, List<Item> items, int mx, int my,
                       java.util.function.Consumer<Row> onRow) {
+        List<Item> all = items;
+        List<Item> foot = pinned(all);
+        items = unpinned(all);
+        int footH = 0;
+        for (Item f : foot) {
+            footH += rowH(f);
+        }
+        if (!foot.isEmpty()) {
+            footH += GAP;
+        }
         st.items = items;
         int[] bounds = bounds(spec);
-        int screenRoom = Math.max(ROW * 3, Math.max(spec.anchor()[1] - bounds[1], bounds[3] - spec.anchor()[1] - spec.anchor()[3]) - 2 * Theme.SP_2);
+        int screenRoom = Math.max(ROW * 3, Math.max(spec.anchor()[1] - bounds[1], bounds[3] - spec.anchor()[1] - spec.anchor()[3]) - 2 * Theme.SP_2)
+                - footH;
         int visible = fit(items, 0, spec.maxRows(), screenRoom);
         boolean scrolls = visible < items.size();
         st.visible = visible;
@@ -283,8 +303,8 @@ final class UiMenu {
             visible = fit(items, st.scroll, spec.maxRows(), screenRoom);
             st.visible = visible;
         }
-        int w = width(font, items, spec.minW()) + (scrolls ? ScrollBar.HIT : 0);
-        int h = 2 * Theme.SP_2;
+        int w = width(font, all, spec.minW()) + (scrolls ? ScrollBar.HIT : 0);
+        int h = 2 * Theme.SP_2 + footH;
         for (int i = st.scroll; i < st.scroll + visible && i < items.size(); i++) {
             h += rowH(items.get(i)) + (items.get(i).groupStart() && i > st.scroll ? GAP : 0);
         }
@@ -293,7 +313,7 @@ final class UiMenu {
         int x = b[0];
         int y = b[1];
         Kit.softCard(g, x, y, w, h);
-        boolean icons = items.stream().anyMatch(i -> i.icon() != null || i.tint() != 0);
+        boolean icons = all.stream().anyMatch(i -> i.icon() != null || i.tint() != 0);
         int rw = w - (scrolls ? ScrollBar.HIT : 0);
         int ry = y + Theme.SP_2;
         for (int i = st.scroll; i < st.scroll + visible && i < items.size(); i++) {
@@ -317,45 +337,78 @@ final class UiMenu {
             } else if (hover || i == st.cursor) {
                 g.fill(x + 1, ry, x + rw - 1, ry + rh, Theme.CARD_HOVER);
             }
-            int ty = ry + Theme.SP_2;
-            int tx = x + Theme.SP_3;
-            if (it.icon() != null) {
-                Art.icon(g, it.icon(), tx, Type.BODY.onCaps(ty, ICON), ICON, it.link() ? Theme.LINK : it.chosen() ? Theme.INK : Theme.INK_3);
-            } else if (it.tint() != 0) {
-                int dy = Type.BODY.onCaps(ty, 6);
-                g.fill(tx + 1, dy, tx + 7, dy + 6, it.tint());          // the row's colour as a small square
-            }
-            if (icons) {
-                tx += ICON + Theme.SP_2;
-            }
-            int right = x + rw - Theme.SP_3;
-            if (it.chosen()) {
-                // the picked row: bold, and a tick at the right
-                Art.icon(g, "check", right - ICON, Type.BODY.onCaps(ty, ICON), ICON, Theme.INK);
-                right -= ICON + Theme.SP_2;
-            }
-            int metaW = it.meta() == null ? 0 : Type.META.width(font, it.meta()) + Theme.SP_3;
-            Type role = it.link() ? Type.LINK : it.chosen() ? Type.LABEL : it.dim() ? Type.MUTED : Type.BODY;
-            String label = role.fit(font, it.label(), right - metaW - tx);
-            if (it.tint() != 0) {
-                role.draw(g, font, label, tx, ty, it.tint());
-            } else {
-                role.draw(g, font, label, tx, ty);
-            }
-            if (it.meta() != null) {
-                Type.META.drawRight(g, font, it.meta(), right, ty + 1, Theme.INK_3);
-            }
-            if (it.sub() != null) {
-                Type.META.draw(g, font, Type.META.fit(font, it.sub(), x + rw - Theme.SP_3 - tx), tx, ty + Type.BODY.lineHeight, Theme.INK_3);
-            }
+            face(g, font, it, x, ry, rw, icons);
             onRow.accept(new Row(it, x, ry, rw, rh));
             ry += rh;
         }
         if (scrolls) {
-            st.bar.place(x + rw, y + Theme.SP_2, h - 2 * Theme.SP_2, visible, items.size(), st.scroll);
+            st.bar.place(x + rw, y + Theme.SP_2, h - 2 * Theme.SP_2 - footH, visible, items.size(), st.scroll);
             st.bar.draw(g, mx, my);
         }
+        if (!foot.isEmpty()) {
+            // the pinned rows: under a hairline, the full width, never scrolled away
+            ry = y + h - Theme.SP_2 - footH;
+            Kit.hair(g, x + Theme.SP_3, ry + Theme.SP_1, w - 2 * Theme.SP_3, 1, Theme.LINE);
+            ry += GAP;
+            for (Item it : foot) {
+                int rh = rowH(it);
+                boolean hover = !it.dim() && mx >= x && mx < x + w && my >= ry && my < ry + rh;
+                if (hover) {
+                    g.fill(x + 1, ry, x + w - 1, ry + rh, Theme.CARD_HOVER);
+                }
+                face(g, font, it, x, ry, w, icons);
+                onRow.accept(new Row(it, x, ry, w, rh));
+                ry += rh;
+            }
+        }
         return b;
+    }
+
+    /** The rows pinned under the list ({@link Item#pin}), in order. */
+    static List<Item> pinned(List<Item> items) {
+        return items.stream().filter(Item::pinned).toList();
+    }
+
+    /** The rows that scroll: every row not pinned. */
+    static List<Item> unpinned(List<Item> items) {
+        return items.stream().filter(i -> !i.pinned()).toList();
+    }
+
+    /** A row's face: its icon or colour, its label (bold with a tick when chosen), its count, its second line. */
+    private static void face(GuiGraphics g, Font font, Item it, int x, int ry, int rw, boolean icons) {
+        int ty = ry + Theme.SP_2;
+        int tx = x + Theme.SP_3;
+        if (it.icon() != null) {
+            Art.icon(g, it.icon(), tx, Type.BODY.onCaps(ty, ICON), ICON,
+                    it.dim() ? Theme.INK_3 : it.link() ? Theme.LINK : it.chosen() ? Theme.INK : Theme.INK_3);
+        } else if (it.tint() != 0) {
+            int dy = Type.BODY.onCaps(ty, 6);
+            g.fill(tx + 1, dy, tx + 7, dy + 6, it.tint());          // the row's colour as a small square
+        }
+        if (icons) {
+            tx += ICON + Theme.SP_2;
+        }
+        int right = x + rw - Theme.SP_3;
+        if (it.chosen()) {
+            // the picked row: bold, and a tick at the right
+            Art.icon(g, "check", right - ICON, Type.BODY.onCaps(ty, ICON), ICON, Theme.INK);
+            right -= ICON + Theme.SP_2;
+        }
+        int metaW = it.meta() == null ? 0 : Type.META.width(font, it.meta()) + Theme.SP_3;
+        // a dim row (locked, or an action not ready yet) reads muted, a link or not
+        Type role = it.dim() ? Type.MUTED : it.link() ? Type.LINK : it.chosen() ? Type.LABEL : Type.BODY;
+        String label = role.fit(font, it.label(), right - metaW - tx);
+        if (it.tint() != 0) {
+            role.draw(g, font, label, tx, ty, it.tint());
+        } else {
+            role.draw(g, font, label, tx, ty);
+        }
+        if (it.meta() != null) {
+            Type.META.drawRight(g, font, it.meta(), right, ty + 1, Theme.INK_3);
+        }
+        if (it.sub() != null) {
+            Type.META.draw(g, font, Type.META.fit(font, it.sub(), x + rw - Theme.SP_3 - tx), tx, ty + Type.BODY.lineHeight, Theme.INK_3);
+        }
     }
 
     /** The trigger: a chip with a caret, washed while its menu is open; returns its width. */

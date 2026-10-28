@@ -30,4 +30,15 @@ class UiMenuTest {
         int[] b = UiMenu.place(new int[] {10, 40, 50, 14}, 120, 430, new int[] {0, 0, 800, 450});
         assertEquals(450 - Theme.SP_2 - 430, b[1], "as low as it fits, never past the screen's foot");
     }
+
+    @Test
+    void pinnedRowsLeaveTheScrollingListAndKeepTheirOrder() {
+        UiMenu.Item a = UiMenu.Item.of("a", null, "A", null, false);
+        UiMenu.Item add = UiMenu.Item.of("#add", "plus", "Add", null, false).pin();
+        UiMenu.Item b = UiMenu.Item.of("b", null, "B", null, true);
+        java.util.List<UiMenu.Item> all = java.util.List.of(a, add, b);
+        assertEquals(java.util.List.of(a, b), UiMenu.unpinned(all));
+        assertEquals(java.util.List.of(add), UiMenu.pinned(all));
+        assertEquals(true, add.asDim().pinned(), "a dim pinned row stays pinned");
+    }
 }

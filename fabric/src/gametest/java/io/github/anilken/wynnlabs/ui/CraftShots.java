@@ -214,6 +214,16 @@ final class CraftShots {
         });
         ctx.waitTicks(4);
         shot.accept("craft-suggest-set-combo");
+        // the Combine menu with one goal ticked: its Add row pinned under the goals, dim until two
+        ctx.runOnClient(mc -> tab.setsPanel.open = false);
+        ctx.waitTicks(3);                              // a frame of the list: the chip is placed
+        ctx.runOnClient(mc -> {
+            tab.setsPanel.openCombine();
+            tab.setsPanel.pickCombine(tab.suggestionsPanel.goalOrder().get(0));
+        });
+        ctx.waitTicks(4);
+        shot.accept("craft-suggest-combine-menu");
+        ctx.runOnClient(mc -> tab.open = CraftingTab.Drop.NONE);
         ctx.runOnClient(mc -> tab.drawers.close());
     }
 

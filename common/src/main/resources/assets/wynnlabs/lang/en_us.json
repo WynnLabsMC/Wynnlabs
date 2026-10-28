@@ -2660,7 +2660,7 @@
   "wynnlabs.craft.goalset.spellcost": "Spell cost",
   "wynnlabs.craft.combine": "Combine",
   "wynnlabs.craft.combine_tip": "Make a set that works for two to four goals together",
-  "wynnlabs.craft.combine_add": "Add the combination (%s chosen)",
+  "wynnlabs.craft.combine_add": "Add (%s chosen)",
   "wynnlabs.craft.combo_remove_tip": "Right-click to remove this combination",
   "wynnlabs.craft.calc_none_combo": "%s is not calculated for this band yet",
   "wynnlabs.craft.filter_search_hint": "Search goals, items, ingredients",
@@ -2693,5 +2693,6 @@
   "wynnlabs.craft.filter_status": "Status",
   "wynnlabs.craft.filter_type": "Item type",
   "wynnlabs.craft.filter_level": "Level",
-  "wynnlabs.craft.filter_weapon": "Weapon"
+  "wynnlabs.craft.filter_weapon": "Weapon",
+  "wynnlabs.craft.combine_pick": "Pick 2 to 4 goals"
 }

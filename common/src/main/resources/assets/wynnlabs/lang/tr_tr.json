@@ -2660,7 +2660,7 @@
   "wynnlabs.craft.goalset.spellcost": "Spell cost",
   "wynnlabs.craft.combine": "Birleştir",
   "wynnlabs.craft.combine_tip": "İki ila dört hedef için birlikte çalışan bir set yap",
-  "wynnlabs.craft.combine_add": "Birleşimi ekle (%s seçili)",
+  "wynnlabs.craft.combine_add": "Ekle (%s seçili)",
   "wynnlabs.craft.combo_remove_tip": "Bu birleşimi kaldırmak için sağ tıkla",
   "wynnlabs.craft.calc_none_combo": "%s bu bant için henüz hesaplanmadı",
   "wynnlabs.craft.filter_search_hint": "Hedef, eşya, malzeme ara",
@@ -2693,5 +2693,6 @@
   "wynnlabs.craft.filter_status": "Durum",
   "wynnlabs.craft.filter_type": "Eşya türü",
   "wynnlabs.craft.filter_level": "Seviye",
-  "wynnlabs.craft.filter_weapon": "Silah"
+  "wynnlabs.craft.filter_weapon": "Silah",
+  "wynnlabs.craft.combine_pick": "2 ila 4 hedef seç"
 }
