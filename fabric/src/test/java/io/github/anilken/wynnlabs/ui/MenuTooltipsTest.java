@@ -65,4 +65,21 @@ class MenuTooltipsTest {
         assertEquals(10.5f, MenuTooltips.snap(10.4f, 2), EPS);
         assertEquals(10.25f, MenuTooltips.snap(10.3f, 4), EPS);
     }
+
+    @Test
+    void menuScaleSnapsToWholeWindowPixels() {
+        assertEquals(1f, MenuTooltips.onGrid(1f, 2), EPS, "fits: the menu's own size");
+        assertEquals(0.5f, MenuTooltips.onGrid(0.7f, 2), EPS, "menu 2: halves only");
+        assertEquals(2f / 3f, MenuTooltips.onGrid(0.7f, 3), EPS, "menu 3: thirds");
+        assertEquals(1f / 3f, MenuTooltips.onGrid(0.1f, 3), EPS, "never under one window pixel");
+        assertEquals(0.7f, MenuTooltips.onGrid(0.7f, 0), EPS, "no grid: unchanged");
+    }
+
+    @Test
+    void tallTooltipInOwnScreenShrinksInWholePixels() {
+        // GUI 3, 360 GUI px high, a 400 px tooltip: Wynntils would draw it at 0.88; ours at 2/3
+        float t = MenuTooltips.onGrid(MenuTooltips.scale(1f, 1f, 400, 360), 3);
+        assertEquals(2f / 3f, t, EPS);
+        assertEquals(1f, MenuTooltips.onGrid(MenuTooltips.scale(1f, 1f, 200, 360), 3), EPS, "fits: full size");
+    }
 }

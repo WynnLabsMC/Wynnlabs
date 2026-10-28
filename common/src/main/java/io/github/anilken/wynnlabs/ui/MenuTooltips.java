@@ -51,12 +51,47 @@ public final class MenuTooltips {
      * game. {@code wynntils}: Wynntils' universal tooltip scale (1 when its fitting is off).
      */
     public static ClientTooltipPositioner positioner(GuiGraphics g, float wynntils) {
+        // a Wynn Labs screen draws its tooltip at full size on its pixel grid, in place of
+        // Wynntils' fitting (which shrinks tall tooltips by any fraction and blurs them)
+        int grid = menuGrid();
+        if (grid > 0) {
+            POSITIONER.begin(g, 1f, 1f, grid);
+            return POSITIONER;
+        }
         float s = wanted();
         if (s >= 1f) {
             return null;
         }
-        POSITIONER.begin(g, s, wynntils > 0 ? wynntils : 1f);
+        POSITIONER.begin(g, s, wynntils > 0 ? wynntils : 1f, 0);
         return POSITIONER;
+    }
+
+    /**
+     * Window pixels per tooltip pixel while one of the mod's own screens places its tooltip: the
+     * menu scale while a scaled menu draws it, the game's GUI scale otherwise; 0 on other screens.
+     */
+    static int menuGrid() {
+        if (MenuScale.tooltipWidth() > 0) {
+            return MenuScale.effective();
+        }
+        var mc = Minecraft.getInstance();
+        if (mc.screen instanceof RoadmapScreen || mc.screen instanceof BoxScreen
+                || mc.screen instanceof GuideScreen || mc.screen instanceof UpdateScreen) {
+            return Math.max(1, (int) Math.round(mc.getWindow().getGuiScale()));
+        }
+        return 0;
+    }
+
+    /**
+     * {@code t} rounded down so one tooltip pixel is a whole number of window pixels when a GUI
+     * pixel is {@code grid} window pixels (0: left as it is): text stays crisp, never blurred by
+     * a scale between pixels.
+     */
+    static float onGrid(float t, int grid) {
+        if (grid <= 0) {
+            return t;
+        }
+        return Math.max(1, (int) Math.floor(t * grid + 1e-4f)) / (float) grid;
     }
 
     /** The tooltip is drawn: its pose back as it was. */
@@ -83,14 +118,19 @@ public final class MenuTooltips {
      * the scaled box sits inside the window.
      */
     static void place(int screenW, int screenH, int mouseX, int mouseY, int w, int h, float t, float[] out) {
+        place(screenW, screenH, mouseX, mouseY, w, h, t, OFFSET, out);
+    }
+
+    /** As above with the gap from the mouse given ({@code gap}, in the caller's units). */
+    static void place(int screenW, int screenH, int mouseX, int mouseY, int w, int h, float t, int gap, float[] out) {
         float sw = w * t;
         float sh = h * t;
         float edge = EDGE * t;
-        float x = mouseX + OFFSET;
+        float x = mouseX + gap;
         if (x + sw + edge > screenW) {
-            x = Math.max(mouseX - OFFSET - sw, edge);
+            x = Math.max(mouseX - gap - sw, edge);
         }
-        float y = mouseY - OFFSET;
+        float y = mouseY - gap;
         if (y + sh + edge > screenH) {
             y = screenH - sh - edge;
         }
@@ -117,25 +157,28 @@ public final class MenuTooltips {
         private GuiGraphics g;
         private float ours;
         private float wynntils;
+        private int grid;
         private boolean pushed;
         /** The last scale drawn; read by other mods before the next tooltip is placed. */
         @SuppressWarnings("unused")
         private float scaleFactor = 1f;
 
-        void begin(GuiGraphics g, float ours, float wynntils) {
+        void begin(GuiGraphics g, float ours, float wynntils, int grid) {
             end(this.g);                            // a tooltip whose end never came: its pose first
             this.g = g;
             this.ours = ours;
             this.wynntils = wynntils;
+            this.grid = grid;
         }
 
         @Override
         public Vector2ic positionTooltip(int screenW, int screenH, int mouseX, int mouseY, int w, int h) {
-            float t = scale(ours, wynntils, h, screenH);
+            float t = onGrid(scale(ours, wynntils, h, screenH), grid);
             scaleFactor = t;
-            place(screenW, screenH, mouseX, mouseY, w, h, t, at);
+            // in a menu the gap stays the game's 12 GUI px on screen, in whole menu pixels
+            place(screenW, screenH, mouseX, mouseY, w, h, t, Math.round(OFFSET * MenuScale.tooltipGap()), at);
             pos.set(Math.round(at[0] / t), Math.round(at[1] / t));
-            double gs = Minecraft.getInstance().getWindow().getGuiScale();
+            double gs = grid > 0 ? grid : Minecraft.getInstance().getWindow().getGuiScale();
             var pose = g.pose();
             pose.pushMatrix();
             // what rounding to whole scaled units lost, so the text still starts on a window pixel
