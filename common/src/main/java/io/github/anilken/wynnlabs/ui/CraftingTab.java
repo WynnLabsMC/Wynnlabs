@@ -46,7 +46,7 @@ public final class CraftingTab {
     }
 
     /** The open dropdown (UiMenu) under its chip. */
-    enum Drop { NONE, TYPE, LEVEL, GOAL, CONDITIONS, SPEED, TIER1, TIER2, ROAD_TYPE, ROAD_PROF }
+    enum Drop { NONE, TYPE, LEVEL, GOAL, CONDITIONS, SPEED, TIER1, TIER2, ROAD_TYPE, ROAD_PROF, SET_BAND, SET_WEAPON, SUGG_LEVEL, SUGG_KIND, SET_COMBINE, SUGG_GOALS, SET_STATUS, SUGG_FILTER }
 
     public static final CraftingTab INSTANCE = new CraftingTab();
 
@@ -113,6 +113,8 @@ public final class CraftingTab {
     Screen screen;
     Font font;
     EditBox pickSearch;
+    /** The suggestions page's search (goal, item type or ingredient). */
+    EditBox suggestSearch;
     EditBox saveName;
     final List<Act> acts = new ArrayList<>();
     final List<Act> overlay = new ArrayList<>();
@@ -141,9 +143,10 @@ public final class CraftingTab {
         this.flash = flash;
         pickSearch = UiInput.box(font, "wynnlabs.craft.search_hint", pickSearch, v -> drawers.pickScroll());
         saveName = UiInput.box(font, "wynnlabs.craft.saved_name", saveName, v -> { });
+        suggestSearch = UiInput.box(font, "wynnlabs.craft.filter_search_hint", suggestSearch, v -> suggestionsPanel.queryChanged(v));
         saveName.setMaxLength(40);
         stockAt = 0;
-        return List.of(pickSearch, saveName);
+        return List.of(pickSearch, saveName, suggestSearch);
     }
 
     /** The menu was closed: running searches stop. */
@@ -419,7 +422,7 @@ public final class CraftingTab {
         return CraftInput.keyPressed(this, key);
     }
     boolean typing() {
-        return pickSearch != null && (pickSearch.isFocused() || saveName.isFocused());
+        return pickSearch != null && (pickSearch.isFocused() || saveName.isFocused() || suggestSearch != null && suggestSearch.isFocused());
     }
 
 

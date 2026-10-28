@@ -113,6 +113,82 @@ public final class Suggestions {
     }
 
     /**
+     * One level bracket's suggestions (every type that has a recipe from {@code minLevel}, every
+     * goal, every search tier), numbered from {@code firstOrder}; returns the next number. The page
+     * runs the brackets one after another, the player's first, so nothing is limited to a level.
+     */
+    public static int runBracket(List<String> types, List<GoalSet> goals, int minLevel, WhatCanICraft.Stock stock,
+                                 List<Ingredient> all, Function<String, CraftSearch.Price> prices, long millisEach,
+                                 CraftSearch.Budget budget, int firstOrder, Consumer<Suggestion> each) {
+        int order = firstOrder;
+        Set<String> seen = new HashSet<>();
+        for (GoalSet g : goals) {
+            for (String type : types) {
+                CraftData.Recipe r = CraftData.find(type, minLevel);
+                if (r == null) {
+                    continue;
+                }
+                int t1 = tier(stock, r.materials().get(0));
+                int t2 = tier(stock, r.materials().get(1));
+                for (CraftSearch.Tier tier : TIERS) {
+                    if (budget.cancelled()) {
+                        return order;
+                    }
+                    CraftSearch.Request q = new CraftSearch.Request(r, t1, t2, Craft.Speed.NORMAL, g.goal(), all,
+                            stock.ingredients(), stock.level(r.profession()), true, prices);
+                    CraftSearch.Layout l = best(q, tier, millisEach, budget, g.core());
+                    if (l == null) {
+                        continue;
+                    }
+                    String key = g.key() + "|" + type + "|" + l.slots().stream().map(Ingredient::name).sorted().toList();
+                    if (!seen.add(key)) {
+                        continue;
+                    }
+                    Suggestion s = new Suggestion(g, r, t1, t2, l, tier, order++);
+                    if (each != null) {
+                        each.accept(s);
+                    }
+                }
+            }
+        }
+        return order;
+    }
+
+    /** Every level bracket's first level, lowest first (the same for every type). */
+    public static List<Integer> bracketLevels() {
+        java.util.TreeSet<Integer> out = new java.util.TreeSet<>();
+        for (CraftData.Recipe r : CraftData.all()) {
+            out.add(r.minLevel());
+        }
+        return new ArrayList<>(out);
+    }
+
+    /**
+     * The brackets in the order worth searching: the highest a combat level can wear first, then
+     * outward (one below, one above, …), so the useful ones fill in first.
+     */
+    public static List<Integer> bracketOrder(int combatLevel) {
+        List<Integer> all = bracketLevels();
+        int home = 0;
+        for (int i = 0; i < all.size(); i++) {
+            CraftData.Recipe r = CraftData.find("ring", all.get(i));
+            if (r != null && r.maxLevel() <= Math.max(3, combatLevel)) {
+                home = i;
+            }
+        }
+        List<Integer> out = new ArrayList<>();
+        for (int d = 0; out.size() < all.size(); d++) {
+            if (home - d >= 0) {
+                out.add(all.get(home - d));
+            }
+            if (d > 0 && home + d < all.size()) {
+                out.add(all.get(home + d));
+            }
+        }
+        return out;
+    }
+
+    /**
      * The best layout worth suggesting for a request, or null: one that adds to its goal and
      * brings something of its core. When nothing keeps the goal's durability floor, the fallback floor.
      */
@@ -165,12 +241,21 @@ public final class Suggestions {
         }
         for (String id : core) {
             Craft.Range v = l.result().ids().get(id);
-            if (v != null && v.mean() > 0) {
+            if (v != null && (cost(id) ? v.mean() < 0 : v.mean() > 0)) {
                 return l;
             }
         }
         return null;
     }
+
+    /** A spell's cost: less is the gain. */
+    static boolean cost(String id) {
+        return id.endsWith("SpellCost");
+    }
+
+    /** The spell cost identifications: each spell's percent and raw cut. */
+    static final List<String> COSTS = List.of("1stSpellCost", "2ndSpellCost", "3rdSpellCost", "4thSpellCost",
+            "raw1stSpellCost", "raw2ndSpellCost", "raw3rdSpellCost", "raw4thSpellCost");
 
     /** The material tier to craft with: the best the player has enough of, else three stars (bought). */
     static int tier(WhatCanICraft.Stock stock, CraftData.Material m) {
@@ -203,7 +288,7 @@ public final class Suggestions {
      */
     public static List<String> order(boolean caster, int[] points) {
         List<String> out = new ArrayList<>(caster
-                ? List.of("rawspell", "spell", "mana")
+                ? List.of("rawspell", "spell", "mana", "spellcost")
                 : List.of("melee", "attackspeed", "rawmelee"));
         if (points != null) {
             Integer[] idx = {0, 1, 2, 3, 4};
@@ -222,7 +307,93 @@ public final class Suggestions {
                 out.add(e);
             }
         }
-        out.addAll(caster ? List.of("melee", "attackspeed") : List.of("spell"));
+        out.addAll(caster ? List.of("melee", "attackspeed") : List.of("spell", "spellcost"));
+        return out;
+    }
+
+    /** A combined goal's key prefix: "combo:rawspell+mana+spellcost". */
+    public static final String COMBO = "combo:";
+
+    /** The goals a combined key is made of ("combo:a+b" → [a, b]); a plain goal is itself. */
+    public static List<String> parts(String key) {
+        return key.startsWith(COMBO) ? List.of(key.substring(COMBO.length()).split("\\+")) : List.of(key);
+    }
+
+    public static String comboKey(List<String> parts) {
+        return COMBO + String.join("+", parts);
+    }
+
+    /**
+     * Several goals worked for together: each goal's weights scaled so its strongest core stat
+     * counts 1 (one goal does not drown the others) and added up; a piece must bring some of any
+     * goal's core; the strictest durability floor and total cap; a stat is charged as little as any
+     * of the goals charges it. Null when a part is not a goal.
+     */
+    public static GoalSet combined(List<String> parts, int level, int[] points) {
+        List<GoalSet> sets = goalSets(parts, level, points);
+        if (sets.size() != parts.size() || sets.isEmpty()) {
+            return null;
+        }
+        Map<String, Double> w = new LinkedHashMap<>();
+        Map<String, Double> pen = new LinkedHashMap<>();
+        Set<String> core = new HashSet<>();
+        int floor = 0;
+        int total = Integer.MAX_VALUE;
+        for (GoalSet g : sets) {
+            double top = 0;
+            for (Map.Entry<String, Double> e : g.goal().weights().entrySet()) {
+                if (g.core().contains(e.getKey())) {
+                    top = Math.max(top, Math.abs(e.getValue()));
+                }
+            }
+            double scale = top > 0 ? 1 / top : 1;
+            g.goal().weights().forEach((id, v) -> w.merge(id, v * scale, Double::sum));
+            g.goal().penalties().forEach((id, v) -> pen.merge(id, v, Math::min));
+            core.addAll(g.core());
+            floor = Math.max(floor, g.goal().durabilityFloor());
+            total = Math.min(total, g.goal().totalCap());
+        }
+        // a stat one goal wants is not charged as given up by another
+        w.forEach((id, v) -> pen.computeIfPresent(id, (k, p) -> Math.min(p, (LOSS - 1) * Math.abs(v))));
+        CraftSearch.Goal first = sets.get(0).goal();
+        return new GoalSet(comboKey(parts), new CraftSearch.Goal(java.util.Collections.unmodifiableMap(w), CraftSearch.Pick.MEAN,
+                Set.of(), first.caps().clone(), floor, Map.copyOf(pen), total, first.requirementCost()), Set.copyOf(core));
+    }
+
+    /**
+     * The combinations offered for a class, from what players build: casters a raw spell build that
+     * keeps its mana up, spell percent with mana, their element with raw spell, a tank with life
+     * steal; melee classes melee with attack speed and life steal, raw melee with attack speed, their
+     * element with melee, and a tank. The element is the build's strongest skill's (none while unknown).
+     */
+    public static List<List<String>> presets(boolean caster, int[] points) {
+        String element = null;
+        if (points != null) {
+            int best = -1;
+            for (int i = 0; i < 5; i++) {
+                if (points[i] > 0 && (best < 0 || points[i] > points[best])) {
+                    best = i;
+                }
+            }
+            element = best < 0 ? null : ELEMENTS.get(best);
+        }
+        List<List<String>> out = new ArrayList<>();
+        if (caster) {
+            out.add(List.of("rawspell", "mana", "spellcost"));
+            out.add(List.of("spell", "mana"));
+            if (element != null) {
+                out.add(List.of(element, "rawspell"));
+            }
+            out.add(List.of("spell", "speed"));
+        } else {
+            out.add(List.of("melee", "attackspeed", "lifesteal"));
+            out.add(List.of("rawmelee", "attackspeed"));
+            if (element != null) {
+                out.add(List.of(element, "melee"));
+            }
+            out.add(List.of("poison", "attackspeed"));
+        }
+        out.add(List.of("health", "lifesteal"));
         return out;
     }
 
@@ -278,6 +449,7 @@ public final class Suggestions {
                     pen.computeIfPresent(raw, (x, val) -> val / 5);
                 }
             }
+            pen.keySet().removeIf(Suggestions::cost);
             int floor = k.equals("poison") ? POISON_FLOOR : FLOOR;
             out.add(new GoalSet(k, new CraftSearch.Goal(java.util.Collections.unmodifiableMap(w), CraftSearch.Pick.MEAN,
                     Set.of(), caps.clone(), floor, Map.copyOf(pen), Math.min(TOTAL_CAP, 2 * caps[0]), REQUIREMENT_COST),
@@ -308,6 +480,7 @@ public final class Suggestions {
             case "poison" -> c.add("poison");
             case "health" -> c.add("rawHealth");
             case "mana" -> c.addAll(List.of("manaRegen", "manaSteal"));
+            case "spellcost" -> c.addAll(COSTS);
             case "speed" -> c.add("walkSpeed");
             case "lifesteal" -> c.add("lifeSteal");
             case "loot" -> c.addAll(List.of("lootBonus", "lootQuality"));
@@ -459,6 +632,12 @@ public final class Suggestions {
                 w.put("elementalDefence", 0.6);
                 for (String e : ELEMENTS) {
                     w.put(e + "Defence", 0.2);
+                }
+            }
+            case "spellcost" -> {
+                // a percent off a spell's cost is worth about as much as mana regeneration; a raw point more
+                for (String id : COSTS) {
+                    w.put(id, id.startsWith("raw") ? -4.0 : -1.5);
                 }
             }
             case "mana" -> {

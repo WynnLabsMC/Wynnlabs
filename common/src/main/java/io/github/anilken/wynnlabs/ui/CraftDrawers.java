@@ -7,7 +7,6 @@ import io.github.anilken.wynnlabs.crafting.CraftSearch;
 import io.github.anilken.wynnlabs.crafting.Crafting;
 import io.github.anilken.wynnlabs.crafting.Ingredient;
 import io.github.anilken.wynnlabs.crafting.LevelRoad;
-import io.github.anilken.wynnlabs.crafting.SetSuggestions;
 import io.github.anilken.wynnlabs.crafting.Shopping;
 import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -28,17 +27,16 @@ import static io.github.anilken.wynnlabs.ui.CraftFormat.pct;
 /**
  * The crafting tab's drawers ({@link UiDrawer}): a slot's ingredient picker (a search that
  * filters, sorted by what each adds to the goal there), the shopping list (what is missing and
- * where it comes from, what is owned), the saved recipes and a suggested set's pieces.
+ * where it comes from, what is owned), the saved recipes and, on a small window, a suggestion in full.
  */
 final class CraftDrawers extends CraftPanel {
 
-    enum Kind { NONE, PICK, SHOP, SAVED, SET }
+    enum Kind { NONE, PICK, SHOP, SAVED, DETAIL }
 
     private UiDrawer drawer;
     private Kind kind = Kind.NONE;
     private int slot = -1;
     private boolean ownedOnly;
-    SetSuggestions.CraftSet set;
     private String statusText;
 
     CraftDrawers(CraftingTab tab) {
@@ -67,7 +65,6 @@ final class CraftDrawers extends CraftPanel {
         }
         kind = Kind.NONE;
         slot = -1;
-        set = null;
         if (tab.pickSearch != null) {
             tab.pickSearch.setFocused(false);
         }
@@ -105,13 +102,13 @@ final class CraftDrawers extends CraftPanel {
         drawer.show(L.t("wynnlabs.craft.saved"), tab.savedPanel::content);
     }
 
-    void openSet(SetSuggestions.CraftSet s) {
+    /** A suggestion (or a set's piece) in full, on a window too small to show it beside the cards. */
+    void openDetail(String title, UiDrawer.Content content) {
         if (drawer() == null) {
             return;
         }
-        kind = Kind.SET;
-        set = s;
-        drawer.showWide(tab.setsPanel.title(s), (g, x, y, w, top, bottom, mx, my) -> tab.setsPanel.detail(g, set, x, y, w, mx, my));
+        kind = Kind.DETAIL;
+        drawer.show(title, content);
     }
 
     /** Draws the open drawer over the page {x, y, w, h}; its box takes the clicks. */

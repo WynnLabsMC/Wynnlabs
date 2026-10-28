@@ -19,6 +19,10 @@ final class CraftInput {
     private CraftInput() {}
 
     static boolean mouseClicked(CraftingTab tab, double mx, double my, int button) {
+        int[] sb = tab.suggestionsPanel.searchBox;
+        if (tab.suggestSearch != null && tab.suggestSearch.isFocused() && (sb == null || !CraftPanel.in(mx, my, sb[0], sb[1], sb[2], sb[3]))) {
+            tab.suggestSearch.setFocused(false);
+        }
         if (tab.open != Drop.NONE && tab.dropMenu.press(mx, my)) {
             return true;                            // the tab.open list's tab.scroll bar
         }

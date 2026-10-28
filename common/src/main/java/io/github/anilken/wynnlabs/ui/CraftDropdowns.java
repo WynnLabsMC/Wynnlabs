@@ -110,6 +110,12 @@ final class CraftDropdowns extends CraftPanel {
             }
             case ROAD_TYPE -> items.list.addAll(tab.roadPanel.typeItems());
             case ROAD_PROF -> items.list.addAll(tab.roadPanel.profItems());
+            case SET_BAND -> items.list.addAll(tab.setsPanel.bandItems());
+            case SET_WEAPON -> items.list.addAll(tab.setsPanel.weaponItems());
+            case SUGG_LEVEL -> items.list.addAll(tab.suggestionsPanel.levelItems());
+            case SUGG_KIND -> items.list.addAll(tab.suggestionsPanel.kindItems());
+            case SET_COMBINE -> items.list.addAll(tab.setsPanel.combineItems());
+            case SUGG_GOALS, SET_STATUS, SUGG_FILTER -> items.list.addAll(tab.suggestionsPanel.filterItems(tab.open));
             default -> { }
         }
         return items.list;
@@ -167,6 +173,32 @@ final class CraftDropdowns extends CraftPanel {
             }
             case ROAD_PROF -> {
                 tab.roadPanel.pickProf(id);
+                tab.open = Drop.NONE;
+            }
+            case SET_BAND -> {
+                tab.setsPanel.pickBand(id);
+                tab.open = Drop.NONE;
+            }
+            case SET_WEAPON -> {
+                tab.setsPanel.pickWeapon(id);
+                tab.open = Drop.NONE;
+            }
+            case SUGG_GOALS, SET_STATUS, SUGG_FILTER -> {
+                if (tab.suggestionsPanel.pickFilter(id)) {
+                    tab.open = Drop.NONE;
+                }
+            }
+            case SET_COMBINE -> {
+                if (tab.setsPanel.pickCombine(id)) {
+                    tab.open = Drop.NONE;
+                }
+            }
+            case SUGG_KIND -> {
+                tab.suggestionsPanel.pickKind(id);
+                tab.open = Drop.NONE;
+            }
+            case SUGG_LEVEL -> {
+                tab.suggestionsPanel.pickLevel(id.equals("all") ? null : Integer.valueOf(id));
                 tab.open = Drop.NONE;
             }
             default -> { }

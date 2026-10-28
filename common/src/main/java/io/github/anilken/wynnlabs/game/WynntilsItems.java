@@ -157,6 +157,32 @@ public final class WynntilsItems {
     }
 
     /**
+     * The model Wynncraft shows for a crafted piece of a type ("relik", "helmet"): Wynntils' base
+     * item of that gear type with the pack's model number; null for a consumable, an unknown type
+     * or without Wynntils.
+     */
+    public static ItemStack craftedIcon(String type) {
+        return Wyn.guard(Wyn.Feature.GEAR_DB, () -> {
+            GearType gt = GearType.fromString(type);
+            if (gt == null || gt.getDefaultItem() == null) {
+                return null;
+            }
+            ItemStack s = new ItemStack(gt.getDefaultItem());
+            if (gt.isArmor()) {
+                // the pack's armour models sit on another base item (on this one the number draws a shield):
+                // the plain armour piece, as Wynncraft shows crafted armour on the character
+                return s;
+            }
+            float model = gt.getDefaultModel();
+            if (model > 0) {
+                s.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA,
+                        new net.minecraft.world.item.component.CustomModelData(List.of(model), List.of(), List.of(), List.of()));
+            }
+            return s;
+        }, null);
+    }
+
+    /**
      * Wynntils' guide stack for an item of the search index (gear, ingredient, tome, charm), with
      * its full tooltip; null for a material, an unknown name or without Wynntils.
      */

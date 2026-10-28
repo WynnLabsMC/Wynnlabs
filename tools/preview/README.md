@@ -15,6 +15,7 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
   the small layout). The layout matrix (`-PpreviewOnly=layout`) keeps its own list of sizes.
 - `-PpreviewOnly=home`: only the Home tab (now, out of date, the options view).
 - `-PpreviewOnly=crafting`: only the crafting tab's shots.
+- `-PpreviewOnly=craftsuggest`: only the crafting tab's Suggestions page (cards, a picked card, a status filter, the set page).
 - `-PpreviewOnly=quests`: only the quests tab, on the fixture's quest book (Jungle Fever started), plus the content kinds
   (the kind menu, a cave, Recommended with places) from a small built-in sample of caves and places.
 - `-PpreviewOnly=guide`: the quest guide window (Jungle Fever) on the recorded Shaman.

@@ -2,42 +2,59 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.crafting.Craft;
-import io.github.anilken.wynnlabs.crafting.CraftChecks;
 import io.github.anilken.wynnlabs.crafting.CraftSearch;
 import io.github.anilken.wynnlabs.crafting.Crafting;
 import io.github.anilken.wynnlabs.crafting.Ingredient;
-import io.github.anilken.wynnlabs.crafting.RecipeCode;
 import io.github.anilken.wynnlabs.crafting.SavedRecipes;
 import io.github.anilken.wynnlabs.crafting.SearchRunner;
 import io.github.anilken.wynnlabs.crafting.SetSuggestions;
+import io.github.anilken.wynnlabs.crafting.SuggestionBoard;
 import io.github.anilken.wynnlabs.crafting.Suggestions;
 import io.github.anilken.wynnlabs.crafting.Types;
 import io.github.anilken.wynnlabs.crafting.WynnBuilderCode;
+import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.ui.CraftingTab.Act;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static io.github.anilken.wynnlabs.ui.CraftFormat.range;
-import static io.github.anilken.wynnlabs.ui.CraftFormat.skill;
 import static io.github.anilken.wynnlabs.ui.CraftFormat.typeName;
 
 /**
- * Whole suggested sets on the Öneriler page: one row a set in the same two groups as the pieces
- * (from what is owned, with a few bought); its "Parçalar ›" opens the pieces in a drawer, where each
- * goes to the Tarif page or its code is copied, and the whole set is saved or its codes copied.
+ * Sets: the goals' sets as a list on the left (a goal's icon, its name, the band and the set's main
+ * gain), the picked set on the right as it is: a header with its key totals large, the rest in one
+ * quiet line and what stops you wearing it said once; its pieces as calm cards (the model, the main
+ * gain and durability, one status, the 2×3 recipe in small icons); a line of what it takes. A piece
+ * opens its recipe in a drawer. A small window shows the list first and the set in its place.
  */
 final class CraftSetsPanel extends CraftPanel {
 
+    static final int PIECE_H = CraftSuggestionsPanel.CARD_H;
+    private static final int PIECE_MIN_W = 220;
+    private static final int ROW_H = 22;
+    /** A list row's click area (the row and its wash). */
+    static final int ROW_LIST_H = ROW_H + 2 * Theme.SP_2;
+
     private final SearchRunner setRunner = new SearchRunner();
     private CraftSearch.Budget setting;
-    private String setsFor = "";
+    /** The band shown (0 = the highest wearable) and the tier. */
+    int step;
+    CraftSearch.Tier tier = SuggestionBoard.DEFAULT_TIER;
+    /** Kept for the drawer's piece; -1 when none. */
+    int piece = -1;
+    /** On a small window: the set is open in place of the list. */
+    boolean open;
+
+    private final ScrollBar listBar = new ScrollBar();
+    private int listScroll;
+    private int listMax;
+    private int[] listBox;
 
     CraftSetsPanel(CraftingTab tab) {
         super(tab);
@@ -46,219 +63,867 @@ final class CraftSetsPanel extends CraftPanel {
     void stop() {
         setRunner.cancel();
         setting = null;
-        setsFor = "";
     }
 
     boolean running() {
         return setting != null && !setting.cancelled();
     }
 
+    /** The weapon of the sets (null: the class's) and the band's first level (0: the player's). */
+    String weapon;
+    int band;
+
+    String weaponShown() {
+        if (weapon != null) {
+            return weapon;
+        }
+        String w = CraftSuggestionsPanel.classWeapon();
+        return w == null ? "spear" : w;
+    }
+
+    int bandShown() {
+        return band > 0 ? band : Suggestions.bracketOrder(CraftSuggestionsPanel.combatLevel()).get(0);
+    }
+
+    /**
+     * Shows what the cache has for the weapon and band shown; nothing is worked out unless the
+     * player presses Calculate.
+     */
     void startSets(boolean force) {
-        String k = tab.suggestKey();
-        if (!force && k.equals(setsFor) && (setting != null || !tab.sets.isEmpty())) {
+        loadCached();
+        if (force) {
+            calculate(true);
+        }
+    }
+
+    /** The weapon and band keys already read from the cache into the list. */
+    private java.util.Set<String> loaded;
+    private String loadedFor;
+    /** A calculation running: how many bands of how many, the one being worked out. */
+    volatile int calcDone;
+    volatile int calcTotal;
+    volatile int calcAt;
+
+    /** Reads the cached sets of the weapon and band shown into the list, once each. */
+    void loadCached() {
+        io.github.anilken.wynnlabs.crafting.SuggestionCache c = CraftSuggestCache.get(tab);
+        String who = io.github.anilken.wynnlabs.core.Profile.id() + "|" + c.data();
+        if (loaded == null || !who.equals(loadedFor)) {
+            loaded = java.util.concurrent.ConcurrentHashMap.newKeySet();
+            loadedFor = who;
+            tab.sets.clear();
+        }
+        String w = weaponShown();
+        int lv = bandShown();
+        if (c.hasSets(w, lv) && loaded.add(w + "|" + lv)) {
+            tab.sets.addAll(c.sets(w, lv, CraftSuggestCache.goals(tab), CraftSuggestCache.ingredients(tab)));
+        }
+    }
+
+    /** Calculates the band shown ({@code again}: also when it is cached). */
+    void calculate(boolean again) {
+        run(List.of(bandShown()), again);
+    }
+
+    /** Calculates every band of the weapon shown that is not cached, the player's first. */
+    void calculateAll() {
+        run(Suggestions.bracketOrder(CraftSuggestionsPanel.combatLevel()), false);
+    }
+
+    private void run(List<Integer> bands, boolean again) {
+        io.github.anilken.wynnlabs.crafting.SuggestionCache c = CraftSuggestCache.get(tab);
+        String w = weaponShown();
+        List<Integer> queue = new ArrayList<>();
+        for (int lv : bands) {
+            if (again || !c.hasSets(w, lv)) {
+                queue.add(lv);
+            }
+        }
+        if (queue.isEmpty()) {
             return;
         }
-        setsFor = k;
-        tab.sets.clear();
+        tab.suggestionsPanel.stopCalculating();
+        setRunner.cancel();
         var st = tab.suggestionsPanel.stockForSearch();
+        String print = CraftSuggestCache.stock(tab);
         List<Ingredient> all = tab.ingredients;
         Map<String, CraftSearch.Price> pr = new HashMap<>(tab.prices);
-        String weapon = tab.suggestionsPanel.suggestTypes().get(0);
-        List<Suggestions.GoalSet> goals = tab.suggestionsPanel.goalSets();
-        int combat = CraftSuggestionsPanel.combatLevel();
-        setting = setRunner.run(300_000, b -> {
-            SetSuggestions.run(weapon, goals, combat, st, all, pr::get, 120, b, tab.sets::add);
+        List<Suggestions.GoalSet> goals = setGoalSets();
+        calcDone = 0;
+        calcTotal = queue.size();
+        calcAt = queue.get(0);
+        setting = setRunner.run(60 * 60_000, b -> {
+            for (int lv : queue) {
+                calcAt = lv;
+                List<SetSuggestions.CraftSet> found = new ArrayList<>();
+                tab.sets.removeIf(x -> x.step() == lv && x.pieces().get(0).type().equals(w));
+                SetSuggestions.runBand(w, goals, lv, st, all, pr::get, 120, b, x -> {
+                    found.add(x);
+                    tab.sets.add(x);
+                });
+                if (b.cancelled()) {
+                    return;
+                }
+                c.putSets(w, lv, print, System.currentTimeMillis(), found);
+                CraftSuggestCache.save();
+                if (loaded != null) {
+                    loaded.add(w + "|" + lv);
+                }
+                calcDone++;
+            }
             b.cancel();
         });
     }
 
-    String title(SetSuggestions.CraftSet s) {
-        String bracket = "";
+    void stopCalculating() {
+        setRunner.cancel();
+    }
+
+    /** Works out one goal or combination for the band shown (a combination added after the band was calculated). */
+    void calculateGoal(String key) {
+        Suggestions.GoalSet goal = null;
+        for (Suggestions.GoalSet g : setGoalSets()) {
+            if (g.key().equals(key)) {
+                goal = g;
+            }
+        }
+        if (goal == null) {
+            return;
+        }
+        tab.suggestionsPanel.stopCalculating();
+        setRunner.cancel();
+        io.github.anilken.wynnlabs.crafting.SuggestionCache c = CraftSuggestCache.get(tab);
+        String w = weaponShown();
+        int lv = bandShown();
+        var st = tab.suggestionsPanel.stockForSearch();
+        String print = CraftSuggestCache.stock(tab);
+        List<Ingredient> all = tab.ingredients;
+        Map<String, CraftSearch.Price> pr = new HashMap<>(tab.prices);
+        List<Suggestions.GoalSet> one = List.of(goal);
+        calcDone = 0;
+        calcTotal = 1;
+        calcAt = lv;
+        setting = setRunner.run(10 * 60_000, b -> {
+            List<SetSuggestions.CraftSet> found = new ArrayList<>();
+            SetSuggestions.runBand(w, one, lv, st, all, pr::get, 120, b, x -> {
+                found.add(x);
+                tab.sets.add(x);
+            });
+            if (!b.cancelled()) {
+                c.addSets(w, lv, print, System.currentTimeMillis(), found);
+                CraftSuggestCache.save();
+                calcDone = 1;
+            }
+            b.cancel();
+        });
+    }
+
+    boolean calculating() {
+        return running();
+    }
+
+    String progressText() {
+        return L.t("wynnlabs.craft.calc_progress", CraftSuggestionsPanel.levelLabel(calcAt), Math.min(calcTotal, calcDone + 1), calcTotal);
+    }
+
+    boolean anyBandMissing() {
+        io.github.anilken.wynnlabs.crafting.SuggestionCache c = CraftSuggestCache.get(tab);
+        String w = weaponShown();
+        for (int lv : Suggestions.bracketLevels()) {
+            if (!c.hasSets(w, lv)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** "Updated 3 h ago" for the band and weapon shown, or that it is not calculated yet. */
+    String updatedText() {
+        var e = CraftSuggestCache.get(tab).setsEntry(weaponShown(), bandShown());
+        return e == null ? L.t("wynnlabs.craft.calc_none_band", CraftSuggestionsPanel.levelLabel(bandShown()), typeName(weaponShown()))
+                : CraftSuggestCache.updated(tab, e);
+    }
+
+    /** A goal's set for the weapon, band and tier shown; null when none (yet). */
+    SetSuggestions.CraftSet of(String goal) {
+        String w = weaponShown();
+        int lv = bandShown();
+        List<SetSuggestions.CraftSet> mine = new ArrayList<>();
+        for (SetSuggestions.CraftSet s : tab.sets) {
+            if (s.step() == lv && !s.pieces().isEmpty() && s.pieces().get(0).type().equals(w)) {
+                mine.add(s);
+            }
+        }
+        return SuggestionBoard.pickSet(mine, goal, lv, tier);
+    }
+
+    SetSuggestions.CraftSet current() {
+        return of(currentSetGoal());
+    }
+
+    /** The goal (or combination) shown in Sets, null for the first with a set. */
+    String setGoal;
+    /** The goals ticked in the Combine menu. */
+    private List<String> combining;
+
+    String currentSetGoal() {
+        if (setGoal != null) {
+            return setGoal;
+        }
+        List<String> g = goals();
+        return g.isEmpty() ? tab.suggestionsPanel.goalOrder().get(0) : g.get(0);
+    }
+
+    /** The combinations listed: the class's presets, then the player's own. */
+    List<String> combos() {
+        List<String> out = new ArrayList<>();
+        boolean caster = CraftSuggestionsPanel.classWeapon() != null
+                && (CraftSuggestionsPanel.classWeapon().equals("wand") || CraftSuggestionsPanel.classWeapon().equals("relik"));
+        for (List<String> pr : Suggestions.presets(caster, tab.suggestionsPanel.points())) {
+            out.add(Suggestions.comboKey(pr));
+        }
+        for (String k : CraftCombos.load()) {
+            if (!out.contains(k)) {
+                out.add(k);
+            }
+        }
+        return out;
+    }
+
+    /** Every goal and combination a band's sets are worked out for. */
+    List<Suggestions.GoalSet> setGoalSets() {
+        List<Suggestions.GoalSet> out = new ArrayList<>(tab.suggestionsPanel.goalSets());
+        for (String k : combos()) {
+            Suggestions.GoalSet g = Suggestions.combined(Suggestions.parts(k), CraftSuggestionsPanel.combatLevel(), tab.suggestionsPanel.points());
+            if (g != null) {
+                out.add(g);
+            }
+        }
+        return out;
+    }
+
+    /** "Lv 105–107": the set's armour band. */
+    static String band(SetSuggestions.CraftSet s) {
         for (SetSuggestions.Piece pc : s.pieces()) {
             if (pc.recipe() != null && Types.armour(pc.type())) {
-                bracket = pc.recipe().bracket().replace('-', '–');
-                break;
+                return "Lv " + pc.recipe().bracket().replace('-', '–');
             }
         }
-        return L.t("wynnlabs.craft.set_name", L.t("wynnlabs.craft.goalset." + s.goal().key()), bracket);
+        return "";
     }
 
-    private String cost(SetSuggestions.CraftSet s) {
-        return tab.liveCost(s.bought());
+    String title(SetSuggestions.CraftSet s) {
+        return L.t("wynnlabs.craft.set_title", CraftSuggestDetail.goalLabel(s.goal().key()));
     }
 
-    /** The sets in their two groups; returns the height. */
-    int list(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
-        List<SetSuggestions.CraftSet> own = new ArrayList<>();
-        List<SetSuggestions.CraftSet> buy = new ArrayList<>();
-        for (SetSuggestions.CraftSet s : SetSuggestions.strongest(tab.sets)) {
-            if (tab.suggestionsPanel.shows(s)) {
-                (s.fromStock() ? own : buy).add(s);
-            }
-        }
-        List<String> goals = tab.suggestionsPanel.goalOrder();
-        java.util.Comparator<SetSuggestions.CraftSet> order = (a, b) -> {
-            int ga = goals.indexOf(a.goal().key());
-            int gb = goals.indexOf(b.goal().key());
-            return ga != gb ? Integer.compare(ga, gb) : Integer.compare(a.step(), b.step());
+    static String goalIcon(String key) {
+        return switch (key) {
+            case "rawspell" -> "wand";
+            case "spell" -> "sparkles";
+            case "mana" -> "crystal-ball";
+            case "rawmelee", "melee" -> "sword";
+            case "attackspeed" -> "clock";
+            case "poison" -> "skull";
+            case "health" -> "shield";
+            case "earth" -> "leaf";
+            case "thunder" -> "bolt";
+            case "water" -> "droplet";
+            case "fire" -> "flame";
+            case "air" -> "circles";
+            case "speed" -> "shoe";
+            case "lifesteal" -> "heart";
+            case "loot" -> "gift";
+            default -> "trending-up";
         };
-        own.sort(order);
-        buy.sort(order);
-        int cy = y;
-        if (own.isEmpty() && buy.isEmpty()) {
-            Type.MUTED.draw(g, tab.font, L.t(running() ? "wynnlabs.craft.set_working" : "wynnlabs.craft.suggest_none"), x, cy, Theme.INK_3);
-            return Type.MUTED.lineHeight;
-        }
-        int rowH = Type.LABEL.lineHeight + Type.META.lineHeight;
-        for (int grp = 0; grp < 2; grp++) {
-            List<SetSuggestions.CraftSet> list = grp == 0 ? own : buy;
-            if (list.isEmpty()) {
-                continue;
-            }
-            cy = tab.recipePanel.head(g, L.t(grp == 0 ? "wynnlabs.craft.group_own" : "wynnlabs.craft.group_buy"),
-                    String.valueOf(list.size()), x, cy, w);
-            for (SetSuggestions.CraftSet s : list) {
-                if (cy + rowH > top && cy < bottom) {
-                    row(g, s, x, cy, w, rowH, mx, my);
-                }
-                cy += rowH + Theme.SP_2;
-            }
-            cy += Theme.SP_5;
-        }
-        return cy - y;
     }
 
-    private void row(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, int rowH, int mx, int my) {
-        boolean hover = in(mx, my, x, y, w, rowH);
-        CraftIcons.typeSlot(g, s.pieces().get(0).type(), x, y + (rowH - 18) / 2, 18, Theme.INK_2);
-        int tx = x + 18 + Theme.SP_3;
-        String open = L.t("wynnlabs.craft.set_view");
-        int ow = Ui.chipWidth(tab.font, open);
-        int right = x + w - ow;
-        Ui.chip(g, tab.font, open, right, y + (rowH - Ui.CHIP_H) / 2, ow, false, false, false, mx, my);
-        clipped(right, y + (rowH - Ui.CHIP_H) / 2, ow, Ui.CHIP_H, () -> tab.drawers.openSet(s), null, List.of(L.c("wynnlabs.craft.set_view_tip")));
-        right -= Theme.SP_4;
-        int notWorn = 0;
-        for (SetSuggestions.Piece pc : s.pieces()) {
-            if (pc.layout() != null && !pc.recipe().consumable() && !CraftChecks.gaps(pc.layout().result().requirements(), tab.points).isEmpty()) {
-                notWorn++;
+    /** The goals that have a set, in the class's order (the combinations are listed apart). */
+    private List<String> goals() {
+        List<String> out = new ArrayList<>();
+        for (String g : tab.suggestionsPanel.goalOrder()) {
+            if (of(g) != null) {
+                out.add(g);
             }
         }
-        String mark = s.bought().isEmpty() ? L.t("wynnlabs.craft.in_stock_all") : L.n("wynnlabs.craft.to_buy_n", s.bought().size()) + CraftSuggestionsPanel.costPart(cost(s));
-        int sw = Type.META.width(tab.font, mark) + 2 * Theme.SP_2;
-        Ui.seal(g, tab.font, mark, right - sw, y + (rowH - Ui.SEAL_H) / 2, s.bought().isEmpty() ? Theme.GOOD : Theme.WARN);
-        right -= sw + Theme.SP_4;
-        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, title(s), right - tx), tx, y, hover ? Theme.LINK : Theme.TIER_LEGENDARY);
-        StringBuilder tot = new StringBuilder();
-        int shown = 0;
-        for (String id : s.goal().goal().weights().keySet()) {
-            Craft.Range v = s.totals().get(id);
-            if (v == null || shown == 2) {
-                continue;
-            }
-            tot.append(tot.isEmpty() ? "" : " · ").append(tab.statName(id)).append(' ').append(range(v, tab.unit(id)));
-            shown++;
-        }
-        String sub = L.n("wynnlabs.craft.set_pieces", s.found()) + (tot.isEmpty() ? "" : " · " + tot)
-                + (notWorn > 0 ? " · " + L.t("wynnlabs.craft.set_not_worn", notWorn) : "");
-        Type.META.draw(g, tab.font, Type.META.fit(tab.font, sub, right - tx), tx, y + Type.LABEL.lineHeight, notWorn > 0 ? Theme.WARN : Theme.GOOD);
-        clipped(x, y, w - ow - Theme.SP_4, rowH, () -> tab.drawers.openSet(s), null, null);
+        return out;
     }
 
-    /** The drawer: the set's pieces, then save all and copy all codes; returns the height. */
-    int detail(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, int mx, int my) {
+    /** Draws the page in {x, y, w, h}. */
+    void page(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
+        listBox = null;
+        listBar.place(0, 0, 0, 1, 1, 0);
+        List<String> goals = goals();
+        if (goals.isEmpty()) {
+            // nothing for this band and weapon (yet): its menus stay, to pick another, and the player starts it
+            chips(g, x, y, x + w, mx, my);
+            int top = y + Ui.CHIP_H + Theme.SP_4;
+            if (running() || CraftSuggestCache.get(tab).hasSets(weaponShown(), bandShown())) {
+                Type.MUTED.draw(g, tab.font, L.t(running() ? "wynnlabs.craft.set_working" : "wynnlabs.craft.suggest_none"), x, top, Theme.INK_3);
+                return;
+            }
+            int[] box = UiEmpty.draw(g, tab.font, x, top, w, y + h - top, w < CraftingTab.TWO_COLUMNS_MIN, "sparkles", updatedText(),
+                    List.of(L.t("wynnlabs.craft.calc_set_step_1"), L.t("wynnlabs.craft.calc_step_2"), L.t("wynnlabs.craft.calc_step_3")),
+                    new UiEmpty.Action("player-play", L.t("wynnlabs.craft.calc_band"), "calc"), null, mx, my);
+            if (box != null) {
+                tab.acts.add(new Act(box[0], box[1], box[2], box[3], () -> calculate(false), null, null));
+            }
+            return;
+        }
+        String cur = currentSetGoal();
+        if (!goals.contains(cur) && !combos().contains(cur)) {
+            cur = goals.get(0);
+            setGoal = cur;
+        }
+        SetSuggestions.CraftSet s = of(cur);
+        if (w >= CraftSuggestionsPanel.SPLIT_MIN) {
+            int lw = Math.max(180, Math.min(220, w / 4));
+            list(g, goals, cur, x, y, lw, h, mx, my);
+            int rx = x + lw + Theme.SP_7;
+            Kit.hair(g, x + lw + Theme.SP_7 / 2, y, 1, h, 0x449A855C);
+            set(g, s, rx, y, w - lw - Theme.SP_7, h, false, mx, my);
+            return;
+        }
+        if (!open) {
+            list(g, goals, cur, x, y, w, h, mx, my);
+            return;
+        }
+        String back = L.t("wynnlabs.craft.sets_back");
+        int bw = Ui.iconChipWidth(tab.font, "chevron-left", back, false);
+        Ui.iconChip(g, tab.font, "chevron-left", back, false, x, y, bw, false, mx, my);
+        tab.acts.add(new Act(x, y, bw, Ui.CHIP_H, () -> open = false, null, null));
+        int top = y + Ui.CHIP_H + Theme.SP_4;
+        set(g, s, x, top, w, y + h - top, true, mx, my);
+    }
+
+    // ---- the list ----
+
+    /**
+     * The list's rows, one list: the goals with a set in the class's order, each followed by the
+     * combinations that start with it; the combinations not worked out for this band yet last.
+     */
+    private List<String> rows(List<String> goals) {
+        List<String> all = unfiltered(goals);
+        List<String> out = new ArrayList<>();
+        for (String k : all) {
+            if (shownByFilters(k)) {
+                out.add(k);
+            }
+        }
+        return out;
+    }
+
+    /** A row passes the goal groups, the search (goal, pieces, ingredients), "wearable now" and the status. */
+    private boolean shownByFilters(String key) {
+        io.github.anilken.wynnlabs.crafting.SuggestionFilter f = tab.suggestionsPanel.filter();
+        if (!f.goalMatches(key)) {
+            return false;
+        }
+        SetSuggestions.CraftSet s = of(key);
+        List<String> names = new ArrayList<>();
+        names.add(CraftSuggestDetail.goalLabel(key));
         if (s == null) {
-            return 0;
+            return !f.wearable && f.sets == null && io.github.anilken.wynnlabs.crafting.SuggestionFilter.queryMatches(f.query, names);
         }
-        int cy = y;
-        int maxSkill = -1;
-        for (int k = 0; k < 5; k++) {
-            if (s.maxRequirements()[k] > 0 && (maxSkill < 0 || s.maxRequirements()[k] > s.maxRequirements()[maxSkill])) {
-                maxSkill = k;
-            }
+        if (f.wearable && !io.github.anilken.wynnlabs.crafting.SuggestionFilter.wearable(s.maxRequirements(), tab.points)) {
+            return false;
         }
-        String req = maxSkill < 0 ? L.t("wynnlabs.craft.set_no_req")
-                : L.t("wynnlabs.craft.set_req", skill(maxSkill), s.maxRequirements()[maxSkill], tab.points[maxSkill]);
-        boolean reqOk = maxSkill < 0 || tab.points[maxSkill] >= s.maxRequirements()[maxSkill];
-        Type.META.draw(g, tab.font, Type.META.fit(tab.font, req, w), x, cy, reqOk ? Theme.INK_2 : Theme.BAD);
-        cy += Type.META.lineHeight + Theme.SP_4;
-        int rowH = Type.BODY.lineHeight + Type.META.lineHeight;
+        if (f.sets != null && io.github.anilken.wynnlabs.crafting.SuggestionFilter.setStatus(SuggestionBoard.pieces(s, tab::level)) != f.sets) {
+            return false;
+        }
         for (SetSuggestions.Piece pc : s.pieces()) {
-            CraftIcons.typeSlot(g, pc.type(), x, cy + (rowH - 18) / 2, 18, pc.layout() == null ? Theme.INK_3 : Theme.INK_2);
-            int tx = x + 18 + Theme.SP_3;
-            String nm = typeName(pc.type()) + (pc.recipe() == null ? "" : " · Lv " + pc.recipe().bracket().replace('-', '–'));
-            if (pc.layout() == null) {
-                Type.BODY.draw(g, tab.font, nm, tx, cy, Theme.INK_3);
-                Type.META.draw(g, tab.font, L.t("wynnlabs.craft.set_piece_none"), tx, cy + Type.BODY.lineHeight, Theme.INK_3);
-                cy += rowH + Theme.SP_2;
-                continue;
+            names.add(typeName(pc.type()));
+            if (pc.layout() != null) {
+                for (Ingredient in : pc.layout().slots()) {
+                    if (!in.empty()) {
+                        names.add(in.name());
+                    }
+                }
             }
-            String openL = L.t("wynnlabs.craft.suggest_open");
-            String codeL = L.t("wynnlabs.craft.code");
-            int ow = Ui.chipWidth(tab.font, openL);
-            int cw = Ui.chipWidth(tab.font, codeL);
-            int bx = x + w - ow;
-            int by = cy + (rowH - Ui.CHIP_H) / 2;
-            Ui.chip(g, tab.font, openL, bx, by, ow, false, false, false, mx, my);
-            SetSuggestions.Piece piece = pc;
-            tab.overlay.add(new Act(bx, by, ow, Ui.CHIP_H, () -> openPiece(s, piece), null, List.of(L.c("wynnlabs.craft.suggest_open_tip"))));
-            bx -= Theme.SP_2 + cw;
-            Ui.chip(g, tab.font, codeL, bx, by, cw, false, false, false, mx, my);
-            tab.overlay.add(new Act(bx, by, cw, Ui.CHIP_H, () -> {
-                Minecraft.getInstance().keyboardHandler.setClipboard(pieceCode(piece));
-                tab.flash.accept(L.t("wynnlabs.craft.code_copied"));
-            }, null, null));
-            bx -= Theme.SP_2 + Ui.CHIP_H + 2;
-            Ui.iconButton(g, "world", bx, by, false, mx, my);
-            tab.overlay.add(new Act(bx, by, Ui.CHIP_H + 2, Ui.CHIP_H,
-                    () -> copyLink(tab, WynnBuilderCode.link(pieceRecipe(piece))), null, List.of(L.c("wynnlabs.craft.tip.wb_link"))));
-            int right = bx - Theme.SP_4;
-            Type.BODY.draw(g, tab.font, Type.BODY.fit(tab.font, nm, right - tx), tx, cy);
-            String v = pieceValue(s, pc);
-            String note = pc.layout().bought().isEmpty() ? L.t("wynnlabs.craft.in_stock_all") : L.n("wynnlabs.craft.to_buy_n", pc.layout().bought().size());
-            Type.META.draw(g, tab.font, Type.META.fit(tab.font, v + " · " + note, right - tx), tx, cy + Type.BODY.lineHeight, Theme.GOOD);
-            List<Component> tip = new ArrayList<>();
-            for (Ingredient in : pc.layout().slots()) {
-                tip.add(Component.literal(in.empty() ? "—" : in.name()).withStyle(in.empty() ? ChatFormatting.GRAY : ChatFormatting.WHITE));
+        }
+        return io.github.anilken.wynnlabs.crafting.SuggestionFilter.queryMatches(f.query, names);
+    }
+
+    private List<String> unfiltered(List<String> goals) {
+        List<String> combos = combos();
+        List<String> out = new ArrayList<>();
+        for (String gk : goals) {
+            out.add(gk);
+            for (String c : combos) {
+                if (Suggestions.parts(c).get(0).equals(gk) && of(c) != null) {
+                    out.add(c);
+                }
             }
-            tab.overlay.add(new Act(x, cy, right - x, rowH, null, null, tip));
-            cy += rowH + Theme.SP_2;
+        }
+        for (String c : combos) {
+            if (!out.contains(c) && of(c) != null) {
+                out.add(c);
+            }
+        }
+        for (String c : combos) {
+            if (!out.contains(c)) {
+                out.add(c);
+            }
+        }
+        return out;
+    }
+
+    private void list(GuiGraphics g, List<String> goals, String cur, int x, int y, int w, int h, int mx, int my) {
+        List<String> rows = rows(goals);
+        Type.LABEL.draw(g, tab.font, L.t("wynnlabs.craft.sets"), x, y, Theme.INK_2);
+        Type.META.drawRight(g, tab.font, String.valueOf(rows.size()), x + w, y + 1, Theme.INK_3);
+        int top = y + Type.LABEL.lineHeight + Theme.SP_3 + Theme.SP_2;
+        int bottom = y + h;
+        int pitch = ROW_H + 3 * Theme.SP_2;
+        int used = rows.size() * pitch + Ui.CHIP_H;
+        boolean bar = used > bottom - top;
+        int cw = bar ? w - ScrollBar.W - Theme.SP_2 : w;
+        listMax = Math.max(0, used - (bottom - top));
+        listScroll = Math.min(listScroll, listMax);
+        listBox = new int[] {x, top - Theme.SP_2, w, bottom - top + Theme.SP_2};
+        tab.clip = listBox;
+        g.enableScissor(x - Theme.SP_2, top - Theme.SP_2, x + w + Theme.SP_2, bottom);
+        int ry = top - listScroll;
+        if (rows.isEmpty()) {
+            Type.MUTED.draw(g, tab.font, L.t("wynnlabs.craft.filter_none"), x, ry, Theme.INK_3);
+            ry += Type.MUTED.lineHeight + Theme.SP_4;
+        }
+        for (String key : rows) {
+            row(g, key, cur, x, ry, cw, top, bottom, mx, my);
+            ry += pitch;
+        }
+        String add = L.t("wynnlabs.craft.combine");
+        int aw = Ui.iconChipWidth(tab.font, "plus", add, true);
+        if (ry + Ui.CHIP_H > top - Theme.SP_2 && ry < bottom) {
+            Ui.iconChip(g, tab.font, "plus", add, true, x, ry, aw, tab.open == CraftingTab.Drop.SET_COMBINE, mx, my);
+            int[] anchor = {x, ry, aw, Ui.CHIP_H};
+            clipped(x, ry, aw, Ui.CHIP_H, () -> {
+                combining = new ArrayList<>();
+                tab.toggle(CraftingTab.Drop.SET_COMBINE, anchor);
+            }, null, List.of(L.c("wynnlabs.craft.combine_tip")));
+        }
+        g.disableScissor();
+        tab.clip = null;
+        if (bar) {
+            listBar.place(x + w - ScrollBar.W, top, bottom - top, bottom - top, used, listScroll);
+            listBar.draw(g, mx, my);
+        }
+    }
+
+    /** One row of the list: the goal's icon, its name, the band and the set's main gain ("…" while not calculated). */
+    private void row(GuiGraphics g, String key, String cur, int x, int ry, int cw, int top, int bottom, int mx, int my) {
+        if (ry + ROW_H < top - Theme.SP_2 || ry > bottom) {
+            return;
+        }
+        SetSuggestions.CraftSet s = of(key);
+        boolean picked = key.equals(cur);
+        boolean hover = in(mx, my, x, ry - Theme.SP_2, cw, ROW_H + 2 * Theme.SP_2) && my >= top - Theme.SP_2 && my < bottom;
+        if (picked) {
+            Kit.rowLit(g, x - Theme.SP_2, ry - Theme.SP_2, cw + 2 * Theme.SP_2, ROW_H + 2 * Theme.SP_2);
+        }
+        Kit.tile(g, x, ry + 2, 18, picked ? 0xFFF6E3A8 : 0xFFF4E9C8, picked ? Theme.GOLD_EDGE : 0x669A855C);
+        boolean combo = key.startsWith(Suggestions.COMBO);
+        String icon = goalIcon(Suggestions.parts(key).get(0));
+        Art.icon(g, icon, x + Ui.iconIn(18, 10), ry + 2 + Ui.iconIn(18, 10), 10, picked ? Theme.INK : Theme.INK_2);
+        if (combo) {
+            // a combination: its first goal's icon with a small plus in the tile's corner
+            Art.icon(g, "plus", x + 18 - 7, ry + 2 + 1, 6, picked ? Theme.GOLD_EDGE : Theme.INK_3);
+        }
+        int tx = x + 18 + Theme.SP_3;
+        String gain = s == null ? "…" : mainGain(s);
+        int gw = Type.LABEL.width(tab.font, gain);
+        Type.LABEL.drawRight(g, tab.font, gain, x + cw, Type.LABEL.yIn(ry, ROW_H), s == null ? Theme.INK_3 : picked ? Theme.GOOD : Theme.INK_2);
+        String name = CraftSuggestDetail.goalLabel(key);
+        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, name, cw - gw - Theme.SP_3 - (tx - x)), tx, ry,
+                hover && !picked ? Theme.LINK : Theme.INK);
+        Type.META.draw(g, tab.font, CraftSuggestionsPanel.levelLabel(bandShown()), tx, ry + Type.LABEL.lineHeight, Theme.INK_3);
+        List<net.minecraft.network.chat.Component> tip = key.startsWith(Suggestions.COMBO) && CraftCombos.load().contains(key)
+                ? List.of(L.c("wynnlabs.craft.combo_remove_tip")) : null;
+        clipped(x, ry - Theme.SP_2, cw, ROW_H + 2 * Theme.SP_2, () -> {
+            setGoal = key;
+            piece = -1;
+            open = true;
+            tab.suggestionsPanel.resetScroll();
+        }, tip == null ? null : () -> {
+            CraftCombos.remove(key);
+            if (key.equals(setGoal)) {
+                setGoal = null;
+            }
+        }, tip);
+    }
+
+    /** The Combine menu's rows: every goal to tick (two to four), then the action. */
+    List<UiMenu.Item> combineItems() {
+        List<String> picked = combining == null ? List.of() : combining;
+        UiMenu.Items items = new UiMenu.Items();
+        for (String k : tab.suggestionsPanel.goalOrder()) {
+            items.add(UiMenu.Item.of(k, null, L.t("wynnlabs.craft.goalset." + k), null, picked.contains(k)));
+        }
+        items.divide();
+        UiMenu.Item add = UiMenu.Item.of("#add", "plus", L.t("wynnlabs.craft.combine_add", picked.size()), null, false).asLink();
+        items.add(picked.size() < 2 || picked.size() > 4 ? add.asDim() : add);
+        return items.list;
+    }
+
+    /** A row of the Combine menu: a goal ticks or unticks (the menu stays open); the action adds the combination. */
+    boolean pickCombine(String id) {
+        if (combining == null) {
+            combining = new ArrayList<>();
+        }
+        if (id.equals("#add")) {
+            if (combining.size() < 2 || combining.size() > 4) {
+                return false;
+            }
+            String key = CraftCombos.add(List.copyOf(combining));
+            if (key != null) {
+                setGoal = key;
+                piece = -1;
+            }
+            combining = null;
+            return true;
+        }
+        if (!combining.remove(id) && combining.size() < 4) {
+            combining.add(id);
+        }
+        return false;
+    }
+
+    /** A combination not worked out for this band yet: its own Calculate. */
+    private void missing(GuiGraphics g, String key, int x, int y, int w, int h, int mx, int my) {
+        int[] box = UiEmpty.draw(g, tab.font, x, y, w, h, w < CraftingTab.TWO_COLUMNS_MIN, "hierarchy",
+                L.t("wynnlabs.craft.calc_none_combo", CraftSuggestDetail.goalLabel(key)),
+                List.of(L.t("wynnlabs.craft.calc_set_step_1"), L.t("wynnlabs.craft.calc_step_2")),
+                new UiEmpty.Action("player-play", L.t("wynnlabs.craft.calc_band"), "calc"), null, mx, my);
+        if (box != null && !running()) {
+            tab.acts.add(new Act(box[0], box[1], box[2], box[3], () -> calculateGoal(key), null, null));
+        }
+    }
+
+    /** A set's main gain: its first goal identification added up ("+458–562"). */
+    private String mainGain(SetSuggestions.CraftSet s) {
+        List<Map.Entry<String, Craft.Range>> ids = CraftSuggestDetail.ids(s.totals(), s.goal().goal().weights());
+        if (ids.isEmpty()) {
+            return "";
+        }
+        Map.Entry<String, Craft.Range> e = ids.get(0);
+        Craft.Range v = e.getValue();
+        return (v.min() > 0 ? "+" : "") + range(v, tab.unit(e.getKey()));
+    }
+
+    // ---- the set ----
+
+    private void set(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, int h, boolean small, int mx, int my) {
+        if (s == null) {
+            int bx = chips(g, x, y, x + w, mx, my);
+            missing(g, currentSetGoal(), x, y + Ui.CHIP_H + Theme.SP_4, w, h - Ui.CHIP_H - Theme.SP_4, mx, my);
+            return;
+        }
+        int cy = head(g, s, x, y, w, small, mx, my);
+        int footH = small ? 0 : Ui.CHIP_H + Theme.SP_4 + 1;
+        int bottom = y + h - footH;
+        int cols = w >= 2 * PIECE_MIN_W + Theme.SP_5 ? 2 : 1;
+        int rows = (s.pieces().size() + cols - 1) / cols;
+        tab.suggestionsPanel.scrolled(g, x, cy, w, bottom - cy, mx, my, (gg, px, top, pw, ctop, cbottom) -> {
+            int cw = (pw - (cols - 1) * Theme.SP_5) / cols;
+            for (int i = 0; i < s.pieces().size(); i++) {
+                SetSuggestions.Piece pc = s.pieces().get(i);
+                int col = cols == 2 ? i / rows : 0;
+                int row = cols == 2 ? i % rows : i;
+                int bx = px + col * (cw + Theme.SP_5);
+                int by = top + row * (PIECE_H + Theme.SP_4);
+                if (pc.recipe() == null || by + PIECE_H < ctop || by > cbottom) {
+                    continue;
+                }
+                boolean hover = in(mx, my, bx, by, cw, PIECE_H) && my >= ctop && my < cbottom;
+                tab.suggestionsPanel.detail.calmCard(gg, s.goal(), typeName(pc.type()), null, pc.recipe(), pc.layout(), bx, by, cw,
+                        hover, false);
+                if (pc.layout() != null) {
+                    clipped(bx, by, cw, PIECE_H, () -> openPiece(s, pc), null, CraftSuggestDetail.ingredientTip(pc.layout()));
+                }
+            }
+            int used = rows * (PIECE_H + Theme.SP_4) - Theme.SP_4;
+            if (small) {
+                used += Theme.SP_5 + foot(gg, s, px, top + used + Theme.SP_5, pw, mx, my);
+            }
+            return used;
+        });
+        if (!small) {
+            foot(g, s, x, y + h - Ui.CHIP_H, w, mx, my);
+        }
+    }
+
+    /** The head: name and band, the actions; the key totals large; the rest in one line; returns the y for the pieces. */
+    private int head(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, boolean small, int mx, int my) {
+        Type role = small ? Type.LABEL : Type.HEADING;
+        String t = title(s);
+        // the actions on the right: codes, links, save
+        int right = x + w;
+        int ib = Ui.CHIP_H + 2;
+        right -= ib;
+        Ui.iconButton(g, "copy", right, y, false, mx, my);
+        tab.acts.add(new Act(right, y, ib, Ui.CHIP_H, () -> copySetCodes(s), null, List.of(L.c("wynnlabs.craft.set_copy_all"))));
+        right -= Theme.SP_2 + ib;
+        Ui.iconButton(g, "world", right, y, false, mx, my);
+        tab.acts.add(new Act(right, y, ib, Ui.CHIP_H, () -> copyLinks(s), null, List.of(L.c("wynnlabs.craft.set_links_tip"))));
+        right -= Theme.SP_2;
+        String save = L.t("wynnlabs.craft.set_save_all");
+        if (small) {
+            right -= ib;
+            Ui.iconButton(g, "device-floppy", right, y, true, mx, my);
+            tab.acts.add(new Act(right, y, ib, Ui.CHIP_H, () -> saveSet(s), null, List.of(L.c("wynnlabs.craft.set_save_tip"))));
+        } else {
+            int sw = Ui.iconButtonLabelWidth(tab.font, save);
+            right -= sw;
+            Ui.iconButtonLabel(g, tab.font, "device-floppy", save, right, y - 1, sw, mx, my);
+            tab.acts.add(new Act(right, y - 1, sw, Ui.BUTTON_H, () -> saveSet(s), null, List.of(L.c("wynnlabs.craft.set_save_tip"))));
+        }
+        int ty = role.yIn(y, Ui.CHIP_H);
+        String tt = role.fit(tab.font, t, right - Theme.SP_4 - x);
+        role.draw(g, tab.font, tt, x, ty, Theme.INK);
+        int bx = x + role.width(tab.font, tt) + Theme.SP_4;
+        chips(g, bx, y, right, mx, my);
+        int cy = y + Math.max(Ui.BUTTON_H, role.lineHeight) + Theme.SP_4;
+        // the key totals, large
+        List<Map.Entry<String, Craft.Range>> ids = keyTotals(s);
+        Type big = small ? Type.HEADING : Type.TITLE;
+        int keys = 0;
+        int kx = x;
+        List<String> rest = new ArrayList<>();
+        String need = needText(s);
+        int needW = small || need == null ? 0 : Type.BODY.width(tab.font, need) + Theme.SP_6;
+        for (Map.Entry<String, Craft.Range> e : ids) {
+            Craft.Range v = e.getValue();
+            String val = (v.min() > 0 ? "+" : "") + range(v, tab.unit(e.getKey()));
+            String lab = tab.statName(e.getKey());
+            int bw = Math.max(big.width(tab.font, val), Type.META.width(tab.font, lab));
+            if (keys < (small ? 2 : 3) && (v.max() > 0 || v.max() < 0 && e.getKey().endsWith("SpellCost")) && kx + bw <= x + w - needW) {
+                big.draw(g, tab.font, val, kx, cy, Theme.GOOD);
+                Type.META.draw(g, tab.font, lab, kx, cy + big.lineHeight, Theme.INK_3);
+                kx += bw + Theme.SP_7;
+                keys++;
+            } else {
+                rest.add(lab + " " + val);
+            }
+        }
+        if (needW > 0) {
+            Type.BODY.drawRight(g, tab.font, need, x + w, cy + 2, Theme.BAD);
+        }
+        SetSuggestions.Piece weak = SuggestionBoard.weakest(s);
+        if (!small && weak != null) {
+            Type.META.drawRight(g, tab.font, L.t("wynnlabs.craft.set_weakest", weak.layout().result().durability().min(),
+                    typeName(weak.type())), x + w, cy + 2 + Type.BODY.lineHeight + Theme.SP_1, Theme.INK_3);
+        }
+        cy += big.lineHeight + Type.META.lineHeight + Theme.SP_3;
+        if (small && need != null) {
+            rest.add(need);
+        }
+        if (!rest.isEmpty()) {
+            Type.META.draw(g, tab.font, Type.META.fit(tab.font, String.join(" · ", rest), w), x, cy, Theme.INK_3);
+            cy += Type.META.lineHeight;
         }
         cy += Theme.SP_4;
-        String save = L.t("wynnlabs.craft.set_save_all");
-        String codes = L.t("wynnlabs.craft.set_copy_all");
-        int sw = Ui.iconChipWidth(tab.font, "device-floppy", save, false);
-        Ui.iconChip(g, tab.font, "device-floppy", save, false, x, cy, sw, false, mx, my);
-        tab.overlay.add(new Act(x, cy, sw, Ui.CHIP_H, () -> saveSet(s), null, List.of(L.c("wynnlabs.craft.set_save_tip"))));
-        int cw = Ui.iconChipWidth(tab.font, "copy", codes, false);
-        Ui.iconChip(g, tab.font, "copy", codes, false, x + sw + Theme.SP_2, cy, cw, false, mx, my);
-        tab.overlay.add(new Act(x + sw + Theme.SP_2, cy, cw, Ui.CHIP_H, () -> copySetCodes(s), null, null));
-        return cy + Ui.CHIP_H - y;
+        Kit.hair(g, x, cy, w, 1, Theme.LINE);
+        return cy + 1 + Theme.SP_5;
     }
 
-    private String pieceValue(SetSuggestions.CraftSet s, SetSuggestions.Piece pc) {
-        for (String id : s.goal().goal().weights().keySet()) {
-            Craft.Range v = pc.layout().result().ids().get(id);
-            if (v != null) {
-                return tab.statName(id) + " " + range(v, tab.unit(id));
+    /** The band and weapon menus from x; returns the x after them. */
+    private int chips(GuiGraphics g, int bx, int y, int right, int mx, int my) {
+        String b = CraftSuggestionsPanel.levelLabel(bandShown());
+        int cw = Ui.iconChipWidth(tab.font, null, b, true);
+        if (bx + cw < right - Theme.SP_4) {
+            Ui.iconChip(g, tab.font, null, b, true, bx, y, cw, tab.open == CraftingTab.Drop.SET_BAND, mx, my);
+            int[] anchor = {bx, y, cw, Ui.CHIP_H};
+            tab.acts.add(new Act(bx, y, cw, Ui.CHIP_H, () -> tab.toggle(CraftingTab.Drop.SET_BAND, anchor), null, null));
+            bx += cw + Theme.SP_2;
+        }
+        String wl = typeName(weaponShown());
+        String wi = CraftFormat.typeIcon(weaponShown());
+        int ww = Ui.iconChipWidth(tab.font, wi, wl, true);
+        if (bx + ww < right - Theme.SP_4) {
+            Ui.iconChip(g, tab.font, wi, wl, true, bx, y, ww, tab.open == CraftingTab.Drop.SET_WEAPON, mx, my);
+            int[] anchor = {bx, y, ww, Ui.CHIP_H};
+            tab.acts.add(new Act(bx, y, ww, Ui.CHIP_H, () -> tab.toggle(CraftingTab.Drop.SET_WEAPON, anchor), null,
+                    List.of(L.c("wynnlabs.craft.set_weapon_tip"))));
+            bx += ww;
+        }
+        return bx;
+    }
+
+    /**
+     * The totals the header shows large: for a combination each part's strongest total first (raw
+     * spell, then mana, then the spell cost cut), then the rest; for one goal, its own order.
+     */
+    private List<Map.Entry<String, Craft.Range>> keyTotals(SetSuggestions.CraftSet s) {
+        List<Map.Entry<String, Craft.Range>> all = CraftSuggestDetail.ids(s.totals(), s.goal().goal().weights());
+        if (!s.goal().key().startsWith(Suggestions.COMBO)) {
+            return all;
+        }
+        List<Map.Entry<String, Craft.Range>> out = new ArrayList<>();
+        for (Suggestions.GoalSet part : Suggestions.goalSets(Suggestions.parts(s.goal().key()), CraftSuggestionsPanel.combatLevel(), null)) {
+            Map.Entry<String, Craft.Range> best = null;
+            double bestV = 0;
+            for (Map.Entry<String, Craft.Range> e : s.totals().entrySet()) {
+                Double wt = part.goal().weights().get(e.getKey());
+                if (wt == null) {
+                    continue;
+                }
+                double v = wt * e.getValue().mean();
+                if (v > bestV) {
+                    bestV = v;
+                    best = e;
+                }
+            }
+            if (best != null && !out.contains(best)) {
+                out.add(best);
             }
         }
-        return "✔";
-    }
-
-    private RecipeCode.Recipe pieceRecipe(SetSuggestions.Piece pc) {
-        List<String> names = new ArrayList<>();
-        for (Ingredient in : pc.layout().slots()) {
-            names.add(in.empty() ? null : in.name());
+        for (Map.Entry<String, Craft.Range> e : all) {
+            if (!out.contains(e)) {
+                out.add(e);
+            }
         }
-        return new RecipeCode.Recipe(pc.recipe().type(), pc.recipe().minLevel(), pc.tier1(), pc.tier2(), Craft.Speed.NORMAL, names);
+        return out;
     }
 
-    private String pieceCode(SetSuggestions.Piece pc) {
-        RecipeCode.Recipe r = pieceRecipe(pc);
-        String code = WynnBuilderCode.encode(r);
-        return code != null ? code : RecipeCode.encode(r);
+    /** What stops the player wearing it, once: "Agility 64 needed · you have 60"; null when nothing does. */
+    private String needText(SetSuggestions.CraftSet s) {
+        int worst = -1;
+        for (int k = 0; k < 5; k++) {
+            int gap = s.maxRequirements()[k] - tab.points[k];
+            if (s.maxRequirements()[k] > 0 && gap > 0 && (worst < 0 || gap > s.maxRequirements()[worst] - tab.points[worst])) {
+                worst = k;
+            }
+        }
+        return worst < 0 ? null : L.t("wynnlabs.craft.set_need_points", CraftFormat.skill(worst), s.maxRequirements()[worst], tab.points[worst]);
     }
+
+    /** The foot: what it takes in one line, and the way to the missing levels; returns its height. */
+    private int foot(GuiGraphics g, SetSuggestions.CraftSet s, int x, int y, int w, int mx, int my) {
+        Kit.hair(g, x, y - Theme.SP_4, w, 1, 0x809A855C);
+        Map<SuggestionBoard.Status, List<SetSuggestions.Piece>> by = SuggestionBoard.pieces(s, tab::level);
+        Map<String, Integer> missing = SuggestionBoard.missingLevels(s, tab::level);
+        List<String> parts = new ArrayList<>();
+        if (!by.get(SuggestionBoard.Status.READY).isEmpty()) {
+            parts.add(L.t("wynnlabs.craft.set_ready", by.get(SuggestionBoard.Status.READY).size()));
+        }
+        if (!s.bought().isEmpty()) {
+            String cost = tab.liveCost(s.bought());
+            parts.add(cost.equals("?") ? L.n("wynnlabs.craft.to_buy_n", s.bought().size())
+                    : L.t("wynnlabs.craft.set_buy_for", s.bought().size(), cost));
+        }
+        if (!missing.isEmpty()) {
+            List<String> profs = new ArrayList<>();
+            missing.keySet().forEach(p -> profs.add(Professions.name(p.toUpperCase(Locale.ROOT))));
+            parts.add(L.t("wynnlabs.craft.set_need_level", by.get(SuggestionBoard.Status.LEVEL).size(),
+                    String.join(", ", profs) + " " + missing.values().iterator().next()));
+        }
+        int right = x + w;
+        if (!missing.isEmpty()) {
+            String label = L.t("wynnlabs.craft.view_road");
+            int cw = Ui.iconChipWidth(tab.font, "trending-up", label, false);
+            right -= cw;
+            Ui.iconChip(g, tab.font, "trending-up", label, false, right, y, cw, false, mx, my);
+            String prof = missing.keySet().iterator().next().toUpperCase(Locale.ROOT);
+            clipOrAct(right, y, cw, () -> {
+                tab.roadPanel.pickProf(prof);
+                tab.view = CraftingTab.VIEW_ROAD;
+                tab.scroll = 0;
+            });
+            right -= Theme.SP_4;
+        }
+        Type.BODY.draw(g, tab.font, Type.BODY.fit(tab.font, String.join(" · ", parts), right - x), x, Type.BODY.yIn(y, Ui.CHIP_H), Theme.INK_2);
+        return Ui.CHIP_H;
+    }
+
+    private void clipOrAct(int x, int y, int w, Runnable r) {
+        if (tab.clip != null) {
+            clipped(x, y, w, Ui.CHIP_H, r, null, null);
+        } else {
+            tab.acts.add(new Act(x, y, w, Ui.CHIP_H, r, null, null));
+        }
+    }
+
+    private static CraftSuggestDetail.Shown shown(SetSuggestions.CraftSet s, SetSuggestions.Piece pc) {
+        return new CraftSuggestDetail.Shown(s.goal(), pc.recipe(), pc.tier1(), pc.tier2(), pc.layout());
+    }
+
+    /** A piece's recipe in a drawer: its name the title, "‹ <set>" back. */
+    private void openPiece(SetSuggestions.CraftSet s, SetSuggestions.Piece pc) {
+        piece = s.pieces().indexOf(pc);
+        String name = L.t("wynnlabs.craft.suggest_name", CraftSuggestDetail.goalLabel(s.goal().key()), typeName(pc.type()));
+        tab.drawers.openDetail(name, (g, x, y, w, top, bottom, mx, my) -> {
+            int h = Math.max(bottom - y, CraftSuggestDetail.MIN_H + Ui.CHIP_H + Theme.SP_3);
+            tab.suggestionsPanel.detail.draw(g, shown(s, pc), x, y, w, h, null, null, title(s), tab.drawers::close, false, tab.overlay, mx, my);
+            return h;
+        });
+    }
+
+    // ---- the list's own bar ----
+
+    boolean overList(double mx, double my) {
+        return listBox != null && in(mx, my, listBox[0], listBox[1], listBox[2], listBox[3]);
+    }
+
+    void scrollList(double v) {
+        listScroll = Math.max(0, Math.min(listMax, listScroll - (int) Math.signum(v) * Theme.SP_7 * 2));
+    }
+
+    boolean listPressed(double mx, double my) {
+        if (listBar.mouseClicked(mx, my)) {
+            listScroll = listBar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    boolean listDragged(double my) {
+        if (listBar.mouseDragged(my)) {
+            listScroll = listBar.offset();
+            return true;
+        }
+        return false;
+    }
+
+    void listReleased() {
+        listBar.mouseReleased();
+    }
+
+    // ---- the band menu ----
+
+    List<UiMenu.Item> bandItems() {
+        UiMenu.Items items = new UiMenu.Items();
+        int cur = bandShown();
+        String w = weaponShown();
+        for (int lv : Suggestions.bracketLevels()) {
+            items.add(UiMenu.Item.of(String.valueOf(lv), null, CraftSuggestionsPanel.levelLabel(lv),
+                    CraftSuggestCache.get(tab).hasSets(w, lv) ? null : "…", lv == cur));
+        }
+        return items.list;
+    }
+
+    void pickBand(String id) {
+        band = Integer.parseInt(id);
+        piece = -1;
+        loadCached();
+    }
+
+    /** The weapon menu's rows: every weapon, the class's marked. */
+    List<UiMenu.Item> weaponItems() {
+        UiMenu.Items items = new UiMenu.Items();
+        String cls = CraftSuggestionsPanel.classWeapon();
+        for (String t : Types.WEAPONS) {
+            items.add(UiMenu.Item.of(t, CraftFormat.typeIcon(t), typeName(t), t.equals(cls) ? L.t("wynnlabs.craft.your_class") : null,
+                    t.equals(weaponShown())));
+        }
+        return items.list;
+    }
+
+    void pickWeapon(String id) {
+        weapon = id;
+        piece = -1;
+        loadCached();
+    }
+
+    // ---- actions ----
 
     /** Puts a WynnBuilder crafter link on the clipboard, or says WynnBuilder has no id for the recipe. */
     static void copyLink(CraftingTab tab, String link) {
@@ -270,50 +935,46 @@ final class CraftSetsPanel extends CraftPanel {
         tab.flash.accept(L.t("wynnlabs.craft.wb_link_copied"));
     }
 
+    private void copyLinks(SetSuggestions.CraftSet s) {
+        List<String> lines = new ArrayList<>();
+        for (SetSuggestions.Piece pc : s.pieces()) {
+            if (pc.layout() != null) {
+                String link = WynnBuilderCode.link(CraftSuggestDetail.recipeOf(shown(s, pc)));
+                if (link != null) {
+                    lines.add(typeName(pc.type()) + ": " + link);
+                }
+            }
+        }
+        if (lines.isEmpty()) {
+            tab.flash.accept(L.t("wynnlabs.craft.wb_link_none"));
+            return;
+        }
+        Minecraft.getInstance().keyboardHandler.setClipboard(String.join("\n", lines));
+        tab.flash.accept(L.n("wynnlabs.craft.set_links_copied", lines.size()));
+    }
+
     private void copySetCodes(SetSuggestions.CraftSet s) {
         List<String> lines = new ArrayList<>();
         for (SetSuggestions.Piece pc : s.pieces()) {
             if (pc.layout() != null) {
-                lines.add(typeName(pc.type()) + ": " + pieceCode(pc));
+                lines.add(typeName(pc.type()) + ": " + CraftSuggestDetail.code(shown(s, pc)));
             }
         }
         Minecraft.getInstance().keyboardHandler.setClipboard(String.join("\n", lines));
         tab.flash.accept(L.n("wynnlabs.craft.set_codes_copied", lines.size()));
     }
 
-    private void openPiece(SetSuggestions.CraftSet s, SetSuggestions.Piece pc) {
-        tab.type = pc.recipe().type();
-        tab.minLevel = pc.recipe().minLevel();
-        tab.tier1 = pc.tier1();
-        tab.tier2 = pc.tier2();
-        tab.speed = Craft.Speed.NORMAL;
-        for (int i = 0; i < Craft.SLOTS; i++) {
-            Ingredient in = pc.layout().slots().get(i);
-            tab.slots[i] = in.empty() ? null : in.name();
-        }
-        tab.weights.clear();
-        tab.weights.putAll(s.goal().goal().weights());
-        tab.drawers.close();
-        tab.view = CraftingTab.VIEW_RECIPE;
-        tab.scroll = 0;
-        tab.flash.accept(L.t("wynnlabs.craft.applied"));
-    }
-
-    /** Saves every piece as "Spell set – Helmet" …; the second ring only once. */
+    /** Saves every piece as "Raw spell set – Helmet" …; the second ring only once. */
     private void saveSet(SetSuggestions.CraftSet s) {
         SavedRecipes saved = Crafting.saved();
-        String goal = L.t("wynnlabs.craft.goalset." + s.goal().key());
+        String goal = CraftSuggestDetail.goalLabel(s.goal().key());
         java.util.Set<String> done = new java.util.HashSet<>();
         int n = 0;
         for (SetSuggestions.Piece pc : s.pieces()) {
             if (pc.layout() == null || !done.add(pc.type())) {
                 continue;
             }
-            RecipeCode.Recipe r = pieceRecipe(pc);
-            String name = saved.free(L.t("wynnlabs.craft.set_piece_name", goal, typeName(pc.type())));
-            saved.save(new SavedRecipes.Saved(name, r.type(), r.minLevel(), r.tier1(), r.tier2(), r.speed().name(),
-                    java.util.Collections.unmodifiableList(new ArrayList<>(r.slots())),
-                    SavedRecipes.SavedGoal.of(s.goal().goal()), System.currentTimeMillis()), false);
+            CraftSuggestDetail.saveOne(saved, shown(s, pc), saved.free(L.t("wynnlabs.craft.set_piece_name", goal, typeName(pc.type()))));
             n++;
         }
         Crafting.persist();

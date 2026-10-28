@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "craftsuggest", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -60,7 +60,7 @@ public class JMenuPreview implements FabricClientGameTest {
             SearchPreview.loadIndex();
             // straight on the screen being checked: a filtered run never draws Home first
             int first = part == null || part.equals("home") || part.equals("rail") ? 0 : part.equals("today") ? 1 : part.equals("tree") ? RoadmapScreen.TAB_TREE : part.equals("quests") ? 2
-                    : part.equals("settings") ? 5 : part.equals("crafting") ? 10 : part.equals("bank") ? RoadmapScreen.TAB_BANK
+                    : part.equals("settings") ? 5 : part.equals("crafting") || part.equals("craftsuggest") ? 10 : part.equals("bank") ? RoadmapScreen.TAB_BANK
                     : part.equals("search") ? RoadmapScreen.TAB_SEARCH : part.equals("endgame") ? RoadmapScreen.TAB_ENDGAME : part.equals("ai") ? RoadmapScreen.TAB_AI : 0;
             ctx.setScreen(() -> RoadmapScreen.on(first));
             ctx.waitForScreen(RoadmapScreen.class);
@@ -544,6 +544,10 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.setScreen(() -> RoadmapScreen.on(10));
         ctx.waitForScreen(RoadmapScreen.class);
         try {
+            if (part.equals("craftsuggest")) {
+                CraftShots.suggestShots(ctx, n -> shot(ctx, out, n));
+                return;
+            }
             CraftShots.shots(ctx, n -> shot(ctx, out, n));
         } catch (RuntimeException e) {
             System.out.println("[preview] crafting shots skipped: " + e);

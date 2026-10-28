@@ -49,6 +49,37 @@ final class CraftIcons {
         g.pose().popMatrix();
     }
 
+    private static final Map<String, ItemStack> TYPES = new HashMap<>();
+
+    /** Without Wynntils (or for a consumable): the vanilla item the type looks most like. */
+    private static final Map<String, net.minecraft.world.item.Item> PLAIN = Map.ofEntries(
+            Map.entry("spear", Items.TRIDENT), Map.entry("dagger", Items.IRON_SWORD), Map.entry("bow", Items.BOW),
+            Map.entry("wand", Items.STICK), Map.entry("relik", Items.GOLDEN_SHOVEL), Map.entry("helmet", Items.LEATHER_HELMET),
+            Map.entry("chestplate", Items.LEATHER_CHESTPLATE), Map.entry("leggings", Items.LEATHER_LEGGINGS),
+            Map.entry("boots", Items.LEATHER_BOOTS), Map.entry("ring", Items.GOLD_NUGGET), Map.entry("bracelet", Items.IRON_NUGGET),
+            Map.entry("necklace", Items.AMETHYST_SHARD), Map.entry("potion", Items.POTION), Map.entry("food", Items.BREAD),
+            Map.entry("scroll", Items.PAPER));
+
+    /** The stack a crafted type shows: Wynncraft's model of it (through Wynntils), else a plain item. Kept per type. */
+    static ItemStack type(String type) {
+        ItemStack s = TYPES.get(type);
+        if (s == null) {
+            boolean live = io.github.anilken.wynnlabs.game.GameState.current().running();
+            try {
+                s = live ? io.github.anilken.wynnlabs.game.WynntilsItems.craftedIcon(type) : null;
+            } catch (LinkageError e) {
+                s = null;                           // Wynntils changed or is missing: the plain item
+            }
+            if (s == null || s.isEmpty()) {
+                s = new ItemStack(PLAIN.getOrDefault(type, Items.PAPER));
+            }
+            if (live) {
+                TYPES.put(type, s);                 // in the game: kept; a recording asks again (Wynntils may come later)
+            }
+        }
+        return s;
+    }
+
     /** A crafted type's slot: its icon (a sprite) in an HD slot. */
     static void typeSlot(GuiGraphics g, String type, int x, int y, int size, int ink) {
         Kit.slot(g, x, y, size, 0);

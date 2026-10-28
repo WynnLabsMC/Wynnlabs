@@ -171,3 +171,7 @@ wynnlabs.box.rank_suggest           the price after the roll answer's bold head
 wynnlabs.box.stats_range            "lowest … highest" at the right of a stats heading
 wynnlabs.screen.ago_now             "just now" inside "Updated %s" and the like
 wynnlabs.about.unbound              "unbound" in a keycap on the About page
+wynnlabs.craft.req_short           "Int 64 · you 40": a skill short name first, on a seal
+wynnlabs.craft.tier.own_plus_two   "+ a few bought": a tier chip beside "Owned only" and "Best"
+wynnlabs.craft.set_need_points    "Agility 64 needed · you have 60": a skill name first
+wynnlabs.craft.calc_changed      "your items changed since" after "Updated 3 h ago ·"

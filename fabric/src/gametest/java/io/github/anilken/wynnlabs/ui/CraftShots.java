@@ -85,13 +85,6 @@ final class CraftShots {
         });
         ctx.waitTicks(20 * 25);
         shot.accept("craft-suggest-sets");
-        ctx.runOnClient(mc -> {
-            if (!tab.sets.isEmpty()) {
-                tab.drawers.openSet(tab.sets.get(0));
-            }
-        });
-        ctx.waitTicks(4);
-        shot.accept("craft-drawer-set");
         // Meslek: Weaponsmithing 23 with 40% of its level, a Profession XP bomb here and two elsewhere
         ctx.waitFor(mc -> !"loading".equals(io.github.anilken.wynnlabs.search.ItemIndex.get().missing()), 20 * 60);
         ctx.runOnClient(mc -> {
@@ -139,6 +132,105 @@ final class CraftShots {
             CraftRoadData.previewBombs = null;
             tab.view = CraftingTab.VIEW_RECIPE;
         });
+    }
+
+    /**
+     * The suggestions page alone (-PpreviewOnly=craftsuggest): the cards while the search runs,
+     * filled, another card picked (beside the cards, or in the drawer on a small window), a status
+     * filter, then the set page, a piece of it picked. Jeweling and Woodworking are kept low so every
+     * status shows.
+     */
+    static void suggestShots(ClientGameTestContext ctx, Consumer<String> shot) throws Exception {
+        CraftingTab tab = CraftingTab.INSTANCE;
+        ctx.runOnClient(mc -> {
+            CraftingTab.previewIngredients = CraftPreview.ingredients();
+            Map<String, Integer> lv = new LinkedHashMap<>();
+            for (String p : List.of("alchemism", "armouring", "cooking", "scribing", "tailoring", "weaponsmithing")) {
+                lv.put(p, 105);
+            }
+            lv.put("jeweling", 30);
+            lv.put("woodworking", 1);
+            CraftingTab.previewLevels = lv;
+            ((RoadmapScreen) mc.screen).openTab(RoadmapScreen.TAB_CRAFT);
+        });
+        ctx.getInput().setCursorPos(2, 2);
+        ctx.waitTicks(30);
+        ctx.runOnClient(mc -> {
+            tab.view = CraftingTab.VIEW_SUGGEST;
+            tab.suggestMode = 0;
+            CraftPreview.call("startSuggestionsNow");
+        });
+        ctx.waitTicks(3);
+        shot.accept("craft-suggest-loading");
+        ctx.waitTicks(20 * 16);
+        shot.accept("craft-suggest");
+        click(ctx, tab, 3, CraftSuggestionsPanel.CARD_H);
+        shot.accept("craft-suggest-picked");
+        ctx.runOnClient(mc -> {
+            tab.drawers.close();
+            tab.suggestionsPanel.only = io.github.anilken.wynnlabs.crafting.SuggestionBoard.Status.LEVEL;
+        });
+        ctx.waitTicks(3);
+        shot.accept("craft-suggest-filter");
+        // the filters: the mana goals and a search for an item type
+        ctx.runOnClient(mc -> {
+            tab.suggestionsPanel.only = null;
+            tab.suggestionsPanel.filter().groups.add("mana");
+            tab.suggestSearch.setValue("spear");
+            tab.suggestionsPanel.filtersChanged();
+        });
+        ctx.waitTicks(3);
+        shot.accept("craft-suggest-filtered");
+        ctx.runOnClient(mc -> {
+            tab.suggestionsPanel.filter().clear();
+            tab.suggestSearch.setValue("");
+            tab.suggestionsPanel.filtersChanged();
+        });
+        ctx.runOnClient(mc -> {
+            tab.suggestionsPanel.only = null;
+            tab.suggestMode = 1;
+            CraftPreview.call("startSetsNow");
+        });
+        ctx.waitTicks(20 * 30);
+        shot.accept("craft-suggest-sets");
+        boolean small = ctx.computeOnClient(mc -> mc.getWindow().getGuiScaledWidth() < 800);
+        if (small) {
+            click(ctx, tab, 0, CraftSetsPanel.ROW_LIST_H);          // a small window: the set opens in place of the list
+            shot.accept("craft-suggest-set-open");
+        }
+        click(ctx, tab, 3, CraftSetsPanel.PIECE_H);
+        shot.accept("craft-suggest-set-piece");
+        ctx.runOnClient(mc -> {
+            tab.drawers.close();
+            tab.setsPanel.setGoal = tab.setsPanel.combos().get(0);
+            tab.setsPanel.open = true;
+        });
+        ctx.waitTicks(4);
+        shot.accept("craft-suggest-set-combo");
+        ctx.runOnClient(mc -> tab.drawers.close());
+    }
+
+    /** Clicks the {@code n}th card (0-based) of the last frame, as the player would. */
+    private static void click(ClientGameTestContext ctx, CraftingTab tab, int n, int h) {
+        double scale = ctx.computeOnClient(mc -> (double) MenuScale.effective());
+        int[] at = ctx.computeOnClient(mc -> {
+            int k = 0;
+            for (CraftingTab.Act a : tab.acts) {
+                if (a.h() == h && a.left() != null && k++ == n) {
+                    return new int[] {a.x() + a.w() / 2, a.y() + a.h() / 2};
+                }
+            }
+            return null;
+        });
+        if (at == null) {
+            return;
+        }
+        ctx.getInput().setCursorPos(at[0] * scale, at[1] * scale);
+        ctx.waitTicks(2);
+        ctx.getInput().pressMouse(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        ctx.waitTicks(2);
+        ctx.getInput().setCursorPos(2, 2);
+        ctx.waitTicks(4);
     }
 
     /** The first material's tier chip, from the last frame's click areas (the smallest one on the first material row). */

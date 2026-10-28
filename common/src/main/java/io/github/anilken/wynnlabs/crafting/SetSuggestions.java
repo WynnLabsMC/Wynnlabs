@@ -117,9 +117,46 @@ public final class SetSuggestions {
         return out;
     }
 
+    /**
+     * One band's sets: for every goal and tier, each slot crafted at the band that starts at
+     * {@code minLevel} (its {@code step} is that level). Any band, not only the player's.
+     */
+    public static void runBand(String weapon, List<Suggestions.GoalSet> goals, int minLevel, WhatCanICraft.Stock stock,
+                               List<Ingredient> all, Function<String, CraftSearch.Price> prices, long millisEach,
+                               CraftSearch.Budget budget, Consumer<CraftSet> each) {
+        Set<String> seen = new HashSet<>();
+        for (Suggestions.GoalSet g : goals) {
+            for (CraftSearch.Tier tier : TIERS) {
+                if (budget.cancelled()) {
+                    return;
+                }
+                CraftSet s = build(weapon, g, minLevel, tier, type -> CraftData.find(type, minLevel), stock, all, prices, millisEach, budget);
+                if (s == null || s.found() < 3) {
+                    continue;
+                }
+                StringBuilder key = new StringBuilder(g.key());
+                for (Piece p : s.pieces()) {
+                    key.append(p.layout() == null ? "-" : p.layout().slots().stream().map(Ingredient::name).sorted().toList()).append(';');
+                }
+                if (seen.add(key.toString()) && each != null) {
+                    each.accept(s);
+                }
+            }
+        }
+    }
+
     static CraftSet one(String weapon, Suggestions.GoalSet g, int step, CraftSearch.Tier tier, int combatLevel,
                     WhatCanICraft.Stock stock, List<Ingredient> all, Function<String, CraftSearch.Price> prices,
                     long millisEach, CraftSearch.Budget budget) {
+        return build(weapon, g, step, tier, type -> {
+            List<CraftData.Recipe> brackets = Suggestions.brackets(type, combatLevel);
+            return brackets.isEmpty() ? null : brackets.get(Math.min(step, brackets.size() - 1));
+        }, stock, all, prices, millisEach, budget);
+    }
+
+    private static CraftSet build(String weapon, Suggestions.GoalSet g, int step, CraftSearch.Tier tier,
+                                  Function<String, CraftData.Recipe> recipeOf, WhatCanICraft.Stock stock, List<Ingredient> all,
+                                  Function<String, CraftSearch.Price> prices, long millisEach, CraftSearch.Budget budget) {
         Map<String, Integer> left = new HashMap<>(stock.ingredients());
         List<Piece> pieces = new ArrayList<>();
         Map<String, Craft.Range> totals = new LinkedHashMap<>();
@@ -129,12 +166,11 @@ public final class SetSuggestions {
             if (budget.cancelled()) {
                 return null;
             }
-            List<CraftData.Recipe> brackets = Suggestions.brackets(type, combatLevel);
-            if (brackets.isEmpty()) {
+            CraftData.Recipe r = recipeOf.apply(type);
+            if (r == null) {
                 pieces.add(new Piece(type, null, 1, 1, null));
                 continue;
             }
-            CraftData.Recipe r = brackets.get(Math.min(step, brackets.size() - 1));
             int t1 = Suggestions.tier(stock, r.materials().get(0));
             int t2 = Suggestions.tier(stock, r.materials().get(1));
             CraftSearch.Request q = new CraftSearch.Request(r, t1, t2, Craft.Speed.NORMAL, g.goal(), all, Map.copyOf(left),
