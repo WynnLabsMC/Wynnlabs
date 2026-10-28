@@ -15,9 +15,10 @@ import java.util.Map;
  * What the Home's stats list and spell panel show: the build you wear, and the build they compare
  * it with. By default: the road map's build for the level pill selected, else the one "Detailed"
  * put here, else the applied plan, else the mod's suggested build (with its own skill points);
- * none when the suggestion is what you wear. The header's button picks another (a saved build,
- * none), and its toggle shows the other build's numbers with the change from your gear instead.
- * Both choices last the game session.
+ * none when the suggestion is what you wear. The header's menu picks another (a saved build,
+ * none), kept per character ({@link StatsChoice}); a pick wins over the pills, and choosing a
+ * pill hands the choice back to "Automatic". The toggle shows the other build's numbers with the
+ * change from your gear instead (for the game session).
  */
 final class StatsSource {
 
@@ -31,8 +32,7 @@ final class StatsSource {
      */
     record Shown(BuildStats.Side now, BuildStats.Side other, String name, boolean flipped) {}
 
-    /** The header's choices, for this game session (a new class: safe to hot swap in). */
-    private static String choice;
+    /** The view toggle, for this game session. */
     private static boolean flip;
 
     /** A build the window's "Detailed" put here, its rank, and its numbers; null: none. */
@@ -52,7 +52,7 @@ final class StatsSource {
         pick = c;
         pickRank = rank;
         pickSide = BuildStats.candidate(c.set(), c.eval(), level);
-        choice = null;
+        StatsChoice.set(AUTO);
     }
 
     /** The ✕ by a found build's name: the applied plan again. */
@@ -65,8 +65,11 @@ final class StatsSource {
         return pick != null;
     }
 
-    /** The Plan pill is selected this frame: the applied plan is compared, whatever the header's choice. */
+    /** The Plan pill is selected this frame: "Automatic" compares with the applied plan. */
     private boolean planPill;
+
+    /** The pill selected last frame ("now", "plan" or a level), to see a new one chosen; null before. */
+    private String pillSeen;
 
     /** The level pill's step this frame; null for "now" and the plan pill. */
     void level(Roadmap.Step s) {
@@ -78,12 +81,48 @@ final class StatsSource {
         planPill = on;
     }
 
-    void choose(String id) {
-        choice = AUTO.equals(id) ? null : id;
+    /**
+     * The pill selected this frame ({@code key}: which one, e.g. its place in the row): another one
+     * chosen hands the comparison back to "Automatic", so the new pill steers it.
+     */
+    void pill(String key) {
+        if (pillSeen != null && !key.equals(pillSeen)) {
+            StatsChoice.set(AUTO);
+        }
+        pillSeen = key;
     }
 
+    void choose(String id) {
+        StatsChoice.set(id);
+    }
+
+    /** The row ticked in the header's menu. */
     String choice() {
-        return choice == null ? AUTO : choice;
+        return StatsChoice.ticked(StatsChoice.get(), available());
+    }
+
+    /** What is compared this frame (an option id, or {@link #NONE}). */
+    String target() {
+        return StatsChoice.target(StatsChoice.get(), available(), planPill);
+    }
+
+    /** The options there are to compare with this frame (Automatic and "none" aside). */
+    private java.util.Set<String> available() {
+        java.util.Set<String> out = new java.util.HashSet<>();
+        if (step != null) {
+            out.add("level");
+        }
+        if (pick != null) {
+            out.add("pick");
+        }
+        if (Plans.current() != null) {
+            out.add("plan");
+        }
+        out.add("suggested");
+        for (Plans.Build b : Plans.saved()) {
+            out.add("saved:" + b.id());
+        }
+        return out;
     }
 
     void flip() {
@@ -97,7 +136,11 @@ final class StatsSource {
     /** The header's list: {id, label} for every build there is to compare with. */
     List<String[]> options() {
         List<String[]> out = new ArrayList<>();
-        out.add(new String[] {AUTO, L.t("wynnlabs.stats.src_auto")});
+        // "Automatic" names what it compares with now
+        String auto = StatsChoice.target(AUTO, available(), planPill);
+        String autoName = NONE.equals(auto) ? null : (String) resolveName(auto);
+        out.add(new String[] {AUTO, autoName == null ? L.t("wynnlabs.stats.src_auto")
+                : L.t("wynnlabs.stats.src_auto_is", autoName)});
         if (step != null) {
             out.add(new String[] {"level", L.t("wynnlabs.stats.col_level", step.level())});
         }
@@ -132,10 +175,12 @@ final class StatsSource {
         if (wornSide == null) {
             return new Shown(null, null, null, false);
         }
-        // a pill steers it like the gear panel: the Plan pill the applied plan, a level pill that
-        // level's build; "now" leaves it to the header's choice
-        String c = planPill && Plans.current() != null ? "plan" : step != null ? "level" : choice == null ? AUTO : choice;
-        Object[] o = c.equals(AUTO) ? auto(plan) : resolve(c, plan);
+        // the header's pick while it is there; otherwise the pills and the default order
+        String c = target();
+        Object[] o = resolve(c, plan);
+        if (o[0] == null && !NONE.equals(c)) {
+            o = resolve("suggested", plan);         // a plan that could not be worked out
+        }
         BuildStats.Side other = (BuildStats.Side) o[0];
         String name = other == null ? null : (String) o[1];
         if (flip && other != null) {
@@ -144,16 +189,18 @@ final class StatsSource {
         return new Shown(wornSide, other, name, false);
     }
 
-    /** The default order: the level pill's step, the "Detailed" build, the plan, the suggestion. */
-    private Object[] auto(Build.Plan plan) {
-        if (step != null) {
-            return resolve("level", plan);
-        }
-        if (pick != null) {
-            return resolve("pick", plan);
-        }
-        Object[] p = resolve("plan", plan);
-        return p[0] != null ? p : resolve("suggested", plan);
+    /** An option's name, without working out its numbers. */
+    private String resolveName(String c) {
+        return switch (c) {
+            case "level" -> step == null ? null : L.t("wynnlabs.stats.col_level", step.level());
+            case "pick" -> L.t("wynnlabs.stats.col_build", pickRank);
+            case "plan" -> Plans.current() == null ? null : planName(Plans.current());
+            case "suggested" -> L.t("wynnlabs.stats.col_suggested");
+            default -> {
+                Plans.Build b = c.startsWith("saved:") ? Plans.byId(c.substring(6)) : null;
+                yield b == null ? null : planName(b);
+            }
+        };
     }
 
     /** A plan's numbers; a failure is told once in the log rather than leaving the list without a reason. */

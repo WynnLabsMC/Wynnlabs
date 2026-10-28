@@ -395,7 +395,9 @@ public final class HomePage extends MenuTab {
         Plans.Build current = Plans.current();
         boolean levelPill = !HomeLevels.planPills.planSelected(current) && menu.selected > 0 && menu.selected < menu.steps.size();
         stats().source.level(levelPill ? menu.steps.get(menu.selected) : null);
-        stats().source.planPill(HomeLevels.planPills.planSelected(current));
+        boolean planPill = HomeLevels.planPills.planSelected(current);
+        stats().source.planPill(planPill);
+        stats().source.pill(planPill ? "plan" : "at" + menu.selected);
         HomeTab.INSTANCE.draw(g, homeIn(), homeHost, stats(), x, by, w, y + h - by - 4, menu.layout.compact(), menu.layout.large(), mx, my);
     }
 

@@ -2093,6 +2093,7 @@
   "wynnlabs.stats.view_new": "Yeni build: %s",
   "wynnlabs.stats.col_level": "Lv %s",
   "wynnlabs.stats.src_auto": "Otomatik (level, seçilen, plan, önerilen)",
+  "wynnlabs.stats.src_auto_is": "Otomatik · %s",
   "wynnlabs.stats.src_plan": "Plan: %s",
   "wynnlabs.stats.src_saved": "Kayıtlı: %s",
   "wynnlabs.stats.src_none": "Karşılaştırma yok",

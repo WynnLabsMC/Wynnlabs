@@ -34,6 +34,7 @@ class StatsSourceTest {
         FixtureState.load(Fixtures.root().resolve("shaman-44")).install("en");
         Locks.rootOverride = tmp;
         Plans.forget();
+        StatsChoice.forget();
         Build.use(Build.compute());
     }
 
@@ -42,6 +43,7 @@ class StatsSourceTest {
         Saver.flush();
         Locks.rootOverride = null;
         Plans.forget();
+        StatsChoice.forget();
         Build.use(null);
         FixtureState.uninstall();
     }
@@ -69,12 +71,14 @@ class StatsSourceTest {
         assertEquals("Imported", s.name());
         assertTrue(s.other().notWearable() != null && s.other().level() >= 121, "at its own level, not wearable yet");
         assertTrue(!s.other().stats().isEmpty() && s.other().parts() != null, "with its stats and spells");
-        // the Plan pill steers it, whatever the header's choice kept from earlier in the session
+        // choosing the Plan pill hands the choice back to Automatic, which shows the plan
+        src.planPill(false);
+        src.pill("at0");
         src.choose(StatsSource.NONE);
         src.planPill(true);
+        src.pill("plan");
         assertEquals("Imported", src.shown().name(), "the Plan pill shows the plan");
-        src.planPill(false);
-        assertEquals(null, src.shown().other(), "\"now\" leaves it to the header's choice");
+        assertEquals(StatsSource.AUTO, src.choice(), "and Automatic is ticked");
         src.choose(StatsSource.AUTO);
         // read back from the file, as after a restart: the points stay
         Saver.flush();
@@ -83,5 +87,41 @@ class StatsSourceTest {
         assertNotNull(back);
         assertEquals(List.of(75, 0, 35, 0, 0), back.points());
         assertNotNull(new StatsSource().shown().other(), "and the plan read back is compared with too");
+    }
+
+    @Test
+    void theMenuPickIsWhatTheChipTheTickAndTheDiffsFollow() {
+        Plans.apply(new Plans.Build("p1", "Mine", List.of(), Tuning.Choice.PLAIN, Map.of(), 0, 44, 1, 1));
+        StatsSource src = new StatsSource();
+        src.level(null);
+        src.planPill(true);                         // a pill selected, as in the report
+        src.pill("plan");
+        assertEquals("plan", src.target(), "Automatic: the Plan pill's plan");
+        assertTrue(src.options().get(0)[1].contains("Mine"), "Automatic names what it resolved to");
+        // a row picked in the menu: "No comparison" ticked, and no other build behind the rows
+        src.choose(StatsSource.NONE);
+        assertEquals(StatsSource.NONE, src.choice());
+        assertEquals(StatsSource.NONE, src.target());
+        assertEquals(null, src.shown().other(), "no diffs");
+        src.pill("plan");                           // the next frames: the pick stays
+        assertEquals(null, src.shown().other(), "still no diffs a frame later");
+        src.choose("suggested");
+        assertEquals("suggested", src.choice());
+        // kept for the character: a new Home (a restart) reads it back
+        Saver.flush();
+        StatsChoice.forget();
+        assertEquals("suggested", new StatsSource().choice());
+    }
+
+    @Test
+    void aPickThatIsGoneFallsBackToAutomatic() {
+        var avail = java.util.Set.of("level", "plan", "suggested");
+        assertEquals("level", StatsChoice.target(StatsSource.AUTO, avail, false), "level pill first");
+        assertEquals("plan", StatsChoice.target(StatsSource.AUTO, avail, true), "Plan pill: the plan");
+        assertEquals(StatsSource.NONE, StatsChoice.target(StatsSource.NONE, avail, true), "none wins over the pills");
+        assertEquals("suggested", StatsChoice.target("suggested", avail, false), "a pick wins over a level pill");
+        assertEquals("level", StatsChoice.target("saved:gone", avail, false), "a deleted saved build: Automatic");
+        assertEquals(StatsSource.AUTO, StatsChoice.ticked("saved:gone", avail), "and Automatic ticked");
+        assertEquals("suggested", StatsChoice.target(StatsSource.AUTO, java.util.Set.of("suggested"), false));
     }
 }

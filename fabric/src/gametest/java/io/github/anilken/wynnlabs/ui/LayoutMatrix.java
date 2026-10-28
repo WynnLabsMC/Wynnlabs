@@ -728,7 +728,8 @@ public class LayoutMatrix implements FabricClientGameTest {
             Plans.clearAll();
         });
         String[] states = {"pick", "pick-priority", "pick-import", "loading", "results", "results-end", "results-high", "plan", "plan-removed", "plan-done", "plan-hint", "saved", "saved-rename",
-            "saved-edit", "edit-swap", "pick-none", "results-none", "saved-none", "road-none", "road-building", "road-stale", "road-stale-plan", "road-stale-hint"};
+            "saved-edit", "edit-swap", "pick-none", "results-none", "saved-none", "road-none", "road-building", "road-stale", "road-stale-plan", "road-stale-hint",
+            "compare-menu", "compare-none"};
         for (String s : states) {
             ctx.runOnClient(mc -> homeState(s));
             measure(ctx, where + " home-" + s, gui, report, areas);
@@ -797,6 +798,7 @@ public class LayoutMatrix implements FabricClientGameTest {
                 ctx.runOnClient(mc -> Settings.setNumber("langOverride", 2));
             }
         }
+        ctx.runOnClient(mc -> Settings.setNumber("langOverride", 2));      // the compare shots' English
         if (where.startsWith("1920x1080@3")) {
             scrollDrag(ctx, where, report);
             cancelReopens(ctx, where, report);
@@ -821,7 +823,23 @@ public class LayoutMatrix implements FabricClientGameTest {
         Locks.useTuning(builds.tuning());
         long now = System.currentTimeMillis();
         w.menu = 0;                                 // a menu one state opened closes for the next
+        var rs = (RoadmapScreen) net.minecraft.client.Minecraft.getInstance().screen;
+        rs.home.stats().picker.close();
+        if (!s.startsWith("compare-")) {
+            rs.selected = 0;
+        }
         switch (s) {
+            // the stats' compare menu over a level pill: Automatic names what it compares with;
+            // "No comparison" picked: ticked, the chip says so and the rows lose their diffs
+            case "compare-menu", "compare-none" -> {
+                w.close();
+                Plans.HINT.reset();
+                Plans.apply(planOf(builds.builds().get(0), "Covetous Thunder build", now));
+                rs.selected = Math.min(1, Math.max(0, rs.steps.size() - 1));
+                rs.home.stats().source.choose(s.equals("compare-none") ? StatsSource.NONE : StatsSource.AUTO);
+                rs.home.stats().picker.toggle();
+                Settings.setNumber("langOverride", 1);      // in English
+            }
             case "pick" -> BuildPreviews.pick(w, "thunder", AROUND, builds.tuning());
             // the Priority menu open over the list, two leanings on
             case "pick-priority" -> {

@@ -2093,6 +2093,7 @@
   "wynnlabs.stats.view_new": "New build: %s",
   "wynnlabs.stats.col_level": "Lv %s",
   "wynnlabs.stats.src_auto": "Automatic (level, picked, plan, suggested)",
+  "wynnlabs.stats.src_auto_is": "Automatic · %s",
   "wynnlabs.stats.src_plan": "Plan: %s",
   "wynnlabs.stats.src_saved": "Saved: %s",
   "wynnlabs.stats.src_none": "No comparison",
