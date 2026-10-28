@@ -33,6 +33,17 @@ public final class SetSuggestions {
             return bought.isEmpty();
         }
 
+        /** The pieces' goal scores added up. */
+        public double score() {
+            double sc = 0;
+            for (Piece p : pieces) {
+                if (p.layout() != null) {
+                    sc += p.layout().score();
+                }
+            }
+            return sc;
+        }
+
         public int found() {
             int n = 0;
             for (Piece p : pieces) {
@@ -47,6 +58,25 @@ public final class SetSuggestions {
     private static final CraftSearch.Tier[] TIERS = {CraftSearch.Tier.OWN, CraftSearch.Tier.OWN_PLUS_TWO, CraftSearch.Tier.ANY};
 
     private SetSuggestions() {}
+
+    /**
+     * One set per goal and group (from stock, or with buying): the strongest of the search tiers
+     * and the two bracket steps, the higher bracket on a tie. The own-plus-two set of a goal is
+     * weaker than its any-ingredient one by design (its leggings may be what the bag holds), and
+     * the bracket below mostly repeats the top one, so showing them all only doubles the list.
+     */
+    public static List<CraftSet> strongest(List<CraftSet> sets) {
+        Map<String, CraftSet> best = new LinkedHashMap<>();
+        for (CraftSet s : sets) {
+            best.merge(s.goal().key() + "|" + s.fromStock(), s, (a, b) -> {
+                if (Math.abs(a.score() - b.score()) < 1e-9) {
+                    return a.step() <= b.step() ? a : b;
+                }
+                return a.score() > b.score() ? a : b;
+            });
+        }
+        return new ArrayList<>(best.values());
+    }
 
     /** The slots of a set, the class's weapon first; the potion last. */
     public static List<String> slots(String weapon) {
@@ -105,12 +135,12 @@ public final class SetSuggestions {
                 continue;
             }
             CraftData.Recipe r = brackets.get(Math.min(step, brackets.size() - 1));
-            int t1 = Math.max(1, WhatCanICraft.bestTier(stock, r.materials().get(0)));
-            int t2 = Math.max(1, WhatCanICraft.bestTier(stock, r.materials().get(1)));
+            int t1 = Suggestions.tier(stock, r.materials().get(0));
+            int t2 = Suggestions.tier(stock, r.materials().get(1));
             CraftSearch.Request q = new CraftSearch.Request(r, t1, t2, Craft.Speed.NORMAL, g.goal(), all, Map.copyOf(left),
                     stock.level(r.profession()), true, prices);
-            CraftSearch.Layout l = CraftSearch.search(q, tier, new CraftSearch.Budget(millisEach, budget)).best();
-            if (l == null || l.score() <= 0 || l.slots().stream().allMatch(Ingredient::empty)) {
+            CraftSearch.Layout l = Suggestions.best(q, tier, millisEach, budget, g.core());
+            if (l == null) {
                 pieces.add(new Piece(type, r, t1, t2, null));
                 continue;
             }

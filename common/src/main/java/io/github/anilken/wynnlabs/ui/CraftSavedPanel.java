@@ -67,6 +67,9 @@ final class CraftSavedPanel extends CraftPanel {
         int pw = Ui.iconChipWidth(tab.font, "clipboard", paste, false);
         Ui.iconChip(g, tab.font, "clipboard", paste, false, cx, cy, pw, false, mx, my);
         act(cx, cy, pw, Ui.CHIP_H, this::pasteCode, List.of(L.c("wynnlabs.craft.tip.paste")));
+        cx += pw + Theme.SP_2;
+        Ui.iconButton(g, "world", cx, cy, false, mx, my);
+        act(cx, cy, Ui.CHIP_H + 2, Ui.CHIP_H, this::copyLink, List.of(L.c("wynnlabs.craft.tip.wb_link")));
         cy += Ui.CHIP_H + Theme.SP_5;
         if (saved.all().isEmpty()) {
             return Type.MUTED.drawWrapped(g, tab.font, L.t("wynnlabs.craft.saved_empty"), x, cy, w, 0, Theme.INK_3) - y;
@@ -221,6 +224,12 @@ final class CraftSavedPanel extends CraftPanel {
         String code = WynnBuilderCode.encode(here);
         Minecraft.getInstance().keyboardHandler.setClipboard(code != null ? code : RecipeCode.encode(here));
         tab.flash.accept(L.t("wynnlabs.craft.code_copied"));
+    }
+
+    private void copyLink() {
+        RecipeCode.Recipe here = new RecipeCode.Recipe(tab.type, tab.minLevel, tab.tier1, tab.tier2, tab.speed,
+                new ArrayList<>(Arrays.asList(tab.slots)));
+        CraftSetsPanel.copyLink(tab, WynnBuilderCode.link(here));
     }
 
     private void pasteCode() {

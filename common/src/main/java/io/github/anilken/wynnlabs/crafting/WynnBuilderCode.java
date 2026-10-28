@@ -27,6 +27,8 @@ import java.util.Map;
 public final class WynnBuilderCode {
 
     public static final String PREFIX = "CR-";
+    /** The crafter page; its hash is the code without {@link #PREFIX}. */
+    public static final String LINK = "https://wynnbuilder.github.io/crafter/#";
     private static final String DIGITS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz+-";
     private static final int VERSION = 2;
     private static final int NO_INGREDIENT = 4000;
@@ -69,12 +71,25 @@ public final class WynnBuilderCode {
         return PREFIX + b.text();
     }
 
-    /** A recipe from a code ("CR-" optional), or null when it is not one or names something unknown. */
+    /** The crafter link for a recipe, or null when WynnBuilder has no id for it. */
+    public static String link(RecipeCode.Recipe r) {
+        String code = encode(r);
+        return code == null ? null : LINK + code.substring(PREFIX.length());
+    }
+
+    /**
+     * A recipe from a code ("CR-" optional) or a crafter link, or null when it is not one or
+     * names something unknown.
+     */
     public static RecipeCode.Recipe decode(String text) {
         if (text == null) {
             return null;
         }
         String s = text.strip();
+        int hash = s.lastIndexOf('#');
+        if (hash >= 0 && isLink(s)) {
+            s = s.substring(hash + 1);
+        }
         if (s.regionMatches(true, 0, PREFIX, 0, PREFIX.length())) {
             s = s.substring(PREFIX.length());
         }
@@ -263,8 +278,12 @@ public final class WynnBuilderCode {
         return new Ids(Map.copyOf(ing), Map.copyOf(ingName), Map.copyOf(rec), Map.copyOf(recKey));
     }
 
-    /** True when a pasted text looks like a WynnBuilder code rather than the mod's own. */
+    /** True when a pasted text looks like a WynnBuilder code or crafter link rather than the mod's own code. */
     public static boolean looksLike(String text) {
-        return text != null && text.strip().toUpperCase(Locale.ROOT).startsWith(PREFIX);
+        return text != null && (text.strip().toUpperCase(Locale.ROOT).startsWith(PREFIX) || isLink(text));
+    }
+
+    private static boolean isLink(String text) {
+        return text.toLowerCase(Locale.ROOT).contains("wynnbuilder.github.io/crafter");
     }
 }

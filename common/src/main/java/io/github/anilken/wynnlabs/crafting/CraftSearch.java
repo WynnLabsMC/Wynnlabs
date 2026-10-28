@@ -32,17 +32,46 @@ public final class CraftSearch {
 
     public static final int MAX_BOUGHT = 2;
 
-    /** The most meta arrangements tried in one search. */
-    static final int MAX_CONFIGS = 200_000;
+    /** The most meta arrangements tried in one search: enough for four metas out of a dozen. */
+    static final int MAX_CONFIGS = 400_000;
+
+    /** Effectiveness looked up from a table while ranking arrangements: -2000 % to 2000 %. */
+    private static final int EFF_SPAN = 2000;
 
     /**
      * A goal: identification → weight, the end of the range to count, identifications that must
      * not go below zero, a cap per skill requirement ({@link #NO_CAP} for none, in strength,
-     * dexterity, intelligence, defence, agility order) and the lowest durability allowed.
+     * dexterity, intelligence, defence, agility order), the lowest durability allowed,
+     * penalties: identification → weight counted only where an ingredient brings it below zero
+     * (health or walk speed lost along the way), so a layout pays for what it gives up, a cap
+     * on the five requirements added up ({@link #NO_CAP} for none), and what each requirement
+     * point costs on gear (skill points spent on the piece are points not spent elsewhere).
      */
-    public record Goal(Map<String, Double> weights, Pick pick, Set<String> noNegative, int[] caps, int durabilityFloor) {
+    public record Goal(Map<String, Double> weights, Pick pick, Set<String> noNegative, int[] caps, int durabilityFloor,
+                       Map<String, Double> penalties, int totalCap, double requirementCost) {
 
         public static final int NO_CAP = Integer.MAX_VALUE;
+
+        public Goal(Map<String, Double> weights, Pick pick, Set<String> noNegative, int[] caps, int durabilityFloor) {
+            this(weights, pick, noNegative, caps, durabilityFloor, Map.of(), NO_CAP, 0);
+        }
+
+        /** The same goal with another durability floor. */
+        public Goal withFloor(int floor) {
+            return new Goal(weights, pick, noNegative, caps, floor, penalties, totalCap, requirementCost);
+        }
+
+        /** True when requirements break a skill's cap or, added up, the total cap. */
+        boolean overCaps(int[] req) {
+            int sum = 0;
+            for (int s = 0; s < 5; s++) {
+                if (caps[s] != NO_CAP && req[s] > caps[s]) {
+                    return true;
+                }
+                sum += req[s];
+            }
+            return totalCap != NO_CAP && sum > totalCap;
+        }
 
         public static Goal of(String id) {
             return new Goal(Map.of(id, 1.0), Pick.MEAN, Set.of(), uncapped(), 1);
@@ -62,7 +91,57 @@ public final class CraftSearch {
             };
         }
 
-        /** The weighted sum over a craft's identifications. */
+        /**
+         * What one ingredient adds at an effectiveness: its weighted identifications, less the
+         * penalties on those it brings below zero and, on gear, what its positive requirements cost. A
+         * layout's score is the sum over its slots.
+         */
+        public double gain(Ingredient ing, int eff, boolean gear) {
+            double s = idsGain(ing, eff);
+            if (gear && requirementCost != 0) {
+                for (int r : ing.requirements()) {
+                    s -= requirementCost * Math.max(0, Craft.scaledRequirement(r, eff));
+                }
+            }
+            return s;
+        }
+
+        /** The identifications' part of {@link #gain}. */
+        double idsGain(Ingredient ing, int eff) {
+            double s = 0;
+            for (Map.Entry<String, Ingredient.Stat> e : ing.ids().entrySet()) {
+                double v = value(Craft.scaled(e.getValue(), eff));
+                Double w = weights.get(e.getKey());
+                if (w != null) {
+                    s += w * v;
+                }
+                // a loss is charged on top, also on a goal stat (attack speed tiers given up)
+                Double p = penalties.get(e.getKey());
+                if (p != null && v < 0) {
+                    s += p * v;
+                }
+            }
+            return s;
+        }
+
+        /** A gear layout's score: the sum of what each slot adds at its effectiveness. */
+        public double score(List<Ingredient> slots) {
+            return score(slots, true);
+        }
+
+        public double score(List<Ingredient> slots, boolean gear) {
+            int[] eff = Craft.effectiveness(slots);
+            double s = 0;
+            for (int i = 0; i < Craft.SLOTS && i < slots.size(); i++) {
+                Ingredient ing = slots.get(i);
+                if (ing != null && !ing.empty()) {
+                    s += gain(ing, eff[i], gear);
+                }
+            }
+            return s;
+        }
+
+        /** The weighted sum over a craft's identifications (penalties left out). */
         public double score(Map<String, Craft.Range> ids) {
             double s = 0;
             for (Map.Entry<String, Double> w : weights.entrySet()) {
@@ -82,10 +161,8 @@ public final class CraftSearch {
                     return false;
                 }
             }
-            for (int s = 0; s < 5; s++) {
-                if (caps[s] != NO_CAP && r.requirements()[s] > caps[s]) {
-                    return false;
-                }
+            if (overCaps(r.requirements())) {
+                return false;
             }
             return r.durability() == null || r.durability().min() >= durabilityFloor;
         }
@@ -96,7 +173,7 @@ public final class CraftSearch {
                     return true;
                 }
             }
-            return false;
+            return totalCap != NO_CAP;
         }
     }
 
@@ -315,6 +392,7 @@ public final class CraftSearch {
         Ingredient[] best;
         boolean stopped;
         boolean truncated;
+        boolean pruned;
         long nodes;
 
         // the layout being built
@@ -333,18 +411,63 @@ public final class CraftSearch {
             for (Ingredient ing : candidates(q, tier)) {
                 (ing.meta() ? metas : plain).add(ing);
             }
+            pruneLowerers();
             Craft.Result empty = Craft.craft(q.recipe(), q.tier1(), q.tier2(), q.speed(), Craft.slots());
             this.baseDurability = empty.durability() == null ? 0 : empty.durability().min();
         }
 
-        Gain gain(Ingredient ing, int index, int eff) {
-            double score = 0;
-            for (Map.Entry<String, Double> w : goal.weights().entrySet()) {
-                Ingredient.Stat st = ing.ids().get(w.getKey());
-                if (st != null) {
-                    score += w.getValue() * goal.value(Craft.scaled(st, eff));
+        /**
+         * Drops the metas that only lower other slots and bring nothing themselves, when no
+         * candidate costs the goal anything: lowering such a slot can then only cost score. It
+         * keeps four-meta layouts within {@link #MAX_CONFIGS}. Lowering can still ease a capped
+         * requirement, so with caps the outcome no longer claims to be complete.
+         */
+        private void pruneLowerers() {
+            List<Ingredient> lowerers = new ArrayList<>();
+            for (Ingredient m : metas) {
+                if (onlyLowers(m) && goal.idsGain(m, 100) <= 0 && (consumable || m.durability() <= 0)) {
+                    lowerers.add(m);
                 }
             }
+            if (lowerers.isEmpty()) {
+                return;
+            }
+            List<Ingredient> others = new ArrayList<>(plain);
+            for (Ingredient m : metas) {
+                if (!lowerers.contains(m)) {
+                    others.add(m);
+                }
+            }
+            for (Ingredient o : others) {
+                if (goal.idsGain(o, 100) < 0 || filteredBelowZero(o)) {
+                    return;     // something worth flipping or cancelling: keep every meta
+                }
+            }
+            metas.removeAll(lowerers);
+            pruned = true;
+        }
+
+        private static boolean onlyLowers(Ingredient m) {
+            for (int p : m.positions()) {
+                if (p > 0) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private boolean filteredBelowZero(Ingredient ing) {
+            for (String id : filters) {
+                Ingredient.Stat st = ing.ids().get(id);
+                if (st != null && st.min() < 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        Gain gain(Ingredient ing, int index, int eff) {
+            double score = goal.gain(ing, eff, !consumable);
             int[] req = new int[5];
             if (!consumable) {
                 for (int s = 0; s < 5; s++) {
@@ -397,14 +520,43 @@ public final class CraftSearch {
 
         Outcome run() {
             List<int[]> configs = metaConfigs();
-            // Score bound of each arrangement: its metas' own score plus the best each free slot can add.
-            List<double[]> ranked = new ArrayList<>();
+            // Score bound of each arrangement: its metas' own score plus the best each free slot can
+            // add, both looked up per effectiveness (the same few values come back again and again).
+            double[] freeBest = new double[2 * EFF_SPAN + 1];
+            double[][] metaGain = new double[metas.size()][2 * EFF_SPAN + 1];
+            Arrays.fill(freeBest, Double.NaN);
+            for (double[] g : metaGain) {
+                Arrays.fill(g, Double.NaN);
+            }
+            List<double[]> ranked = new ArrayList<>(configs.size());
             for (int c = 0; c < configs.size(); c++) {
-                Ingredient[] l = metaLayout(configs.get(c));
-                int[] eff = Craft.effectiveness(Arrays.asList(l));
+                int[] cfg = configs.get(c);
+                int[] eff = Craft.effectiveness(Arrays.asList(metaLayout(cfg)));
                 double bound = 0;
                 for (int s = 0; s < Craft.SLOTS; s++) {
-                    bound += l[s] == null ? table(eff[s]).bestFrom[0] : gain(l[s], -1, eff[s]).score;
+                    int e = eff[s];
+                    int at = e + EFF_SPAN;
+                    boolean cached = at >= 0 && at < freeBest.length;
+                    if (cfg[s] < 0) {
+                        if (!cached) {
+                            bound += table(e).bestFrom[0];
+                            continue;
+                        }
+                        if (Double.isNaN(freeBest[at])) {
+                            freeBest[at] = table(e).bestFrom[0];
+                        }
+                        bound += freeBest[at];
+                    } else {
+                        double[] mg = metaGain[cfg[s]];
+                        if (!cached) {
+                            bound += goal.gain(metas.get(cfg[s]), e, !consumable);
+                            continue;
+                        }
+                        if (Double.isNaN(mg[at])) {
+                            mg[at] = goal.gain(metas.get(cfg[s]), e, !consumable);
+                        }
+                        bound += mg[at];
+                    }
                 }
                 ranked.add(new double[] {bound, c});
             }
@@ -414,14 +566,14 @@ public final class CraftSearch {
                 if (r[0] < bestScore - 1e-9 || stopped) {
                     break;
                 }
-                if (budget.over()) {
+                if (done > 0 && budget.over()) {     // the most promising arrangement is always tried
                     stopped = true;
                     break;
                 }
                 fillConfig(configs.get((int) r[1]));
                 budget.progress = (double) ++done / ranked.size();
             }
-            return new Outcome(tier, best == null ? null : layoutOf(best), !stopped && !truncated);
+            return new Outcome(tier, best == null ? null : layoutOf(best), !stopped && !truncated && !(pruned && capped));
         }
 
         /**
@@ -575,12 +727,8 @@ public final class CraftSearch {
             if (!consumable && baseDurability + durUb < goal.durabilityFloor()) {
                 return;
             }
-            if (capped) {
-                for (int s = 0; s < 5; s++) {
-                    if (goal.caps()[s] != Goal.NO_CAP && reqLb[s] > goal.caps()[s]) {
-                        return;
-                    }
-                }
+            if (capped && goal.overCaps(reqLb)) {
+                return;
             }
             for (int f = 0; f < fmUb.length; f++) {
                 if (fmUb[f] < 0) {
@@ -641,12 +789,8 @@ public final class CraftSearch {
             if (!consumable && baseDurability + dur < goal.durabilityFloor()) {
                 return;
             }
-            if (capped) {
-                for (int s = 0; s < 5; s++) {
-                    if (goal.caps()[s] != Goal.NO_CAP && req[s] > goal.caps()[s]) {
-                        return;
-                    }
-                }
+            if (capped && goal.overCaps(req)) {
+                return;
             }
             for (int f : fm) {
                 if (f < 0) {
@@ -710,7 +854,7 @@ public final class CraftSearch {
                     }
                 }
             }
-            return new Layout(Collections.unmodifiableList(slots), r, goal.score(r.ids()), List.copyOf(missing), cost,
+            return new Layout(Collections.unmodifiableList(slots), r, goal.score(slots, !consumable), List.copyOf(missing), cost,
                     List.copyOf(unpriced), List.copyOf(old));
         }
     }

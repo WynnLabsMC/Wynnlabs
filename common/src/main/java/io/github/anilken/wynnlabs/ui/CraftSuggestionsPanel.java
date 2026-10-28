@@ -57,7 +57,7 @@ final class CraftSuggestionsPanel extends CraftPanel {
         suggestedFor = "";
     }
 
-    /** The class's order of goal sets: spell first for casters, melee first for the others. */
+    /** The class's order of goal sets: spell first for casters, melee first for the others, then the build's elements. */
     List<String> goalOrder() {
         Klass k;
         try {
@@ -65,9 +65,22 @@ final class CraftSuggestionsPanel extends CraftPanel {
         } catch (Throwable t) {
             k = Klass.NONE;
         }
-        return k == Klass.MAGE || k == Klass.SHAMAN
-                ? List.of("spell", "mana", "health", "melee", "speed", "lifesteal", "loot", "xp")
-                : List.of("melee", "health", "spell", "mana", "speed", "lifesteal", "loot", "xp");
+        return Suggestions.order(k == Klass.MAGE || k == Klass.SHAMAN, knownPoints());
+    }
+
+    /** The goal sets for the player's level and skill points. */
+    List<Suggestions.GoalSet> goalSets() {
+        return Suggestions.goalSets(goalOrder(), combatLevel(), knownPoints());
+    }
+
+    /** The player's skill points, or null while none are known. */
+    private int[] knownPoints() {
+        for (int p : tab.points) {
+            if (p > 0) {
+                return tab.points.clone();
+            }
+        }
+        return null;
     }
 
     /** The class's weapon, every armour piece and accessory, and the consumables. */
@@ -117,7 +130,7 @@ final class CraftSuggestionsPanel extends CraftPanel {
         List<Ingredient> all = tab.ingredients;
         Map<String, CraftSearch.Price> pr = new HashMap<>(tab.prices);
         List<String> types = suggestTypes();
-        List<Suggestions.GoalSet> goals = Suggestions.goalSets(goalOrder());
+        List<Suggestions.GoalSet> goals = goalSets();
         int combat = combatLevel();
         suggesting = suggestRunner.run(120_000, b -> {
             Suggestions.run(types, goals, combat, st, all, pr::get, 150, b, tab.suggestions::add);

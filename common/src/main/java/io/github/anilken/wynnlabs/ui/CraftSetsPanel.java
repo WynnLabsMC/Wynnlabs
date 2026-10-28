@@ -64,7 +64,7 @@ final class CraftSetsPanel extends CraftPanel {
         List<Ingredient> all = tab.ingredients;
         Map<String, CraftSearch.Price> pr = new HashMap<>(tab.prices);
         String weapon = tab.suggestionsPanel.suggestTypes().get(0);
-        List<Suggestions.GoalSet> goals = Suggestions.goalSets(tab.suggestionsPanel.goalOrder());
+        List<Suggestions.GoalSet> goals = tab.suggestionsPanel.goalSets();
         int combat = CraftSuggestionsPanel.combatLevel();
         setting = setRunner.run(300_000, b -> {
             SetSuggestions.run(weapon, goals, combat, st, all, pr::get, 120, b, tab.sets::add);
@@ -91,7 +91,7 @@ final class CraftSetsPanel extends CraftPanel {
     int list(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
         List<SetSuggestions.CraftSet> own = new ArrayList<>();
         List<SetSuggestions.CraftSet> buy = new ArrayList<>();
-        for (SetSuggestions.CraftSet s : tab.sets) {
+        for (SetSuggestions.CraftSet s : SetSuggestions.strongest(tab.sets)) {
             if (tab.suggestionsPanel.shows(s)) {
                 (s.fromStock() ? own : buy).add(s);
             }
@@ -208,6 +208,10 @@ final class CraftSetsPanel extends CraftPanel {
                 Minecraft.getInstance().keyboardHandler.setClipboard(pieceCode(piece));
                 tab.flash.accept(L.t("wynnlabs.craft.code_copied"));
             }, null, null));
+            bx -= Theme.SP_2 + Ui.CHIP_H + 2;
+            Ui.iconButton(g, "world", bx, by, false, mx, my);
+            tab.overlay.add(new Act(bx, by, Ui.CHIP_H + 2, Ui.CHIP_H,
+                    () -> copyLink(tab, WynnBuilderCode.link(pieceRecipe(piece))), null, List.of(L.c("wynnlabs.craft.tip.wb_link"))));
             int right = bx - Theme.SP_4;
             Type.BODY.draw(g, tab.font, Type.BODY.fit(tab.font, nm, right - tx), tx, cy);
             String v = pieceValue(s, pc);
@@ -254,6 +258,16 @@ final class CraftSetsPanel extends CraftPanel {
         RecipeCode.Recipe r = pieceRecipe(pc);
         String code = WynnBuilderCode.encode(r);
         return code != null ? code : RecipeCode.encode(r);
+    }
+
+    /** Puts a WynnBuilder crafter link on the clipboard, or says WynnBuilder has no id for the recipe. */
+    static void copyLink(CraftingTab tab, String link) {
+        if (link == null) {
+            tab.flash.accept(L.t("wynnlabs.craft.wb_link_none"));
+            return;
+        }
+        Minecraft.getInstance().keyboardHandler.setClipboard(link);
+        tab.flash.accept(L.t("wynnlabs.craft.wb_link_copied"));
     }
 
     private void copySetCodes(SetSuggestions.CraftSet s) {

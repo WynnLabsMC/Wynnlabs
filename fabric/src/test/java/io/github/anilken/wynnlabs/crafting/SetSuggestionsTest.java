@@ -61,4 +61,49 @@ class SetSuggestionsTest {
             assertEquals(sum, s.totals());
         }
     }
+
+    /**
+     * An any-ingredient set piece is the single suggestion for its slot under the same goal, caps
+     * and floor: the set never settles for weak leggings when nothing forces it.
+     */
+    @Test
+    void anySetPiecesMatchTheSingleSuggestion() {
+        List<Ingredient> all = CraftGoldenTest.ingredients();
+        WhatCanICraft.Stock stock = new WhatCanICraft.Stock(Map.of(), Map.of(), Map.of());
+        Suggestions.GoalSet g = Suggestions.goalSets(List.of("rawspell"), 107, new int[] {0, 0, 40, 0, 0}).get(0);
+        SetSuggestions.CraftSet set = SetSuggestions.one("relik", g, 0, CraftSearch.Tier.ANY, 107, stock, all, n -> null, 3_000,
+                new CraftSearch.Budget(120_000));
+        for (SetSuggestions.Piece p : set.pieces()) {
+            if (p.recipe() == null) {
+                continue;
+            }
+            CraftSearch.Request q = new CraftSearch.Request(p.recipe(), p.tier1(), p.tier2(), Craft.Speed.NORMAL, g.goal(), all,
+                    Map.of(), 200, true, n -> null);
+            CraftSearch.Layout single = Suggestions.best(q, CraftSearch.Tier.ANY, 3_000, new CraftSearch.Budget(10_000), g.core());
+            double mine = p.layout() == null ? 0 : p.layout().score();
+            double alone = single == null ? 0 : single.score();
+            assertEquals(alone, mine, 1e-6, p.type() + " in the set vs alone");
+        }
+    }
+
+    @Test
+    void oneSetPerGoalAndGroupTheStrongest() {
+        Suggestions.GoalSet g = Suggestions.goalSets(List.of("rawspell")).get(0);
+        Suggestions.GoalSet h = Suggestions.goalSets(List.of("health")).get(0);
+        CraftData.Recipe r = CraftData.byId("Helmet105-107");
+        SetSuggestions.CraftSet weak = set(g, 0, CraftSearch.Tier.OWN_PLUS_TWO, r, 10, List.of("x"));
+        SetSuggestions.CraftSet strong = set(g, 0, CraftSearch.Tier.ANY, r, 30, List.of("x", "y"));
+        SetSuggestions.CraftSet lower = set(g, 1, CraftSearch.Tier.ANY, r, 30, List.of("x", "y"));
+        SetSuggestions.CraftSet own = set(g, 0, CraftSearch.Tier.OWN, r, 5, List.of());
+        SetSuggestions.CraftSet tank = set(h, 1, CraftSearch.Tier.ANY, r, 8, List.of("z"));
+        assertEquals(List.of(strong, own, tank), SetSuggestions.strongest(List.of(weak, strong, lower, own, tank)),
+                "the strongest buying set (the higher bracket on a tie), the stock set, the other goal");
+    }
+
+    private static SetSuggestions.CraftSet set(Suggestions.GoalSet g, int step, CraftSearch.Tier tier, CraftData.Recipe r,
+                                               double score, List<String> bought) {
+        CraftSearch.Layout l = new CraftSearch.Layout(Craft.slots(), null, score, bought, 0, List.of(), List.of());
+        return new SetSuggestions.CraftSet(g, step, tier, List.of(new SetSuggestions.Piece("helmet", r, 3, 3, l)), Map.of(),
+                new int[5], bought);
+    }
 }
