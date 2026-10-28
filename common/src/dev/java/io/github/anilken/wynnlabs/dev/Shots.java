@@ -41,12 +41,14 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 /**
- * Dev builds only. {@code /wynnlabs shots [en|tr|current] [all|<tab>] [x2|x3|x4] [hidename]}:
+ * Dev builds only. {@code /wynnlabs shots <page>|all [en|tr|current] [x2|x3|x4] [hidename]}:
  * pictures of the mod's own menu for the mod's pages, taken in the real game with the real
  * resource pack. Only while the Debug setting is on, and only when the player types it.
  *
- * <p>It opens the mod's own menu and windows (nothing else) and takes every view of every tab in rail order
- * ({@link ShotRun#views}: sub-pages, filters, windows, tooltips), each grabbed with Minecraft's own
+ * <p>Without a page it lists the pages. It opens the mod's own menu and windows (nothing else) and
+ * takes each view of the page, or of every page one after another with a line after each
+ * ({@link ShotRun#views}: each drawer, menu, window and kind of tooltip once, every one from a
+ * freshly opened menu), each grabbed with Minecraft's own
  * screenshot path (as F2 does) twice, over a black and a white backdrop instead of the world. The
  * picture is the mod's window alone (frame, shadow, close seal, side panels, and a tooltip past the
  * frame) on transparency, cropped with a small margin ({@link ShotCrop}); key panels are saved as
@@ -101,7 +103,10 @@ public final class Shots {
     /** The last run, for the gametest: pictures taken, views skipped, how long it took. */
     static volatile int lastCount;
     static volatile int lastSkipped;
+    static volatile int lastRejected;
     static volatile long lastMillis;
+    /** The last run's views left out as not clean ("page state: why"), for the gametest. */
+    static final List<String> REJECTED = new java.util.concurrent.CopyOnWriteArrayList<>();
     /** The last run's crops, for the gametest: file → {the picture's box, the window's alone} in framebuffer pixels {x, y, w, h}. */
     static final Map<String, int[][]> RECTS = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -175,13 +180,10 @@ public final class Shots {
                                 })));
     }
 
-    /** The words the options take: the languages, all and the tab names, the sizes, hidename. */
+    /** The words the options take: the pages and all, the languages, the sizes, hidename. */
     static List<String> words() {
-        List<String> out = new ArrayList<>(List.of("en", "tr", "current", "all"));
-        for (int t : ShotDriver.railOrder()) {
-            out.add(ShotDriver.tabName(t));
-        }
-        out.addAll(List.of("x2", "x3", "x4", "hidename"));
+        List<String> out = new ArrayList<>(ShotRun.PAGES.keySet());
+        out.addAll(List.of("all", "en", "tr", "current", "x2", "x3", "x4", "hidename"));
         return out;
     }
 
@@ -199,21 +201,18 @@ public final class Shots {
     }
 
     /**
-     * The options, read: the language (as the rail's picker numbers it, -1 to keep), the tab
-     * ("all"), the menu scale to draw at (2 to 4, -1 to keep), whether the name is hidden.
+     * The options, read: the language (as the rail's picker numbers it, -1 to keep), the page
+     * ("all": every page one after another; null: none named), the menu scale to draw at (2 to 4,
+     * -1 to keep), whether the name is hidden.
      */
     record Options(int lang, String only, int scale, boolean hideName) {}
 
     /** {@code options} read, or null with the word that is not one ({@code bad[0]}). */
     static Options parse(String options, String[] bad) {
         int lang = 1;
-        String only = "all";
+        String only = null;
         int scale = -1;
         boolean hide = false;
-        List<String> tabs = new ArrayList<>();
-        for (int t : ShotDriver.railOrder()) {
-            tabs.add(ShotDriver.tabName(t));
-        }
         for (String w : options.strip().toLowerCase(Locale.ROOT).split(" ")) {
             switch (w) {
                 case "" -> { }
@@ -226,7 +225,7 @@ public final class Shots {
                 case "x3" -> scale = 3;
                 case "x4" -> scale = 4;
                 default -> {
-                    if (!tabs.contains(w)) {
+                    if (!ShotRun.PAGES.containsKey(w)) {
                         bad[0] = w;
                         return null;
                     }
@@ -255,7 +254,11 @@ public final class Shots {
         if (o == null) {
             return L.c("wynnlabs.shots.unknown", bad[0], String.join(", ", words())).withStyle(ChatFormatting.YELLOW);
         }
-        List<ShotRun.Shot> shots = ShotRun.plan(ShotDriver.railOrder(), ShotDriver.tabNames(), o.only());
+        if (o.only() == null) {
+            // no page named: the pages to pick from, nothing taken
+            return L.c("wynnlabs.shots.pages", String.join(", ", ShotRun.PAGES.keySet())).withStyle(ChatFormatting.GRAY);
+        }
+        List<ShotRun.Shot> shots = ShotRun.plan(ShotDriver.tabNames(), o.only());
         Path base = mc.gameDirectory.toPath().resolve("screenshots").resolve("wynnlabs");
         String stamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss", Locale.ROOT));
         Path dir = base.resolve(stamp);
@@ -263,6 +266,7 @@ public final class Shots {
             dir = base.resolve(stamp + "_" + k);         // two runs in one second: one folder each
         }
         RECTS.clear();
+        REJECTED.clear();
         Live live = new Live(mc, dir);
         run = new ShotRun(live, shots, o.lang(), o.scale(), o.hideName());
         live.run = run;
@@ -474,6 +478,30 @@ public final class Shots {
         }
 
         @Override
+        public void settle() {
+            mouseX = AWAY;
+            mouseY = AWAY;
+            driver.settle();
+        }
+
+        @Override
+        public String unclean(ShotRun.Shot shot) {
+            return driver.unclean(shot.overlays());
+        }
+
+        @Override
+        public void page(String page, int taken, int skipped, List<String> rejected) {
+            MutableComponent line = L.c("wynnlabs.shots.page_done", page, taken, skipped, rejected.size())
+                    .withStyle(rejected.isEmpty() ? ChatFormatting.GRAY : ChatFormatting.YELLOW);
+            if (mc.player != null) {
+                mc.player.displayClientMessage(line, false);
+            }
+            System.out.println("[WynnLabs] screenshots: page " + page + ": " + taken + " taken, " + skipped + " with nothing to show"
+                    + (rejected.isEmpty() ? "" : ", left out: " + String.join("; ", rejected)));
+            REJECTED.addAll(rejected.stream().map(r -> page + " " + r).toList());
+        }
+
+        @Override
         public boolean hover(String part) {
             if (part == null) {
                 mouseX = AWAY;
@@ -598,6 +626,7 @@ public final class Shots {
             writeIndex();
             lastCount = saved;
             lastSkipped = run == null ? 0 : run.skipped();
+            lastRejected = run == null ? 0 : run.rejected();
             lastMillis = System.currentTimeMillis() - started;
             MutableComponent line;
             if (stop == ShotRun.Stop.ERROR) {

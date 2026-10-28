@@ -1,17 +1,21 @@
 package io.github.anilken.wynnlabs.dev;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
- * The screenshot tool's sequence ({@code /wynnlabs shots}, dev builds only), one client tick at a
- * time so the game keeps drawing: the menu language (and size) switched, the mod's own menu opened,
- * then for each picture its tab selected, its steps taken (a filter, a sub-page, a window opened:
- * {@link Stage#act}), an element hovered for its tooltip when it has one, a few frames waited and
- * the frame saved; then everything put back as it was. A step or a hover with nothing to show skips
- * its picture, and the numbers stay in a row. Esc, a menu closed by anything else or an error put
- * everything back at once.
+ * The screenshot tool's sequence ({@code /wynnlabs shots <page>}, dev builds only), one client tick
+ * at a time so the game keeps drawing: the menu language (and size) switched, then page by page,
+ * for each picture a freshly opened menu on its tab, its steps taken (a drawer, a menu, a window of
+ * the mod: {@link Stage#act}), the page settled (no field focused), an element hovered for its
+ * tooltip when it has one, a few frames waited, the frame checked for anything open that the steps
+ * did not open ({@link Stage#unclean}) and saved; then everything put back as it was. A step or a
+ * hover with nothing to show skips its picture, a frame with something unexpected open is left out
+ * and reported, and the numbers stay in a row. After each page a line says what it took. Esc, a
+ * menu closed by anything else or an error put everything back at once.
  *
  * <p>Each picture is taken in {@link Stage#passes} passes, one per backdrop behind the menu (black,
  * then white): the two frames together give every pixel its own alpha, so the saved picture is the
@@ -23,24 +27,30 @@ import java.util.Locale;
 final class ShotRun {
 
     /**
-     * One picture: the tab's number and name, its view's name (null: the tab as it opens, "main"
-     * in the file), the steps that make the view, the part to hover for a tooltip (null: none), the
-     * parts saved as close-ups beside it, and the ticks to wait before the frame is taken.
+     * One picture: its page, the menu tab it starts on, its view's name (null: the page as it
+     * opens, "main" in the file), the steps that make the view, the part to hover for a tooltip
+     * (null: none), the parts saved as close-ups beside it, and the ticks to wait before the frame
+     * is taken.
      */
-    record Shot(int tab, String name, String state, int ticks, List<String> steps, String hover, List<String> closes) {
-        Shot(int tab, String name, String state, int ticks) {
-            this(tab, name, state, ticks, List.of(), null, List.of());
+    record Shot(String page, int tab, String state, int ticks, List<String> steps, String hover, List<String> closes) {
+        Shot(String page, int tab, String state, int ticks) {
+            this(page, tab, state, ticks, List.of(), null, List.of());
         }
 
-        /** {@code <lang>-<nn>-<tab>-<state>.png}. */
+        /** {@code <lang>-<nn>-<page>-<state>.png}. */
         String file(String lang, int n) {
-            return String.format(Locale.ROOT, "%s-%02d-%s-%s.png", lang, n, name, state == null ? "main" : state);
+            return String.format(Locale.ROOT, "%s-%02d-%s-%s.png", lang, n, page, state == null ? "main" : state);
         }
 
-        /** A close-up of {@code part} beside it: {@code close/<lang>-<nn>-<tab>-<state>-close-<part>.png}. */
+        /** A close-up of {@code part} beside it: {@code close/<lang>-<nn>-<page>-<state>-close-<part>.png}. */
         String close(String lang, int n, String part) {
             String f = file(lang, n);
             return "close/" + f.substring(0, f.length() - 4) + "-close-" + part + ".png";
+        }
+
+        /** What its steps leave open over the page (a drawer, a menu, a list): see {@link #opens}. */
+        int overlays() {
+            return steps.stream().mapToInt(ShotRun::opens).sum();
         }
     }
 
@@ -65,14 +75,24 @@ final class ShotRun {
         /** Remembers the screen and the menu's views as they are, then opens the mod's menu. */
         void open();
 
-        /** Whether the menu opened is still the one on screen. */
+        /** Whether the menu opened (or the mod's window the run opened over it) is still the one on screen. */
         boolean showing();
 
-        /** Selects the tab as it opens: every view inside the menu back to its first state, no hover. */
+        /** A freshly opened menu on {@code tab}: nothing left open, focused or hovered from the picture before. */
         void select(int tab);
 
-        /** One step towards a view (a filter, a sub-page, a window); false when there is nothing to show. */
+        /** One step towards a view (a drawer, a menu, a window); false when there is nothing to show. */
         boolean act(String step);
+
+        /** After the steps: no field focused (no blinking cursor), the mouse away. */
+        void settle();
+
+        /**
+         * Why the frame drawn last is not the view {@code shot} asks for (a popup, menu or drawer
+         * open that its steps did not open, a field focused, another screen), or null when it is;
+         * {@link #NOTHING} when what its steps open did not open (nothing to list in it).
+         */
+        String unclean(Shot shot);
 
         /** Hovers {@code part} for its tooltip; false when it is not drawn now. Null: the mouse away again. */
         boolean hover(String part);
@@ -91,6 +111,9 @@ final class ShotRun {
 
         /** Pictures not written yet. */
         int pending();
+
+        /** One page done: its pictures taken, its views with nothing to show, and the ones left out ("state: why"). */
+        void page(String page, int taken, int skipped, List<String> rejected);
 
         /** The screen and the menu's views back as {@link #open} found them. */
         void restore();
@@ -113,187 +136,219 @@ final class ShotRun {
     static final int BACKDROP_WAIT = 2;
     /** At most this long for the last files to be written (ticks). */
     static final int DRAIN = 400;
-
-    private static final java.util.Set<String> SLOW = java.util.Set.of("craft", "tree", "endgame", "bank", "search");
     /** Ticks for a search view: the search's worker answers, the card picks its sources. */
     static final int SEARCH_WAIT = 25;
+    /** {@link Stage#unclean}'s answer when what the steps open is not open: nothing to show, the view skipped. */
+    static final String NOTHING = "nothing open";
 
-    // the menu's lists, written out so the plan needs no game (ShotNamesTest checks them against the menu)
-    /** The quest list's filters after the first (QuestAdvisor.FILTERS). */
-    static final String[] QUEST_FILTERS = {"SHORT", "NEAR", "XP", "ITEM", "MINI", "ABOVE", "DONE"};
-    /** The quests tab's kinds after Recommended (ContentType). */
-    static final String[] QUEST_TYPES = {"QUEST", "MINI_QUEST", "SECRET_DISCOVERY", "WORLD_DISCOVERY", "TERRITORIAL_DISCOVERY", "CAVE",
-        "DUNGEON", "RAID", "BOSS_ALTAR", "LOOTRUN_CAMP", "TIME_TRIAL"};
-    /** The settings' pages after About, in their order (SettingsRows.SETTING_CATS). */
-    static final String[] SETTING_PAGES = {"look", "tips", "glow", "coach", "quests", "build", "rules", "data"};
-    /** The bank's layouts after the pages. */
-    static final String[] BANK_VIEWS = {"list", "all"};
-    /** The bank's menus. */
-    static final String[] BANK_MENUS = {"filter", "tier", "banks", "sort", "view"};
-    /** The professions on the crafting tab's level road (Professions.ALL). */
-    static final String[] PROFESSIONS = {"MINING", "WOODCUTTING", "FISHING", "FARMING", "ALCHEMISM", "ARMOURING", "COOKING",
-        "JEWELING", "SCRIBING", "TAILORING", "WEAPONSMITHING", "WOODWORKING"};
-    /** Pool regions captured for the raids and for the camps. */
-    static final int POOL_REGIONS = 4;
+    /** The pages in their order, each with the menu tab it starts on (by the tab's name). */
+    static final Map<String, String> PAGES = pages();
 
-    /** Every view of one tab, in a stable order; the first is the tab as it opens. */
-    static List<Shot> views(int t, String name, int first) {
+    private static Map<String, String> pages() {
+        Map<String, String> m = new LinkedHashMap<>();
+        m.put("today", "today");
+        m.put("home", "home");
+        m.put("build", "home");             // the build window over the home
+        m.put("quests", "quests");
+        m.put("guide", "quests");           // the full quest guide, a window of its own
+        m.put("tree", "tree");
+        m.put("damage", "tree");            // the tree page's damage drawer
+        m.put("endgame", "endgame");
+        m.put("bank", "bank");
+        m.put("crafting", "craft");
+        m.put("search", "search");
+        m.put("box", "search");             // the Trade Market window an item card opens
+        m.put("ai", "ai");
+        m.put("settings", "settings");
+        m.put("update", "settings");        // the update window About opens
+        return java.util.Collections.unmodifiableMap(m);
+    }
+
+    private static final java.util.Set<String> SLOW = java.util.Set.of("crafting", "tree", "damage", "endgame", "bank");
+
+    // the one representative of a list of near-alike views (ShotNamesTest checks each against the menu)
+    /** The quest filter shown: Mini-quests, whose pane differs from a quest's guide. */
+    static final String QUEST_FILTER = "MINI";
+    /** The quest kinds shown: a secret (steps pane) and a cave (place pane); the others look like one of them. */
+    static final String[] QUEST_KINDS = {"SECRET_DISCOVERY", "CAVE"};
+    /** The settings' pages shown after About: a list of switches (glow) and the pages laid out their own way. */
+    static final String[] SETTING_PAGES = {"look", "glow", "rules", "data"};
+    /** The level road of a gathering profession (spots instead of recipes); the crafting one is the road as it opens. */
+    static final String ROAD_GATHER = "MINING";
+
+    /**
+     * How many things a step leaves open over the page: a drawer, a popup list or a menu (1), a
+     * window's menu over the window (1), anything else (a sub-page, a layout, a filter, a window
+     * of the mod that is the screen itself) 0.
+     */
+    static int opens(String step) {
+        String[] p = step.split(":");
+        return switch (p[0]) {
+            case "open", "buildmenu", "ai" -> 1;
+            case "home" -> p[1].equals("goals") || p[1].equals("archetypes") ? 1 : 0;
+            case "today" -> 1;
+            case "quest" -> p[1].equals("menu") || p[1].equals("types") ? 1 : 0;
+            case "tree" -> p[1].equals("archetypes") || p[1].equals("damage") || p[1].equals("deaths") ? 1 : 0;
+            case "endgame" -> p[1].equals("pools") || p[1].equals("log") ? 1 : 0;
+            case "bank" -> p[1].equals("menu") || p[1].equals("item") || p[1].equals("sell") ? 1 : 0;
+            case "craft" -> p[1].equals("picker") || p[1].equals("shop") || p[1].equals("saved") ? 1 : 0;
+            case "search" -> p[1].equals("menu") ? 1 : 0;
+            default -> 0;
+        };
+    }
+
+    /** Every view of one page, in a stable order; the first is the page as it opens. Each feature once. */
+    static List<Shot> views(String page, int t, int first) {
         List<Shot> out = new ArrayList<>();
-        int w = first > 0 ? first : SLOW.contains(name) ? SLOW_WAIT : WAIT;
-        switch (name) {
-            case "home" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of("gear", "week")));
-                out.add(shot(t, name, "slot-tip", WAIT, List.of(), "slot", List.of()));
-                out.add(shot(t, name, "week-tip", WAIT, List.of(), "week", List.of()));
-                out.add(tip(t, name));
-                out.add(view(t, name, "goals", "home:goals"));
-                out.add(view(t, name, "archetypes", "home:archetypes"));
-                out.add(view(t, name, "options", "home:options"));
-                out.add(view(t, name, "picker", "open:picker"));
-                out.add(shot(t, name, "picker-weapon", WAIT, List.of("open:picker", "click:type:1"), null, List.of()));
-                out.add(view(t, name, "picker-import", "open:import"));
-                out.add(shot(t, name, "picker-tip", WAIT, List.of("open:picker"), "pickrow", List.of()));
-                out.add(shot(t, name, "results", WAIT, List.of("open:results"), null, List.of("results")));
-                out.add(view(t, name, "saved", "open:saved"));
-                out.add(shot(t, name, "plan", WAIT, List.of("plan"), null, List.of("gear")));
-                out.add(shot(t, name, "plan-tip", WAIT, List.of("plan"), "slot", List.of()));
-                out.add(shot(t, name, "plan-source-tip", WAIT, List.of("plan"), "source", List.of()));
-            }
+        int w = first > 0 ? first : SLOW.contains(page) ? SLOW_WAIT : WAIT;
+        switch (page) {
             case "today" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(tip(t, name));
-                out.add(view(t, name, "others", "today:others"));
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(tip(page, t));
+                out.add(view(page, t, "others", "today:others"));
+            }
+            case "home" -> {
+                out.add(shot(page, t, null, w, List.of(), null, List.of("gear")));
+                out.add(shot(page, t, "slot-tip", WAIT, List.of(), "slot", List.of()));
+                out.add(view(page, t, "goals", "home:goals"));
+                out.add(view(page, t, "archetypes", "home:archetypes"));
+                out.add(view(page, t, "options", "home:options"));
+                out.add(view(page, t, "plan", "plan"));
+            }
+            case "build" -> {
+                out.add(shot(page, t, null, w, List.of("open:picker"), null, List.of()));
+                out.add(shot(page, t, "tip", WAIT, List.of("open:picker"), "pickrow", List.of()));
+                out.add(shot(page, t, "priority", WAIT, List.of("open:picker", "buildmenu:lean"), null, List.of()));
+                out.add(view(page, t, "import", "open:import"));
+                out.add(shot(page, t, "results", WAIT, List.of("open:results"), null, List.of("results")));
+                out.add(view(page, t, "saved", "open:saved"));
+                out.add(view(page, t, "edit", "open:edit"));
             }
             case "quests" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(tip(t, name));
-                out.add(view(t, name, "points", "quest:points"));
-                out.add(view(t, name, "menu", "quest:menu"));
-                out.add(view(t, name, "types", "quest:types"));
-                for (String f : QUEST_FILTERS) {
-                    out.add(view(t, name, "filter-" + lower(f), "quest:filter:" + f));
-                }
-                for (String k : QUEST_TYPES) {
-                    out.add(view(t, name, "type-" + lower(k).replace('_', '-'), "quest:type:" + k));
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(tip(page, t));
+                out.add(view(page, t, "points", "quest:points"));
+                out.add(view(page, t, "menu", "quest:menu"));
+                out.add(view(page, t, "kinds", "quest:types"));
+                out.add(view(page, t, "mini", "quest:filter:" + QUEST_FILTER));
+                for (String k : QUEST_KINDS) {
+                    out.add(view(page, t, lower(k).replace('_', '-'), "quest:type:" + k));
                 }
             }
+            case "guide" -> out.add(shot(page, t, null, w, List.of("window:guide"), null, List.of()));
             case "tree" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(tip(t, name));
-                out.add(view(t, name, "end", "tree:end"));
-                out.add(view(t, name, "damage", "tree:damage"));
-                out.add(view(t, name, "deaths", "tree:deaths"));
-                out.add(view(t, name, "archetypes", "tree:archetypes"));
-                out.add(view(t, name, "search", "tree:search"));
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(tip(page, t));
+                out.add(view(page, t, "end", "tree:end"));
+                out.add(view(page, t, "search", "tree:search"));
+                out.add(view(page, t, "archetypes", "tree:archetypes"));
+                out.add(view(page, t, "deaths", "tree:deaths"));
             }
+            case "damage" -> out.add(shot(page, t, null, w, List.of("tree:damage"), null, List.of()));
             case "endgame" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(tip(t, name));
-                out.add(view(t, name, "pool-filter", "endgame:poolfilter"));
-                out.add(shot(t, name, "raids", WAIT, List.of("endgame:pools:0"), null, List.of("pools")));
-                out.add(shot(t, name, "raids-tip", WAIT, List.of("endgame:pools:0"), "poolrow", List.of()));
-                for (int i = 1; i <= POOL_REGIONS; i++) {
-                    out.add(view(t, name, "raid-" + i, "endgame:region:raid:" + i));
-                }
-                out.add(shot(t, name, "camps", WAIT, List.of("endgame:pools:1"), null, List.of("pools")));
-                for (int i = 1; i <= POOL_REGIONS; i++) {
-                    out.add(view(t, name, "camp-" + i, "endgame:region:camp:" + i));
-                }
-                out.add(view(t, name, "log", "endgame:log"));
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(tip(page, t));
+                out.add(view(page, t, "pool-filter", "endgame:poolfilter"));
+                out.add(shot(page, t, "raids", WAIT, List.of("endgame:pools:0"), null, List.of("pools")));
+                out.add(shot(page, t, "pool-tip", WAIT, List.of("endgame:pools:0"), "poolrow", List.of()));
+                out.add(view(page, t, "camps", "endgame:pools:1"));
+                out.add(view(page, t, "log", "endgame:log"));
             }
             case "bank" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(shot(t, name, "tip", WAIT, List.of(), "bankitem", List.of()));
-                out.add(view(t, name, "search", "bank:search"));
-                for (String v : BANK_VIEWS) {
-                    out.add(view(t, name, "view-" + v, "bank:view:" + v));
-                    out.add(shot(t, name, "view-" + v + "-search", WAIT, List.of("bank:view:" + v, "bank:search"), null, List.of()));
-                }
-                out.add(view(t, name, "kind-armour", "bank:kind:ARMOUR"));
-                for (String m : BANK_MENUS) {
-                    // the sort menu belongs to the list layout
-                    List<String> steps = m.equals("sort") ? List.of("bank:view:list", "bank:menu:sort") : List.of("bank:menu:" + m);
-                    out.add(shot(t, name, "menu-" + m, WAIT, steps, null, List.of()));
-                }
-                out.add(view(t, name, "item", "bank:item"));
-                out.add(view(t, name, "sell", "bank:sell"));
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(shot(page, t, "tip", WAIT, List.of(), "bankitem", List.of()));
+                out.add(view(page, t, "search", "bank:search"));
+                out.add(view(page, t, "list", "bank:view:list"));
+                out.add(view(page, t, "all", "bank:view:all"));
+                out.add(view(page, t, "kind", "bank:kind:ARMOUR"));
+                out.add(view(page, t, "menu-filter", "bank:menu:filter"));
+                out.add(view(page, t, "menu-banks", "bank:menu:banks"));
+                // the sort menu belongs to the list layout
+                out.add(shot(page, t, "menu-sort", WAIT, List.of("bank:view:list", "bank:menu:sort"), null, List.of()));
+                out.add(view(page, t, "menu-view", "bank:menu:view"));
+                out.add(view(page, t, "item", "bank:item"));
+                out.add(view(page, t, "sell", "bank:sell"));
             }
-            case "craft" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(tip(t, name));
-                out.add(view(t, name, "end", "craft:end"));
-                out.add(view(t, name, "picker", "craft:picker"));
-                out.add(view(t, name, "shop", "craft:shop"));
-                out.add(view(t, name, "saved", "craft:saved"));
-                out.add(view(t, name, "suggestions", "craft:suggestions"));
-                out.add(view(t, name, "sets", "craft:sets"));
-                out.add(view(t, name, "road", "craft:road"));
-                for (String p : PROFESSIONS) {
-                    out.add(view(t, name, "road-" + lower(p), "craft:road:" + p));
-                }
+            case "crafting" -> {
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(tip(page, t));
+                out.add(view(page, t, "end", "craft:end"));
+                out.add(view(page, t, "picker", "craft:picker"));
+                out.add(view(page, t, "shop", "craft:shop"));
+                out.add(view(page, t, "saved", "craft:saved"));
+                out.add(view(page, t, "suggestions", "craft:suggestions"));
+                out.add(view(page, t, "sets", "craft:sets"));
+                out.add(view(page, t, "road", "craft:road"));
+                out.add(view(page, t, "road-gather", "craft:road:" + ROAD_GATHER));
             }
             case "search" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(shot(t, name, "more", SEARCH_WAIT, List.of("search:more"), null, List.of()));
-                out.add(shot(t, name, "card", SEARCH_WAIT, List.of("search:recent"), null, List.of()));
-                out.add(shot(t, name, "card-tip", SEARCH_WAIT, List.of("search:recent"), "hit", List.of()));
-                out.add(shot(t, name, "window-box", SEARCH_WAIT, List.of("search:recent", "window:box"), null, List.of()));
-                out.add(shot(t, name, "window-box-stats", SEARCH_WAIT, List.of("search:recent", "window:box", "box:stats"), null,
-                        List.of()));
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(shot(page, t, "more", SEARCH_WAIT, List.of("search:more"), null, List.of()));
+                out.add(shot(page, t, "card", SEARCH_WAIT, List.of("search:recent"), null, List.of()));
+                out.add(shot(page, t, "card-tip", SEARCH_WAIT, List.of("search:recent"), "hit", List.of()));
                 for (String m : new String[] {"recent", "marks", "tracked", "sort", "filter"}) {
-                    out.add(shot(t, name, "menu-" + m, SEARCH_WAIT, List.of("search:menu:" + m), null, List.of()));
+                    out.add(shot(page, t, "menu-" + m, SEARCH_WAIT, List.of("search:menu:" + m), null, List.of()));
                 }
-                out.add(shot(t, name, "stats", SEARCH_WAIT, List.of("search:stats"), null, List.of()));
+                out.add(shot(page, t, "stats", SEARCH_WAIT, List.of("search:stats"), null, List.of()));
             }
-            case "settings" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                for (String page : SETTING_PAGES) {
-                    out.add(view(t, name, page, "settings:cat:" + page));
-                }
-                out.add(view(t, name, "changed", "settings:changed"));
-                out.add(view(t, name, "window-update", "window:update"));
-                out.add(view(t, name, "window-changelog", "window:changelog"));
+            case "box" -> {
+                out.add(shot(page, t, null, w, List.of("window:box"), null, List.of()));
+                out.add(shot(page, t, "stats", WAIT, List.of("window:box", "box:stats"), null, List.of()));
             }
             case "ai" -> {
-                out.add(shot(t, name, null, w, List.of(), null, List.of()));
-                out.add(tip(t, name));
-                out.add(view(t, name, "reads", "ai:reads"));
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                out.add(view(page, t, "reads", "ai:reads"));
             }
-            default -> out.add(shot(t, name, null, w, List.of(), null, List.of()));
+            case "settings" -> {
+                out.add(shot(page, t, null, w, List.of(), null, List.of()));
+                for (String p : SETTING_PAGES) {
+                    out.add(view(page, t, p, "settings:cat:" + p));
+                }
+                out.add(view(page, t, "changed", "settings:changed"));
+            }
+            case "update" -> {
+                out.add(shot(page, t, null, w, List.of("window:update"), null, List.of()));
+                out.add(view(page, t, "changelog", "window:changelog"));
+            }
+            default -> throw new IllegalArgumentException("unknown page " + page);
         }
         return out;
     }
 
-    /** The tab as it opens with its first element that has a tooltip hovered ({@code <tab>-tip}). */
-    private static Shot tip(int t, String name) {
-        return shot(t, name, "tip", WAIT, List.of(), "hit", List.of());
+    /** The page as it opens with its first element that has a tooltip hovered. */
+    private static Shot tip(String page, int t) {
+        return shot(page, t, "tip", WAIT, List.of(), "hit", List.of());
     }
 
     /** A view of one step, no hover, no close-up. */
-    private static Shot view(int t, String name, String state, String step) {
-        return shot(t, name, state, WAIT, List.of(step), null, List.of());
+    private static Shot view(String page, int t, String state, String step) {
+        return shot(page, t, state, WAIT, List.of(step), null, List.of());
     }
 
     private static String lower(String s) {
         return s.toLowerCase(Locale.ROOT);
     }
 
-    private static Shot shot(int t, String name, String state, int ticks, List<String> steps, String hover, List<String> closes) {
-        return new Shot(t, name, state, ticks, steps, hover, closes);
+    private static Shot shot(String page, int t, String state, int ticks, List<String> steps, String hover, List<String> closes) {
+        return new Shot(page, t, state, ticks, steps, hover, closes);
     }
 
     /**
-     * The pictures in rail order: every tab ({@code only} null or "all") or one tab by name, each
-     * with its views. {@code rail}: the tabs' numbers in rail order; {@code names}: each tab number's name.
+     * The pictures of every page ({@code only} "all") or of one page, page after page.
+     * {@code tabNames}: each menu tab number's name ("home", "craft" …).
      */
-    static List<Shot> plan(int[] rail, String[] names, String only) {
+    static List<Shot> plan(String[] tabNames, String only) {
         List<Shot> out = new ArrayList<>();
-        for (int t : rail) {
-            String name = names[t];
-            if (only != null && !only.equals("all") && !only.equals(name)) {
+        List<String> tabs = List.of(tabNames);
+        for (Map.Entry<String, String> p : PAGES.entrySet()) {
+            if (!only.equals("all") && !only.equals(p.getKey())) {
                 continue;
             }
-            out.addAll(views(t, name, out.isEmpty() ? FIRST_WAIT : 0));
+            int t = tabs.indexOf(p.getValue());
+            if (t < 0) {
+                throw new IllegalStateException("no menu tab " + p.getValue() + " for page " + p.getKey());
+            }
+            out.addAll(views(p.getKey(), t, out.isEmpty() ? FIRST_WAIT : 0));
         }
         return out;
     }
@@ -319,7 +374,13 @@ final class ShotRun {
     private int left;
     private int count;
     private int skipped;
+    private int rejected;
     private boolean hovering;
+    // the page being taken, for its line
+    private String pageNow;
+    private int pageTaken;
+    private int pageSkipped;
+    private final List<String> pageRejected = new ArrayList<>();
     private String code = "en";
     private boolean escaped;
 
@@ -361,6 +422,11 @@ final class ShotRun {
     /** Views skipped so far: nothing to show for them. */
     int skipped() {
         return skipped;
+    }
+
+    /** Views left out so far: something open in the frame that their steps did not open. */
+    int rejected() {
+        return rejected;
     }
 
     /** One client tick; false once the run is over. */
@@ -437,6 +503,10 @@ final class ShotRun {
             return;
         }
         Shot s = shots.get(next);
+        if (!s.page().equals(pageNow)) {
+            endPage();
+            pageNow = s.page();
+        }
         stage.select(s.tab());
         hovering = false;
         step = 0;
@@ -452,6 +522,7 @@ final class ShotRun {
     }
 
     private void afterSteps(Shot s) {
+        stage.settle();
         then = s.hover() != null ? Next.HOVER : Next.GRAB;
         left = Math.max(1, s.ticks());
     }
@@ -487,6 +558,12 @@ final class ShotRun {
     /** Nothing to show for this view: on to the next, no number taken. */
     private void skip() {
         skipped++;
+        pageSkipped++;
+        leave();
+    }
+
+    /** On to the next view without a picture. */
+    private void leave() {
         unhover();
         next++;
         phase = Phase.ENTER;
@@ -494,7 +571,20 @@ final class ShotRun {
 
     private void grab(Shot s) {
         if (pass == 0) {
+            String why = stage.unclean(s);
+            if (NOTHING.equals(why)) {
+                skip();
+                return;
+            }
+            if (why != null) {
+                // not the view asked for: left out and reported, never saved
+                rejected++;
+                pageRejected.add((s.state() == null ? "main" : s.state()) + ": " + why);
+                leave();
+                return;
+            }
             count++;
+            pageTaken++;
         }
         java.util.Map<String, String> closes = new java.util.LinkedHashMap<>();
         for (String part : s.closes()) {
@@ -523,8 +613,20 @@ final class ShotRun {
         }
     }
 
-    /** Every picture taken: the game back at once, then the last files written. */
+    /** The page being taken is done: its line. */
+    private void endPage() {
+        if (pageNow != null) {
+            stage.page(pageNow, pageTaken, pageSkipped, List.copyOf(pageRejected));
+        }
+        pageNow = null;
+        pageTaken = 0;
+        pageSkipped = 0;
+        pageRejected.clear();
+    }
+
+    /** Every picture taken: the last page's line, the game back at once, then the last files written. */
     private void finishCaptures() {
+        endPage();
         putBack();
         left = DRAIN;
         phase = Phase.DRAIN;

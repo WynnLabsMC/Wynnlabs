@@ -79,19 +79,26 @@ public class ShotsPreview implements FabricClientGameTest {
                 String[] bad = new String[1];
                 check(Shots.parse("en nonsense", bad) == null && "nonsense".equals(bad[0]), "an unknown word was taken");
                 check(new Shots.Options(2, "endgame", 4, true).equals(Shots.parse("tr x4 endgame hidename", bad)), "the options");
+                // no page named: the pages listed, nothing taken
+                check(Shots.parse("en", bad).only() == null, "a page without one named");
+                Shots.start("en");
+                check(!Shots.running(), "a run started without a page");
             });
 
             Path root = ctx.computeOnClient(mc -> mc.gameDirectory.toPath().resolve("screenshots").resolve("wynnlabs"));
             Path dir = run(ctx, root, "en all hidename");
             int count = Shots.lastCount;
             int skipped = Shots.lastSkipped;
+            int rejected = Shots.lastRejected;
             long millis = Shots.lastMillis;
             Set<String> written = files(dir);
             Set<String> closes = files(dir.resolve("close"));
-            int planned = ctx.computeOnClient(mc -> ShotRun.plan(ShotDriver.railOrder(), ShotDriver.tabNames(), "all").size());
-            check(written.size() == count && count + skipped == planned,
-                    written.size() + " files, " + count + " taken, " + skipped + " skipped of " + planned);
-            check(count >= 12 + 8 + 4, "too few views: " + written);
+            int planned = ctx.computeOnClient(mc -> ShotRun.plan(ShotDriver.tabNames(), "all").size());
+            check(written.size() == count && count + skipped + rejected == planned,
+                    written.size() + " files, " + count + " taken, " + skipped + " skipped, " + rejected + " left out of " + planned);
+            // every view as its steps made it: nothing else open, no field focused
+            check(Shots.REJECTED.isEmpty(), "views left out as not clean: " + Shots.REJECTED);
+            check(count >= 30, "too few views: " + written);
             // numbered in a row
             int n = 0;
             for (String f : written) {
@@ -116,7 +123,7 @@ public class ShotsPreview implements FabricClientGameTest {
                         check(tooltipOutside(dir.resolve(f), r[0], r[1]), f + ": nothing drawn past the frame");
                     }
                     check(got[0] >= size[0] - GUI && got[1] >= size[1], f + " is smaller than the window");
-                } else if (f.contains("-window-")) {
+                } else if (f.matches("en-\\d+-(guide|box|update)-.*")) {
                     // a window of the mod over the menu (the box window, the update window): its own size, smaller than the screen
                     check(got[0] < 1920 && got[1] < 1080, f + " is " + got[0] + "×" + got[1] + ", the whole screen");
                 } else {

@@ -92,6 +92,31 @@ final class ShotDriver {
         return ShotHands.act(screen, step);
     }
 
+    /** After a view's steps: nothing focused on the menu or the window. */
+    void settle() {
+        ShotHands.settle(window != null ? window : screen);
+    }
+
+    /**
+     * Why the frame drawn last is not the view asked for ({@code expected} things open over the
+     * page), or null when it is: {@link ShotRun#NOTHING} when less is open (a menu with nothing to
+     * list stays shut), else what is wrong (another screen, a field focused, something more open).
+     */
+    String unclean(int expected) {
+        Screen want = window != null ? window : screen;
+        if (mc.screen != want) {
+            return "another screen is open";
+        }
+        if (ShotHands.focused(want)) {
+            return "a field is focused";
+        }
+        int n = ShotHands.overlays(want);
+        if (n < expected) {
+            return ShotRun.NOTHING;
+        }
+        return n == expected ? null : n + " open over the page, " + expected + " expected";
+    }
+
     // ---- what a tooltip shot hovers ----
 
     /**

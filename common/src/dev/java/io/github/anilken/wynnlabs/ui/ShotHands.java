@@ -13,6 +13,7 @@ import io.github.anilken.wynnlabs.model.AbilityNode;
 import io.github.anilken.wynnlabs.quests.ContentType;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.search.Entry;
+import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.RecentSearches;
 import io.github.anilken.wynnlabs.search.SearchCategory;
 
@@ -41,14 +42,14 @@ public final class ShotHands {
     static final Peek.Ref TABS = new Peek.Ref(RoadmapScreen.class, "TABS");
     static final Peek.Ref PILL_PLAN = new Peek.Ref(Plans.Pills.class, "planId");
     static final Peek.Ref PILL_PICKED = new Peek.Ref(Plans.Pills.class, "picked");
-    static final Peek.Ref DETAIL_LABEL = new Peek.Ref(HomePage.class, "detailLabel");
     static final Peek.Ref WINDOW_UNSEEN = new Peek.Ref(BuildWindow.class, "unseenGen");
     static final Peek.Ref WINDOW_FROM_HINT = new Peek.Ref(BuildWindow.class, "fromHint");
     static final Peek.Ref TREE_SCROLL = new Peek.Ref(TreeTab.class, "scroll");
+    static final Peek.Ref ENDGAME_DRAWER = new Peek.Ref(EndgameTab.class, "drawerKind");
 
     /** Every reflected field, for the test. */
     public static List<Peek.Ref> refs() {
-        return List.of(TABS, PILL_PLAN, PILL_PICKED, DETAIL_LABEL, WINDOW_UNSEEN, WINDOW_FROM_HINT, TREE_SCROLL);
+        return List.of(TABS, PILL_PLAN, PILL_PICKED, WINDOW_UNSEEN, WINDOW_FROM_HINT, TREE_SCROLL, ENDGAME_DRAWER);
     }
 
     /** A link WynnBuilder wrote (data 2.2.5.0): six pieces, a bow with powders, a tome, a level. */
@@ -97,7 +98,7 @@ public final class ShotHands {
         }
         return new Saved(w.open, w.view, w.editingPlan, w.overwriteId, (int) WINDOW_UNSEEN.get(w), w.awaitGen, w.result, w.card,
                 (boolean) WINDOW_FROM_HINT.get(w), new ArrayList<>(w.chosen), w.tuning, w.renameId, w.pick.listScroll, w.pick.type,
-                w.pick.range, w.search == null ? null : w.search.getValue(),
+                w.pick.range, w.search == null ? null : w.search.getValue(), w.editId, w.editTuning, w.swapSlot,
                 e.section, e.view, e.poolTab, e.litRaid, e.litCamp, e.filter, e.listScroll, e.pinned, poolScroll,
                 c.view, c.scroll, c.suggestMode, c.roadPanel.profession,
                 (String) PILL_PLAN.get(pills), (boolean) PILL_PICKED.get(pills), SearchTab.expanded);
@@ -106,7 +107,7 @@ public final class ShotHands {
     private record Saved(boolean open, BuildWindow.View view, String editingPlan, String overwriteId, int unseenGen, int awaitGen,
             Around.Result result, int card, boolean fromHint, List<io.github.anilken.wynnlabs.model.ItemData> chosen,
             io.github.anilken.wynnlabs.build.Tuning.Choice tuning, String renameId, int pickScroll, int pickType, int pickRange,
-            String search, int egSection, int egView, int egPoolTab, String litRaid, String litCamp, int egFilter, int egScroll,
+            String search, String editId, io.github.anilken.wynnlabs.build.Tuning.Choice editTuning, Integer swapSlot, int egSection, int egView, int egPoolTab, String litRaid, String litCamp, int egFilter, int egScroll,
             String pinned, int[][] poolScroll, int craftView, int craftScroll, int suggestMode, String profession, String planId,
             boolean picked, boolean expanded) {}
 
@@ -130,6 +131,9 @@ public final class ShotHands {
         w.pick.listScroll = s.pickScroll();
         w.pick.type = s.pickType();
         w.pick.range = s.pickRange();
+        w.editId = s.editId();
+        w.editTuning = s.editTuning();
+        w.swapSlot = s.swapSlot();
         if (w.search != null && s.search() != null) {
             w.search.setValue(s.search());
             w.search.setFocused(false);
@@ -158,6 +162,7 @@ public final class ShotHands {
 
     /** Every shared view closed and at its start: the build window, the Endgame drawer, the crafting page, the level pill. */
     public static void close() {
+        BuildWindow.INSTANCE.menu = 0;
         if (BuildWindow.INSTANCE.isOpen()) {
             BuildWindow.INSTANCE.close();
         }
@@ -188,7 +193,15 @@ public final class ShotHands {
         String more = p.length > 2 ? p[2] : "";
         return switch (p[0]) {
             case "open" -> open(arg);
-            case "click" -> click(arg + ":" + more);
+            case "buildmenu" -> {
+                // the build window's Priority menu, under its chip
+                if (!arg.equals("lean") || !BuildWindow.INSTANCE.isOpen()) {
+                    throw new IllegalArgumentException("unknown build menu " + arg);
+                }
+                BuildWindow.INSTANCE.menu = BuildWindow.MENU_LEAN;
+                BuildWindow.INSTANCE.menuState.reset();
+                yield true;
+            }
             case "plan" -> {
                 if (Plans.current() == null) {
                     yield false;
@@ -233,22 +246,19 @@ public final class ShotHands {
                 }
                 w.openSaved();
             }
+            case "edit" -> {
+                // the editor of the first saved build
+                if (Plans.saved().isEmpty()) {
+                    return false;
+                }
+                w.openEditor(Plans.saved().get(0).id());
+            }
             default -> throw new IllegalArgumentException("unknown window " + what);
         }
         if (w.search != null) {
             w.search.setFocused(false);         // no blinking cursor in the pictures
         }
         return true;
-    }
-
-    /** A button of the build window, by its action and argument ("type:1"), as drawn last frame. */
-    private static boolean click(String what) {
-        for (LayoutCheck.Area a : BuildWindow.INSTANCE.clickAreas()) {
-            if (what.equals(a.what())) {
-                return BuildWindow.INSTANCE.mouseClicked(a.x() + a.w() / 2.0, a.y() + a.h() / 2.0, 0);
-            }
-        }
-        return false;
     }
 
     private static boolean home(RoadmapScreen s, String what) {
@@ -273,7 +283,7 @@ public final class ShotHands {
                 }
                 s.selected = bestStep;
                 s.home.detail = best;
-                DETAIL_LABEL.set(s.home, best.slot());
+                s.home.detailLabel = best.slot();
             }
             default -> throw new IllegalArgumentException("unknown home step " + what);
         }
@@ -550,10 +560,11 @@ public final class ShotHands {
     // ---- the mod's own windows over the menu ----
 
     /**
-     * A window of the mod over menu {@code s}, as the menu opens it: "update" (the update window),
-     * "changelog" (its notes, only with an update), "box" (the Trade Market window of the item card
-     * shown, as its button opens it). Null when there is nothing to show. Opening the box window
-     * asks Wynnventory for that one item's listings when live prices are on, as the button does.
+     * A window of the mod over menu {@code s}, freshly opened as the menu opens it: "update" (the
+     * update window), "changelog" (its notes, only with an update), "guide" (the full guide of the
+     * tracked quest, else the first suggested one), "box" (the Trade Market window of the newest
+     * item searched, else of a piece you wear). Null when there is nothing to show. Opening the box
+     * window asks Wynnventory for that one item's listings when live prices are on, as its button does.
      */
     public static Screen window(RoadmapScreen s, String what) {
         switch (what) {
@@ -563,9 +574,26 @@ public final class ShotHands {
             case "changelog" -> {
                 return UpdateCheck.state().status() == UpdateCheck.Status.NEWER ? new UpdateScreen(s, true) : null;
             }
+            case "guide" -> {
+                String quest = null;
+                String task = "";
+                try {
+                    if (Wyn.tracking()) {
+                        quest = Wyn.trackedName();
+                        task = Wyn.trackedTask() == null ? "" : Wyn.trackedTask();
+                    }
+                } catch (Throwable ignored) {
+                    // nothing tracked
+                }
+                if (quest == null && QuestAdvisor.known() > 0) {
+                    List<QuestAdvisor.Suggestion> list = QuestAdvisor.list("RECOMMENDED");
+                    quest = list.isEmpty() ? null : list.get(0).quest().name();
+                }
+                return quest == null ? null : new GuideScreen(quest, task);
+            }
             case "box" -> {
-                Entry e = s.search.card.entry;
-                if (e == null || !e.item()) {
+                Entry e = boxItem();
+                if (e == null) {
                     return null;
                 }
                 io.github.anilken.wynnlabs.model.Tier rarity;
@@ -582,6 +610,19 @@ public final class ShotHands {
         }
     }
 
+    /** The item the box window shows: the newest one searched, else the first piece you wear the item list knows. */
+    private static Entry boxItem() {
+        ItemIndex index = ItemIndex.get();
+        for (String key : RecentSearches.get().newest(5)) {
+            Entry e = index.byKey(key);
+            if (e != null && e.item()) {
+                return e;
+            }
+        }
+        return GameState.current().allGear().map(g -> index.byKey(g.name())).filter(e -> e != null && e.item())
+                .findFirst().orElse(null);
+    }
+
     /** A step inside a window opened by {@link #window}: the box window's stats tab ("box:stats"). */
     public static boolean inWindow(Screen w, String step) {
         if (step.equals("box:stats") && w instanceof BoxScreen b) {
@@ -589,6 +630,58 @@ public final class ShotHands {
             return true;
         }
         return false;
+    }
+
+    // ---- a clean frame ----
+
+    /** No field focused on {@code screen} or in the build window: no blinking cursor, no field drawn as active. */
+    public static void settle(Screen screen) {
+        BuildWindow w = BuildWindow.INSTANCE;
+        CraftingTab c = CraftingTab.INSTANCE;
+        for (EditBox b : new EditBox[] {w.search, w.rename, c.pickSearch, c.saveName}) {
+            if (b != null) {
+                b.setFocused(false);
+            }
+        }
+        for (var child : screen.children()) {
+            if (child instanceof EditBox b) {
+                b.setFocused(false);
+            }
+        }
+        screen.setFocused(null);
+    }
+
+    /** Whether a field of {@code screen} is focused (drawn as active, with its cursor). */
+    public static boolean focused(Screen screen) {
+        for (var child : screen.children()) {
+            if (child instanceof EditBox b && b.isFocused()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** What is open over the page of {@code screen} in the frame drawn last: popups, lists, drawers, menus, the build window. */
+    public static int overlays(Screen screen) {
+        if (screen instanceof BoxScreen b) {
+            return b.bar.menuOpen() ? 1 : 0;
+        }
+        if (!(screen instanceof RoadmapScreen s)) {
+            return 0;
+        }
+        int n = s.popupBoxes.size();               // the page's popups and drawers, the archetype list
+        BuildWindow w = BuildWindow.INSTANCE;
+        if (w.isOpen()) {
+            n += 1 + (w.menu != 0 ? 1 : 0);
+        }
+        if (s.tab() == RoadmapScreen.TAB_ENDGAME && (int) ENDGAME_DRAWER.get(EndgameTab.INSTANCE) != 0) {
+            n++;
+        }
+        if (s.tab() == RoadmapScreen.TAB_CRAFT) {
+            CraftingTab c = CraftingTab.INSTANCE;
+            n += (c.drawers.showing() ? 1 : 0) + (c.open != CraftingTab.Drop.NONE ? 1 : 0);
+        }
+        return n;
     }
 
     // ---- helpers ----

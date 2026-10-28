@@ -90,28 +90,28 @@ class ShotNamesTest {
     }
 
     @Test
-    void thePlannedListsAreTheMenus() {
-        List<String> filters = Arrays.asList(QuestAdvisor.FILTERS);
-        assertEquals("RECOMMENDED", filters.get(0));
-        assertEquals(filters.subList(1, filters.size()), List.of(ShotRun.QUEST_FILTERS));
-        List<String> kinds = Arrays.stream(ContentType.values()).filter(t -> t != ContentType.RECOMMENDED).map(Enum::name).toList();
-        assertEquals(kinds, List.of(ShotRun.QUEST_TYPES));
+    void theRepresentativesAreTheMenus() {
+        assertTrue(Arrays.asList(QuestAdvisor.FILTERS).contains(ShotRun.QUEST_FILTER));
+        List<String> kinds = Arrays.stream(ContentType.values()).map(Enum::name).toList();
+        assertTrue(kinds.containsAll(List.of(ShotRun.QUEST_KINDS)), kinds.toString());
         List<String> pages = Arrays.asList(ShotHands.settingPages());
-        assertEquals("about", pages.get(0));
-        assertEquals(pages.subList(1, pages.size()), List.of(ShotRun.SETTING_PAGES));
-        assertEquals(Professions.ALL, List.of(ShotRun.PROFESSIONS));
+        assertTrue(pages.containsAll(List.of(ShotRun.SETTING_PAGES)), pages.toString());
+        assertTrue(Professions.ALL.contains(ShotRun.ROAD_GATHER));
     }
 
     @Test
-    void everyRailTabHasItsViews() {
-        // the rail's tabs by their names, as the tool's command and files call them
-        List<String> rail = new ArrayList<>();
-        for (int t : ShotDriver.railOrder()) {
-            rail.add(ShotDriver.tabName(t));
+    void everyPageStartsOnATabOfTheMenu() {
+        List<String> tabs = List.of(ShotDriver.tabNames());
+        for (String tab : ShotRun.PAGES.values()) {
+            assertTrue(tabs.contains(tab), "no menu tab " + tab + " in " + tabs);
         }
-        assertEquals(List.of("home", "today", "quests", "tree", "endgame", "bank", "craft", "search", "settings", "ai"), rail);
+        // every tab of the rail has a page
         for (int t : ShotDriver.railOrder()) {
-            assertTrue(ShotRun.views(t, ShotDriver.tabName(t), 0).size() > 1, ShotDriver.tabName(t) + " has only its first view");
+            assertTrue(ShotRun.PAGES.containsValue(ShotDriver.tabName(t)), ShotDriver.tabName(t) + " has no page");
+        }
+        List<ShotRun.Shot> plan = ShotRun.plan(ShotDriver.tabNames(), "all");
+        for (ShotRun.Shot shot : plan) {
+            assertEquals(ShotRun.PAGES.get(shot.page()), ShotDriver.tabName(shot.tab()));
         }
     }
 }

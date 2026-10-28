@@ -2173,6 +2173,8 @@
   "wynnlabs.next.bank": "in bank: grab it",
   "wynnlabs.next.gear_tip": "Your build gets %s stronger with it",
   "wynnlabs.shots.debug_off": "Turn on %s first (menu: %s → %s), then run the command again.",
+  "wynnlabs.shots.pages": "Name a page to take: %s, or all for every page one after another.",
+  "wynnlabs.shots.page_done": "%s: %s saved, %s with nothing to show, %s left out (something else was open)",
   "wynnlabs.shots.no_world": "Join a world first: the screenshots show your character.",
   "wynnlabs.shots.busy": "Screenshots are being taken already. Press Esc in the menu to stop them.",
   "wynnlabs.shots.unknown": "Unknown option: %s. The options are: %s",

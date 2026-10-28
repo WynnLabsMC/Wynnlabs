@@ -13,12 +13,16 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** The screenshot tool's sequence on a fake game: the order, the skips, the hovers, and everything put back at the end, on Esc and on an error. */
+/**
+ * The screenshot tool's sequence on a fake game: page by page, each view from a fresh menu showing
+ * only what its steps open, the skips, the views left out, the hovers, and everything put back at
+ * the end, on Esc and on an error.
+ */
 class ShotRunTest {
 
-    /** The rail of the menu in miniature: tab numbers in rail order, and each number's name. */
-    private static final int[] RAIL = {0, 3, 2, 1};
-    private static final String[] NAMES = {"home", "today", "endgame", "settings"};
+    /** Each menu tab number's name, as the menu numbers them. */
+    private static final String[] NAMES = {"home", "today", "quests", "deaths", "bank", "settings", "ai", "damage", "discoveries",
+        "tree", "craft", "endgame", "search"};
 
     /** A game that writes down what is done to it. A picture is two grabs (over black, over white); "capture" marks the last. */
     private static final class Fake implements ShotRun.Stage {
@@ -38,6 +42,12 @@ class ShotRunTest {
         boolean done;
         RuntimeException failOn;
         final List<Map<String, String>> closes = new ArrayList<>();
+        /** Views whose frame shows something more than their steps opened (by state, "main" for none). */
+        final Set<String> dirty = new HashSet<>();
+        /** What is open over the page now: a fresh menu has nothing, each step adds what it opens. */
+        int openNow;
+        /** Steps that run but open nothing (an empty list stays shut). */
+        final Set<String> shut = new HashSet<>();
 
         @Override
         public int lang() {
@@ -90,12 +100,38 @@ class ShotRunTest {
                 throw new AssertionError("a view selected while " + hovered + " is hovered");
             }
             log.add("select " + NAMES[tab]);
+            openNow = 0;
         }
 
         @Override
         public boolean act(String step) {
             log.add("act " + step);
-            return !missing.contains(step);
+            if (missing.contains(step)) {
+                return false;
+            }
+            openNow += shut.contains(step) ? 0 : ShotRun.opens(step);
+            return true;
+        }
+
+        @Override
+        public void settle() {
+            log.add("settle");
+        }
+
+        @Override
+        public String unclean(ShotRun.Shot shot) {
+            if (dirty.contains(shot.state() == null ? "main" : shot.state())) {
+                return "a menu open";
+            }
+            if (openNow < shot.overlays()) {
+                return ShotRun.NOTHING;
+            }
+            return openNow == shot.overlays() ? null : openNow + " open, " + shot.overlays() + " expected";
+        }
+
+        @Override
+        public void page(String page, int taken, int skipped, List<String> rejected) {
+            log.add("page " + page + " " + taken + " " + skipped + " " + rejected);
         }
 
         @Override
@@ -177,54 +213,131 @@ class ShotRunTest {
     }
 
     @Test
-    void planFollowsTheRailWithEachTabsViews() {
-        List<ShotRun.Shot> plan = ShotRun.plan(RAIL, NAMES, "all");
-        List<String> names = plan.stream().map(s -> s.name() + "-" + (s.state() == null ? "main" : s.state())).toList();
-        // the rail's order, each tab first as it opens, then its views
-        assertEquals(List.of("home-main", "home-slot-tip", "home-week-tip", "home-tip", "home-goals", "home-archetypes",
-                "home-options", "home-picker", "home-picker-weapon", "home-picker-import", "home-picker-tip", "home-results",
-                "home-saved", "home-plan", "home-plan-tip", "home-plan-source-tip"), names.subList(0, 16));
-        assertEquals("settings-main", names.get(16));
-        assertEquals("settings-data", names.get(24));
-        assertEquals(List.of("settings-changed", "settings-window-update", "settings-window-changelog"), names.subList(25, 28));
-        assertEquals(List.of("endgame-main", "endgame-tip"), names.subList(28, 30));
-        assertEquals(List.of("today-main", "today-tip", "today-others"), names.subList(names.size() - 3, names.size()));
-        // every tab of the real rail has views past its first; none is planned twice
-        for (String tab : new String[] {"home", "today", "quests", "tree", "endgame", "bank", "craft", "search", "settings", "ai"}) {
-            List<ShotRun.Shot> v = ShotRun.views(0, tab, 0);
-            assertTrue(v.size() > 1, tab + " has no views");
-            assertEquals(v.size(), v.stream().map(ShotRun.Shot::state).distinct().count(), tab + " plans a view twice");
+    void planGoesPageByPageWithEachFeatureOnce() {
+        List<ShotRun.Shot> plan = ShotRun.plan(NAMES, "all");
+        // the pages one after another, in their order, each in one piece
+        List<String> pages = new ArrayList<>();
+        for (ShotRun.Shot shot : plan) {
+            if (pages.isEmpty() || !pages.get(pages.size() - 1).equals(shot.page())) {
+                assertFalse(pages.contains(shot.page()), shot.page() + " comes back later");
+                pages.add(shot.page());
+            }
         }
+        assertEquals(List.copyOf(ShotRun.PAGES.keySet()), pages);
+        assertEquals(List.of("today", "home", "build", "quests", "guide", "tree", "damage", "endgame", "bank", "crafting", "search",
+                "box", "ai", "settings", "update"), pages);
+        for (String page : pages) {
+            List<ShotRun.Shot> views = ShotRun.plan(NAMES, page);
+            // each view of a page once, and few enough that no list of near-alike views comes back
+            assertEquals(views.size(), views.stream().map(ShotRun.Shot::state).distinct().count(), page + " plans a view twice");
+            assertTrue(views.size() <= 12, page + " has " + views.size() + " views");
+            assertNull(views.get(0).state(), page + " does not start as it opens");
+            for (ShotRun.Shot v : views) {
+                // a view opens at most one thing over its page (the build window's own menu over the window aside)
+                int most = v.state() != null && v.state().equals("priority") ? 2 : 1;
+                assertTrue(v.overlays() <= most, page + "-" + v.state() + " opens " + v.overlays() + " things");
+                // the menu tab under the page is the one it names
+                assertEquals(ShotRun.PAGES.get(page), NAMES[v.tab()]);
+            }
+        }
+        assertEquals(List.of("home-main", "home-slot-tip", "home-goals", "home-archetypes", "home-options", "home-plan"),
+                ShotRun.plan(NAMES, "home").stream().map(v -> v.page() + "-" + (v.state() == null ? "main" : v.state())).toList());
+        assertTrue(plan.size() < 100, plan.size() + " views in all");
         assertEquals(ShotRun.FIRST_WAIT, plan.get(0).ticks());
         // the same plan every time: the numbers are stable
-        assertEquals(plan, ShotRun.plan(RAIL, NAMES, "all"));
-        assertEquals(List.of("home", "home"), ShotRun.plan(RAIL, NAMES, "home").stream().limit(2).map(ShotRun.Shot::name).toList());
-        ShotRun.Shot main = plan.get(0);
+        assertEquals(plan, ShotRun.plan(NAMES, "all"));
+        ShotRun.Shot main = ShotRun.plan(NAMES, "home").get(0);
         assertEquals("en-01-home-main.png", main.file("en", 1));
         assertEquals("close/en-01-home-main-close-gear.png", main.close("en", 1, "gear"));
-        assertEquals("tr-12-today-main.png", new ShotRun.Shot(1, "today", null, 1).file("tr", 12));
-        assertEquals(List.of("gear", "week"), main.closes());
+        assertEquals("tr-12-today-main.png", new ShotRun.Shot("today", 1, null, 1).file("tr", 12));
+        assertEquals(List.of("gear"), main.closes());
+    }
+
+    @Test
+    void everyViewStartsFromAFreshMenuAndShowsOnlyWhatItsStepsOpen() {
+        Fake game = new Fake();
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "all"), 1, false);
+        runToEnd(run, game);
+        assertEquals(0, run.rejected(), game.log.toString());
+        assertNull(game.stop);
+        // between two pictures: a fresh menu, the steps, the page settled, then the grab
+        int lastGrab = -1;
+        for (int i = 0; i < game.log.size(); i++) {
+            String l = game.log.get(i);
+            if (l.startsWith("grab ") && l.endsWith(" 0")) {
+                List<String> between = game.log.subList(lastGrab + 1, i);
+                assertTrue(between.stream().anyMatch(b -> b.startsWith("select ")), "no fresh menu before " + l);
+                assertTrue(between.contains("settle"), "not settled before " + l);
+                assertTrue(between.lastIndexOf("settle") > lastIndexOf(between, "act "), "a step after settling before " + l);
+                lastGrab = i;
+            }
+        }
+    }
+
+    private static int lastIndexOf(List<String> log, String prefix) {
+        for (int i = log.size() - 1; i >= 0; i--) {
+            if (log.get(i).startsWith(prefix)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @Test
+    void aFrameWithSomethingElseOpenIsLeftOutAndReported() {
+        Fake game = new Fake();
+        game.dirty.add("goals");
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "home"), 1, false);
+        runToEnd(run, game);
+        assertEquals(List.of("en-01-home-main.png", "en-02-home-slot-tip.png", "en-03-home-archetypes.png",
+                "en-04-home-options.png", "en-05-home-plan.png"), captured(game));
+        assertEquals(1, run.rejected());
+        assertEquals(0, run.skipped());
+        assertEquals(List.of("page home 5 0 [goals: a menu open]"), only(game.log, "page "));
+    }
+
+    @Test
+    void aMenuThatStaysShutIsSkippedNotLeftOut() {
+        Fake game = new Fake();
+        game.shut.add("search:menu:marks");
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "search"), 1, false);
+        runToEnd(run, game);
+        assertTrue(captured(game).stream().noneMatch(c -> c.contains("menu-marks")));
+        assertEquals(1, run.skipped());
+        assertEquals(0, run.rejected());
+    }
+
+    @Test
+    void eachPageEndsWithItsLine() {
+        Fake game = new Fake();
+        game.missing.add("open:results");
+        runToEnd(new ShotRun(game, ShotRun.plan(NAMES, "all"), 1, false), game);
+        List<String> lines = only(game.log, "page ");
+        assertEquals(ShotRun.PAGES.size(), lines.size());
+        assertTrue(lines.contains("page build 6 1 []"), lines.toString());
+        // a page's line comes before the next page's first view
+        int build = game.log.indexOf("page build 6 1 []");
+        assertTrue(build < game.log.indexOf("grab en-" + String.format("%02d", 3 + 6 + 6 + 1) + "-quests-main.png 0"), game.log.toString());
     }
 
     @Test
     void capturesInOrderThenPutsEverythingBack() {
         Fake game = new Fake();
-        ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "settings"), 1, false);
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "settings"), 1, false);
         runToEnd(run, game);
         // the language first, then the menu; each view selected and its steps taken before its capture
         assertEquals(List.of("flags true", "lang 1", "open"), game.log.subList(0, 3));
-        assertEquals(List.of("en-01-settings-main.png", "en-02-settings-look.png", "en-03-settings-tips.png",
-                "en-04-settings-glow.png", "en-05-settings-coach.png", "en-06-settings-quests.png", "en-07-settings-build.png",
-                "en-08-settings-rules.png", "en-09-settings-data.png", "en-10-settings-changed.png", "en-11-settings-window-update.png",
-                "en-12-settings-window-changelog.png"), captured(game));
+        assertEquals(List.of("en-01-settings-main.png", "en-02-settings-look.png", "en-03-settings-glow.png",
+                "en-04-settings-rules.png", "en-05-settings-data.png", "en-06-settings-changed.png"), captured(game));
         int look = game.log.indexOf("act settings:cat:look");
-        assertEquals(List.of("select settings", "backdrop 0", "act settings:cat:look"), game.log.subList(look - 2, look + 1));
+        assertEquals(List.of("select settings", "backdrop 0", "act settings:cat:look", "settle"), game.log.subList(look - 2, look + 2));
         int first = game.log.indexOf("grab en-02-settings-look.png 0");
         assertEquals(List.of("grab en-02-settings-look.png 0", "backdrop 1", "grab en-02-settings-look.png 1",
                 "capture en-02-settings-look.png"), game.log.subList(first, first + 4));
-        // then the screen, the language and the flags back, and one message with the count
+        // then the page's line, the screen, the language and the flags back, and one message with the count
         int restore = game.log.indexOf("restore");
-        assertEquals(List.of("restore", "lang 2", "flags false", "done 12"), game.log.subList(restore, game.log.size()));
+        assertEquals(List.of("page settings 6 0 []", "restore", "lang 2", "flags false", "done 6"),
+                game.log.subList(restore - 1, game.log.size()));
         assertEquals(2, game.lang);
         assertFalse(game.flags);
         assertNull(game.stop);
@@ -235,26 +348,24 @@ class ShotRunTest {
     @Test
     void viewsWithNothingToShowAreSkippedAndTheNumbersStayInARow() {
         Fake game = new Fake();
-        // no result worked out, no plan, no saved builds, nothing drawn to hover for the week tile
-        game.missing.addAll(List.of("open:results", "plan", "open:saved", "week"));
-        ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "home"), 1, false);
+        // no road map to compare options on, no plan
+        game.missing.addAll(List.of("home:options", "plan"));
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "home"), 1, false);
         runToEnd(run, game);
-        assertEquals(List.of("en-01-home-main.png", "en-02-home-slot-tip.png", "en-03-home-tip.png", "en-04-home-goals.png",
-                "en-05-home-archetypes.png", "en-06-home-options.png", "en-07-home-picker.png", "en-08-home-picker-weapon.png",
-                "en-09-home-picker-import.png", "en-10-home-picker-tip.png"), captured(game));
-        assertEquals(10, game.doneCount);
-        assertEquals(6, run.skipped());
+        assertEquals(List.of("en-01-home-main.png", "en-02-home-slot-tip.png", "en-03-home-goals.png", "en-04-home-archetypes.png"),
+                captured(game));
+        assertEquals(4, game.doneCount);
+        assertEquals(2, run.skipped());
         // a skipped view is never grabbed
-        assertTrue(only(game.log, "grab").stream().noneMatch(g -> g.contains("results") || g.contains("plan") || g.contains("saved")));
+        assertTrue(only(game.log, "grab").stream().noneMatch(g -> g.contains("options") || g.contains("plan")));
         // the close-ups asked for beside the main view
-        assertEquals(Map.of("gear", "close/en-01-home-main-close-gear.png", "week", "close/en-01-home-main-close-week.png"),
-                game.closes.get(0));
+        assertEquals(Map.of("gear", "close/en-01-home-main-close-gear.png"), game.closes.get(0));
     }
 
     @Test
     void aTooltipShotHoversThenMovesTheMouseAway() {
         Fake game = new Fake();
-        ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "home"), 1, false);
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "home"), 1, false);
         runToEnd(run, game);
         int hover = game.log.indexOf("hover slot");
         int grab = game.log.indexOf("grab en-02-home-slot-tip.png 0");
@@ -264,15 +375,14 @@ class ShotRunTest {
         assertTrue(grab < away && away < nextSelect, "the mouse away before the next view: " + game.log);
         assertNull(game.hovered);
         // a view without a hover never moves the mouse
-        assertEquals(List.of("hover slot", "hover null", "hover week", "hover null", "hover hit", "hover null", "hover pickrow",
-                "hover null", "hover slot", "hover null", "hover source", "hover null"), only(game.log, "hover"));
+        assertEquals(List.of("hover slot", "hover null"), only(game.log, "hover"));
     }
 
     @Test
     void aHoverWithNothingDrawnIsSkippedWithoutATooltip() {
         Fake game = new Fake();
         game.missing.add("slot");
-        runToEnd(new ShotRun(game, ShotRun.plan(RAIL, NAMES, "home"), 1, false), game);
+        runToEnd(new ShotRun(game, ShotRun.plan(NAMES, "home"), 1, false), game);
         assertTrue(captured(game).stream().noneMatch(c -> c.contains("slot-tip")));
         assertNull(game.hovered);
     }
@@ -280,7 +390,7 @@ class ShotRunTest {
     @Test
     void waitsSomeTicksBeforeEachCapture() {
         Fake game = new Fake();
-        ShotRun run = new ShotRun(game, List.of(new ShotRun.Shot(1, "today", null, 5)), -1, false);
+        ShotRun run = new ShotRun(game, List.of(new ShotRun.Shot("today", 1, null, 5)), -1, false);
         run.tick();                                 // start
         run.tick();                                 // select
         for (int i = 0; i < 4; i++) {
@@ -299,7 +409,7 @@ class ShotRunTest {
     @Test
     void escStopsMidHoverAndPutsEverythingBack() {
         Fake game = new Fake();
-        ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "all"), 1, 3, true);
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "all"), 1, 3, true);
         while (game.hovered == null) {
             assertTrue(run.tick());
         }
@@ -324,20 +434,20 @@ class ShotRunTest {
     @Test
     void theSizeIsSetBeforeTheMenuOpensAndPutBack() {
         Fake game = new Fake();
-        runToEnd(new ShotRun(game, ShotRun.plan(RAIL, NAMES, "today"), -1, 4, false), game);
+        runToEnd(new ShotRun(game, ShotRun.plan(NAMES, "today"), -1, 4, false), game);
         assertEquals(List.of("flags true", "scale 4", "open"), game.log.subList(0, 3));
         assertTrue(game.log.indexOf("scale 0") > game.log.indexOf("restore"));
         assertEquals(0, game.scale);
         Fake same = new Fake();
         same.scale = 3;
-        runToEnd(new ShotRun(same, ShotRun.plan(RAIL, NAMES, "today"), -1, 3, false), same);
+        runToEnd(new ShotRun(same, ShotRun.plan(NAMES, "today"), -1, 3, false), same);
         assertTrue(only(same.log, "scale").isEmpty(), same.log.toString());
     }
 
     @Test
     void aMenuClosedByAnythingElseStopsTheRun() {
         Fake game = new Fake();
-        ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "all"), 1, false);
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "all"), 1, false);
         run.tick();
         run.tick();
         game.open = false;                          // the player opened the chat, a server menu replaced it
@@ -352,7 +462,7 @@ class ShotRunTest {
     void anErrorPutsEverythingBack() {
         Fake game = new Fake();
         game.failOn = new IllegalStateException("no frame");
-        ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "all"), 1, false);
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "all"), 1, false);
         runToEnd(run, game);
         assertEquals(ShotRun.Stop.ERROR, game.stop);
         assertEquals(2, game.lang);
@@ -365,7 +475,7 @@ class ShotRunTest {
     @Test
     void theCurrentLanguageIsLeftAlone() {
         Fake game = new Fake();
-        runToEnd(new ShotRun(game, ShotRun.plan(RAIL, NAMES, "today"), -1, false), game);
+        runToEnd(new ShotRun(game, ShotRun.plan(NAMES, "today"), -1, false), game);
         assertTrue(only(game.log, "lang").isEmpty(), game.log.toString());
         assertEquals(List.of("tr-01-today-main.png", "tr-02-today-tip.png", "tr-03-today-others.png"), captured(game));
     }
@@ -373,7 +483,7 @@ class ShotRunTest {
     @Test
     void theLastFilesAreAwaitedBeforeTheMessage() {
         Fake game = new Fake();
-        ShotRun run = new ShotRun(game, ShotRun.plan(RAIL, NAMES, "today"), 1, false);
+        ShotRun run = new ShotRun(game, ShotRun.plan(NAMES, "today"), 1, false);
         int ticks = 0;
         while (!game.log.contains("restore")) {
             run.tick();

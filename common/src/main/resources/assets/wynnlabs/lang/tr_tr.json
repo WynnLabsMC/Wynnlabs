@@ -2173,6 +2173,8 @@
   "wynnlabs.next.bank": "bankanda: al",
   "wynnlabs.next.gear_tip": "Build'in bununla %s güçlenir",
   "wynnlabs.shots.debug_off": "Önce %s ayarını aç (menü: %s → %s), sonra komutu yeniden çalıştır.",
+  "wynnlabs.shots.pages": "Alınacak sayfayı yaz: %s, ya da hepsini sırayla almak için all.",
+  "wynnlabs.shots.page_done": "%s: %s kaydedildi, %s gösterecek bir şey yok, %s alınmadı (başka bir şey açıktı)",
   "wynnlabs.shots.no_world": "Önce bir dünyaya gir: ekran görüntüleri karakterini gösterir.",
   "wynnlabs.shots.busy": "Ekran görüntüleri zaten alınıyor. Durdurmak için menüde Esc'ye bas.",
   "wynnlabs.shots.unknown": "Bilinmeyen seçenek: %s. Seçenekler: %s",
