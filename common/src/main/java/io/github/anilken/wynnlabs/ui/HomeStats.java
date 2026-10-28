@@ -445,6 +445,7 @@ final class HomeStats extends HomePart {
         long abs = Math.abs(n);
         String s = shortBig && abs >= 10_000 ? String.format(Locale.ROOT, "%.1fk", abs / 1000.0)
                 : String.format(Locale.ROOT, "%,d", abs);
-        return (n < 0 ? "−" : "") + s + (kind == PCT ? "%" : "");
+        String out = (n < 0 ? "−" : "") + s;
+        return kind == PCT ? L.pct(out) : out;
     }
 }

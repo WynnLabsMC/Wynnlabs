@@ -132,7 +132,7 @@ final class BoxChips {
             return "";
         }
         long v = Math.round(s.value());
-        return (v > 0 ? "+" + v : String.valueOf(v)) + unit.getOrDefault(s.key(), "");
+        return L.unit(v > 0 ? "+" + v : String.valueOf(v), unit.getOrDefault(s.key(), ""));
     }
 
     private static String pct(double p) {

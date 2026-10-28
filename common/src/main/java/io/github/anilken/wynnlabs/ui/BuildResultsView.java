@@ -309,8 +309,8 @@ final class BuildResultsView {
             deltas.add(new String[] {L.t("wynnlabs.results.d_mana"), (regenTo - regenNow >= 0 ? "+" : "−") + Math.round(Math.abs(regenTo - regenNow))});
         }
         if (now != null && Math.abs(to.speed() - now.speed()) >= 1) {
-            deltas.add(new String[] {L.t("wynnlabs.results.d_speed"), (to.speed() - now.speed() >= 0 ? "+" : "−")
-                + Math.round(Math.abs(to.speed() - now.speed())) + "%"});
+            deltas.add(new String[] {L.t("wynnlabs.results.d_speed"), L.pct((to.speed() - now.speed() >= 0 ? "+" : "−")
+                + Math.round(Math.abs(to.speed() - now.speed())))});
         }
         // the title, a "Detailed" chip at its right: every stat on the Home
         String more = L.t("wynnlabs.results.detailed");
@@ -424,7 +424,7 @@ final class BuildResultsView {
             return "—";
         }
         double p = (to / from - 1) * 100;
-        return (p >= 0 ? "+" : "−") + Math.round(Math.abs(p)) + "%";
+        return L.pct((p >= 0 ? "+" : "−") + Math.round(Math.abs(p)));
     }
 
     /**

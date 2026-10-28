@@ -290,11 +290,11 @@ final class RoadmapGains {
         }
         if (Math.round(y.speed()) != Math.round(x.speed())) {
             lines.add(new Object[] {Math.abs(y.speed() - x.speed()) / 100.0 * Rules.sub("model", "speedWeight", 0.3),
-                    L.t("wynnlabs.road.walk_speed", signed(x.speed()), signed(y.speed()))});
+                    L.t("wynnlabs.road.walk_speed", L.pct(signed(x.speed())), L.pct(signed(y.speed())))});
         }
         if (Math.round(y.xp()) != Math.round(x.xp()) && level < Rules.sub("model", "maxLevel", 120)) {
             lines.add(new Object[] {Math.abs(y.xp() - x.xp()) / 100.0 * Rules.sub("model", "xpWeight", 1.0),
-                    L.t("wynnlabs.road.xp_bonus", Math.round(x.xp()), Math.round(y.xp()))});
+                    L.t("wynnlabs.road.xp_bonus", L.pct(Math.round(x.xp())), L.pct(Math.round(y.xp())))});
         }
         if (x.factors().length > 5 && y.factors().length > 5) {
             rel(lines, L.t("wynnlabs.damage.factor_attack_speed"), x.factors()[5] * 100, y.factors()[5] * 100);
@@ -354,10 +354,10 @@ final class RoadmapGains {
             out.add(manaLine(mana(x), mana(y)));
         }
         if (Math.round(y.speed()) != Math.round(x.speed())) {
-            out.add(L.t("wynnlabs.road.walk_speed", signed(x.speed()), signed(y.speed())));
+            out.add(L.t("wynnlabs.road.walk_speed", L.pct(signed(x.speed())), L.pct(signed(y.speed()))));
         }
         if (Math.round(y.xp()) != Math.round(x.xp())) {
-            out.add(L.t("wynnlabs.road.xp_bonus", Math.round(x.xp()), Math.round(y.xp())));
+            out.add(L.t("wynnlabs.road.xp_bonus", L.pct(Math.round(x.xp())), L.pct(Math.round(y.xp()))));
         }
         List<String> sk = new ArrayList<>();
         boolean down = false;

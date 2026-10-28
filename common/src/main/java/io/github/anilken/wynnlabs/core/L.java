@@ -109,6 +109,29 @@ public final class L {
         return text;
     }
 
+    /**
+     * A percentage as the mod's language writes it: "15%", "+15%" in English, "%15", "+%15",
+     * "−%3" in Turkish (the sign stays first). {@code value} is the number as shown, sign included.
+     */
+    public static String pct(Object value) {
+        return pct(value, code());
+    }
+
+    /** {@link #pct} in a given language ("en_us", "tr_tr"). */
+    static String pct(Object value, String code) {
+        String s = String.valueOf(value);
+        if (code == null || !code.startsWith("tr")) {
+            return s + "%";
+        }
+        int at = !s.isEmpty() && "+-−".indexOf(s.charAt(0)) >= 0 ? 1 : 0;
+        return s.substring(0, at) + "%" + s.substring(at);
+    }
+
+    /** {@code value} with a stat's unit after it ("12/5s"); a "%" goes where {@link #pct} puts it. */
+    public static String unit(Object value, String unit) {
+        return "%".equals(unit) ? pct(value) : value + (unit == null ? "" : unit);
+    }
+
     public static MutableComponent c(String key, Object... args) {
         return Component.literal(t(key, args));
     }

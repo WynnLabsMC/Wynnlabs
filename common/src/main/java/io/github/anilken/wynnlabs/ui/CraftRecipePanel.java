@@ -259,7 +259,7 @@ final class CraftRecipePanel extends CraftPanel {
             }
             for (int p : wasted(m, s)) {
                 out.add(L.c("wynnlabs.craft.slot_wasted", L.t("wynnlabs.craft.pos." + POS_KEYS[p],
-                        (m.positions()[p] > 0 ? "+" : "−") + Math.abs(m.positions()[p])))
+                        L.pct((m.positions()[p] > 0 ? "+" : "−") + Math.abs(m.positions()[p]))))
                         .withStyle(ChatFormatting.DARK_GRAY));
             }
         }

@@ -45,15 +45,17 @@ final class CraftFormat {
         return w == 0.5 ? "½" : w == Math.rint(w) ? String.valueOf((int) w) : String.valueOf(w);
     }
 
-    /** A range for reading: "47–51%", "−20 … −16%", or one value when both ends agree. */
+    /** A range for reading: "47–51%", "−20 … −16%" (Turkish "%47–51", "−%20 … −%16"), or one value when both ends agree. */
     static String range(int a, int b, String unit) {
         if (a == b) {
-            return signed(a) + unit;
+            return L.unit(signed(a), unit);
         }
         if (a >= 0) {
-            return a + "–" + b + unit;
+            return L.unit(a + "–" + b, unit);
         }
-        return signed(a) + " … " + signed(b) + unit;
+        // Turkish puts "%" after each end's sign, so the low end carries one too
+        String low = "%".equals(unit) && L.code().startsWith("tr") ? L.pct(signed(a)) : signed(a);
+        return low + " … " + L.unit(signed(b), unit);
     }
 
     static String range(Craft.Range r, String unit) {

@@ -90,4 +90,33 @@ class LangTest {
         language(2);
         assertEquals("İçerik", L.cap("içerik"));
     }
+
+    @Test
+    void percentSignFollowsTheNumberInEnglish() {
+        assertEquals("15%", L.pct(15, "en_us"));
+        assertEquals("+10107%", L.pct("+10107", "en_us"));
+        assertEquals("−3%", L.pct("−3", "en_us"));
+        language(1);
+        assertEquals("+12%", L.pct("+12"));
+        assertEquals("+12/5s", L.unit("+12", "/5s"));
+        assertEquals("−4%", L.unit("−4", "%"));
+        assertEquals("Walk Speed: +5% → +12%", L.t("wynnlabs.road.walk_speed", L.pct("+5"), L.pct("+12")));
+    }
+
+    @Test
+    void percentSignLeadsTheNumberInTurkish() {
+        assertEquals("%15", L.pct(15, "tr_tr"));
+        assertEquals("+%10107", L.pct("+10107", "tr_tr"));
+        assertEquals("−%3", L.pct("−3", "tr_tr"));
+        assertEquals("-%3", L.pct("-3", "tr_tr"));
+        assertEquals("%", L.pct("", "tr_tr"));
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
+    void turkishPercentLines() {
+        language(2);
+        assertEquals("−%4", L.unit("−4", "%"));
+        assertEquals("Walk Speed: +%5 → +%12", L.t("wynnlabs.road.walk_speed", L.pct("+5"), L.pct("+12")));
+    }
 }

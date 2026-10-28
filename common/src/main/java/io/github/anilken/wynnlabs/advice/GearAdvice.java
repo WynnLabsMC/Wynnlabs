@@ -331,7 +331,7 @@ final class GearAdvice {
                 .sorted((a, b) -> Double.compare(Math.abs(b.getValue()[1]), Math.abs(a.getValue()[1])))
                 .forEach(e -> {
                     int delta = (int) e.getValue()[0];
-                    String t = names.get(e.getKey()) + " " + (delta > 0 ? "+" : "") + delta + units.get(e.getKey());
+                    String t = names.get(e.getKey()) + " " + L.unit((delta > 0 ? "+" : "") + delta, units.get(e.getKey()));
                     List<String> to = e.getValue()[1] > 0 ? gain : loss;
                     if (to.size() < 2) {
                         to.add(t);
@@ -358,7 +358,7 @@ final class GearAdvice {
         List<String> parts = new ArrayList<>();
         for (Roll v : vals.subList(0, Math.min(2, vals.size()))) {
             String unit = v.unit().equals("PERCENT") ? "%" : "";
-            parts.add(v.name() + " " + (v.value() > 0 ? "+" : "") + v.value() + unit);
+            parts.add(v.name() + " " + L.unit((v.value() > 0 ? "+" : "") + v.value(), unit));
         }
         return L.t("wynnlabs.auto.best_stats", String.join(", ", parts));
     }

@@ -82,14 +82,14 @@ abstract class CraftPanel {
             Ingredient.Stat s = e.getValue();
             String u = s.unit() == null ? "" : s.unit();
             boolean good = s.max() > 0;
-            out.add(Component.literal(signed(s.min()) + u + " … " + signed(s.max()) + u + " " + tab.statName(e.getKey()))
+            out.add(Component.literal(L.unit(signed(s.min()), u) + " … " + L.unit(signed(s.max()), u) + " " + tab.statName(e.getKey()))
                     .withStyle(good ? ChatFormatting.GREEN : ChatFormatting.RED));
         }
         String[] names = {"left", "right", "above", "under", "touching", "not_touching"};
         for (int p = 0; p < 6; p++) {
             int v = in.positions()[p];
             if (v != 0) {
-                out.add(L.c("wynnlabs.craft.pos." + names[p], (v > 0 ? "+" : "−") + Math.abs(v))
+                out.add(L.c("wynnlabs.craft.pos." + names[p], L.pct((v > 0 ? "+" : "−") + Math.abs(v)))
                         .withStyle(v > 0 ? ChatFormatting.GREEN : ChatFormatting.RED));
             }
         }

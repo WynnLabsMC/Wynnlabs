@@ -199,7 +199,7 @@ final class CraftResultPanel extends CraftPanel {
         String u = tab.unit(id);
         List<Component> out = new ArrayList<>();
         out.add(Component.literal(tab.statName(id)).withStyle(ChatFormatting.WHITE));
-        out.add(L.c("wynnlabs.craft.roll_line", dec(d.mean(), 2) + u, signed(d.high()) + u, pctText(d.exactly(d.high())))
+        out.add(L.c("wynnlabs.craft.roll_line", L.unit(dec(d.mean(), 2), u), L.unit(signed(d.high()), u), pctText(d.exactly(d.high())))
                 .withStyle(ChatFormatting.GRAY));
         return out;
     }
