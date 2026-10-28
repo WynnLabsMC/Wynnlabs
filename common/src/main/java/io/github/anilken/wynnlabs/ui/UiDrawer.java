@@ -63,7 +63,13 @@ final class UiDrawer implements MenuTab.Popup {
     /** The share of the body the side takes beside the content, in percent. */
     static final int SIDE_SHARE = 46;
 
-    private final RoadmapScreen menu;
+    /**
+     * The menu it draws in: the screen open now. A tab that lives longer than one screen (Endgame,
+     * Crafting) keeps its drawer, and the menu opened again (or at another size, another scale) is
+     * a new screen: its page and its scale, not the old one's, or the dim and the panel land off
+     * the page.
+     */
+    private RoadmapScreen menu;
     private String title;
     private Content content;
     private Side side;
@@ -140,6 +146,9 @@ final class UiDrawer implements MenuTab.Popup {
 
     @Override
     public void draw(GuiGraphics g, int mx, int my, List<int[]> boxes) {
+        if (net.minecraft.client.Minecraft.getInstance().screen instanceof RoadmapScreen rs) {
+            menu = rs;
+        }
         Font font = menu.font();
         int px = page[0];
         int py = page[1];

@@ -338,6 +338,21 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.runOnClient(mc -> EndgameTab.INSTANCE.previewPools(EndgameTab.TAB_RAIDS, null));
         ctx.waitTicks(5);
         shot(ctx, out, "endgame-drawer-raid");
+        // the menu closed and opened again (or at another size) with the drawer still open: the
+        // drawer follows the new screen, its dim over the whole page and its panel inside it
+        ctx.setScreen(() -> RoadmapScreen.on(RoadmapScreen.TAB_ENDGAME));
+        ctx.waitForScreen(RoadmapScreen.class);
+        ctx.getInput().resizeWindow(PreviewSize.WIDTH * 4 / 5, PreviewSize.HEIGHT);
+        ctx.runOnClient(mc -> {
+            EndgameTab.preview();
+            set(mc.screen, "tab", RoadmapScreen.TAB_ENDGAME);
+        });
+        ctx.waitTicks(5);
+        ctx.runOnClient(mc -> EndgameTab.INSTANCE.previewPools(EndgameTab.TAB_RAIDS, null));
+        ctx.waitTicks(5);
+        shot(ctx, out, "endgame-drawer-reopened");
+        ctx.getInput().resizeWindow(PreviewSize.WIDTH, PreviewSize.HEIGHT);
+        ctx.waitTicks(5);
         ctx.runOnClient(mc -> EndgameTab.INSTANCE.previewPools(EndgameTab.TAB_CAMPS, null));
         ctx.waitTicks(5);
         shot(ctx, out, "endgame-drawer-camp");
