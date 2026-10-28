@@ -125,7 +125,7 @@ final class RoadmapJson {
                 r.addProperty("step", Double.isNaN(g.gain()) ? null : Math.round(g.gain() * 10) / 10.0);
                 r.addProperty("pill", RoadmapGains.pill(RoadmapGains.shownGain(steps, i, g), g));      // what the J menu's row shows
                 JsonArray why = new JsonArray();
-                s.whyVsWorn().getOrDefault(e.getKey(), List.of()).forEach(why::add);
+                RoadmapGains.shownWhy(steps, i, g).forEach(why::add);      // what the row's hover shows
                 r.add("why", why);
                 if (g.options() != null) {
                     JsonArray opts = new JsonArray();

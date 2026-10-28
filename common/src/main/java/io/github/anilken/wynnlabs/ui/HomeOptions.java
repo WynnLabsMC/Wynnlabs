@@ -184,10 +184,14 @@ final class HomeOptions extends MenuPaint {
         int line = Type.LABEL.yIn(y, ROW);
         int rx = right(x, w);
         double[] p = o.factorPct();
+        boolean empty = page.detailWorn.isEmpty();
         for (int c = cols.length - 1; c >= 0; c--) {
             int i = cols[c];
             double v = i < p.length ? p[i] : 0;
-            if (Math.abs(v) < 0.5) {
+            if (empty && o.to() != null) {
+                // nothing there now: what the build reaches, a per cent of nothing says nothing
+                Type.BODY.drawRight(g, font(), value(o.to(), i), rx, line, Theme.INK_2);
+            } else if (Math.abs(v) < 0.5) {
                 Type.BODY.drawRight(g, font(), "—", rx, line, Theme.INK_3);
             } else {
                 String t = pct(v);
@@ -207,7 +211,7 @@ final class HomeOptions extends MenuPaint {
         if (flag != null) {
             Art.icon(g, flag, gx - Theme.SP_3 - 8, y + (ROW - 8) / 2, 8, flag.equals("alert-triangle") ? Theme.WARN : Theme.INK_3);
         }
-        gain(g, o.gain(), gx, y + (ROW - Ui.CHIP_H) / 2);
+        gain(g, empty ? Double.NaN : o.gain(), gx, y + (ROW - Ui.CHIP_H) / 2);
         Ui.iconButton(g, "copy", bx, by, false, inList ? mx : -1, my);
         menu.hits.add(new MenuHit(bx, by, Ui.CHIP_H + 2, Ui.CHIP_H, null,
                 List.of(L.c("wynnlabs.home.card_copy").withStyle(ChatFormatting.WHITE)), null));
@@ -216,7 +220,7 @@ final class HomeOptions extends MenuPaint {
 
     /** The build's gain as a light seal in its colour, {@link #sealW} wide for every row. */
     private void gain(GuiGraphics g, double v, int x, int y) {
-        String t = pct(v);
+        String t = Double.isNaN(v) ? L.t("wynnlabs.screen.pill_new") : pct(v);
         int ink = v >= 0 ? Theme.GOOD : Theme.BAD;
         Art.box(g, x, y, sealW, Ui.CHIP_H, Ui.CHIP_H / 2, v >= 0 ? 0xFFE3EED8 : 0xFFF3DCD6, ink);
         Type.LABEL.draw(g, font(), t, x + (sealW - Type.LABEL.width(font(), t)) / 2, Type.LABEL.yIn(y, Ui.CHIP_H), ink);

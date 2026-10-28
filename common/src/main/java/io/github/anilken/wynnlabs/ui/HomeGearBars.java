@@ -196,7 +196,7 @@ final class HomeGearBars extends HomePart {
                 priced++;
             }
         }
-        String line = L.n("wynnlabs.homev.after", count, count, "+" + RoadmapScreen.pct(Math.round(gain)));
+        String line = L.n("wynnlabs.homev.after", count, count, Roadmap.gainText(gain));
         if (priced > 0) {
             line += " · ≈" + Prices.fmt(price);
             tip.add(L.cn("wynnlabs.homev.price_tip", priced, Prices.fmt(price), priced).withStyle(ChatFormatting.GOLD));

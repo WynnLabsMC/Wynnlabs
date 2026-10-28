@@ -409,7 +409,7 @@ public final class HomePage extends MenuTab {
             UpRow r = rows.get(i);
             Roadmap.Gear u = r.gear();
             slots.add(new HomeTab.SlotView(i, boxLabel(r.box()), r.type(), r.worn(), u, u == null ? ItemStack.EMPTY : menu.icon(u.info()),
-                    u == null ? Double.NaN : HomeGearTip.rowGain(menu, u), u == null ? null : context(HomeGearTip.gearTip(menu, u))));
+                    u == null ? Double.NaN : HomeGearTip.rowGain(menu, u), u == null ? null : context(HomeGearTip.gearTip(menu, u, r.worn().isEmpty()))));
         }
         // the build score now, and with the selected milestone's whole set (NaN when it has none)
         Build.Plan plan = Build.plan();

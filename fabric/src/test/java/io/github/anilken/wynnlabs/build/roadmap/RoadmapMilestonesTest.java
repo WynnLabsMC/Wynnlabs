@@ -241,10 +241,8 @@ class RoadmapMilestonesTest {
                 double shown = Roadmap.shownGain(steps, i, g);
                 String pill = Roadmap.pill(shown, g);
                 Fixtures.note("Lv " + s.level() + " " + g.slot() + " " + g.info().name() + ": " + pill);
-                // nothing is worn: every row shows its step over the milestone before, never a
-                // number against an empty slot
-                assertTrue(Roadmap.showsStep(steps, i, g), "Lv " + s.level() + " " + g.slot() + " shows its step");
-                if (!pill.equals("New") && !pill.equals("Set") && !pill.matches("[+−]\\d{1,3}%")) {
+                // nothing is worn: a row reads against what you have (nothing), the whole per cent, from 100000 % in thousands
+                if (!pill.equals("New") && !pill.equals("Set") && !pill.matches("[+−]\\d{1,5}k?%")) {
                     bad.add("Lv " + s.level() + " " + g.slot() + " " + g.info().name() + ": " + pill);
                 }
             }
@@ -258,11 +256,14 @@ class RoadmapMilestonesTest {
     }
 
     @Test
-    void pillsCapLargeNumbersAndNameMissingOnes() throws Exception {
+    void pillsShowTheWholeNumberAndNameMissingOnes() throws Exception {
         FixtureState.load(shaman()).install("en");
         assertEquals("+12%", Roadmap.pill(12.3, null));
         assertEquals("−3%", Roadmap.pill(-3.4, null));
-        assertEquals(">999%", Roadmap.pill(64092, null));
+        assertEquals("+64092%", Roadmap.pill(64092, null));
+        assertEquals("+6972%", Roadmap.pill(6971.6, null));
+        assertEquals("+1121222%", Roadmap.pill(1121222, null));
+        assertEquals("+1121222%", Roadmap.gainText(1121222));
         assertEquals("New", Roadmap.pill(Double.NaN, null));
     }
 }

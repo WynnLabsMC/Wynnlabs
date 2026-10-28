@@ -88,6 +88,9 @@ final class MilestonePlanner {
     // piece key → its row number and reasons from the milestone that first picked it
     private final Map<String, Double> firstGain = new HashMap<>();
     private final Map<String, List<String>> firstWhy = new HashMap<>();
+    // piece key → {Roadmap.Against, level, earned}: what that number was judged against, for its panel
+    // (no initializer: a field a hot swap adds keeps no value)
+    private Map<String, Object[]> firstAgainst;
     private List<ItemData> locked;
     private Locks.Problem problem;
     /** Build slots the chosen items hold. */
@@ -336,7 +339,7 @@ final class MilestonePlanner {
         List<String> abil = abilities(m);
         List<String> places = places(m);
         int sp = Math.max(0, (Math.min(m, 101) - Math.min(Math.max(prev, level), 101)) * 2);
-        Versus rows = vsWorn(m, earned);
+        Versus rows = vsWorn(m, earned, gear);
         // the spread shown and carried on: the greedy one polished by moving points between
         // skills (once per milestone; the candidates above are ranked with the quick one)
         Build.Eval set = baseline == null ? null : Build.allocateBest(baseline, m, earned);
@@ -420,24 +423,54 @@ final class MilestonePlanner {
 
     /**
      * Each changed slot's gain over what you wear and its reasons ({@link RoadmapGains#versus}); a
-     * piece keeps the number and reasons of the milestone that first picked it.
+     * piece keeps the number and reasons of the milestone that first picked it. The rows of
+     * {@code gear} get their comparison panels judged against the same builds, so the pill, the
+     * hover and the panel tell one number.
      */
-    private Versus vsWorn(int m, int earned) {
+    private Versus vsWorn(int m, int earned, List<Gear> gear) {
+        if (firstAgainst == null) {
+            firstAgainst = new HashMap<>();
+        }
         Versus sinceNow = baseline == null ? new Versus(Map.of(), Map.of())
                 : RoadmapGains.versus(baseline, wornNow, placed, m, earned);
         Map<String, Double> rowGain = new LinkedHashMap<>(sinceNow.gain());
         Map<String, List<String>> rowWhy = new LinkedHashMap<>(sinceNow.why());
-        for (String slotName : sinceNow.gain().keySet()) {
+        for (String slotName : sinceNow.why().keySet()) {
             Damage.Piece pick = baseline.get(placed.get(slotName));
             if (pick == null) {
                 continue;
             }
-            Double first = firstGain.putIfAbsent(pick.key(), rowGain.get(slotName));
-            if (first != null) {
-                rowGain.put(slotName, first);
+            boolean seen = firstWhy.containsKey(pick.key());
+            if (seen) {
+                Double first = firstGain.get(pick.key());
+                if (first != null) {
+                    rowGain.put(slotName, first);
+                } else {
+                    rowGain.remove(slotName);
+                }
                 rowWhy.put(slotName, firstWhy.getOrDefault(pick.key(), List.of()));
             } else {
+                Double g = rowGain.get(slotName);
+                if (g != null) {
+                    firstGain.put(pick.key(), g);
+                }
                 firstWhy.put(pick.key(), rowWhy.getOrDefault(slotName, List.of()));
+                Roadmap.Against a = sinceNow.against().get(slotName);
+                if (a != null) {
+                    firstAgainst.put(pick.key(), new Object[] {a, m, earned});
+                }
+            }
+        }
+        for (int i = 0; i < gear.size(); i++) {
+            Gear g = gear.get(i);
+            Double row = rowGain.get(g.slot());
+            Damage.Piece pick = rowWhy.containsKey(g.slot()) ? baseline.get(placed.get(g.slot())) : null;
+            Object[] a = pick == null || !pick.name().equalsIgnoreCase(g.info().name()) ? null
+                    : firstAgainst.get(pick.key());
+            if (a != null) {
+                gear.set(i, new Gear(g.slot(), g.info(), g.gain(), g.source(), g.price(), g.alt(), g.altSource(),
+                        g.detail(), g.alternatives(), RoadmapGains.againstWorn(g.options(), g.info().name(), pick,
+                        (Roadmap.Against) a[0], row == null ? Double.NaN : row, (Integer) a[1], (Integer) a[2])));
             }
         }
         return new Versus(rowGain, rowWhy);

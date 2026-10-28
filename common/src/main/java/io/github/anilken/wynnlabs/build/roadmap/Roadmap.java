@@ -87,7 +87,25 @@ public final class Roadmap {
      * {@link Step#vsWorn} and {@link Step#whyVsWorn} of one milestone: per slot type name the %
      * and the reason lines ({@link RoadmapGains#why}), from the same two builds.
      */
-    record Versus(Map<String, Double> gain, Map<String, List<String>> why) {}
+    record Versus(Map<String, Double> gain, Map<String, List<String>> why, Map<String, Against> against) {
+
+        Versus(Map<String, Double> gain, Map<String, List<String>> why) {
+            this(gain, why, Map.of());
+        }
+    }
+
+    /**
+     * What a slot's {@link Versus} number was judged against: {@code base} (what you wear, or the
+     * milestone's set with what you wear in that slot) with its skill points ({@code from}), the
+     * pick going into build slot {@code slot}, the gain counted in per cent of {@code unit} (what
+     * you have equipped; NaN: of {@code from}). The comparison panel judges every option the same way.
+     */
+    record Against(Map<String, Damage.Piece> base, Build.Eval from, String slot, double unit) {
+
+        Against(Map<String, Damage.Piece> base, Build.Eval from, String slot) {
+            this(base, from, slot, Double.NaN);
+        }
+    }
 
     /** The road map's name for a pick in the second ring slot ({@link Gear#slot}); the first ring is "RING". */
     public static final String RING2 = "RING2";
@@ -185,14 +203,19 @@ public final class Roadmap {
         return RoadmapGains.shownGain(steps, selected, u);
     }
 
-    /** {@link RoadmapGains#showsStep}. */
-    public static boolean showsStep(List<Step> steps, int selected, Gear u) {
-        return RoadmapGains.showsStep(steps, selected, u);
+    /** {@link RoadmapGains#shownWhy}: the reason lines a row's hover shows, from the pill's comparison. */
+    public static List<String> shownWhy(List<Step> steps, int selected, Gear u) {
+        return RoadmapGains.shownWhy(steps, selected, u);
     }
 
     /** {@link RoadmapGains#isTarget}. */
     public static boolean isTarget(Gear g) {
         return RoadmapGains.isTarget(g);
+    }
+
+    /** {@link RoadmapGains#gainText}: "+12%", "+10107%" in the game's language. */
+    public static String gainText(double gain) {
+        return RoadmapGains.gainText(gain);
     }
 
     /** {@link RoadmapGains#pill}. */
@@ -398,7 +421,7 @@ public final class Roadmap {
      * is the scoring's). A method, not a field: a field added by a hot swap keeps no value.
      */
     public static int mapVersion() {
-        return 2;
+        return 5;
     }
 
     /** Tests: the saved map is looked for again, and nothing is kept in memory. */

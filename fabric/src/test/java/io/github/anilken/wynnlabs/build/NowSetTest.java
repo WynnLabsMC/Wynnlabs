@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -227,7 +228,14 @@ class NowSetTest {
         assertEquals("Greaves of Honor", rows.get("LEGGINGS").info().name());
         assertEquals("Sodeta Boots", rows.get("BOOTS").info().name());
         for (Roadmap.Gear g : rows.values()) {
-            assertTrue(g.gain() > 0, g.slot() + " gains " + g.gain());
+            // nothing worn there: no per cent of nothing, the row reads "New" and says what it adds
+            // in plain amounts ("Effective HP: +812")
+            assertTrue(Double.isNaN(g.gain()), g.slot() + " gains " + g.gain());
+            assertEquals("New", Roadmap.pill(g.gain(), g), g.slot());
+            assertFalse(g.detail().isEmpty(), g.slot() + " says what it adds");
+            for (String line : g.detail()) {
+                assertFalse(line.matches(".*\\(([+−-])\\d+%\\).*"), g.slot() + ": " + line);
+            }
             assertTrue(Roadmap.fromBag(g), g.slot());
         }
         // the rows follow the plan: put back on, they go

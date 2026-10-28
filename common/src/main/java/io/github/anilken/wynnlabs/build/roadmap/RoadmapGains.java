@@ -27,21 +27,30 @@ final class RoadmapGains {
     /**
      * For each slot changed by this milestone ({@code placed}: slot type name → the build slot
      * of its latest pick), the % your build gains with the pick instead of what you wear now,
-     * at the milestone's level and skill points. Two ways, the larger one shown:
+     * at the milestone's level and skill points. Always against what you wear now ({@code now}):
      * <ul>
      * <li>that piece alone in what you wear now: a better piece always shows a bigger number,
      *     also across milestones (inside the milestone's full build the other upgrades shrink
-     *     one slot's share: a Lv 93 Mythic at Lv 120 showed less than a Lv 88 Rare at Lv 100);</li>
-     * <li>with the milestone's other upgrades: some picks only pay off together (another pick
-     *     carries their skill points), alone they can even lose. The reasons then start with a
-     *     line that says so.</li>
+     *     one slot's share: a Lv 93 Mythic at Lv 120 showed less than a Lv 88 Rare at Lv 100).
+     *     When the milestone's other upgrades make it better still, the reasons start with a
+     *     line that says so;</li>
+     * <li>a pick that cannot go into what you wear, or loses there (another pick carries its
+     *     skill points): its own share of the milestone's set, what the set loses without it, in
+     *     per cent of what you wear, with its reasons as plain amounts. The whole set's gain on one
+     *     piece's pill once read +407120 % beside single pieces' numbers; with the set judged
+     *     without the pick, the reasons started from the set ("Main Attack: 13257 → 19976")
+     *     while 22 was equipped. When even that cannot be told, no number and a line that says
+     *     the piece needs the rest of the set;</li>
+     * <li>a slot you have nothing in: no per cent (against nothing it only explodes), the
+     *     reasons as plain amounts.</li>
      * </ul>
-     * With the reason lines of each slot ({@link #why}).
+     * With the reason lines of each slot ({@link #why}) and what each was judged against.
      */
     static Versus versus(Map<String, Damage.Piece> build, Map<String, Damage.Piece> worn,
             Map<String, String> placed, int m, int earned) {
         Map<String, Double> out = new LinkedHashMap<>();
         Map<String, List<String>> why = new LinkedHashMap<>();
+        Map<String, Roadmap.Against> against = new LinkedHashMap<>();
         Build.Eval now = Build.allocate(worn, m, earned);
         Build.Eval full = Build.allocate(build, m, earned);
         for (var e : placed.entrySet()) {
@@ -78,18 +87,44 @@ final class RoadmapGains {
                     together = (full.result().objective() / back.result().objective() - 1) * 100;
                 }
             }
-            if (!Double.isNaN(alone) && (Double.isNaN(together) || alone >= together)) {
+            List<String> lines = new ArrayList<>();
+            boolean nowOk = now != null && now.result().objective() > 0;
+            boolean backOk = back != null && back.result().objective() > 0 && full != null;
+            if (was == null) {
+                // an empty slot now: plain amounts, no per cent
+                if (with != null) {
+                    lines.addAll(GainAmounts.amounts(now, with));
+                    against.put(e.getKey(), new Roadmap.Against(worn, now, slot));
+                } else if (backOk) {
+                    lines.add(L.t("wynnlabs.road.why_needs_set", m));
+                    lines.addAll(GainAmounts.amounts(back, full));
+                    against.put(e.getKey(), new Roadmap.Against(build, back, slot));
+                } else {
+                    continue;
+                }
+            } else if (!Double.isNaN(alone) && alone >= 0) {
                 out.put(e.getKey(), alone);
-                why.put(e.getKey(), why(now, with, m));
-            } else if (!Double.isNaN(together)) {
-                out.put(e.getKey(), together);
-                List<String> lines = new ArrayList<>();
+                if (!Double.isNaN(together) && together > alone + 0.5) {
+                    lines.add(L.t("wynnlabs.road.why_better_together", m));
+                }
+                lines.addAll(why(now, with, m));
+                against.put(e.getKey(), new Roadmap.Against(worn, now, slot));
+            } else if (nowOk && backOk) {
+                // its share of the set: what the set loses without it, in per cent of what you wear
+                double unit = now.result().objective();
+                out.put(e.getKey(), (full.result().objective() - back.result().objective()) / unit * 100);
                 lines.add(L.t("wynnlabs.road.why_together", m));
-                lines.addAll(why(back, full, m));
-                why.put(e.getKey(), new ArrayList<>(lines.subList(0, Math.min(lines.size(), Roadmap.WHY_LINES))));
+                lines.addAll(GainAmounts.amounts(back, full));
+                against.put(e.getKey(), new Roadmap.Against(build, back, slot, unit));
+            } else if (nowOk && full != null && full.result().objective() > 0) {
+                lines.add(L.t("wynnlabs.road.why_needs_set_gain", m,
+                        gainText((full.result().objective() / now.result().objective() - 1) * 100)));
+            } else {
+                continue;
             }
+            why.put(e.getKey(), new ArrayList<>(lines.subList(0, Math.min(lines.size(), Roadmap.WHY_LINES))));
         }
-        return new Versus(out, why);
+        return new Versus(out, why, against);
     }
 
     /**
@@ -197,57 +232,76 @@ final class RoadmapGains {
     }
 
     /**
-     * The number a row's pill shows on milestone {@code selected}: the gain over what you wear in
-     * that slot ({@link Step#vsWorn}), unless {@link #showsStep}: then the step over the milestone
-     * before ({@link Gear#gain}). A piece from the bag shows its own number. NaN: nothing to
-     * compare with (a new slot, a target).
+     * The number a row's pill shows on milestone {@code selected}: the gain over what you wear
+     * now ({@link Step#vsWorn}; a bag piece carries its own). The hover's headline, its reasons
+     * ({@link #shownWhy}) and the comparison panel are judged against the same builds. A Lv 97
+     * spear once read "+22 %" over the milestone before while its reasons were against the Lv 4
+     * spear worn ("Main Attack: 22 → 2295"). NaN: nothing to compare with (a new slot whose pick
+     * cannot be judged against what you wear, a target).
      */
     static double shownGain(List<Step> steps, int selected, Gear u) {
-        if (u == null || Double.isNaN(u.gain()) || steps.isEmpty() || RoadmapRows.fromBag(u)
-                || showsStep(steps, selected, u)) {
-            return u == null ? Double.NaN : u.gain();
+        if (u == null || Double.isNaN(u.gain()) || steps.isEmpty() || RoadmapRows.fromBag(u)) {
+            return u == null ? Double.NaN : steps.isEmpty() || RoadmapRows.fromBag(u) ? u.gain() : Double.NaN;
         }
         Step s = steps.get(Math.max(0, Math.min(selected, steps.size() - 1)));
-        return s.vsWorn().getOrDefault(u.slot(), u.gain());
+        Double v = s.vsWorn().get(u.slot());
+        return v == null ? Double.NaN : v;
+    }
+
+    /** The reason lines a row's hover shows, against the same builds as {@link #shownGain}; empty when none. */
+    static List<String> shownWhy(List<Step> steps, int selected, Gear u) {
+        if (u == null) {
+            return List.of();
+        }
+        if (steps.isEmpty() || RoadmapRows.fromBag(u)) {
+            return u.detail() == null ? List.of() : u.detail();
+        }
+        Step s = steps.get(Math.max(0, Math.min(selected, steps.size() - 1)));
+        List<String> w = s.whyVsWorn().get(u.slot());
+        return w == null ? List.of() : w;
     }
 
     /**
-     * Whether a row shows its step rather than its gain over what you wear: nothing is worn in
-     * that slot, or what is worn there is far below the milestone that picked the piece
-     * (rules.shopping.oldGearLevels + 4 levels or more). "+64092 %" over a Lv 1 wand says nothing
-     * about a Lv 120 relik; what it adds over the last milestone's pick does.
+     * {@code options} judged the way their row's number was ({@code a}): each option in the
+     * pick's place, the pick first at {@code rowGain}, the others best gain first. Options the
+     * base cannot wear drop out. The panel was judged against the set as it stood when the pick
+     * went in, labelled "Now": a Lv 97 spear read −17 % there under a row far above what you wear.
      */
-    static boolean showsStep(List<Step> steps, int selected, Gear u) {
-        if (u == null || steps.isEmpty() || RoadmapRows.fromBag(u)) {
-            return false;
+    static List<Roadmap.Option> againstWorn(List<Roadmap.Option> options, String pickName, Damage.Piece pick,
+            Roadmap.Against a, double rowGain, int m, int earned) {
+        if (options == null || options.isEmpty() || a == null || a.from() == null) {
+            return options;
         }
-        Step s = steps.get(Math.max(0, Math.min(selected, steps.size() - 1)));
-        int at = s.level();
-        for (Step x : steps) {
-            if (x.gear().stream().anyMatch(g -> g == u)) {
-                at = x.level();                         // the milestone that picked it
-                break;
+        Map<String, Damage.Piece> base = new LinkedHashMap<>(a.base());
+        base.remove(a.slot());
+        Roadmap.Option first = null;
+        List<Roadmap.Option> rest = new ArrayList<>();
+        for (Roadmap.Option o : options) {
+            boolean isPick = o.info().name().equalsIgnoreCase(pickName);
+            Damage.Piece piece = isPick && pick != null ? pick : OwnedGear.pieceOf(o.info());
+            if (io.github.anilken.wynnlabs.build.Exclusive.clash(base, a.slot(),
+                    io.github.anilken.wynnlabs.build.Exclusive.group(piece)) != null) {
+                continue;
+            }
+            Roadmap.Option n = RoadmapRows.option(o.info(), piece, a.slot(), base, a.from(), m, earned);
+            if (n == null) {
+                continue;
+            }
+            double g = Double.isNaN(a.unit()) ? n.gain()
+                    : (n.to().objective() - a.from().result().objective()) / a.unit() * 100;
+            Roadmap.Option kept = new Roadmap.Option(o.info(), isPick && !Double.isNaN(rowGain) ? rowGain : g, o.price(), o.source(),
+                    o.cautions(), n.skills(), n.respec(), n.factorPct(), n.from(), n.to(), o.set());
+            if (isPick && first == null) {
+                first = kept;
+            } else {
+                rest.add(kept);
             }
         }
-        Build.Plan plan = Build.plan();
-        if (plan == null) {
-            return false;
+        rest.sort((x, y) -> Double.compare(y.gain(), x.gain()));
+        if (first != null) {
+            rest.add(0, first);
         }
-        Map<String, Damage.Piece> worn = plan.worn() != null ? plan.worn() : plan.pieces();
-        // the build slot the piece is in (a ring pick may hold the other hand)
-        String slot = u.slot().equals(Roadmap.RING2) ? "RING2" : u.info().slot() == Slot.RING ? "RING1"
-                : u.info().slot().isWeapon() ? "WEAPON" : u.slot();
-        Damage.Piece here = s.build().get(slot);
-        if (here == null || !here.name().equalsIgnoreCase(u.info().name())) {
-            for (var e : s.build().entrySet()) {
-                if (e.getValue() != null && e.getValue().name().equalsIgnoreCase(u.info().name())) {
-                    slot = e.getKey();
-                    break;
-                }
-            }
-        }
-        Damage.Piece was = worn.get(slot);
-        return was == null || was.level() <= at - (int) Rules.sub("shopping", "oldGearLevels", 8) - 4;
+        return rest;
     }
 
     /** A community target (rules.roadmap.targets): its row has no gain, it is there for the set. */
@@ -256,17 +310,22 @@ final class RoadmapGains {
     }
 
     /**
-     * A row's pill: "+12%", "−3%", past 999 "&gt;999%" (a number that large only says "much"), with
-     * no number "New" (nothing to compare with), or "Set" for a community target.
+     * A row's pill: the whole per cent ("+12%", "+407120%"), never shortened; with no number
+     * "New" (nothing to compare with), or "Set" for a community target.
      */
     static String pill(double gain, Gear g) {
         if (Double.isNaN(gain)) {
             return L.t(isTarget(g) ? "wynnlabs.screen.pill_set" : "wynnlabs.screen.pill_new");
         }
-        if (gain > 999) {
-            return ">" + L.t("wynnlabs.screen.pct", 999);
-        }
-        return (gain < -0.5 ? "−" : "+") + L.t("wynnlabs.screen.pct", Math.round(Math.abs(gain)));
+        return gainText(gain);
+    }
+
+    /**
+     * A gain as the menu writes it, the whole per cent in the game's language: "+12%", "−3%",
+     * "+10107%" (Turkish "+%10107"). The gear footer and the hover write it so.
+     */
+    static String gainText(double gain) {
+        return L.pct((gain < -0.5 ? "−" : "+") + Math.round(Math.abs(gain)));
     }
 
     /**

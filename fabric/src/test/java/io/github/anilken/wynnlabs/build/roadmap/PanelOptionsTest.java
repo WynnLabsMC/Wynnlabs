@@ -102,8 +102,14 @@ class PanelOptionsTest {
                 sets++;
                 Roadmap.Option pick = g.options().get(0);
                 String at = "Lv " + s.level() + " " + g.slot() + " " + g.info().name();
-                assertTrue(pick.gain() != 0 || g.gain() == 0, at + ": a set's pick at 0 %");
-                assertEquals(g.gain(), pick.gain(), 1e-6, at + ": the panel and the row agree");
+                // the panel measures against what you wear, as the row's pill does
+                Double row = s.vsWorn().get(g.slot());
+                if (row == null && s.whyVsWorn().containsKey(g.slot())) {
+                    continue;                   // a slot you have nothing in: no per cent on the row
+                }
+                double shown = row == null ? g.gain() : row;
+                assertTrue(pick.gain() != 0 || shown == 0, at + ": a set's pick at 0 %");
+                assertEquals(shown, pick.gain(), 1e-6, at + ": the panel and the row agree");
                 for (Roadmap.Option o : g.options()) {
                     assertTrue(o.gain() != 0 || o.to() == null || o.from() == null
                             || o.to().objective() == o.from().objective(), at + ": " + o.info().name() + " at 0 %");

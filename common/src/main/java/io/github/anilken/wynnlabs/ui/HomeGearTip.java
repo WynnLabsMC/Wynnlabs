@@ -21,16 +21,15 @@ final class HomeGearTip {
     private HomeGearTip() {}
 
     /**
-     * The gain a row shows: what the selected milestone's build gains over what you wear now in
-     * that slot (Roadmap.Step.vsWorn), or the step over the previous milestone's pick when what
-     * you wear there is far below it (Roadmap.shownGain).
+     * The gain a row shows: what the selected milestone's build gains with the pick over what you
+     * wear now in that slot (Roadmap.shownGain); its hover, reasons and panel say the same.
      */
     static double rowGain(RoadmapScreen menu, Roadmap.Gear u) {
         return Roadmap.shownGain(menu.steps, menu.selected, u);
     }
 
-    /** The full story of an upgrade, for its hover. */
-    static List<Component> gearTip(RoadmapScreen menu, Roadmap.Gear u) {
+    /** The full story of an upgrade, for its hover; {@code emptyNow}: nothing is worn in its slot. */
+    static List<Component> gearTip(RoadmapScreen menu, Roadmap.Gear u, boolean emptyNow) {
         List<Component> tip = new ArrayList<>();
         ChatFormatting tc = u.info().tier().colour();
         tip.add(Component.literal(u.info().name()).withStyle(tc).withStyle(UiFont::bold));
@@ -63,23 +62,19 @@ final class HomeGearTip {
                     : L.t("wynnlabs.home.tip_seen")).withStyle(doubt != null ? ChatFormatting.RED : ChatFormatting.DARK_GRAY));
         }
         double vsWorn = rowGain(menu, u);
-        boolean step = !Double.isNaN(vsWorn) && Roadmap.showsStep(menu.steps, menu.selected, u);
-        tip.add(Double.isNaN(vsWorn)
-                ? L.c(Roadmap.isTarget(u) ? "wynnlabs.home.tip_target" : "wynnlabs.home.tip_new").withStyle(ChatFormatting.AQUA)
-                : step ? (vsWorn < 0 ? L.c("wynnlabs.home.tip_step_loss", Math.round(-vsWorn * 10) / 10.0).withStyle(ChatFormatting.RED)
-                        : L.c("wynnlabs.home.tip_step", Math.round(vsWorn * 10) / 10.0).withStyle(ChatFormatting.GREEN))
-                : vsWorn < 0 ? L.c("wynnlabs.home.tip_loss", Math.round(-vsWorn * 10) / 10.0).withStyle(ChatFormatting.RED)
+        List<String> why = Roadmap.shownWhy(menu.steps, menu.selected, u);
+        if (Double.isNaN(vsWorn)) {
+            // no per cent: a target, a slot you have nothing in, or a piece whose reasons say it needs its set
+            String key = Roadmap.isTarget(u) ? "wynnlabs.home.tip_target" : emptyNow ? "wynnlabs.home.tip_fills"
+                    : why.isEmpty() ? "wynnlabs.home.tip_new" : null;
+            if (key != null) {
+                tip.add(L.c(key).withStyle(ChatFormatting.AQUA));
+            }
+        } else {
+            tip.add(vsWorn < 0 ? L.c("wynnlabs.home.tip_loss", Math.round(-vsWorn * 10) / 10.0).withStyle(ChatFormatting.RED)
                 : L.c("wynnlabs.home.tip_gain", Math.round(vsWorn * 10) / 10.0).withStyle(ChatFormatting.GREEN));
-        if (!step && !Double.isNaN(u.gain()) && Math.abs(vsWorn - u.gain()) >= 0.5) {
-            // at a later milestone the pick also builds on the picks before it
-            tip.add(L.c("wynnlabs.home.tip_step", Math.round(u.gain() * 10) / 10.0).withStyle(ChatFormatting.DARK_GRAY));
         }
-        // why this pick: what changes against what you wear, biggest first (else the step's own reasons)
-        List<String> why = menu.steps.isEmpty() ? null
-                : menu.steps.get(Math.max(0, Math.min(menu.selected, menu.steps.size() - 1))).whyVsWorn().get(u.slot());
-        if (why == null || why.isEmpty()) {
-            why = u.detail();
-        }
+        // why this pick: what changes against what you wear, from the same two builds, biggest first
         if (why != null && !why.isEmpty()) {
             tip.add(L.c("wynnlabs.home.tip_why").withStyle(ChatFormatting.GOLD).withStyle(UiFont::bold));
             for (String d : why) {

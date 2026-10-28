@@ -72,7 +72,8 @@ class RoadmapGainTest {
             // a slot can be missing only when its worn piece no longer fits the build (the pick's
             // skill bonus carried another piece's requirement): then the row keeps the step gain
             assertTrue(s.gear().isEmpty() || !s.vsWorn().isEmpty(), "Lv " + s.level() + " has worn → pick gains");
-            assertEquals(s.vsWorn().keySet(), s.whyVsWorn().keySet(), "Lv " + s.level() + ": a reason for every gain");
+            // a reason for every gain; a slot you have nothing in has reasons and no per cent
+            assertTrue(s.whyVsWorn().keySet().containsAll(s.vsWorn().keySet()), "Lv " + s.level() + ": a reason for every gain");
             for (var e : s.whyVsWorn().entrySet()) {
                 assertTrue(e.getValue().size() <= Roadmap.WHY_LINES, "Lv " + s.level() + " " + e.getKey() + " ≤ 4 lines");
                 if (s.vsWorn().get(e.getKey()) >= 5) {
