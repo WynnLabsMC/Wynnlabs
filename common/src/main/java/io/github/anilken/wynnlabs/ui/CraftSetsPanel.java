@@ -469,12 +469,29 @@ final class CraftSetsPanel extends CraftPanel {
 
     private void list(GuiGraphics g, List<String> goals, String cur, int x, int y, int w, int h, int mx, int my) {
         List<String> rows = rows(goals);
-        Type.LABEL.draw(g, tab.font, L.t("wynnlabs.craft.sets"), x, y, Theme.INK_2);
-        Type.META.drawRight(g, tab.font, String.valueOf(rows.size()), x + w, y + 1, Theme.INK_3);
-        int top = y + Type.LABEL.lineHeight + Theme.SP_3 + Theme.SP_2;
+        // the head: "Sets 16", and on its right the way to combine goals (never under the last row)
+        String add = L.t("wynnlabs.craft.combine");
+        int aw = Ui.iconChipWidth(tab.font, "plus", add, true);
+        int ax = x + w - aw;
+        Ui.iconChip(g, tab.font, "plus", add, true, ax, y, aw, tab.open == CraftingTab.Drop.SET_COMBINE, mx, my);
+        int[] anchor = {ax, y, aw, Ui.CHIP_H};
+        tab.acts.add(new Act(ax, y, aw, Ui.CHIP_H, () -> {
+            combining = new ArrayList<>();
+            tab.toggle(CraftingTab.Drop.SET_COMBINE, anchor);
+        }, null, List.of(L.c("wynnlabs.craft.combine_tip"))));
+        String head = L.t("wynnlabs.craft.sets");
+        int ty = Type.LABEL.yIn(y, Ui.CHIP_H);
+        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, head, ax - Theme.SP_3 - x), x, ty, Theme.INK_2);
+        int nx = x + Type.LABEL.width(tab.font, head) + Theme.SP_3;
+        String n = String.valueOf(rows.size());
+        if (nx + Type.META.width(tab.font, n) < ax - Theme.SP_3) {
+            Type.META.draw(g, tab.font, n, nx, ty + 1, Theme.INK_3);
+        }
+        int top = y + Ui.CHIP_H + Theme.SP_3 + Theme.SP_2;
         int bottom = y + h;
         int pitch = ROW_H + 3 * Theme.SP_2;
-        int used = rows.size() * pitch + Ui.CHIP_H;
+        // the last row's wash ends SP_2 under it; SP_2 of plain page more before the list's foot
+        int used = rows.isEmpty() ? Type.MUTED.lineHeight : rows.size() * pitch - Theme.SP_2;
         boolean bar = used > bottom - top;
         int cw = bar ? w - ScrollBar.W - Theme.SP_2 : w;
         listMax = Math.max(0, used - (bottom - top));
@@ -485,21 +502,10 @@ final class CraftSetsPanel extends CraftPanel {
         int ry = top - listScroll;
         if (rows.isEmpty()) {
             Type.MUTED.draw(g, tab.font, L.t("wynnlabs.craft.filter_none"), x, ry, Theme.INK_3);
-            ry += Type.MUTED.lineHeight + Theme.SP_4;
         }
         for (String key : rows) {
             row(g, key, cur, x, ry, cw, top, bottom, mx, my);
             ry += pitch;
-        }
-        String add = L.t("wynnlabs.craft.combine");
-        int aw = Ui.iconChipWidth(tab.font, "plus", add, true);
-        if (ry + Ui.CHIP_H > top - Theme.SP_2 && ry < bottom) {
-            Ui.iconChip(g, tab.font, "plus", add, true, x, ry, aw, tab.open == CraftingTab.Drop.SET_COMBINE, mx, my);
-            int[] anchor = {x, ry, aw, Ui.CHIP_H};
-            clipped(x, ry, aw, Ui.CHIP_H, () -> {
-                combining = new ArrayList<>();
-                tab.toggle(CraftingTab.Drop.SET_COMBINE, anchor);
-            }, null, List.of(L.c("wynnlabs.craft.combine_tip")));
         }
         g.disableScissor();
         tab.clip = null;
