@@ -32,38 +32,44 @@ final class UiMenu {
      * One option. {@code icon} null for none; {@code sub} a second META line (null: none);
      * {@code meta} the count or note on the right (null: none); {@code chosen} the current one;
      * {@code link} drawn as an action (LINK ink) rather than a choice; {@code groupStart} a
-     * hairline above it; {@code tip} its tooltip.
+     * hairline above it; {@code tip} its tooltip; {@code heading} a section's name over the rows
+     * after it (META, not a choice: no hover, no click, the keys pass it).
      */
     record Item(String id, String icon, String label, String sub, String meta, boolean chosen, boolean link, boolean dim,
-                boolean groupStart, List<Component> tip, int tint) {
+                boolean groupStart, List<Component> tip, int tint, boolean heading) {
 
         static Item of(String id, String icon, String label, String meta, boolean chosen) {
-            return new Item(id, icon, label, null, meta, chosen, false, false, false, null, 0);
+            return new Item(id, icon, label, null, meta, chosen, false, false, false, null, 0, false);
+        }
+
+        /** A section's name ("Combined"): drawn small over the rows after it, never picked. */
+        static Item heading(String label) {
+            return new Item(null, null, label, null, null, false, false, false, false, null, 0, true);
         }
 
         Item sub(String s) {
-            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip, tint);
+            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip, tint, heading);
         }
 
         Item group() {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip, tint);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip, tint, heading);
         }
 
         Item asLink() {
-            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip, tint);
+            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip, tint, heading);
         }
 
         Item asDim() {
-            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip, tint);
+            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip, tint, heading);
         }
 
         Item tip(List<Component> t) {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t, tint);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t, tint, heading);
         }
 
         /** A colour of its own (a tier): a dot before the name and the name in it. */
         Item tint(int colour) {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, colour);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, colour, heading);
         }
     }
 
@@ -146,11 +152,11 @@ final class UiMenu {
                 cursor = Math.max(0, chosen(items));
             }
             if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN) {
-                cursor = Math.min(items.size() - 1, cursor + 1);
+                cursor = step(cursor, 1);
             } else if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_UP) {
-                cursor = Math.max(0, cursor - 1);
+                cursor = step(cursor, -1);
             } else if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
-                return items.get(cursor);
+                return items.get(cursor).heading() ? null : items.get(cursor);
             } else {
                 return null;
             }
@@ -160,6 +166,16 @@ final class UiMenu {
                 scroll = cursor - visible + 1;
             }
             return null;
+        }
+
+        /** The next row from {@code at} in direction {@code d} that is not a heading; {@code at} when there is none. */
+        private int step(int at, int d) {
+            for (int i = at + d; i >= 0 && i < items.size(); i += d) {
+                if (!items.get(i).heading()) {
+                    return i;
+                }
+            }
+            return at;
         }
     }
 
@@ -172,8 +188,11 @@ final class UiMenu {
         return -1;
     }
 
-    /** A row's height: one line, or two with its second line. */
+    /** A row's height: one line, or two with its second line; a heading its META line with SP_2 above and SP_1 below. */
     static int rowH(Item it) {
+        if (it.heading()) {
+            return Type.META.lineHeight + Theme.SP_2 + Theme.SP_1;
+        }
         return it.sub() == null ? ROW : ROW + Type.META.lineHeight;
     }
 
@@ -284,6 +303,11 @@ final class UiMenu {
                 ry += GAP;
             }
             int rh = rowH(it);
+            if (it.heading()) {
+                Type.META.draw(g, font, Type.META.fit(font, it.label(), rw - 2 * Theme.SP_3), x + Theme.SP_3, ry + Theme.SP_2, Theme.INK_3);
+                ry += rh;
+                continue;
+            }
             boolean hover = mx >= x && mx < x + rw && my >= ry && my < ry + rh;
             // a menu with several picked rows (the build window's Priority) marks them by the tick
             // and the bold name alone: lit rows never run into each other

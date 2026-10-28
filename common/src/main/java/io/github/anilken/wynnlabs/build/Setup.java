@@ -37,7 +37,7 @@ public final class Setup {
     public static void newCharacter() {
         String arch = TreePlanner.mostUnlocked();
         JsonObject tree = new JsonObject();
-        tree.addProperty("archetype", arch);
+        TreePlanner.write(tree, ArchetypeMix.of(arch));
         if (arch.isEmpty()) {
             tree.addProperty("guess", 1);
         }
@@ -64,7 +64,7 @@ public final class Setup {
             return "";
         }
         JsonObject tree = new JsonObject();
-        tree.addProperty("archetype", arch);
+        TreePlanner.write(tree, ArchetypeMix.of(arch));
         tree.add("guess", com.google.gson.JsonNull.INSTANCE);
         JsonObject change = new JsonObject();
         change.add("tree", tree);
@@ -118,7 +118,7 @@ public final class Setup {
         JsonObject change = new JsonObject();
         change.addProperty("goalPreset", preset);
         change.addProperty("goal", preset.toLowerCase(java.util.Locale.ROOT) + " build"
-                + (TreePlanner.chosen().isEmpty() ? "" : ", " + TreePlanner.chosen()));
+                + (TreePlanner.chosen().isEmpty() ? "" : ", " + TreePlanner.chosenMix().label()));
         change.addProperty("questLevelMargin", questMargin);
         change.add("model", model);
         Rules.update(change);

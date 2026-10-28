@@ -196,8 +196,7 @@ public final class TreeTab extends MenuTab {
         TreeView.View v = known ? board.treeView(tree) : null;
         int cy = y;
         // the archetype and the points
-        String chosen = TreePlanner.chosen();
-        String arch = chosen.isEmpty() ? L.t("wynnlabs.tree.arch_off") : chosen;
+        String arch = TreePlanner.chosenLabel(L.t("wynnlabs.tree.arch_off"));
         int cw = UiMenu.chip(g, font(), "sparkles", arch, x, cy, menu.archPicker.isOpen(), mx, my);
         menu.hits.add(new MenuHit(x, cy, cw, Ui.CHIP_H, null, null, "#tree:arch"));
         if (v != null) {

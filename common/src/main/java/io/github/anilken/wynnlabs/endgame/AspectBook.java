@@ -171,7 +171,7 @@ public final class AspectBook {
     /** The archetype picked in Wynn Labs (the tree planner's), or "" when none. */
     private static String chosenArchetype() {
         try {
-            return TreePlanner.chosen();
+            return TreePlanner.chosenMix().lead();
         } catch (Throwable t) {
             return "";
         }

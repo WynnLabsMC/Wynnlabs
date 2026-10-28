@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "craftsuggest", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "craftsuggest", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai", "archetypes").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -393,6 +393,10 @@ public class JMenuPreview implements FabricClientGameTest {
 
     /** -PpreviewOnly=home or crafting: that screen's shots alone, after the road map is built. */
     private static void partShots(ClientGameTestContext ctx, Path out) throws Exception {
+        if (part.equals("archetypes")) {
+            ArchetypePreview.shots(ctx, out);
+            return;
+        }
         if (part.equals("endgame")) {
             endgameShots(ctx, out);
             return;

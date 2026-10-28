@@ -188,7 +188,7 @@ final class SettingsRows {
             case "rule" -> r.r().key().equals("marketSlots") && RuleEditor.value(r.r()) <= 0
                     ? MarketSlots.autoShort() : L.cap(RuleEditor.display(r.r()));
             case "step" -> stepText(r.id(), Settings.stepValue(r.id()));
-            case "arch" -> TreePlanner.chosen().isEmpty() ? L.t("wynnlabs.settings.archetype_off") : TreePlanner.chosen();
+            case "arch" -> TreePlanner.chosenLabel(L.t("wynnlabs.settings.archetype_off"));
             case "goal" -> Setup.goalName(Setup.goal());
             case "scale" -> MenuScale.setting() == 0 ? L.t("wynnlabs.settings.scale_game") : String.valueOf(MenuScale.setting());
             case "lang" -> langNames()[Math.max(0, Math.min(2, Settings.number("langOverride", 0)))];

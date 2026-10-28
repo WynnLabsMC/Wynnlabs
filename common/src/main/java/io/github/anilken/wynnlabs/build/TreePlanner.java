@@ -136,8 +136,12 @@ public final class TreePlanner {
         return sb.toString().toLowerCase(Locale.ROOT);
     }
 
-    /** How much a node is worth on its own for the chosen archetype. */
-    private static double value(AbilityNode n, String chosen) {
+    /**
+     * How much a node is worth on its own for the chosen archetype, or for two combined: each
+     * archetype's nodes pulled by its share ({@link ArchetypeMix#affinity}), the lead's ultimate
+     * the one planned.
+     */
+    private static double value(AbilityNode n, ArchetypeMix chosen) {
         String a = arch(n);
         String d = text(n);
         String name = n.name().toLowerCase(Locale.ROOT);
@@ -145,13 +149,14 @@ public final class TreePlanner {
         if (spell(n)) {
             v += 6;                             // the class's spells come first
         }
-        if (a.equalsIgnoreCase(chosen)) {
-            v += 3;
+        double pull = chosen.affinity(a);
+        if (pull > 0) {
+            v += 3 * pull;
         } else if (!a.isEmpty()) {
             v -= 1.5;                           // other archetypes only when on the way
         }
         if (ultimate(n)) {
-            v += a.equalsIgnoreCase(chosen) ? 8 : -10;
+            v += a.equalsIgnoreCase(chosen.lead()) ? 8 : -10;
         }
         if (name.startsWith("cheaper") || d.contains("mana cost: -")) {
             v += 2;                             // mana comfort
@@ -187,8 +192,21 @@ public final class TreePlanner {
         return plan(chosen, List.of());
     }
 
-    /** The plan from the given unlocked nodes on. */
+    /**
+     * The plan from the given unlocked nodes on, for one archetype or two combined
+     * ({@link ArchetypeMix#spec}: "Summoner+Ritualist@70").
+     */
     static List<Step> plan(String chosen, java.util.Collection<String> have) {
+        return plan(ArchetypeMix.parse(chosen), have);
+    }
+
+    /**
+     * {@link #plan(String, java.util.Collection)} for a choice. Two combined: an archetype's node
+     * that would take it more than {@link #splitSlack} points past its share of the points spent
+     * on the two waits (its score cut), one that far behind comes sooner, so the plan keeps to
+     * the split; the tree's own locks (a node needing N of an archetype) stay as they are.
+     */
+    static List<Step> plan(ArchetypeMix mix, java.util.Collection<String> have) {
         List<AbilityNode> all = nodes();
         if (all.isEmpty()) {
             return List.of();
@@ -224,12 +242,13 @@ public final class TreePlanner {
         // Targets that pull the path: the chosen archetype's nodes and its ultimate
         Map<Integer, Double> value = new HashMap<>();
         for (AbilityNode n : all) {
-            value.put(n.id(), value(n, chosen));
+            value.put(n.id(), value(n, mix));
         }
+        String lead = mix.lead();
 
         // distance of every node to the chosen archetype's ultimate, to steer the path there
         Map<Integer, Integer> toUlt = new HashMap<>();
-        all.stream().filter(n -> ultimate(n) && arch(n).equalsIgnoreCase(chosen)).findFirst().ifPresent(u -> {
+        all.stream().filter(n -> ultimate(n) && arch(n).equalsIgnoreCase(lead)).findFirst().ifPresent(u -> {
             toUlt.putAll(distances(Set.of(u.id()), adj));
         });
 
@@ -238,6 +257,8 @@ public final class TreePlanner {
             AbilityNode best = null;
             double bestScore = Double.NEGATIVE_INFINITY;
             Map<Integer, Integer> dist = distances(taken, adj);
+            int inFirst = mix.hybrid() ? pointsIn(taken, byId, mix.first()) : 0;
+            int inSecond = mix.hybrid() ? pointsIn(taken, byId, mix.second()) : 0;
             for (AbilityNode n : all) {
                 if (taken.contains(n.id()) || spent + n.cost() > maxPoints
                         || !legal(n, taken, byId, byName, adj, all.get(0).id())) {
@@ -256,7 +277,10 @@ public final class TreePlanner {
                 }
                 double path = toUlt.containsKey(n.id()) ? 3.0 / (1 + toUlt.get(n.id())) : 0;
                 double sc = (value.get(n.id()) + ahead + path) / n.cost();
-                if (ultimate(n) && arch(n).equalsIgnoreCase(chosen)) {
+                if (mix.hybrid() && mix.has(arch(n))) {
+                    sc *= splitFactor(mix, arch(n), n.cost(), inFirst, inSecond);
+                }
+                if (ultimate(n) && arch(n).equalsIgnoreCase(lead)) {
                     sc += 100;                  // take the ultimate as soon as it is allowed
                 }
                 if (sc > bestScore) {
@@ -273,6 +297,42 @@ public final class TreePlanner {
             out.add(new Step(best.name(), best.cost(), lv, arch(best)));
         }
         return out;
+    }
+
+    /**
+     * How many points an archetype of a combined choice may run ahead of (or behind) its share
+     * before the plan steers. A method, not a field: a field added by a hot swap keeps no value.
+     */
+    static int splitSlack() {
+        return 3;
+    }
+
+    /**
+     * The factor on a combined choice's archetype node costing {@code cost}: under 1 when taking
+     * it would put its archetype more than {@link #splitSlack} points past its share of the points
+     * spent on the two ({@code inFirst}, {@code inSecond}), over 1 when it is that far behind, else 1.
+     */
+    static double splitFactor(ArchetypeMix mix, String archetype, int cost, int inFirst, int inSecond) {
+        int total = inFirst + inSecond + cost;
+        boolean isFirst = archetype.equalsIgnoreCase(mix.first());
+        int mine = (isFirst ? inFirst : inSecond) + cost;
+        double share = mix.weight(isFirst ? mix.first() : mix.second());
+        if (mine - share * total > splitSlack()) {
+            return 0.1;
+        }
+        return share * total - mine > splitSlack() ? 1.5 : 1;
+    }
+
+    /** The points spent on an archetype's nodes. */
+    private static int pointsIn(Set<Integer> taken, Map<Integer, AbilityNode> byId, String archetype) {
+        int n = 0;
+        for (int id : taken) {
+            AbilityNode t = byId.get(id);
+            if (t != null && arch(t).equalsIgnoreCase(archetype)) {
+                n += t.cost();
+            }
+        }
+        return n;
     }
 
     private static boolean legal(AbilityNode n, Set<Integer> taken, Map<Integer, AbilityNode> byId,
@@ -392,7 +452,7 @@ public final class TreePlanner {
             e.addProperty("verdict", (have.contains(s.name()) ? Verdict.TAKEN
                     : s.level() <= level ? Verdict.BUY : Verdict.BUY_LATER).name());
             // "Lv. N" is read back by Advice.promoteAbilities/abilityPlan: kept as is in every language
-            e.addProperty("note", L.t("wynnlabs.tree.plan_note", i, plan.size(), s.level(), chosen));
+            e.addProperty("note", L.t("wynnlabs.tree.plan_note", i, plan.size(), s.level(), ArchetypeMix.parse(chosen).label()));
             items.add(e);
         }
         body.add("items", items);
@@ -407,9 +467,29 @@ public final class TreePlanner {
     private static String applied = "";
     private static int tick;
 
-    /** rules.tree.archetype, or "" when the planner is off. */
+    /**
+     * The choice as the planner takes it ({@link ArchetypeMix#spec}): rules.tree.archetype alone
+     * ("" when the planner is off), or with rules.tree.with and rules.tree.split two combined
+     * ("Summoner+Ritualist", "Summoner+Ritualist@70"). Saves from before combined archetypes have
+     * only the first: one archetype, as they were.
+     */
     public static String chosen() {
-        return Rules.subText("tree", "archetype", "");
+        return chosenMix().spec();
+    }
+
+    /** {@link #chosen} as a choice. */
+    public static ArchetypeMix chosenMix() {
+        String first = Rules.subText("tree", "archetype", "");
+        if (first.contains("+")) {
+            return ArchetypeMix.parse(first);      // written whole through POST /rules
+        }
+        return ArchetypeMix.of(first, Rules.subText("tree", "with", ""), (int) Math.round(Rules.sub("tree", "split", 50)));
+    }
+
+    /** The choice as shown: "Summoner + Ritualist"; {@code auto} for none. */
+    public static String chosenLabel(String auto) {
+        ArchetypeMix m = chosenMix();
+        return m.auto() ? auto : m.label();
     }
 
     /** Every 5 s: re-plan when the archetype, your unlocked nodes or your level changed. */
@@ -439,9 +519,10 @@ public final class TreePlanner {
      * lean to). Never guessed again after; the class profile follows a named archetype.
      */
     public static void choose(String archetype) {
-        String next = archetype == null ? "" : archetype;
+        ArchetypeMix mix = ArchetypeMix.parse(archetype);
+        String next = mix.spec();
         JsonObject tree = new JsonObject();
-        tree.addProperty("archetype", next);
+        write(tree, mix);
         tree.add("guess", com.google.gson.JsonNull.INSTANCE);  // your choice: never guessed again
         JsonObject change = new JsonObject();
         change.add("tree", tree);
@@ -452,9 +533,30 @@ public final class TreePlanner {
         }
     }
 
+    /**
+     * A choice into a rules.tree change: the first archetype in rules.tree.archetype (what saves
+     * from before combined archetypes read), the second and the split beside it, removed for one.
+     */
+    static void write(JsonObject tree, ArchetypeMix mix) {
+        tree.addProperty("archetype", mix.first());
+        if (mix.hybrid()) {
+            tree.addProperty("with", mix.second());
+            tree.addProperty("split", mix.split());
+        } else {
+            tree.add("with", com.google.gson.JsonNull.INSTANCE);
+            tree.add("split", com.google.gson.JsonNull.INSTANCE);
+        }
+    }
+
     public static JsonObject json(String chosen) {
         JsonObject o = new JsonObject();
+        ArchetypeMix mix = ArchetypeMix.parse(chosen);
         o.addProperty("archetype", chosen);
+        if (mix.hybrid()) {
+            o.addProperty("first", mix.first());
+            o.addProperty("second", mix.second());
+            o.addProperty("split", mix.split());
+        }
         JsonArray archs = new JsonArray();
         archetypes().forEach(archs::add);
         o.add("archetypes", archs);

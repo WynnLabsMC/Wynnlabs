@@ -259,13 +259,15 @@ public final class ClassProfiles {
                 }
             }
         }
+        // two archetypes combined: each one's masteries by its share of the split
         var tree = Wyn.abilityTree(Wyn.classType());
-        if (tree != null && archetype != null && !archetype.isEmpty()) {
+        ArchetypeMix mix = ArchetypeMix.parse(archetype);
+        if (tree != null && !mix.auto()) {
             for (AbilityNode n : tree) {
                 String a = n.archetype() == null ? "" : n.archetype();
                 String name = n.name().toLowerCase(Locale.ROOT);
-                if (archetype.equalsIgnoreCase(a) && name.endsWith(" mastery")) {
-                    score.merge(name.replace(" mastery", ""), 0.3, Double::sum);
+                if (mix.has(a) && name.endsWith(" mastery")) {
+                    score.merge(name.replace(" mastery", ""), 0.3 * mix.weight(a), Double::sum);
                 }
             }
         }
@@ -289,6 +291,15 @@ public final class ClassProfiles {
      * attack the more it counts (a Sharpshooter's Focus and Twain's Arc, none of a Trapper's).
      */
     static double mainAttackWeight(String cls, String archetype, List<AbilityNode> tree) {
+        ArchetypeMix mix = ArchetypeMix.parse(archetype);
+        if (mix.hybrid()) {
+            // two combined: each one's weight by its share of the split
+            double w = 0;
+            for (String a : mix.members()) {
+                w += mix.weight(a) * mainAttackWeight(cls, a, tree);
+            }
+            return Math.round(w * 1000) / 1000.0;
+        }
         String arch = archetype == null ? "" : archetype.toLowerCase(Locale.ROOT);
         if (MELEE.contains(arch)) {
             return 1.0;
@@ -365,13 +376,14 @@ public final class ClassProfiles {
         // How much the main attack matters and how hard it hits per click: per class and
         // archetype, not one Shaman number
         String cls = Wyn.classType().name();
-        String arch = archetype == null ? "" : archetype.toLowerCase(Locale.ROOT);
-        boolean melee = MELEE.contains(arch);
+        ArchetypeMix mix = ArchetypeMix.parse(archetype);
+        // two combined: melee when most of the split fights up close
+        boolean melee = meleeShare(mix) >= 0.5;
         model.addProperty("mainAttackWeight", mainAttackWeight(cls, archetype));
         model.addProperty("mainAttackFromArchetype", true);
         model.addProperty("mainAttackClassMult", switch (cls) {
             case "SHAMAN" -> 1.05;                  // relik: 3 beams × 35 %
-            case "ASSASSIN" -> arch.equals("acrobat") ? 1.2 : 1.0;
+            case "ASSASSIN" -> Math.round((1.0 + 0.2 * acrobat(mix)) * 1000) / 1000.0;
             default -> 1.0;
         });
         if (melee) {
@@ -434,9 +446,31 @@ public final class ClassProfiles {
         }
         if (newCharacter) {
             change.addProperty("goal", "otomatik profil: " + Wyn.classType().name()
-                    + (archetype == null || archetype.isEmpty() ? "" : " " + archetype));
+                    + (mix.auto() ? "" : " " + mix.label()));
         }
         return change;
+    }
+
+    /** The share of a choice that fights up close ({@link #MELEE}): 1 or 0 for one archetype. */
+    static double meleeShare(ArchetypeMix mix) {
+        double s = 0;
+        for (String a : mix.members()) {
+            if (MELEE.contains(a.toLowerCase(Locale.ROOT))) {
+                s += mix.weight(a);
+            }
+        }
+        return s;
+    }
+
+    /** The Acrobat's share of a choice (its faster combos on the main attack). */
+    private static double acrobat(ArchetypeMix mix) {
+        double s = 0;
+        for (String a : mix.members()) {
+            if (a.equalsIgnoreCase("acrobat")) {
+                s += mix.weight(a);
+            }
+        }
+        return s;
     }
 
     /** Applies the profile; called for new characters and when the archetype changes. */

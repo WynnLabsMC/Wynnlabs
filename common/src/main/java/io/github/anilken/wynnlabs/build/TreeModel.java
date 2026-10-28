@@ -291,7 +291,10 @@ public final class TreeModel {
         }
     }
 
-    /** The archetype the model follows: the planner's, else the one you lean to (Lv 10 on), else "". */
+    /**
+     * The archetype the model follows: the planner's (two combined as {@link ArchetypeMix#spec}),
+     * else the one you lean to (Lv 10 on), else "".
+     */
     public static String archetype() {
         String chosen = TreePlanner.chosen();
         return chosen.isEmpty() ? TreePlanner.mostUnlocked() : chosen;
@@ -382,7 +385,10 @@ public final class TreeModel {
         final List<TreePlanner.Step> plan;
         final int level;
         final String archetype;
-        /** The main attack's weight with no archetype node yet over the archetype's own (1: no archetype). */
+        /**
+         * The main attack's weight with no archetype node yet over the archetype's own (1: no
+         * archetype); two combined: until a node of either is in.
+         */
         final double earlyMainAttack;
         final double passiveCap;
         /** The nodes' passive damage bonuses by node name; empty with the treeBonuses setting off. */
@@ -430,8 +436,9 @@ public final class TreeModel {
             double main = 1;
             if (!archetype.isEmpty()) {
                 boolean in = false;
+                ArchetypeMix mix = ArchetypeMix.parse(archetype);
                 for (Read r : reads) {
-                    if (r.archetype().equalsIgnoreCase(archetype) && taken.contains(r.name())) {
+                    if (mix.has(r.archetype()) && taken.contains(r.name())) {
                         in = true;
                         break;
                     }

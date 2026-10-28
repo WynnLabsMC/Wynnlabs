@@ -72,8 +72,7 @@ final class HomeHero extends MenuPaint {
         Type.TITLE.draw(g, font, cls, tx, y + pad);
         int cy = Type.TITLE.onCaps(y + pad, Ui.CHIP_H);
         int cx = tx + Type.TITLE.width(font, cls) + Theme.SP_3;
-        String arch = TreePlanner.chosen();
-        String archLabel = arch.isEmpty() ? L.t("wynnlabs.settings.archetype_off") : arch;
+        String archLabel = TreePlanner.chosenLabel(L.t("wynnlabs.settings.archetype_off"));
         int aw = Ui.iconChipWidth(font, "sparkles", archLabel, true);
         Ui.iconChip(g, font, "sparkles", archLabel, true, cx, cy, aw, false, mx, my);
         menu.hits.add(new MenuHit(cx, cy, aw, Ui.CHIP_H, null, List.of(
