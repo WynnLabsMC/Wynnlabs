@@ -53,7 +53,7 @@ final class SearchEmptyRows {
 
     /** The ✕'s top on a hovered recent row whose ✕ fits in view, else -1. */
     private static int forgetBy(int x, int y, int w, int top, int h, int mx, int my) {
-        int by = y + Theme.SP_2 + (Type.BODY.lineHeight + Type.META.lineHeight - Ui.CHIP_H) / 2;
+        int by = Type.BODY.onCaps(y + Theme.SP_2, Ui.CHIP_H);  // on the value's line, beside it
         boolean rowHover = mx >= x && mx < x + w && my >= Math.max(y, top) && my < Math.min(y + SearchResultsPanel.ROW, top + h);
         return !rowHover || by < top || by + Ui.CHIP_H > top + h ? -1 : by;
     }
