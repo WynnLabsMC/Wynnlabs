@@ -64,7 +64,7 @@ final class BuildEditView {
         int footY = y + h - Ui.BUTTON_H;
         // the room decides: two lines a slot (its slot and where it comes from under the name), else one
         int titles = win.compact ? 0 : 2 * (Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3);
-        int fixed = UiInput.H + Theme.SP_4 + titles + (win.compact ? 0 : Ui.CHIP_H + Theme.SP_4) + Theme.SP_4 + Ui.BUTTON_H;
+        int fixed = UiInput.H + (win.compact ? 0 : Theme.SP_2 + BAR_H) + Theme.SP_4 + titles + (win.compact ? 0 : Ui.CHIP_H + Theme.SP_4) + Theme.SP_4 + Ui.BUTTON_H;
         int twoRow = Type.BODY.lineHeight + Type.META.lineHeight;
         boolean two = !win.compact && fixed + Plans.SLOTS.length * (twoRow + Theme.SP_2) <= h;
         int row = two ? twoRow : SLOT;
@@ -74,17 +74,29 @@ final class BuildEditView {
         for (boolean on : worn) {
             wornN += on ? 1 : 0;
         }
-        String facts = L.t("wynnlabs.saved.info", String.format(Locale.ROOT, "%,d", Math.round(b.score())), wornN, b.items().size())
-                + (b.level() > 0 ? " · Lv " + b.level() : "");
-        int fw = Math.min(Type.META.width(ui.font, facts), w / 3);
+        // the score in the price colour, what you wear of it and the level in META
+        String score = String.format(Locale.ROOT, "%,d", Math.round(b.score()));
+        String rest = " · " + L.t("wynnlabs.edit.equipped", wornN, b.items().size()) + (b.level() > 0 ? " · Lv " + b.level() : "");
+        int sw = Type.NUMBER.width(ui.font, score);
+        int fw = Math.min(sw + Type.META.width(ui.font, rest), w / 3);
         UiInput.input(g, ui.font, win.rename, L.t("wynnlabs.edit.name_hint"), x, y, w - fw - Theme.SP_4, true, false, mx, my);
         ui.btn(x, y, w - fw - Theme.SP_4, UiInput.H, "e.name", null);
-        Type.META.drawRight(g, ui.font, Type.META.fit(ui.font, facts, fw), x + w, Type.META.yIn(y, UiInput.H), Theme.INK_3);
+        int fx0 = x + w - fw;
+        Type.NUMBER.draw(g, ui.font, score, fx0, Type.NUMBER.yIn(y, UiInput.H), Theme.PRICE);
+        Type.META.draw(g, ui.font, Type.META.fit(ui.font, rest, fw - sw), fx0 + sw, Type.META.yIn(y, UiInput.H), Theme.INK_3);
+        // how much of it you wear, as the Home's plan bar (the chosen items' purple, green when all)
+        // (a small window has no room for it: the count beside the name says it)
+        int by = y + UiInput.H + Theme.SP_2;
         int cy = y + UiInput.H + Theme.SP_4;
+        if (!win.compact) {
+            int total = Math.max(1, b.items().size());
+            HdBar.draw(g, x, by, w, BAR_H, wornN / (double) total, wornN >= total ? Theme.GREEN : PLAN);
+            cy = by + BAR_H + Theme.SP_4;
+        }
 
         // the nine slots
         if (!win.compact) {
-            cy = title(g, L.t("wynnlabs.edit.items"), x, cy, w);
+            cy = title(g, "hanger", L.t("wynnlabs.edit.items"), x, cy, w);
         }
         int bw = Ui.CHIP_H + 2;
         for (int i = 0; i < Plans.SLOTS.length; i++) {
@@ -92,7 +104,7 @@ final class BuildEditView {
             String name = b.items().get(slot);
             ItemData info = name == null ? null : infos.get(name);
             int sy = cy + (row - SLOT) / 2;
-            Kit.slot(g, x, sy, SLOT, 0);
+            Kit.slot(g, x, sy, SLOT, ring(info));
             ItemStack icon = info == null ? ItemStack.EMPTY : host.icon(info);
             if (!icon.isEmpty()) {
                 g.renderItem(icon, x + 1, sy + 1);
@@ -101,8 +113,7 @@ final class BuildEditView {
             int rx = x + w;
             if (name != null) {
                 rx -= bw;
-                ui.iconBtn(g, host, rx, cy + (row - Ui.CHIP_H) / 2, "x", false, "e.remove", slot,
-                        List.of(L.c("wynnlabs.edit.remove_tip").withStyle(ChatFormatting.GRAY)), mx, my);
+                removeBtn(g, host, rx, cy + (row - Ui.CHIP_H) / 2, slot, mx, my);
                 rx -= Theme.SP_2;
             }
             rx -= bw;
@@ -123,15 +134,18 @@ final class BuildEditView {
             } else {
                 Integer rgb = info == null ? null : info.tier().colour().getColor();
                 int ink = rgb == null ? Theme.INK : 0xFF000000 | Theme.paperRgb(rgb);
-                int checkW = worn[i] ? 8 + Theme.SP_2 : 0;
+                int checkW = worn[i] ? TICK_W + Theme.SP_2 : 0;
                 String n = Type.BODY.fit(ui.font, name, room - checkW);
                 Type.BODY.draw(g, ui.font, n, tx, ty, ink);
                 if (worn[i]) {
-                    Art.icon(g, "check", tx + Type.BODY.width(ui.font, n) + Theme.SP_2, Type.BODY.onCaps(ty, 8), 8, Theme.GOOD);
+                    int px = tx + Type.BODY.width(ui.font, n) + Theme.SP_2;
+                    int py = Type.BODY.onCaps(ty, Ui.SEAL_H);
+                    Kit.seal(g, px, py, TICK_W, Ui.SEAL_H, Theme.PAPER_DEEP);
+                    Art.icon(g, "check", px + Ui.iconIn(TICK_W, 8), py + Ui.iconIn(Ui.SEAL_H, 8), 8, Theme.GOOD);
                 }
                 String where = slotName(i) + " · " + BuildSources.sourceText(name);
                 if (two) {
-                    Type.META.draw(g, ui.font, Type.META.fit(ui.font, where, room), tx, ty + Type.BODY.lineHeight, Theme.INK_2);
+                    source(g, i, name, tx, ty + Type.BODY.lineHeight, room);
                 }
                 if (info != null) {
                     host.item(x, cy, rx - Theme.SP_2 - x, row, info, ItemStack.EMPTY, List.of(
@@ -145,7 +159,7 @@ final class BuildEditView {
         // the strip (a small window: on the foot's row, left of the buttons)
         cy += Theme.SP_2;
         if (!win.compact) {
-            cy = title(g, L.t("wynnlabs.pick.lean"), x, cy, w);
+            cy = title(g, "sparkles", L.t("wynnlabs.pick.lean"), x, cy, w);
             win.pick.stripOf(g, host, win.editTuning, true, x, cy, w, mx, my);
         }
 
@@ -224,12 +238,59 @@ final class BuildEditView {
         win.pick.stripOf(g, host, win.editTuning, true, x, by, bx - Theme.SP_4 - x, mx, my);
     }
 
-    /** A section's title in LABEL over a hairline; returns the y under it. */
-    private int title(GuiGraphics g, String text, int x, int y, int w) {
-        Type.LABEL.draw(g, ui.font, text, x, y, Theme.INK);
+    /** A section's title: its icon, LABEL, a hairline under; returns the y under it. */
+    private int title(GuiGraphics g, String icon, String text, int x, int y, int w) {
+        Art.icon(g, icon, x, Type.LABEL.onCaps(y, 8), 8, Theme.INK_2);
+        Type.LABEL.draw(g, ui.font, text, x + 8 + Theme.SP_2, y, Theme.INK);
         int hy = y + Type.LABEL.lineHeight + Theme.SP_1;
         Kit.hair(g, x, hy, w, 1, Theme.LINE);
         return hy + 1 + Theme.SP_3;
+    }
+
+    /** The equipped bar's height, its fill (the chosen items' purple) and the tick pill's width. */
+    private static final int BAR_H = 3;
+    private static final int PLAN = 0xFF8A6CC0;
+    private static final int TICK_W = 15;
+
+    /** An item's tier colour for its slot's frame (0 when it has none, as on the Home). */
+    private static int ring(ItemData info) {
+        Integer c = info == null ? null : info.tier().colour().getColor();
+        return c == null || (c & 0xFFFFFF) == 0xFFFFFF ? 0 : 0xFF000000 | c;
+    }
+
+    /**
+     * Where a piece comes from as the Home's source chip: its kind badge, the slot and the source
+     * in META, a Trade Market price in the price colour; an unknown price faint.
+     */
+    private void source(GuiGraphics g, int i, String name, int x, int y, int room) {
+        int d = KindBadge.MIN;
+        Kit.kindBadge(g, x, Type.META.onCaps(y, d), d, KindBadge.of(BuildSources.sourceIcon(name)));
+        int tx = x + d + Theme.SP_2;
+        int end = x + room;
+        Object[] s = BuildSources.source(name);
+        String head = slotName(i) + " · ";
+        if (s[1] != null) {
+            String market = io.github.anilken.wynnlabs.market.ShoppingSources.where("TRADE_MARKET") + " · ";
+            String price = io.github.anilken.wynnlabs.market.Prices.fmt((double) s[1]);
+            String lead = Type.META.fit(ui.font, head + market, end - tx);
+            Type.META.draw(g, ui.font, lead, tx, y, Theme.INK_2);
+            int px = tx + Type.META.width(ui.font, lead);
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, price, end - px), px, y, Theme.PRICE);
+            return;
+        }
+        String text = (String) s[0];
+        boolean unknown = text.equals(L.t("wynnlabs.results.price_unknown")) || text.equals(L.t("wynnlabs.results.market_unknown"));
+        Type.META.draw(g, ui.font, Type.META.fit(ui.font, head + text, end - tx), tx, y, unknown ? Theme.INK_3 : Theme.INK_2);
+    }
+
+    /** Remove: an icon button whose ✕ turns red under the mouse. */
+    private void removeBtn(GuiGraphics g, BuildWindow.Host host, int x, int y, String slot, int mx, int my) {
+        int w = Ui.CHIP_H + 2;
+        boolean hover = mx >= x && mx < x + w && my >= y && my < y + Ui.CHIP_H;
+        Kit.pill(g, x, y, w, Ui.CHIP_H, false, hover);
+        Art.icon(g, "x", x + Ui.iconIn(w, 8), y + Ui.iconIn(Ui.CHIP_H, 8), 8, hover ? Theme.BAD : Theme.INK_2);
+        ui.btn(x, y, w, Ui.CHIP_H, "e.remove", slot);
+        host.tip(x, y, w, Ui.CHIP_H, List.of(L.c("wynnlabs.edit.remove_tip").withStyle(ChatFormatting.GRAY)));
     }
 
     /** The name as typed, kept as it is typed (an empty box keeps the old name). */

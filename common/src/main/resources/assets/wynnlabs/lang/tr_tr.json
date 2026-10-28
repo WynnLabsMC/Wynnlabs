@@ -2022,6 +2022,7 @@
   "wynnlabs.saved.add_none": "Önce bir build uygula, sonra kaydet",
   "wynnlabs.saved.deleted": "%s silindi",
   "wynnlabs.edit.name_hint": "Build adı",
+  "wynnlabs.edit.equipped": "%s/%s giyili",
   "wynnlabs.edit.items": "Eşyalar",
   "wynnlabs.edit.keep_tip": "Sabit tut: build yeniden hesaplanırken bu eşya kalır",
   "wynnlabs.edit.kept_tip": "Sabit: build yeniden hesaplanırken kalır. Bırakmak için tıkla",

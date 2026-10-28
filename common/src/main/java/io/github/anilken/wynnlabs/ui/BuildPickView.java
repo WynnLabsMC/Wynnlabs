@@ -326,7 +326,7 @@ final class BuildPickView {
 
     /** The strip's chips: their names on a large window, icons alone on a small one (the name in the tooltip). */
     void stripOf(GuiGraphics g, BuildWindow.Host host, Tuning.Choice t, boolean edit, int x, int y, int w, int mx, int my) {
-        int room = win.compact || edit ? 0 : w;
+        int room = win.compact ? 0 : w;              // names on a large window, the editor's too
         int px = x;
         for (int i = 0; i < 3; i++) {
             String name = L.t(FOCUS[i]);

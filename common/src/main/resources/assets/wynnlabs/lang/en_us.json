@@ -2022,6 +2022,7 @@
   "wynnlabs.saved.add_none": "Apply a build first to save it",
   "wynnlabs.saved.deleted": "%s deleted",
   "wynnlabs.edit.name_hint": "Build name",
+  "wynnlabs.edit.equipped": "%s/%s equipped",
   "wynnlabs.edit.items": "Items",
   "wynnlabs.edit.keep_tip": "Keep: this piece stays when the build is worked out again",
   "wynnlabs.edit.kept_tip": "Kept: it stays when the build is worked out again. Click to let it go",
