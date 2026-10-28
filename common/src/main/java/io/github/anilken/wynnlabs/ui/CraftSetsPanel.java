@@ -486,6 +486,8 @@ final class CraftSetsPanel extends CraftPanel {
         String n = String.valueOf(rows.size());
         if (nx + Type.META.width(tab.font, n) < ax - Theme.SP_3) {
             Type.META.draw(g, tab.font, n, nx, ty + 1, Theme.INK_3);
+            int after = nx + Type.META.width(tab.font, n) + Theme.SP_4;
+            tab.toolbar.age(g, ax - Theme.SP_4, ty + 1, ax - Theme.SP_4 - after);
         }
         int top = y + Ui.CHIP_H + Theme.SP_3 + Theme.SP_2;
         int bottom = y + h;
@@ -670,24 +672,16 @@ final class CraftSetsPanel extends CraftPanel {
         right -= Theme.SP_2 + ib;
         Ui.iconButton(g, "world", right, y, false, mx, my);
         tab.acts.add(new Act(right, y, ib, Ui.CHIP_H, () -> copyLinks(s), null, List.of(L.c("wynnlabs.craft.set_links_tip"))));
-        right -= Theme.SP_2;
-        String save = L.t("wynnlabs.craft.set_save_all");
-        if (small) {
-            right -= ib;
-            Ui.iconButton(g, "device-floppy", right, y, true, mx, my);
-            tab.acts.add(new Act(right, y, ib, Ui.CHIP_H, () -> saveSet(s), null, List.of(L.c("wynnlabs.craft.set_save_tip"))));
-        } else {
-            int sw = Ui.iconButtonLabelWidth(tab.font, save);
-            right -= sw;
-            Ui.iconButtonLabel(g, tab.font, "device-floppy", save, right, y - 1, sw, mx, my);
-            tab.acts.add(new Act(right, y - 1, sw, Ui.BUTTON_H, () -> saveSet(s), null, List.of(L.c("wynnlabs.craft.set_save_tip"))));
-        }
+        right -= Theme.SP_2 + ib;
+        Ui.iconButton(g, "device-floppy", right, y, true, mx, my);
+        tab.acts.add(new Act(right, y, ib, Ui.CHIP_H, () -> saveSet(s), null,
+                List.of(L.c("wynnlabs.craft.set_save_all"), L.c("wynnlabs.craft.set_save_tip"))));
         int ty = role.yIn(y, Ui.CHIP_H);
         String tt = role.fit(tab.font, t, right - Theme.SP_4 - x);
         role.draw(g, tab.font, tt, x, ty, Theme.INK);
         int bx = x + role.width(tab.font, tt) + Theme.SP_4;
         chips(g, bx, y, right, mx, my);
-        int cy = y + Math.max(Ui.BUTTON_H, role.lineHeight) + Theme.SP_4;
+        int cy = y + Math.max(Ui.CHIP_H, role.lineHeight) + Theme.SP_4;
         // the key totals, large
         List<Map.Entry<String, Craft.Range>> ids = keyTotals(s);
         Type big = small ? Type.HEADING : Type.TITLE;
@@ -731,25 +725,21 @@ final class CraftSetsPanel extends CraftPanel {
         return cy + 1 + Theme.SP_5;
     }
 
-    /** The band and weapon menus from x; returns the x after them. */
+    /** One chip for the band and the weapon ("Lv 105–107 · Relik ▾"), its menu both; returns the x after it. */
     private int chips(GuiGraphics g, int bx, int y, int right, int mx, int my) {
-        String b = CraftSuggestionsPanel.levelLabel(bandShown());
-        int cw = Ui.iconChipWidth(tab.font, null, b, true);
-        if (bx + cw < right - Theme.SP_4) {
-            Ui.iconChip(g, tab.font, null, b, true, bx, y, cw, tab.open == CraftingTab.Drop.SET_BAND, mx, my);
-            int[] anchor = {bx, y, cw, Ui.CHIP_H};
-            tab.acts.add(new Act(bx, y, cw, Ui.CHIP_H, () -> tab.toggle(CraftingTab.Drop.SET_BAND, anchor), null, null));
-            bx += cw + Theme.SP_2;
+        String label = CraftSuggestionsPanel.levelLabel(bandShown()) + " · " + typeName(weaponShown());
+        String icon = CraftFormat.typeIcon(weaponShown());
+        int cw = Ui.iconChipWidth(tab.font, icon, label, true);
+        if (bx + cw >= right - Theme.SP_4) {
+            label = CraftSuggestionsPanel.levelLabel(bandShown());
+            cw = Ui.iconChipWidth(tab.font, icon, label, true);
         }
-        String wl = typeName(weaponShown());
-        String wi = CraftFormat.typeIcon(weaponShown());
-        int ww = Ui.iconChipWidth(tab.font, wi, wl, true);
-        if (bx + ww < right - Theme.SP_4) {
-            Ui.iconChip(g, tab.font, wi, wl, true, bx, y, ww, tab.open == CraftingTab.Drop.SET_WEAPON, mx, my);
-            int[] anchor = {bx, y, ww, Ui.CHIP_H};
-            tab.acts.add(new Act(bx, y, ww, Ui.CHIP_H, () -> tab.toggle(CraftingTab.Drop.SET_WEAPON, anchor), null,
+        if (bx + cw < right - Theme.SP_4) {
+            Ui.iconChip(g, tab.font, icon, label, true, bx, y, cw, tab.open == CraftingTab.Drop.SET_BANDWEAPON, mx, my);
+            int[] anchor = {bx, y, cw, Ui.CHIP_H};
+            tab.acts.add(new Act(bx, y, cw, Ui.CHIP_H, () -> tab.toggle(CraftingTab.Drop.SET_BANDWEAPON, anchor), null,
                     List.of(L.c("wynnlabs.craft.set_weapon_tip"))));
-            bx += ww;
+            bx += cw;
         }
         return bx;
     }
@@ -895,36 +885,31 @@ final class CraftSetsPanel extends CraftPanel {
 
     // ---- the band menu ----
 
-    List<UiMenu.Item> bandItems() {
+    /** The band and weapon menu: every band, then every weapon (the class's marked). */
+    List<UiMenu.Item> bandWeaponItems() {
         UiMenu.Items items = new UiMenu.Items();
         int cur = bandShown();
         String w = weaponShown();
+        items.add(UiMenu.Item.heading(L.t("wynnlabs.craft.filter_weapon")));
+        String cls = CraftSuggestionsPanel.classWeapon();
+        for (String t : Types.WEAPONS) {
+            items.add(UiMenu.Item.of("w:" + t, CraftFormat.typeIcon(t), typeName(t), t.equals(cls) ? L.t("wynnlabs.craft.your_class") : null,
+                    t.equals(w)));
+        }
+        items.add(UiMenu.Item.heading(L.t("wynnlabs.craft.filter_level")));
         for (int lv : Suggestions.bracketLevels()) {
-            items.add(UiMenu.Item.of(String.valueOf(lv), null, CraftSuggestionsPanel.levelLabel(lv),
+            items.add(UiMenu.Item.of("b:" + lv, null, CraftSuggestionsPanel.levelLabel(lv),
                     CraftSuggestCache.get(tab).hasSets(w, lv) ? null : "…", lv == cur));
         }
         return items.list;
     }
 
-    void pickBand(String id) {
-        band = Integer.parseInt(id);
-        piece = -1;
-        loadCached();
-    }
-
-    /** The weapon menu's rows: every weapon, the class's marked. */
-    List<UiMenu.Item> weaponItems() {
-        UiMenu.Items items = new UiMenu.Items();
-        String cls = CraftSuggestionsPanel.classWeapon();
-        for (String t : Types.WEAPONS) {
-            items.add(UiMenu.Item.of(t, CraftFormat.typeIcon(t), typeName(t), t.equals(cls) ? L.t("wynnlabs.craft.your_class") : null,
-                    t.equals(weaponShown())));
+    void pickBandWeapon(String id) {
+        if (id.startsWith("w:")) {
+            weapon = id.substring(2);
+        } else {
+            band = Integer.parseInt(id.substring(2));
         }
-        return items.list;
-    }
-
-    void pickWeapon(String id) {
-        weapon = id;
         piece = -1;
         loadCached();
     }

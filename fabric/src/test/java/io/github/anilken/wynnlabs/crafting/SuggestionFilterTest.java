@@ -56,6 +56,24 @@ class SuggestionFilterTest {
     }
 
     @Test
+    void theBadgeCountsWhatTheMenuHasOn() {
+        SuggestionFilter f = new SuggestionFilter();
+        assertEquals(0, f.count(true));
+        f.tier = SuggestionBoard.DEFAULT_TIER;
+        assertEquals(0, f.count(true), "the default tier is not a filter");
+        assertFalse(f.active());
+        f.tier = CraftSearch.Tier.OWN_PLUS_TWO;
+        f.groups.add("mana");
+        f.wearable = true;
+        f.sets = SuggestionBoard.Status.READY;
+        f.kind = "armour";
+        f.level = 105;
+        f.singles = SuggestionBoard.Status.BUY;      // the list's own chips: not in the menu's count
+        assertEquals(4, f.count(true));
+        assertEquals(5, f.count(false));
+    }
+
+    @Test
     void filtersAreKeptAndClear() {
         SuggestionFilter f = new SuggestionFilter();
         f.groups.add("spell");
@@ -66,7 +84,9 @@ class SuggestionFilterTest {
         f.level = 105;
         f.singles = SuggestionBoard.Status.READY;
         f.sets = SuggestionBoard.Status.BUY;
+        f.tier = CraftSearch.Tier.OWN;
         SuggestionFilter back = SuggestionFilter.fromJson(f.toJson());
+        assertEquals(CraftSearch.Tier.OWN, back.tierShown());
         assertEquals(List.of("spell"), List.copyOf(back.groups), "unknown groups are dropped");
         assertTrue(back.wearable);
         assertEquals("fairy", back.query);
@@ -76,6 +96,7 @@ class SuggestionFilterTest {
         assertEquals(SuggestionBoard.Status.BUY, back.sets);
         back.clear();
         assertFalse(back.active());
+        assertEquals(SuggestionBoard.DEFAULT_TIER, back.tierShown());
         assertNull(SuggestionFilter.fromJson("junk").kind);
     }
 }

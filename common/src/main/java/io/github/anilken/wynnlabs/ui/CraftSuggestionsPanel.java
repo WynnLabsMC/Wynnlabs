@@ -284,22 +284,6 @@ final class CraftSuggestionsPanel extends CraftPanel {
 
     static final String[] KINDS = {"weapon", "armour", "accessory", "consumable"};
 
-    /** The type menu's rows: all, then each kind. */
-    List<UiMenu.Item> kindItems() {
-        UiMenu.Items items = new UiMenu.Items();
-        items.add(UiMenu.Item.of("all", null, L.t("wynnlabs.craft.suggest_filter.all"), null, kind == null));
-        items.divide();
-        for (String k : KINDS) {
-            items.add(UiMenu.Item.of(k, null, L.t("wynnlabs.craft.suggest_filter." + k), null, k.equals(kind)));
-        }
-        return items.list;
-    }
-
-    void pickKind(String k) {
-        kind = k.equals("all") ? null : k;
-        filtersChanged();
-    }
-
     boolean kindShown(String type) {
         if (kind == null) {
             return true;
@@ -324,48 +308,17 @@ final class CraftSuggestionsPanel extends CraftPanel {
         return tab.suggestMode == 1 ? tab.setsPanel.running() : suggesting != null && !suggesting.cancelled();
     }
 
-    /** The line under the top row: what is calculated and when, Calculate all, or the progress and Stop; returns the y under it. */
-    private int calcBar(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        boolean sets = tab.suggestMode == 1;
-        boolean busy = sets ? tab.setsPanel.calculating() : running() && !loading;
-        int right = x + w;
-        String text;
-        int ink = Theme.INK_3;
-        if (busy) {
-            String stop = L.t("wynnlabs.craft.calc_stop");
-            int cw = Ui.iconChipWidth(tab.font, "x", stop, false);
-            right -= cw;
-            Ui.iconChip(g, tab.font, "x", stop, false, right, y, cw, false, mx, my);
-            Runnable halt = sets ? tab.setsPanel::stopCalculating : this::stopCalculating;
-            tab.acts.add(new Act(right, y, cw, Ui.CHIP_H, halt, null, null));
-            text = sets ? tab.setsPanel.progressText() : L.t("wynnlabs.craft.calc_progress", levelLabel(calcAt), Math.min(calcTotal, calcDone + 1), calcTotal);
-            ink = Theme.INK_2;
-        } else {
-            boolean missing = sets ? tab.setsPanel.anyBandMissing() : anyBracketMissing();
-            if (missing) {
-                String all = L.t(sets ? "wynnlabs.craft.calc_all_bands" : "wynnlabs.craft.calc_all");
-                int cw = Ui.iconChipWidth(tab.font, "player-play", all, false);
-                right -= cw;
-                Ui.iconChip(g, tab.font, "player-play", all, false, right, y, cw, false, mx, my);
-                Runnable go = sets ? tab.setsPanel::calculateAll : () -> calculate(Suggestions.bracketLevels(), false);
-                tab.acts.add(new Act(right, y, cw, Ui.CHIP_H, go, null,
-                        List.of(L.c(sets ? "wynnlabs.craft.calc_all_bands_tip" : "wynnlabs.craft.calc_all_tip"))));
-            }
-            text = sets ? tab.setsPanel.updatedText() : updatedText();
-            if (text.contains(L.t("wynnlabs.craft.calc_changed"))) {
-                ink = Theme.WARN;
-            }
-        }
-        Type.META.draw(g, tab.font, Type.META.fit(tab.font, text, right - Theme.SP_4 - x), x, Type.META.yIn(y, Ui.CHIP_H), ink);
-        return y + Ui.CHIP_H;
-    }
-
-    private boolean anyBracketMissing() {
+    boolean anyBracketMissing() {
         return CraftSuggestCache.get(tab).singlesBrackets().size() < Suggestions.bracketLevels().size();
     }
 
     /** "Updated 3 h ago" for the level shown, or how many levels are calculated (All levels). */
-    private String updatedText() {
+    /** "Calculating Lv 41–43 · 2 / 48" while a calculation runs. */
+    String progressText() {
+        return L.t("wynnlabs.craft.calc_progress", levelLabel(calcAt), Math.min(calcTotal, calcDone + 1), calcTotal);
+    }
+
+    String updatedText() {
         io.github.anilken.wynnlabs.crafting.SuggestionCache c = CraftSuggestCache.get(tab);
         if (loading) {
             return L.t("wynnlabs.craft.calc_loading");
@@ -387,12 +340,10 @@ final class CraftSuggestionsPanel extends CraftPanel {
 
     void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         filter();
-        int cy = filters(g, x, y, w, mx, my) + Theme.SP_3;
+        int cy = tab.toolbar.draw(g, x, y, w, mx, my);
+        int under = tab.toolbar.active(g, x, cy + Theme.SP_3, w, mx, my);
+        cy = (under > cy + Theme.SP_3 ? under : cy) + Theme.SP_5;
         int bottom = y + h;
-        if (!(tab.stock.ingredients().isEmpty() && tab.stock.materials().isEmpty() && CraftingTab.previewLevels.isEmpty())) {
-            cy = calcBar(g, x, cy, w, mx, my) + Theme.SP_3;
-            cy = filterRow(g, x, cy, w, mx, my) + Theme.SP_4;
-        }
         boolean noStock = tab.stock.ingredients().isEmpty() && tab.stock.materials().isEmpty() && CraftingTab.previewLevels.isEmpty();
         if (noStock) {
             UiEmpty.draw(g, tab.font, x, cy, w, bottom - cy, w < CraftingTab.TWO_COLUMNS_MIN, "package", L.t("wynnlabs.craft.suggest_no_stock"),
@@ -542,19 +493,6 @@ final class CraftSuggestionsPanel extends CraftPanel {
                    int mx, int my) {
         int right = x + w;
         SuggestionBoard.Status[] order = {SuggestionBoard.Status.LEVEL, SuggestionBoard.Status.BUY, SuggestionBoard.Status.READY};
-        int statusW = 0;
-        for (SuggestionBoard.Status st : order) {
-            statusW += Ui.iconChipWidth(tab.font, CraftSuggestDetail.statusIcon(st),
-                    L.t("wynnlabs.craft.status_chip." + st.name().toLowerCase(Locale.ROOT), counts.get(st)), false) + Theme.SP_2;
-        }
-        String kl = L.t(kind == null ? "wynnlabs.craft.all_types" : "wynnlabs.craft.suggest_filter." + kind);
-        int kw = Ui.iconChipWidth(tab.font, null, kl, true);
-        if (right - statusW - kw - Theme.SP_3 >= x + Type.LABEL.width(tab.font, title)) {
-            int kx = right - statusW - Theme.SP_2 - kw;
-            Ui.iconChip(g, tab.font, null, kl, true, kx, y, kw, kind != null || tab.open == CraftingTab.Drop.SUGG_KIND, mx, my);
-            int[] anchor = {kx, y, kw, Ui.CHIP_H};
-            tab.acts.add(new Act(kx, y, kw, Ui.CHIP_H, () -> tab.toggle(CraftingTab.Drop.SUGG_KIND, anchor), null, null));
-        }
         for (SuggestionBoard.Status st : order) {
             String label = L.t("wynnlabs.craft.status_chip." + st.name().toLowerCase(Locale.ROOT), counts.get(st));
             String icon = CraftSuggestDetail.statusIcon(st);
@@ -570,15 +508,14 @@ final class CraftSuggestionsPanel extends CraftPanel {
             }, null, List.of(L.c("wynnlabs.craft.status_tip." + st.name().toLowerCase(Locale.ROOT)))));
             right -= Theme.SP_2;
         }
-        if (right - kw - Theme.SP_3 >= x + Type.LABEL.width(tab.font, title)) {
-            right -= kw + Theme.SP_2;
-        }
         int ty = Type.LABEL.yIn(y, Ui.CHIP_H);
         String t = Type.LABEL.fit(tab.font, title, right - Theme.SP_3 - x);
         Type.LABEL.draw(g, tab.font, t, x, ty, Theme.INK);
         int mx0 = x + Type.LABEL.width(tab.font, t) + Theme.SP_3;
         if (meta != null && mx0 + Type.META.width(tab.font, meta) < right - Theme.SP_3) {
             Type.META.draw(g, tab.font, meta, mx0, ty + 1, Theme.INK_3);
+            int ax = mx0 + Type.META.width(tab.font, meta) + Theme.SP_4;
+            tab.toolbar.age(g, right - Theme.SP_4, ty + 1, right - Theme.SP_4 - ax);
         }
         int line = y + Ui.CHIP_H + Theme.SP_2;
         Kit.hair(g, x, line, w, 1, Theme.LINE);
@@ -620,53 +557,6 @@ final class CraftSuggestionsPanel extends CraftPanel {
         tab.setsPanel.listReleased();
     }
 
-    /** Singles / Sets, the goal chips (the rest in "More ▾"), and refresh on the right; returns the y under them. */
-    private int filters(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        int cx = x;
-        String[] modes = {L.t("wynnlabs.craft.suggest_mode.singles"), L.t("wynnlabs.craft.suggest_mode.sets")};
-        for (int i = 0; i < 2; i++) {
-            int cw = Ui.chipWidth(tab.font, modes[i]);
-            Ui.chip(g, tab.font, modes[i], cx, y, cw, tab.suggestMode == i, false, false, mx, my);
-            int m = i;
-            tab.acts.add(new Act(cx, y, cw, Ui.CHIP_H, () -> {
-                tab.suggestMode = m;
-                listScroll = 0;
-                startCurrent(false);
-            }, null, null));
-            cx += cw + Theme.SP_2;
-        }
-        cx += Theme.SP_1;
-        Kit.hair(g, cx, y + Theme.SP_2, 1, Ui.CHIP_H - 2 * Theme.SP_2, Theme.LINE);
-        cx += 1 + Theme.SP_3;
-        int rw = Ui.CHIP_H + 2;
-        Ui.iconButton(g, "refresh", x + w - rw, y, false, mx, my);
-        tab.acts.add(new Act(x + w - rw, y, rw, Ui.CHIP_H, () -> startCurrent(true), null, List.of(L.c("wynnlabs.craft.suggest_refresh_tip"))));
-        int limit = x + w - rw - Theme.SP_4;
-        // the search tier for the page; the goal is picked in the sets' list, singles rank every goal
-        for (CraftSearch.Tier t : SuggestionBoard.TIERS.reversed()) {
-            String label = L.t("wynnlabs.craft.tier." + t.name().toLowerCase(Locale.ROOT));
-            int cw = Ui.chipWidth(tab.font, label);
-            if (cx + cw > limit) {
-                break;
-            }
-            Ui.chip(g, tab.font, label, cx, y, cw, t == tab.setsPanel.tier, false, false, mx, my);
-            tab.acts.add(new Act(cx, y, cw, Ui.CHIP_H, () -> tab.setsPanel.tier = t, null,
-                    List.of(L.c("wynnlabs.craft.tier_tip." + t.name().toLowerCase(Locale.ROOT)))));
-            cx += cw + Theme.SP_2;
-        }
-        if (tab.suggestMode == 0) {
-            String label = levelLabel(level);
-            int cw = Ui.iconChipWidth(tab.font, null, label, true);
-            int lx = Math.max(cx + Theme.SP_2, limit - cw);
-            if (lx + cw <= limit) {
-                Ui.iconChip(g, tab.font, null, label, true, lx, y, cw, level != null || tab.open == CraftingTab.Drop.SUGG_LEVEL, mx, my);
-                int[] anchor = {lx, y, cw, Ui.CHIP_H};
-                tab.acts.add(new Act(lx, y, cw, Ui.CHIP_H, () -> tab.toggle(CraftingTab.Drop.SUGG_LEVEL, anchor), null, null));
-            }
-        }
-        return y + Ui.CHIP_H;
-    }
-
     void pickGoal(String key) {
         goal = key;
         picked = -1;
@@ -690,6 +580,7 @@ final class CraftSuggestionsPanel extends CraftPanel {
             only = f.singles;
             kind = f.kind;
             level = f.level;
+            tab.setsPanel.tier = f.tierShown();
             if (tab.suggestSearch != null && !tab.suggestSearch.getValue().equals(f.query)) {
                 tab.suggestSearch.setValue(f.query);
             }
@@ -714,115 +605,6 @@ final class CraftSuggestionsPanel extends CraftPanel {
             f.query = q;
             filtersChanged();
         }
-    }
-
-    /** The row of filters: the search, then the goals and "wearable now" (one Filter menu on a small window), Clear. */
-    private int filterRow(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        SuggestionFilter f = filter();
-        boolean sets = tab.suggestMode == 1;
-        boolean wide = w >= SPLIT_MIN;
-        int cx = x;
-        int sw = wide ? 170 : 120;
-        if (tab.suggestSearch != null) {
-            UiInput.Hit hit = UiInput.search(g, tab.font, tab.suggestSearch, L.t("wynnlabs.craft.filter_search_hint"), false, cx, y, sw, mx, my);
-            searchBox = hit.field();
-            tab.acts.add(new Act(cx, y, sw, UiInput.H, () -> UiInput.focus(tab.suggestSearch, tab.screen::setFocused), null, null));
-            if (hit.clear() != null) {
-                int[] c = hit.clear();
-                tab.acts.add(new Act(c[0], c[1], c[2], c[3], () -> tab.suggestSearch.setValue(""), null, null));
-            }
-            cx += sw + Theme.SP_3;
-        }
-        if (wide) {
-            String gl = f.groups.isEmpty() ? L.t("wynnlabs.craft.filter_goals") : L.t("wynnlabs.craft.filter_goals_n", f.groups.size());
-            cx += menuChip(g, "target", gl, !f.groups.isEmpty(), CraftingTab.Drop.SUGG_GOALS, cx, y, mx, my) + Theme.SP_2;
-            if (sets) {
-                String sl = f.sets == null ? L.t("wynnlabs.craft.filter_status_any")
-                        : L.t("wynnlabs.craft.set_status." + f.sets.name().toLowerCase(Locale.ROOT));
-                cx += menuChip(g, null, sl, f.sets != null, CraftingTab.Drop.SET_STATUS, cx, y, mx, my) + Theme.SP_2;
-            }
-            String wl = L.t("wynnlabs.craft.filter_wearable");
-            int ww = Ui.iconChipWidth(tab.font, "user", wl, false);
-            Ui.iconChip(g, tab.font, "user", wl, false, cx, y, ww, f.wearable, mx, my);
-            tab.acts.add(new Act(cx, y, ww, Ui.CHIP_H, () -> {
-                f.wearable = !f.wearable;
-                filtersChanged();
-            }, null, List.of(L.c("wynnlabs.craft.filter_wearable_tip"))));
-            cx += ww + Theme.SP_2;
-        } else {
-            int n = f.groups.size() + (f.wearable ? 1 : 0) + (sets && f.sets != null ? 1 : 0);
-            String fl = n == 0 ? L.t("wynnlabs.craft.filter") : L.t("wynnlabs.craft.filter_n", n);
-            cx += menuChip(g, "filter", fl, n > 0, CraftingTab.Drop.SUGG_FILTER, cx, y, mx, my) + Theme.SP_2;
-        }
-        if (f.active()) {
-            String cl = L.t("wynnlabs.craft.filter_clear");
-            int cw = Ui.iconChipWidth(tab.font, "x", cl, false);
-            if (cx + cw <= x + w) {
-                Ui.iconChip(g, tab.font, "x", cl, false, cx, y, cw, false, mx, my);
-                tab.acts.add(new Act(cx, y, cw, Ui.CHIP_H, () -> {
-                    f.clear();
-                    only = null;
-                    kind = null;
-                    level = null;
-                    if (tab.suggestSearch != null) {
-                        tab.suggestSearch.setValue("");
-                    }
-                    filtersChanged();
-                }, null, null));
-            }
-        }
-        return y + Ui.CHIP_H;
-    }
-
-    private int menuChip(GuiGraphics g, String icon, String label, boolean on, CraftingTab.Drop drop, int x, int y, int mx, int my) {
-        int cw = Ui.iconChipWidth(tab.font, icon, label, true);
-        Ui.iconChip(g, tab.font, icon, label, true, x, y, cw, on || tab.open == drop, mx, my);
-        int[] anchor = {x, y, cw, Ui.CHIP_H};
-        tab.acts.add(new Act(x, y, cw, Ui.CHIP_H, () -> tab.toggle(drop, anchor), null, null));
-        return cw;
-    }
-
-    /** The filter menus' rows: the goal groups to tick; on a small window also "wearable now" and, in Sets, the status. */
-    List<UiMenu.Item> filterItems(CraftingTab.Drop drop) {
-        SuggestionFilter f = filter();
-        UiMenu.Items items = new UiMenu.Items();
-        if (drop != CraftingTab.Drop.SET_STATUS) {
-            for (String gk : SuggestionFilter.GROUPS.keySet()) {
-                items.add(UiMenu.Item.of("g:" + gk, null, L.t("wynnlabs.craft.filter_group." + gk), null, f.groups.contains(gk)));
-            }
-        }
-        if (drop == CraftingTab.Drop.SUGG_FILTER) {
-            items.divide();
-            items.add(UiMenu.Item.of("wear", "user", L.t("wynnlabs.craft.filter_wearable"), null, f.wearable));
-        }
-        if (drop == CraftingTab.Drop.SET_STATUS || drop == CraftingTab.Drop.SUGG_FILTER && tab.suggestMode == 1) {
-            items.divide();
-            items.add(UiMenu.Item.of("st:all", null, L.t("wynnlabs.craft.filter_status_any"), null, f.sets == null));
-            for (SuggestionBoard.Status st : SuggestionBoard.Status.values()) {
-                items.add(UiMenu.Item.of("st:" + st.name(), CraftSuggestDetail.statusIcon(st),
-                        L.t("wynnlabs.craft.set_status." + st.name().toLowerCase(Locale.ROOT)), null, st == f.sets));
-            }
-        }
-        return items.list;
-    }
-
-    /** A filter menu's row picked; true when the menu closes (a status), false when it stays (a tick). */
-    boolean pickFilter(String id) {
-        SuggestionFilter f = filter();
-        boolean close = false;
-        if (id.startsWith("g:")) {
-            String gk = id.substring(2);
-            if (!f.groups.remove(gk)) {
-                f.groups.add(gk);
-            }
-        } else if (id.equals("wear")) {
-            f.wearable = !f.wearable;
-        } else if (id.startsWith("st:")) {
-            f.sets = id.equals("st:all") ? null : SuggestionBoard.Status.valueOf(id.substring(3));
-            close = true;
-        }
-        filtersChanged();
-        return close;
     }
 
     /** A single suggestion passes the goal groups, "wearable now" and the search. */

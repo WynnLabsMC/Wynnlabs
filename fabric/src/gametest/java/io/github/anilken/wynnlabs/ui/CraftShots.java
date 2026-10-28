@@ -181,6 +181,13 @@ final class CraftShots {
         });
         ctx.waitTicks(3);
         shot.accept("craft-suggest-filtered");
+        ctx.runOnClient(mc -> tab.toolbar.openFilter());
+        ctx.waitTicks(4);
+        shot.accept("craft-suggest-filter-menu");
+        ctx.runOnClient(mc -> {
+            tab.open = CraftingTab.Drop.NONE;
+            tab.drawers.close();
+        });
         ctx.runOnClient(mc -> {
             tab.suggestionsPanel.filter().clear();
             tab.suggestSearch.setValue("");

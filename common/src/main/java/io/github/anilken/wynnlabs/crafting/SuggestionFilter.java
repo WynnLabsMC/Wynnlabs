@@ -31,6 +31,25 @@ public final class SuggestionFilter {
     public SuggestionBoard.Status singles;
     /** Sets: the status; null for all. */
     public SuggestionBoard.Status sets;
+    /** The search tier (Best, a few bought, owned only); null for {@link SuggestionBoard#DEFAULT_TIER}. */
+    public CraftSearch.Tier tier;
+
+    /** The tier the page shows. */
+    public CraftSearch.Tier tierShown() {
+        return tier == null ? SuggestionBoard.DEFAULT_TIER : tier;
+    }
+
+    /**
+     * How many choices of the Filter menu are on, for its badge: the tier when not the default, each
+     * goal group, wearable now, and Sets' status or Singles' item type and level.
+     */
+    public int count(boolean sets) {
+        int n = groups.size() + (wearable ? 1 : 0) + (tier != null && tier != SuggestionBoard.DEFAULT_TIER ? 1 : 0);
+        if (sets) {
+            return n + (this.sets != null ? 1 : 0);
+        }
+        return n + (kind != null ? 1 : 0) + (level != null ? 1 : 0);
+    }
 
     private static Map<String, List<String>> groups() {
         Map<String, List<String>> m = new LinkedHashMap<>();
@@ -49,7 +68,8 @@ public final class SuggestionFilter {
 
     /** Whether any filter is on (the page shows "Clear filters"). */
     public boolean active() {
-        return !groups.isEmpty() || wearable || !query.isBlank() || kind != null || level != null || singles != null || sets != null;
+        return !groups.isEmpty() || wearable || !query.isBlank() || kind != null || level != null || singles != null || sets != null
+                || tier != null && tier != SuggestionBoard.DEFAULT_TIER;
     }
 
     public void clear() {
@@ -60,6 +80,7 @@ public final class SuggestionFilter {
         level = null;
         singles = null;
         sets = null;
+        tier = null;
     }
 
     /** A goal or combination ("combo:rawspell+mana") is shown when no group is picked or any of its goals is in one. */
@@ -131,6 +152,9 @@ public final class SuggestionFilter {
         if (sets != null) {
             o.addProperty("sets", sets.name());
         }
+        if (tier != null) {
+            o.addProperty("tier", tier.name());
+        }
         return o.toString();
     }
 
@@ -155,6 +179,13 @@ public final class SuggestionFilter {
             f.level = o.has("level") ? o.get("level").getAsInt() : null;
             f.singles = status(o, "singles");
             f.sets = status(o, "sets");
+            if (o.has("tier")) {
+                try {
+                    f.tier = CraftSearch.Tier.valueOf(o.get("tier").getAsString());
+                } catch (IllegalArgumentException e) {
+                    f.tier = null;
+                }
+            }
         } catch (RuntimeException e) {
             return new SuggestionFilter();
         }

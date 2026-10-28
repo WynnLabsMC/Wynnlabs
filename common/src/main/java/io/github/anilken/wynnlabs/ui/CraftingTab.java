@@ -46,7 +46,7 @@ public final class CraftingTab {
     }
 
     /** The open dropdown (UiMenu) under its chip. */
-    enum Drop { NONE, TYPE, LEVEL, GOAL, CONDITIONS, SPEED, TIER1, TIER2, ROAD_TYPE, ROAD_PROF, SET_BAND, SET_WEAPON, SUGG_LEVEL, SUGG_KIND, SET_COMBINE, SUGG_GOALS, SET_STATUS, SUGG_FILTER }
+    enum Drop { NONE, TYPE, LEVEL, GOAL, CONDITIONS, SPEED, TIER1, TIER2, ROAD_TYPE, ROAD_PROF, SET_BANDWEAPON, SUGG_LEVEL, SET_COMBINE, FILTER, CALC }
 
     public static final CraftingTab INSTANCE = new CraftingTab();
 
@@ -128,6 +128,7 @@ public final class CraftingTab {
     final CraftResultPanel resultPanel = new CraftResultPanel(this);
     final CraftOptimiserPanel optimiserPanel = new CraftOptimiserPanel(this);
     final CraftSuggestionsPanel suggestionsPanel = new CraftSuggestionsPanel(this);
+    final CraftToolbar toolbar = new CraftToolbar(this);
     final CraftSetsPanel setsPanel = new CraftSetsPanel(this);
     final CraftSavedPanel savedPanel = new CraftSavedPanel(this);
     final CraftRoadPanel roadPanel = new CraftRoadPanel(this);
