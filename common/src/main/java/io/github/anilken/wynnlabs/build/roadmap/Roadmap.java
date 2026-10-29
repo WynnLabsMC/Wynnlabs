@@ -198,6 +198,32 @@ public final class Roadmap {
         RoadmapRows.keepWorn(latest, s);
     }
 
+    /**
+     * The build score's goal: the road map's last milestone with a set (its Lv 120 build, or the
+     * highest one there is). Null when the map has none. Home's gauge fills toward it.
+     */
+    public static Step scoreTarget(List<Step> steps) {
+        for (int i = steps.size() - 1; i >= 0; i--) {
+            Step s = steps.get(i);
+            if (s.set() != null && s.set().result().objective() > 0) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * How full the build score's gauge is: {@code now} ÷ {@code target}, 0 to 1. No target (NaN,
+     * 0 or less) or no score is an empty gauge: a missing goal once read as a full one, so a Lv 5
+     * character's score of 32 filled the arc while a Lv 100 one's 26.0k was a sliver.
+     */
+    public static double scoreFill(double now, double target) {
+        if (!(target > 0) || !(now > 0)) {
+            return 0;
+        }
+        return Math.min(1, now / target);
+    }
+
     /** {@link RoadmapGains#shownGain}: the number a row's pill shows. */
     public static double shownGain(List<Step> steps, int selected, Gear u) {
         return RoadmapGains.shownGain(steps, selected, u);

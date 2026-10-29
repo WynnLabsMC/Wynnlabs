@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Setup;
 import io.github.anilken.wynnlabs.build.TreePlanner;
+import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.Wyn;
@@ -80,9 +81,13 @@ final class HomeHero extends MenuPaint {
                 L.c("wynnlabs.home.archetype_click").withStyle(ChatFormatting.DARK_GRAY)), "#qarch:"));
         cx += aw + Theme.SP_3;
         Type.MUTED.draw(g, font, "Lv " + level, cx, Type.BODY.yIn(cy, Ui.CHIP_H));
-        // the build score on its gauge at the card's right, against the next milestone's
+        // the build score (what you wear now) on its gauge at the card's right, filled toward the
+        // road map's last milestone (its Lv 120 build); the bars compare with the next milestone
         Build.Plan plan = Build.plan();
         Damage.Result now = plan == null ? null : plan.current();
+        Roadmap.Step scoreGoal = Roadmap.scoreTarget(menu.steps);
+        double scoreFrac = now == null || scoreGoal == null ? 0
+                : Roadmap.scoreFill(now.objective(), scoreGoal.set().result().objective());
         List<Integer> shown = page.shownSteps();
         Damage.Result target = null;
         int targetLevel = 0;
@@ -102,13 +107,11 @@ final class HomeHero extends MenuPaint {
                 int sx = ix - Theme.SP_4 - sw;
                 if (sx > cx + Type.MUTED.width(font, "Lv " + level) + Theme.SP_4) {
                     Type.LEAD.draw(g, font, scoreShown, sx, Type.LEAD.yIn(cy, Ui.CHIP_H));
-                    menu.hits.add(new MenuHit(sx, cy, sw, Ui.CHIP_H, null,
-                            page.vsTip(L.t("wynnlabs.home.stat_build"), score,
-                            target == null || target.objective() <= 0 ? 1 : now.objective() / target.objective(), targetLevel), null));
+                    menu.hits.add(new MenuHit(sx, cy, sw, Ui.CHIP_H, null, scoreTip(score, now, scoreGoal, scoreFrac), null));
                 }
             }
         } else if (now != null) {
-            double frac = target == null || target.objective() <= 0 ? 1 : now.objective() / target.objective();
+            double frac = scoreFrac;
             int gcx = gx + GAUGE_W / 2;
             int gcy = y + pad + 29;
             Kit.gauge(g, gcx, gcy, 29, 5, Math.max(0, Math.min(1, frac)), TRACK, Theme.GOLD_DEEP, Theme.GOLD_EDGE);
@@ -128,7 +131,7 @@ final class HomeHero extends MenuPaint {
             String lbl = L.t("wynnlabs.home.build_score");
             Type.META.draw(g, font, lbl, gcx - Type.META.width(font, lbl) / 2, gcy + Theme.SP_1);
             menu.hits.add(new MenuHit(gx, gcy - 28, GAUGE_W, 28 + Theme.SP_1 + Type.META.lineHeight, null,
-                    page.vsTip(L.t("wynnlabs.home.stat_build"), score, frac, targetLevel), null));
+                    scoreTip(score, now, scoreGoal, frac), null));
         }
         if (compact && !tight) {
             settingsIcons(g, gx + (GAUGE_W - (3 * (Ui.CHIP_H + 2) + 2 * Theme.SP_1)) / 2, y + h - pad - Ui.CHIP_H, mx, my);
@@ -150,7 +153,7 @@ final class HomeHero extends MenuPaint {
             for (Object[] b : bars) {
                 double val = (Double) b[2];
                 double ref = (Double) b[3];
-                double frac = ref <= 0 ? 1 : val / ref;
+                double frac = ref <= 0 ? 0 : val / ref;           // no milestone value: an empty track, never a full one
                 Art.icon(g, (String) b[5], tx, Type.BODY.onCaps(by, 8), 8, (Integer) b[4]);
                 int vx = tx + 8 + Theme.SP_2;
                 Type.BODY.draw(g, font, (String) b[0], vx, by);
@@ -183,6 +186,20 @@ final class HomeHero extends MenuPaint {
         out += Theme.SP_3;
         int nw = nearest(g, x + w, out - 3, mx, my, true);
         return experience(g, x, out, w, xp, nw > 0 ? nw + Theme.SP_3 : 0);
+    }
+
+    /** The build score's hover: the score, then "26.0k of 640k at Lv 120" and the share, or that there is no goal yet. */
+    private static List<Component> scoreTip(String score, Damage.Result now, Roadmap.Step goal, double frac) {
+        List<Component> tip = new java.util.ArrayList<>();
+        tip.add(Component.literal(L.t("wynnlabs.home.stat_build") + " · " + score).withStyle(ChatFormatting.WHITE));
+        if (goal == null) {
+            tip.add(L.c("wynnlabs.home.score_no_goal").withStyle(ChatFormatting.DARK_GRAY));
+        } else {
+            tip.add(L.c("wynnlabs.home.score_of", compact(Math.round(now.objective())),
+                    compact(Math.round(goal.set().result().objective())), goal.level()).withStyle(ChatFormatting.GRAY));
+            tip.add(L.c("wynnlabs.home.hud_vs", Math.round(frac * 100), goal.level()).withStyle(ChatFormatting.DARK_GRAY));
+        }
+        return tip;
     }
 
     /** The experience bar: teal with its rim and notches, the % at its end; {@code reserve} px kept on the right. */

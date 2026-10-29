@@ -1244,6 +1244,8 @@
   "wynnlabs.home.hud_mana_tip": "5 sn'de dolan mana: taban, Mana Regen, Mana Steal ve tree",
   "wynnlabs.home.hud_vs": "Lv %2$s yol haritası build'inin %%%1$s'i",
   "wynnlabs.home.hud_vs_none": "Karşılaştıracak sonraki hedef yok",
+  "wynnlabs.home.score_no_goal": "Henüz dolduracak yol haritası build'i yok",
+  "wynnlabs.home.score_of": "Lv %3$s hedefi %2$s, şu an %1$s",
   "wynnlabs.settings.advice_here": "Bu karakterde öneriler",
   "wynnlabs.settings.advice_here_desc": "Alt'ta kapat: bu karakterde öneri, parlama, chat notu ve yol haritası olmaz; diğerlerininki kalır",
   "wynnlabs.home.advice_off_title": "Bu karakterde öneriler kapalı",

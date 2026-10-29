@@ -1244,6 +1244,8 @@
   "wynnlabs.home.hud_mana_tip": "Mana per 5 s: base, Mana Regen, Mana Steal and the tree",
   "wynnlabs.home.hud_vs": "%s%% of your Lv %s road map build",
   "wynnlabs.home.hud_vs_none": "No later milestone to compare to",
+  "wynnlabs.home.score_no_goal": "No road map build to fill toward yet",
+  "wynnlabs.home.score_of": "%s of %s at Lv %s",
   "wynnlabs.settings.advice_here": "Advice on this character",
   "wynnlabs.settings.advice_here_desc": "Off on an alt: no advice, glows, chat notes or road map here; other characters keep theirs",
   "wynnlabs.home.advice_off_title": "Advice is off for this character",

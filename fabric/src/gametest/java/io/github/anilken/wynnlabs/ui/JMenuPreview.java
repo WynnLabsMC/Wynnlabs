@@ -110,7 +110,12 @@ public class JMenuPreview implements FabricClientGameTest {
             }
             // the ability tree scrolled to its end: the last page and the ultimates
             ctx.runOnClient(mc -> set(mc.screen, "tab", 9));
-            ctx.runOnClient(mc -> set(((RoadmapScreen) mc.screen).tree, "treeScroll", 100000));
+            ctx.runOnClient(mc -> {
+                // the tree's own scroll lives on its board (TreeTab.scroll is the page's on a small window)
+                Field board = TreeTab.class.getDeclaredField("board");
+                board.setAccessible(true);
+                set(board.get(((RoadmapScreen) mc.screen).tree), "treeScroll", 100000);
+            });
             ctx.waitTicks(3);
             shot(ctx, out, "jmenu-tree-end");
             // the settings' rules, with the typed emerald value
