@@ -64,7 +64,7 @@ final class SettingsRows {
     record Multi(String[] keys, String[] labels) {}
 
     static final Map<String, Multi> MULTI = Map.of(
-            "warnings", multi("dangerWarn", "survivalWarn"),
+            "warnings", multi("dangerWarn", "survivalWarn", "healerAdvice"),
             "chat", multi("chatUpgrade", "chatSkills", "chatLevelUp"),
             "extras", multi("wornHint", "sourceHint", "bankHint", "powderHint"),
             "slotGlow", multi("glowUpgrade", "glowShop", "sellGlow"),
