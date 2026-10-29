@@ -477,6 +477,12 @@ public final class TooltipListener {
                     changed = true;
                 }
             }
+            // a feed material: what it would give the mounts last seen in the Mount Feeder
+            List<Component> mounts = io.github.anilken.wynnlabs.ui.MountTips.lines(stack);
+            if (!mounts.isEmpty()) {
+                out.addAll(mounts);
+                changed = true;
+            }
             return changed ? out : null;
         } catch (Throwable ignored) {
             // a broken advice line must never break the tooltip

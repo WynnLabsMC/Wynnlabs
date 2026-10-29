@@ -34,6 +34,19 @@ final class MountsText {
         return rh == 0 ? L.t("wynnlabs.mounts.dur_d", d) : L.t("wynnlabs.mounts.dur_dh", d, rh);
     }
 
+    /** Short, for a mark on a slot: "14m", "2h14m", "1d3h" (localised). */
+    static String durShort(long sec) {
+        long min = Math.max(1, (sec + 59) / 60);
+        if (min < 60) {
+            return L.t("wynnlabs.mounts.dur_s_m", min);
+        }
+        long h = min / 60;
+        if (h < 24) {
+            return L.t("wynnlabs.mounts.dur_s_hm", h, min % 60);
+        }
+        return L.t("wynnlabs.mounts.dur_s_dh", h / 24, h % 24);
+    }
+
     /** An estimate: always a range, "~620–700" ("~700" only when both ends agree). */
     static String range(Range r) {
         return r == null ? "—" : r.low() == r.high() ? "~" + r.low() : "~" + r.low() + "–" + r.high();

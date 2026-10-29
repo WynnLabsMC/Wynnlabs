@@ -169,7 +169,7 @@ final class MountsCard {
                 }
                 Type.BODY.draw(g, font(), Type.BODY.fit(font(), o.mount().name(), right - sw - Theme.SP_2 - nx), nx, ty,
                         on ? Theme.INK : Theme.INK_2);
-                Type.META.draw(g, font(), L.t("wynnlabs.mounts.potential_n", o.mount().potential()), nx, ty + Type.BODY.lineHeight,
+                Type.META.draw(g, font(), L.t("wynnlabs.mounts.potential_n", o.read().potential()), nx, ty + Type.BODY.lineHeight,
                         Theme.INK_2);
                 if (listScroll.shows(cy) || listScroll.shows(cy + rowH - 1)) {
                     String key = o.read().key();
@@ -207,7 +207,7 @@ final class MountsCard {
         for (int i = 0; i < all.size(); i++) {
             Mount m = all.get(i).mount();
             String first = m.name().contains(" ") ? m.name().substring(0, m.name().indexOf(' ')) : m.name();
-            row.add(new Ui.Tab(null, first + " " + m.potential()));
+            row.add(new Ui.Tab(null, first + " " + all.get(i).read().potential()));
             if (all.get(i) == pick) {
                 sel = i;
             }
@@ -295,7 +295,7 @@ final class MountsCard {
         MountsModel.Options opt = MountsModel.options();
         int queued = m.queue().pending().size();
         String[][] cols = {
-            {L.t("wynnlabs.mounts.potential"), String.valueOf(m.potential()), L.t("wynnlabs.mounts.potential_sub")},
+            {L.t("wynnlabs.mounts.potential"), String.valueOf(pot(m)), L.t("wynnlabs.mounts.potential_sub")},
             {L.t("wynnlabs.mounts.energy"), o(m) == null ? "—" : o(m), L.t("wynnlabs.mounts.energy_sub")},
             {L.t("wynnlabs.mounts.avg_limit"), MountsText.one(m.averageLimit()), L.t("wynnlabs.mounts.avg_limit_sub")},
             {L.t("wynnlabs.mounts.feed_timer"), MountsText.dur(m.stats().feedTimerSec()), L.t("wynnlabs.mounts.feed_timer_sub")},
@@ -330,6 +330,16 @@ final class MountsCard {
                     Theme.INK_2);
         }
         return ch;
+    }
+
+    /** The potential the mount's own lore says (the maxes may be guesses outside an enclosure). */
+    private int pot(Mount m) {
+        for (MountsModel.Owned own : tab.model.owned()) {
+            if (own.mount() == m) {
+                return own.read().potential();
+            }
+        }
+        return m.potential();
     }
 
     /** "18 / 30" energy from the read, or null. */

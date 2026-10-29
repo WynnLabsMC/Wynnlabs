@@ -125,7 +125,7 @@ final class SettingsRows {
                     new String[] {"wynnlabs.settings.sec_ground", "groundGlow", "groundBeam", "groundGlowShop",
                             "groundGlowNormal", "groundGlowOther"},
                     new String[] {"wynnlabs.settings.sec_tracked", "mobTrack", "mobTrackSound"},
-                    new String[] {"wynnlabs.settings.sec_menus", "glowTree"}),
+                    new String[] {"wynnlabs.settings.sec_menus", "glowTree", "feederOverlay", "feederHighlight"}),
             "coach", List.of(
                     new String[] {"wynnlabs.settings.sec_chat", "chatUpgrade", "chatSkills", "chatLevelUp"},
                     new String[] {"wynnlabs.settings.sec_warnings", "dangerWarn", "survivalWarn", "coachToasts"},

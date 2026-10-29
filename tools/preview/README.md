@@ -37,6 +37,8 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
 - `-PpreviewOnly=mounts`: the Mounts tab on four seeded mounts: the road map (~700, its first step opened, the target menu, 1200+, the
   options menu), the exact feed plan not run / running / calculated / stale (road map and card), the mounts list, the type menu,
   the places and the empty page (`MountsPreview`).
+- `-PpreviewOnly=feeder`: the Mount Feeder marks over a stand-in feeder (a chest titled "Mount Feeder"): the marks,
+  the mouse on row 2 (its card) and row 4's card kept open (`FeederPreview`).
 - `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).
 - Another fixture: `-Dwynnlabs.previewFixture=synthetic` in the run's VM options
   (`fabric/build.gradle`, `loom.runs` → `clientGameTest`).

@@ -2,6 +2,9 @@ package io.github.anilken.wynnlabs.game;
 
 import com.wynntils.core.components.Managers;
 import com.wynntils.features.tooltips.TooltipFittingFeature;
+import com.wynntils.mc.event.ContainerRenderEvent;
+import com.wynntils.mc.event.InventoryKeyPressEvent;
+import com.wynntils.mc.event.InventoryMouseClickedEvent;
 import com.wynntils.mc.event.ItemTooltipRenderEvent;
 import com.wynntils.mc.event.SlotRenderEvent;
 import com.wynntils.mc.event.TooltipRenderEvent;
@@ -56,6 +59,7 @@ public final class WynntilsEvents {
         long t = Perf.start();
         try {
             TooltipListener.onSlot(event.getGuiGraphics(), event.getSlot());
+            io.github.anilken.wynnlabs.ui.FeederOverlay.onSlot(event.getGuiGraphics(), event.getSlot());
         } catch (Throwable ignored) {
             // drawing a glow must never break the menu
         } finally {
@@ -131,6 +135,46 @@ public final class WynntilsEvents {
      * QUESTS (Wyn.listen), so a change to this event turns off only this. {@link QuestBook} takes
      * the list in only after the player pressed "read quests with Wynntils".
      */
+    /**
+     * The Mount Feeder's marks and row card (FeederOverlay): drawn after the menu, and the clicks
+     * and Esc that land on them. Every other click and key goes on to the game untouched.
+     */
+    public static final class Feeder {
+
+        @SubscribeEvent
+        public void onRender(ContainerRenderEvent e) {
+            try {
+                io.github.anilken.wynnlabs.ui.FeederOverlay.render(e.getScreen(), e.getGuiGraphics(), e.getMouseX(), e.getMouseY());
+            } catch (Throwable ignored) {
+                // a mark must never break the menu
+            }
+        }
+
+        @SubscribeEvent
+        public void onClick(InventoryMouseClickedEvent e) {
+            try {
+                var screen = net.minecraft.client.Minecraft.getInstance().screen;
+                if (screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> c
+                        && io.github.anilken.wynnlabs.ui.FeederOverlay.click(c, e.getMouseX(), e.getMouseY(), e.getButton())) {
+                    e.setCanceled(true);
+                }
+            } catch (Throwable ignored) {
+                // the click goes on to the game
+            }
+        }
+
+        @SubscribeEvent
+        public void onKey(InventoryKeyPressEvent e) {
+            try {
+                if (io.github.anilken.wynnlabs.ui.FeederOverlay.key(e.getKeyCode())) {
+                    e.setCanceled(true);
+                }
+            } catch (Throwable ignored) {
+                // the key goes on to the game
+            }
+        }
+    }
+
     public static final class Quests {
 
         @SubscribeEvent

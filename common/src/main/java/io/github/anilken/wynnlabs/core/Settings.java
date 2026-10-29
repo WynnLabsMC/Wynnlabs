@@ -55,6 +55,8 @@ public final class Settings {
         LABELS.put("sellGlow", "wynnlabs.setting.sellGlow");
         LABELS.put("verdictBadges", "wynnlabs.setting.verdictBadges");
         LABELS.put("hotbarBadges", "wynnlabs.setting.hotbarBadges");
+        LABELS.put("feederOverlay", "wynnlabs.setting.feederOverlay");
+        LABELS.put("feederHighlight", "wynnlabs.setting.feederHighlight");
         LABELS.put("miniQuests", "wynnlabs.setting.miniQuests");
         LABELS.put("questGuides", "wynnlabs.setting.questGuides");
         LABELS.put("updateCheck", "wynnlabs.setting.updateCheck");
@@ -118,6 +120,10 @@ public final class Settings {
         DESC.put("verdictBadges", "wynnlabs.setting_desc.verdictBadges");
         CATEGORY.put("hotbarBadges", "glow");
         DESC.put("hotbarBadges", "wynnlabs.setting_desc.hotbarBadges");
+        CATEGORY.put("feederOverlay", "glow");
+        DESC.put("feederOverlay", "wynnlabs.setting_desc.feederOverlay");
+        CATEGORY.put("feederHighlight", "glow");
+        DESC.put("feederHighlight", "wynnlabs.setting_desc.feederHighlight");
         CATEGORY.put("chatUpgrade", "coach");
         CATEGORY.put("chatSkills", "coach");
         DESC.put("chatSkills", "wynnlabs.setting_desc.chatSkills");

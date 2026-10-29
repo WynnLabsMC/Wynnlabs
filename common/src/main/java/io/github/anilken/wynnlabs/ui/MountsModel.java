@@ -40,7 +40,12 @@ import java.util.concurrent.CompletableFuture;
 final class MountsModel {
 
     /** A mount read in game, in the planner's terms, with where and when it was seen. */
-    record Owned(io.github.anilken.wynnlabs.mounts.Mount mount, MountRead read, MountBook.Where where, long at) {}
+    record Owned(io.github.anilken.wynnlabs.mounts.Mount mount, MountRead read, MountBook.Where where, long at, int row) {
+
+        Owned(io.github.anilken.wynnlabs.mounts.Mount mount, MountRead read, MountBook.Where where, long at) {
+            this(mount, read, where, at, 0);
+        }
+    }
 
     /** A plan asked of the planner: its result, or that it is running, or that it failed. */
     record Pending<T>(T value, boolean running, String error) {}
@@ -129,9 +134,9 @@ final class MountsModel {
         if (ownedVersion != MountBook.version) {
             List<Owned> out = new ArrayList<>();
             for (MountBook.Seen s : MountBook.all()) {
-                io.github.anilken.wynnlabs.mounts.Mount m = convert(s.mount());
+                io.github.anilken.wynnlabs.mounts.Mount m = withQueue(convert(s.mount()), s.fed());
                 if (m != null) {
-                    out.add(new Owned(m, s.mount(), s.where(), s.at()));
+                    out.add(new Owned(m, s.mount(), s.where(), s.at(), s.fed() == null ? 0 : s.fed().row()));
                 }
             }
             out.sort((a, b) -> Integer.compare(b.mount().potential(), a.mount().potential()));
@@ -169,8 +174,25 @@ final class MountsModel {
                 return null;                        // a stat it does not show: not a mount the planner knows
             }
         }
-        return new io.github.anilken.wynnlabs.mounts.Mount(type, r.name(), MountStats.of(level, limit, max),
+        return new io.github.anilken.wynnlabs.mounts.Mount(type, r.shown(), MountStats.of(level, limit, max),
                 MountQueue.EMPTY, r.estimated());
+    }
+
+    /** The mount with the queue its feeder row showed last (the items still to eat, the first one's time left). */
+    static io.github.anilken.wynnlabs.mounts.Mount withQueue(io.github.anilken.wynnlabs.mounts.Mount m, MountBook.Fed fed) {
+        if (m == null || fed == null || fed.pending().isEmpty()) {
+            return m;
+        }
+        List<Material> q = new ArrayList<>();
+        for (String name : fed.pending()) {
+            Material mat = io.github.anilken.wynnlabs.mounts.MountMaterials.byName(name);
+            if (mat != null) {
+                q.add(mat);
+            }
+        }
+        long left = fed.remainingNow(System.currentTimeMillis());
+        return new io.github.anilken.wynnlabs.mounts.Mount(m.type(), m.name(), m.stats(), new MountQueue(q, Math.max(0, left)),
+                m.estimatedMax());
     }
 
     /** The mount the road map works on now: the best one of the type not yet at its generation's goal. */
@@ -277,13 +299,36 @@ final class MountsModel {
         try {
             FeedCache.Cached c = FeedPlanner.cached(o.read().key(), stats, goal, opts);
             if (c != null) {
-                return new FeedView(c.plan(), c.stale() ? FeedState.STALE : FeedState.CACHED, c.savedAtMillis(), 0);
+                if (!c.stale()) {
+                    return new FeedView(c.plan(), FeedState.CACHED, c.savedAtMillis(), 0);
+                }
+                // changed since: by following the plan (its foods queued or eaten) it is only further
+                // along, shown from the step reached; stale only when the mount matches no step of it
+                int k = io.github.anilken.wynnlabs.mounts.FeedProgress.of(c.plan(), c.state(), m.stats(), m.queue().pending());
+                if (k >= 0) {
+                    return new FeedView(advanced(c.plan(), k), FeedState.CACHED, c.savedAtMillis(), 0);
+                }
+                return new FeedView(c.plan(), FeedState.STALE, c.savedAtMillis(), 0);
             }
             FeedPlan est = estimates.computeIfAbsent(key + "|" + stats, k -> FeedPlanner.estimate(stats, goal, opts));
             return new FeedView(est, FeedState.NONE, 0, 0);
         } catch (Throwable t) {
             return new FeedView(null, FeedState.NONE, 0, 0);
         }
+    }
+
+    /** The plan from step {@code k} on (the steps before it are done or queued). */
+    static FeedPlan advanced(FeedPlan p, int k) {
+        if (k <= 0) {
+            return p;
+        }
+        var rest = p.steps().subList(Math.min(k, p.steps().size()), p.steps().size());
+        long left = 0;
+        for (var s : rest) {
+            left += s.durationSec() - s.coveredSec();
+        }
+        return new FeedPlan(p.goalReached(), p.proven(), rest, Math.min(p.totalTimeSec(), left), p.feedTimeSec(), p.trainingTimeSec(),
+                p.coveredTrainingSec(), p.end(), p.explored(), p.source());
     }
 
     /** The button: the exact plan for this mount, on the planner's slow thread (a running one stops). */

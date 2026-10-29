@@ -291,6 +291,12 @@ public final class WynnLabs {
             } catch (Throwable t) {
                 System.out.println("[WynnLabs] menu tooltip size hook unavailable: " + t);
             }
+            // the Mount Feeder's marks and row card
+            try {
+                Wyn.listen(new WynntilsEvents.Feeder());
+            } catch (Throwable t) {
+                System.out.println("[WynnLabs] mount feeder overlay unavailable: " + t);
+            }
             // the quests tab's "read quests with Wynntils": the lists Wynntils posts after the press
             try {
                 Wyn.listen(Wyn.Feature.QUESTS, new WynntilsEvents.Quests());
