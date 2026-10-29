@@ -44,6 +44,7 @@ import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.Mount;
+import io.github.anilken.wynnlabs.model.MountRead;
 import io.github.anilken.wynnlabs.model.Obtain;
 import io.github.anilken.wynnlabs.model.Requirement;
 import io.github.anilken.wynnlabs.model.Roll;
@@ -622,5 +623,60 @@ public final class WynntilsItems {
                 req != null, level, levelMet, profs, quests, xp,
                 a.description().map(d -> d.getStringWithoutFormatting()).orElse(null), a.distanceInfo().orElse(""),
                 a.length().map(Enum::name).orElse(null), a.difficulty().map(Enum::name).orElse(null)));
+    }
+
+    // ---- mounts (the Mounts tab) ----
+    //
+    // MountItem and MountInfo are looked up by name: not in every release this mod supports;
+    // without them no stack reads as a mount.
+    private static final String MOUNT_READ_ITEM = "com.wynntils.models.items.items.game.MountItem";
+
+    /**
+     * A mount's reins: type, name, potential, energy and its stats (level, limit, max), in
+     * Wynntils' stat order. Null for anything else, for a summon item and when this Wynntils does
+     * not read mounts.
+     */
+    public static MountRead mountRead(ItemStack stack) {
+        Optional<WynnItem> p = Wyn.item(stack);
+        if (p.isEmpty() || !Wyn.type(MOUNT_READ_ITEM).map(t -> t.isInstance(p.get())).orElse(false)) {
+            return null;
+        }
+        WynnItem item = p.get();
+        return part(() -> {
+            if (Boolean.TRUE.equals(Wyn.call(item, "isSummonItem"))) {
+                return null;
+            }
+            Object type = Wyn.call(item, "getMountType");
+            Object info = Wyn.call(item, "getMountInfo");
+            String name = (String) Wyn.call(item, "getName");
+            if (!(type instanceof Enum<?> kind) || info == null || name == null) {
+                return null;
+            }
+            int potential = (Integer) Wyn.call(info, "potential");
+            CappedValue energy = (CappedValue) Wyn.call(info, "currentEnergy");
+            Map<?, ?> stats = (Map<?, ?>) Wyn.call(info, "stats");
+            Map<?, ?> maxes = (Map<?, ?>) Wyn.call(info, "maxStats");
+            List<Map.Entry<?, ?>> entries = new ArrayList<>(stats.entrySet());
+            entries.sort(java.util.Comparator.comparingInt(e -> ((Enum<?>) e.getKey()).ordinal()));
+            List<MountRead.Stat> out = new ArrayList<>();
+            for (Map.Entry<?, ?> e : entries) {
+                Enum<?> stat = (Enum<?>) e.getKey();
+                CappedValue v = (CappedValue) e.getValue();
+                Object max = maxes == null ? null : maxes.get(stat);
+                out.add(new MountRead.Stat(stat.name(), (String) Wyn.call(stat, "getName"), v.current(), v.max(),
+                        max instanceof Integer m ? m : v.max()));
+            }
+            boolean estimated = Boolean.TRUE.equals(Wyn.call(info, "estimatedMaxStats"));
+            return new MountRead(kind.name(), name, potential, energy == null ? 0 : energy.current(),
+                    energy == null ? 0 : energy.max(), List.copyOf(out), estimated, colour(info, "primaryColorInfo"),
+                    colour(info, "secondaryColorInfo"));
+        });
+    }
+
+    /** A mount colour's English name ("Azure"), "" when unknown. */
+    private static String colour(Object info, String which) {
+        Object c = part(() -> Wyn.call(info, which));
+        Object name = c == null ? null : part(() -> Wyn.call(c, "displayName"));
+        return name instanceof String s ? s : "";
     }
 }

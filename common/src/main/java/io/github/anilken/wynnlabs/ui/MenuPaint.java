@@ -109,6 +109,9 @@ class MenuPaint {
             case RoadmapScreen.TAB_CRAFT -> "hammer";
             case RoadmapScreen.TAB_ENDGAME -> "trophy";
             case RoadmapScreen.TAB_SEARCH -> "search";
+            case RoadmapScreen.TAB_MOUNTS -> "horse";
+            case RoadmapScreen.TAB_MOUNT_ROAD -> "route";
+            case RoadmapScreen.TAB_MOUNT_PLACES -> "map-pin";
             default -> "settings";
         };
     }
@@ -130,6 +133,7 @@ class MenuPaint {
             case RoadmapScreen.TAB_CRAFT -> { bg = 0xFF3A2E14; fg = 0xFFE8C07A; }
             case RoadmapScreen.TAB_ENDGAME -> { bg = 0xFF40280C; fg = 0xFFFFD36B; }
             case RoadmapScreen.TAB_SEARCH -> { bg = 0xFF2E2414; fg = 0xFFF2D59A; }
+            case RoadmapScreen.TAB_MOUNTS, RoadmapScreen.TAB_MOUNT_ROAD, RoadmapScreen.TAB_MOUNT_PLACES -> { bg = 0xFF2A2216; fg = 0xFFE6C493; }
             default -> { bg = 0xFF24242E; fg = 0xFFB4B2A9; }
         }
         if (ink != 0) {

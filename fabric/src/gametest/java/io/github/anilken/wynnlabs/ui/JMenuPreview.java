@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "craftsuggest", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai", "archetypes").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "craftsuggest", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai", "archetypes", "mounts").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -68,6 +68,10 @@ public class JMenuPreview implements FabricClientGameTest {
             // nothing is built on its own: the gear panel offers to; the button builds it, with
             // its progress inside the panel
             ctx.waitTicks(2);
+            if ("mounts".equals(part)) {
+                MountsPreview.shots(ctx, out);          // needs no road map: straight to the Mounts tab
+                return;
+            }
             if (on("home")) {
                 shot(ctx, out, "jmenu-none");
             }

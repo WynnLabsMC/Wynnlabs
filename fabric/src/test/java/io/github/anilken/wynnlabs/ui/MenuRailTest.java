@@ -30,4 +30,14 @@ class MenuRailTest {
         assertEquals(1, MenuRail.RAIL[1][0]);
         assertEquals(RoadmapScreen.TAB_TREE, MenuRail.RAIL[3][0]);
     }
+
+    @Test
+    void theMountsEntryHasThreeSectionsAndOpensOnTheRoadMap() {
+        int mounts = MenuRail.entry(RoadmapScreen.TAB_MOUNTS);
+        assertArrayEquals(new int[] {RoadmapScreen.TAB_MOUNTS, RoadmapScreen.TAB_MOUNT_ROAD, RoadmapScreen.TAB_MOUNT_PLACES},
+                MenuRail.RAIL[mounts]);
+        assertEquals(mounts, MenuRail.entry(RoadmapScreen.TAB_MOUNT_PLACES));
+        assertEquals(RoadmapScreen.TAB_MOUNT_ROAD, MenuRail.opens(mounts));
+        assertEquals(RoadmapScreen.TAB_MOUNT_ROAD, MenuRail.shortcut(org.lwjgl.glfw.GLFW.GLFW_KEY_1 + mounts, 0));
+    }
 }

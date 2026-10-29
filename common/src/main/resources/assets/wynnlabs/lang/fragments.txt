@@ -175,3 +175,5 @@ wynnlabs.craft.req_short           "Int 64 · you 40": a skill short name first,
 wynnlabs.craft.tier.own_plus_two   "+ a few bought": a tier chip beside "Owned only" and "Best"
 wynnlabs.craft.set_need_points    "Agility 64 needed · you have 60": a skill name first
 wynnlabs.craft.calc_changed      "your items changed since" after "Updated 3 h ago ·"
+wynnlabs.mounts.goal_full         "full limits" inside a feed-plan notice ("Exact plan to full limits: …")
+wynnlabs.mounts.goal_ready        "breed-ready" inside a feed-plan notice ("Estimate to breed-ready: …")

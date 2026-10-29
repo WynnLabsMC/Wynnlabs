@@ -34,6 +34,9 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
   With `-PpreviewSize=1380x960` the card shows in its drawer.
 - `-PpreviewOnly=bank`: the bank tab on the fixture's bank: whole, searched, a kind chip, the banks menu,
   a slot's drawer, the list to sell, a bank read in part and one not read (`BankPreview`).
+- `-PpreviewOnly=mounts`: the Mounts tab on four seeded mounts: the road map (~700, its first step opened, the target menu, 1200+, the
+  options menu), the exact feed plan not run / running / calculated / stale (road map and card), the mounts list, the type menu,
+  the places and the empty page (`MountsPreview`).
 - `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).
 - Another fixture: `-Dwynnlabs.previewFixture=synthetic` in the run's VM options
   (`fabric/build.gradle`, `loom.runs` → `clientGameTest`).

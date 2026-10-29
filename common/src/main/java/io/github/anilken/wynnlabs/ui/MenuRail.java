@@ -16,7 +16,7 @@ import java.util.List;
  * it. The open tab is a sheet of parchment with a gold strip, not pulled out. Counters sit on
  * the right (a number or the tracked quest's pin); a state with no number (points to spend, an
  * update) is a dot on the icon's corner. Settings and Help are pinned to the bottom. Compact: 24
- * px cells centred in the rail, the names and counters in tooltips. Keys 1–8 open the tabs.
+ * px cells centred in the rail, the names and counters in tooltips. Keys 1–9 open the tabs.
  */
 final class MenuRail extends MenuPaint {
     /**
@@ -24,17 +24,19 @@ final class MenuRail extends MenuPaint {
      * them as sections along the top of its page. Settings (the last) is pinned to the bottom.
      */
     static final int[][] RAIL = {{0}, {1}, {2},
-        {RoadmapScreen.TAB_TREE}, {RoadmapScreen.TAB_ENDGAME}, {RoadmapScreen.TAB_BANK}, {RoadmapScreen.TAB_CRAFT},
+        {RoadmapScreen.TAB_TREE}, {RoadmapScreen.TAB_ENDGAME},
+        {RoadmapScreen.TAB_MOUNTS, RoadmapScreen.TAB_MOUNT_ROAD, RoadmapScreen.TAB_MOUNT_PLACES},
+        {RoadmapScreen.TAB_BANK}, {RoadmapScreen.TAB_CRAFT},
         {RoadmapScreen.TAB_SEARCH}, {RoadmapScreen.TAB_SETTINGS, RoadmapScreen.TAB_AI}};
     /** Each entry's name as a language key. */
     static final String[] RAIL_NAMES = {"wynnlabs.screen.rail_home", "wynnlabs.screen.tab_today",
-        "wynnlabs.screen.tab_quests", "wynnlabs.screen.rail_tree", "wynnlabs.screen.rail_endgame", "wynnlabs.screen.tab_bank",
+        "wynnlabs.screen.tab_quests", "wynnlabs.screen.rail_tree", "wynnlabs.screen.rail_endgame", "wynnlabs.screen.tab_mounts", "wynnlabs.screen.tab_bank",
         "wynnlabs.screen.tab_craft", "wynnlabs.screen.tab_search", "wynnlabs.screen.tab_settings"};
-    private static final String[] ICONS = {"home", "sun", "map-2", "hierarchy", "trophy", "building-bank", "hammer", "search",
+    private static final String[] ICONS = {"home", "sun", "map-2", "hierarchy", "trophy", "horse", "building-bank", "hammer", "search",
         "settings"};
-    /** The group titles, and the entry each one starts at; the entries before SETTINGS have keys 1–8. */
+    /** The group titles, and the entry each one starts at; the entries before SETTINGS have keys 1–9. */
     private static final String[] GROUPS = {"wynnlabs.screen.rail_group_game", "wynnlabs.screen.rail_group_items"};
-    private static final int[] GROUP_AT = {0, 5};
+    private static final int[] GROUP_AT = {0, 6};
     private static final int SETTINGS = RAIL.length - 1;
     /** Help: not an entry; it opens the settings on their About page. */
     private static final int HELP = -1;
@@ -72,10 +74,15 @@ final class MenuRail extends MenuPaint {
         return 0;
     }
 
-    /** The tab a number key opens (1–8, no modifier), or -1. */
+    /** The tab a number key opens (1–9, no modifier), or -1. */
     static int shortcut(int key, int modifiers) {
         int n = key - org.lwjgl.glfw.GLFW.GLFW_KEY_1;
-        return modifiers == 0 && n >= 0 && n < SETTINGS ? RAIL[n][0] : -1;
+        return modifiers == 0 && n >= 0 && n < SETTINGS ? opens(n) : -1;
+    }
+
+    /** The section entry {@code i} opens: its first, but the Mounts tab's road map. */
+    static int opens(int i) {
+        return RAIL[i][0] == RoadmapScreen.TAB_MOUNTS ? RoadmapScreen.TAB_MOUNT_ROAD : RAIL[i][0];
     }
 
     /** A click on Help: the settings' About page; true when taken. */
@@ -343,7 +350,7 @@ final class MenuRail extends MenuPaint {
         }
         // a click opens the entry's first section, or stays on the section already open
         boolean on = entry(menu.tab()) == i;
-        menu.tabs.add(new int[] {x, y, w, h, on ? menu.tab() : RAIL[i][0]});
+        menu.tabs.add(new int[] {x, y, w, h, on ? menu.tab() : opens(i)});
     }
 
     private static String icon(int i) {

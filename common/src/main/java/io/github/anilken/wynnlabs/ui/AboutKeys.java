@@ -10,7 +10,7 @@ import net.minecraft.client.gui.GuiGraphics;
 /**
  * The About page's "Shortcuts": each of the mod's keys as a keycap with what it does. The menu,
  * search and box keys show what the player bound them to in Controls (the game's own name for the
- * key, "unbound" when none); the menu's fixed keys (1–8, /, Esc) as they are. Two columns when
+ * key, "unbound" when none); the menu's fixed keys (1–9, /, Esc) as they are. Two columns when
  * there is room.
  */
 final class AboutKeys {
@@ -20,7 +20,7 @@ final class AboutKeys {
         {"key.wynnlabs.roadmap", null, "wynnlabs.about.key_menu"},
         {"key.wynnlabs.search", null, "wynnlabs.about.key_search"},
         {"key.wynnlabs.box_guide", null, "wynnlabs.about.key_box"},
-        {null, "1–8", "wynnlabs.about.key_tabs"},
+        {null, "1–9", "wynnlabs.about.key_tabs"},
         {null, "/", "wynnlabs.about.key_find"},
         {null, "Esc", "wynnlabs.about.key_back"}};
 

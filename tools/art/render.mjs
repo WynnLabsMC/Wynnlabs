@@ -59,6 +59,8 @@ const ICONS = [
   'helmet', 'shirt', 'hanger', 'shoe', 'circle-dot', 'circles', 'trident', 'bow', 'crystal-ball', 'flask-2', 'script', 'meat',
   // the build window: the balanced focus, Clear and Edit
   'scale', 'eraser', 'edit',
+  // the Mounts tab
+  'horse',
   // a plan's missing piece whose source is unknown
   'question-mark',
 ];

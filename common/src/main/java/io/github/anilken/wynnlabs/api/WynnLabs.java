@@ -183,6 +183,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.SellSummary", SellSummary::onTick));
         platform.onEndTick(Perf.tick("tick.XpMeter", XpMeter::onTick));
         platform.onEndTick(Perf.tick("tick.Vault", Vault::onTick));
+        platform.onEndTick(Perf.tick("tick.MountBook", io.github.anilken.wynnlabs.mounts.MountBook::onTick));
         platform.onEndTick(Perf.tick("tick.Coach", Coach::onTick));
         // the Endgame tab: raid and lootrun history, the reward pool seen, the aspect list
         platform.onEndTick(Perf.tick("tick.RaidLog", RaidLog::onTick));

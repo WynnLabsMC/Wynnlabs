@@ -43,7 +43,8 @@ public final class RoadmapScreen extends Screen {
     private static final String[] TABS = {"wynnlabs.screen.tab_home", "wynnlabs.screen.tab_today", "wynnlabs.screen.tab_quests",
         "wynnlabs.screen.tab_deaths", "wynnlabs.screen.tab_bank", "wynnlabs.screen.tab_settings", "wynnlabs.screen.tab_ai",
         "wynnlabs.screen.tab_damage", "wynnlabs.screen.tab_discoveries", "wynnlabs.screen.tab_tree", "wynnlabs.screen.tab_craft",
-        "wynnlabs.screen.tab_endgame", "wynnlabs.screen.tab_search"};
+        "wynnlabs.screen.tab_endgame", "wynnlabs.screen.tab_search", "wynnlabs.mounts.sec_mounts", "wynnlabs.mounts.sec_road",
+        "wynnlabs.mounts.sec_places"};
     public static final int TAB_BANK = 4;
     static final int TAB_SETTINGS = 5;
     static final int TAB_AI = 6;
@@ -53,6 +54,10 @@ public final class RoadmapScreen extends Screen {
     static final int TAB_CRAFT = 10;
     static final int TAB_ENDGAME = 11;
     static final int TAB_SEARCH = 12;
+    /** The Mounts tab's three sections (one {@link MountsTab}); the road map opens first. */
+    static final int TAB_MOUNTS = 13;
+    static final int TAB_MOUNT_ROAD = 14;
+    static final int TAB_MOUNT_PLACES = 15;
 
     List<Roadmap.Step> steps = List.of();
     List<QuestAdvisor.Suggestion> quests = List.of();
@@ -94,13 +99,14 @@ public final class RoadmapScreen extends Screen {
     final AiTab ai = new AiTab(this);
     public final TreeTab tree = new TreeTab(this);
     final SearchTab search = new SearchTab(this);
+    final MountsTab mounts = new MountsTab(this);
     /** The page's parchment this frame {x, y, w, h}: what an open drawer dims. */
     int[] pagePanel;
     /** The archetype list the archetype buttons open (home, tree, settings). */
     final ArchetypePicker archPicker = new ArchetypePicker(this);
     /** The tabs by number (null for the Crafting and Endgame tabs, which are their own singletons). */
     private final MenuTab[] pages = {home, today, questsTab, null, bank, settings, ai, null, null, tree, null, null,
-        search};
+        search, mounts, mounts, mounts};
     /** The screen the search key was pressed on (a bank, a chest): closing the menu goes back to it. */
     private Screen parent;
 
@@ -410,7 +416,8 @@ public final class RoadmapScreen extends Screen {
     /** A section's name on its page's strip, by tab number ("" for a tab that is never a section). */
     private static final String[] SECTION_NAMES = {"", "", "wynnlabs.screen.tab_quests",
         "wynnlabs.screen.tab_deaths", "", "wynnlabs.screen.tab_settings", "wynnlabs.screen.sec_ai", "wynnlabs.screen.tab_damage",
-        "", "wynnlabs.screen.sec_tree", "", "", ""};
+        "", "wynnlabs.screen.sec_tree", "", "", "", "wynnlabs.mounts.sec_mounts", "wynnlabs.mounts.sec_road",
+        "wynnlabs.mounts.sec_places"};
     /**
      * Each tab's hint as a language key ("" for none), by tab number. The Endgame tab's title line
      * holds its pills, so its hint is drawn under its aspect list instead.
@@ -418,7 +425,7 @@ public final class RoadmapScreen extends Screen {
     private static final String[] TAB_HINT = {"", "wynnlabs.screen.hint_today", "",
         "wynnlabs.screen.hint_deaths", "wynnlabs.screen.hint_bank", "", "wynnlabs.screen.hint_ai",
         "wynnlabs.screen.hint_damage", "wynnlabs.screen.hint_discoveries", "", "",
-        "wynnlabs.screen.hint_endgame", ""};
+        "wynnlabs.screen.hint_endgame", "", "", "", ""};
 
     private final Map<Integer, ItemStack> railIcons = new HashMap<>();
 
@@ -753,7 +760,7 @@ public final class RoadmapScreen extends Screen {
         if (pages[tab] != null && pages[tab].keyPressed(event.key())) {
             return true;
         }
-        // 1–8 open the rail's tabs while nothing is being typed (the digit never lands in a box)
+        // 1–9 open the rail's tabs while nothing is being typed (the digit never lands in a box)
         int to = MenuRail.shortcut(event.key(), event.modifiers());
         if (to >= 0 && !(getFocused() instanceof net.minecraft.client.gui.components.EditBox b && b.isFocused())) {
             SearchKey.swallowNextChar();
