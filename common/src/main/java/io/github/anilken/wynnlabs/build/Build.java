@@ -530,100 +530,190 @@ public final class Build {
 
     /**
      * The fewest points you must assign per skill to wear all these pieces, the way Wynncraft
-     * equips them: one at a time, each checked against what is on before it. A piece's own
+     * equips them: one at a time, each checked against what is on before it, and at the end
+     * against everything worn but its own bonus (a later penalty pops it off). A piece's own
      * positive bonus never counts for itself; its own penalty does (Coeur Brise: Defence 12 with
-     * −3 needs 15 assigned, seen in game). Weapons and crafted gear never help other pieces.
-     * Starts from the simple bound and raises the points where the equip order still fails.
+     * -3 needs 15 assigned, seen in game). Weapons and crafted gear never help other pieces.
+     * Exact over every equip order: the pieces that give points (and any that never help but
+     * carry a penalty in a skill they need) are ordered by a search over the subsets already on,
+     * keeping per subset only the point vectors no other one beats; every other piece goes on
+     * last, where its check is never stricter than the final one. Gives the least total, as
+     * WynnBuilder does (a Lv 121 raid build with eight point pieces: 186, where a greedy order
+     * that raised every requirement of a stuck piece gave 263).
      */
     public static int[] minPoints(java.util.Collection<Damage.Piece> pieces) {
-        int n = SkillKind.values().length;
+        SkillKind[] kinds = SkillKind.values();
+        int n = kinds.length;
         List<Damage.Piece> list = new ArrayList<>();
         for (Damage.Piece p : pieces) {
             if (p != null) {
                 list.add(p);
             }
         }
-        double[] gear = new double[n];
+        double[] total = new double[n];
         for (Damage.Piece p : list) {
             if (p.helpsRequirements()) {
-                for (SkillKind s : SkillKind.values()) {
-                    gear[s.ordinal()] += bonus(p, s);
+                for (int i = 0; i < n; i++) {
+                    total[i] += bonus(p, kinds[i]);
                 }
             }
         }
-        int[] a = new int[n];
+        // the order-free part: every piece against all the others once everything is on
+        int[] base = new int[n];
+        List<Damage.Piece> movers = new ArrayList<>();
         for (Damage.Piece p : list) {
+            boolean helps = p.helpsRequirements();
+            boolean moves = false;
             for (var e : p.reqs().entrySet()) {
                 int i = e.getKey().ordinal();
-                double others = gear[i] - (p.helpsRequirements() ? bonus(p, e.getKey()) : 0);
-                double own = Math.min(0, bonus(p, e.getKey()));
-                a[i] = Math.max(a[i], (int) Math.ceil(e.getValue() - others - own));
+                double b = bonus(p, e.getKey());
+                double own = helps ? Math.max(0, b) : 0;
+                base[i] = Math.max(base[i], (int) Math.ceil(e.getValue() - (total[i] - own)));
+                moves |= !helps && b < 0;           // its own penalty counts: where it goes on matters
             }
-        }
-        for (int i = 0; i < n; i++) {
-            a[i] = Math.max(0, a[i]);
-        }
-        int bound = java.util.Arrays.stream(a).sum();
-        // Equip order: greedy, pieces that give the most first; raise points until all fit
-        for (int round = 0; round < 30; round++) {
-            int[] deficit = equipDeficit(list, a);
-            boolean ok = true;
-            for (int i = 0; i < n; i++) {
-                if (deficit[i] > 0) {
-                    a[i] += deficit[i];
-                    ok = false;
+            if (helps) {
+                for (SkillKind sk : kinds) {
+                    moves |= bonus(p, sk) > 0;
                 }
             }
-            if (ok) {
-                break;
+            if (moves) {
+                movers.add(p);
             }
         }
-        if (java.util.Arrays.stream(a).sum() <= bound) {
-            return a;                           // the order-free bound is met: nothing can be cheaper
+        int m = movers.size();
+        if (m == 0) {
+            return base;
         }
-        // Otherwise the greedy order may have raised two skills where one order needs only one
-        // (A needs Str and gives Dex, B needs Dex and gives Str): try the orders of the pieces
-        // that give points, the rest last, and keep the cheapest
-        List<Damage.Piece> movers = new ArrayList<>();
-        List<Damage.Piece> rest = new ArrayList<>();
-        for (Damage.Piece p : list) {
-            boolean gives = false;
+        // the movers, most points given first: one order to try at once, and the bound to beat
+        movers.sort(java.util.Comparator.comparingDouble(p -> -given(p)));
+        double[][] give = new double[m][n];
+        int[][] reqAt = new int[m][];
+        double[][] reqNeed = new double[m][];
+        for (int k = 0; k < m; k++) {
+            Damage.Piece p = movers.get(k);
             if (p.helpsRequirements()) {
-                for (SkillKind sk : SkillKind.values()) {
-                    gives |= bonus(p, sk) > 0;
+                for (int i = 0; i < n; i++) {
+                    give[k][i] = bonus(p, kinds[i]);
                 }
             }
-            (gives ? movers : rest).add(p);
+            reqAt[k] = new int[p.reqs().size()];
+            reqNeed[k] = new double[p.reqs().size()];
+            int j = 0;
+            for (var e : p.reqs().entrySet()) {
+                reqAt[k][j] = e.getKey().ordinal();
+                reqNeed[k][j] = e.getValue() - Math.min(0, bonus(p, e.getKey()));
+                j++;
+            }
         }
-        if (movers.size() > MAX_ORDER_PIECES) {
-            return a;
+        int[] best = base.clone();
+        double[] prefix = new double[n];
+        for (int k = 0; k < m; k++) {
+            raise(best, reqAt[k], reqNeed[k], prefix);
+            for (int i = 0; i < n; i++) {
+                prefix[i] += give[k][i];
+            }
         }
-        int[][] best = {a};
-        int[] bestSum = {java.util.Arrays.stream(a).sum()};
-        permute(movers, 0, rest, best, bestSum);
-        return best[0];
+        int bestSum = sum(best);
+        if (bestSum == sum(base) || m > MAX_ORDER_PIECES) {
+            return best;                            // the order-free bound is met: nothing is cheaper
+        }
+        // every order: per subset of movers already on, the point vectors no other one beats
+        int full = (1 << m) - 1;
+        double[][] pre = new double[full + 1][];
+        pre[0] = new double[n];
+        @SuppressWarnings("unchecked")
+        List<int[]>[] front = new List[full + 1];
+        front[0] = new ArrayList<>(List.of(base));
+        for (int s = 0; s < full; s++) {
+            if (s > 0) {
+                int low = Integer.numberOfTrailingZeros(s);
+                pre[s] = pre[s & (s - 1)].clone();
+                for (int i = 0; i < n; i++) {
+                    pre[s][i] += give[low][i];
+                }
+            }
+            if (front[s] == null) {
+                continue;
+            }
+            for (int k = 0; k < m; k++) {
+                if ((s & (1 << k)) != 0) {
+                    continue;
+                }
+                int t = s | (1 << k);
+                for (int[] v : front[s]) {
+                    int[] w = v.clone();
+                    raise(w, reqAt[k], reqNeed[k], pre[s]);
+                    int ws = sum(w);
+                    if (ws >= bestSum) {
+                        continue;                   // no better than an order already known
+                    }
+                    if (t == full) {
+                        best = w;
+                        bestSum = ws;
+                    } else {
+                        if (front[t] == null) {
+                            front[t] = new ArrayList<>();
+                        }
+                        keep(front[t], w);
+                    }
+                }
+            }
+            front[s] = null;
+        }
+        return best;
     }
 
-    /** More pieces that give skill points than this and the greedy order is kept (8! orders is too many per build). */
-    private static final int MAX_ORDER_PIECES = 5;
+    /**
+     * More ordered pieces than a build can hold (eight point pieces and a weapon) and only the
+     * most-given-first order is tried: never reached by a real set.
+     */
+    private static final int MAX_ORDER_PIECES = 12;
 
-    private static void permute(List<Damage.Piece> movers, int k, List<Damage.Piece> rest, int[][] best, int[] bestSum) {
-        if (k == movers.size()) {
-            List<Damage.Piece> order = new ArrayList<>(movers);
-            order.addAll(rest);
-            int[] need = orderNeed(order);
-            int sum = java.util.Arrays.stream(need).sum();
-            if (sum < bestSum[0]) {
-                bestSum[0] = sum;
-                best[0] = need;
+    /** Raises {@code need} to what one piece asks with the bonuses {@code prefix} already on. */
+    private static void raise(int[] need, int[] at, double[] req, double[] prefix) {
+        for (int j = 0; j < at.length; j++) {
+            int i = at[j];
+            need[i] = Math.max(need[i], (int) Math.ceil(req[j] - prefix[i]));
+        }
+    }
+
+    /** Adds {@code v} to the vectors kept for a subset unless one of them is no worse in every skill. */
+    private static void keep(List<int[]> front, int[] v) {
+        for (int[] u : front) {
+            if (atMost(u, v)) {
+                return;
             }
-            return;
         }
-        for (int i = k; i < movers.size(); i++) {
-            java.util.Collections.swap(movers, k, i);
-            permute(movers, k + 1, rest, best, bestSum);
-            java.util.Collections.swap(movers, k, i);
+        front.removeIf(u -> atMost(v, u));
+        front.add(v);
+    }
+
+    private static boolean atMost(int[] a, int[] b) {
+        for (int i = 0; i < a.length; i++) {
+            if (a[i] > b[i]) {
+                return false;
+            }
         }
+        return true;
+    }
+
+    private static int sum(int[] a) {
+        int s = 0;
+        for (int v : a) {
+            s += v;
+        }
+        return s;
+    }
+
+    /** The points a piece gives toward others' requirements, penalties left out. */
+    private static double given(Damage.Piece p) {
+        double g = 0;
+        if (p.helpsRequirements()) {
+            for (SkillKind sk : SkillKind.values()) {
+                g += Math.max(0, bonus(p, sk));
+            }
+        }
+        return g;
     }
 
     /**
@@ -658,68 +748,6 @@ public final class Build {
             need[i] = Math.max(0, need[i]);
         }
         return need;
-    }
-
-    /** Points missing per skill when equipping in the best greedy order with these assigned. */
-    private static int[] equipDeficit(List<Damage.Piece> list, int[] assigned) {
-        int n = SkillKind.values().length;
-        double[] have = new double[n];
-        for (int i = 0; i < n; i++) {
-            have[i] = assigned[i];
-        }
-        List<Damage.Piece> left = new ArrayList<>(list);
-        while (!left.isEmpty()) {
-            Damage.Piece next = null;
-            double bestGive = Double.NEGATIVE_INFINITY;
-            for (Damage.Piece p : left) {
-                if (!fits(p, have)) {
-                    continue;
-                }
-                double give = 0;
-                if (p.helpsRequirements()) {
-                    for (SkillKind s : SkillKind.values()) {
-                        give += bonus(p, s);
-                    }
-                }
-                if (give > bestGive) {
-                    bestGive = give;
-                    next = p;
-                }
-            }
-            if (next == null) {
-                break;
-            }
-            left.remove(next);
-            if (next.helpsRequirements()) {
-                for (SkillKind s : SkillKind.values()) {
-                    have[s.ordinal()] += bonus(next, s);
-                }
-            }
-        }
-        int[] deficit = new int[n];
-        // whatever could not go on, plus anything a later penalty pushed out ("pops off")
-        for (Damage.Piece p : list) {
-            boolean stuck = left.contains(p);
-            for (var e : p.reqs().entrySet()) {
-                int i = e.getKey().ordinal();
-                double own = p.helpsRequirements() ? Math.max(0, bonus(p, e.getKey())) : 0;
-                double avail = have[i] - own;
-                if (stuck || avail < e.getValue()) {
-                    deficit[i] = Math.max(deficit[i], (int) Math.ceil(e.getValue() - avail));
-                }
-            }
-        }
-        return deficit;
-    }
-
-    private static boolean fits(Damage.Piece p, double[] have) {
-        for (var e : p.reqs().entrySet()) {
-            double own = Math.min(0, bonus(p, e.getKey()));
-            if (have[e.getKey().ordinal()] + own < e.getValue()) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

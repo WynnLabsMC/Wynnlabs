@@ -224,7 +224,13 @@ class RoadmapMythicsTest {
                 // never thrown out: built around where the set cannot give the points, ranked where
                 // it can (and maybe not among the best 6: the Lv 120 set after Dragon's Tear wears it)
                 String notBest = L.t("wynnlabs.road.trace_skip", L.t("wynnlabs.road.trace_not_best", 6));
-                lines.forEach(l -> assertTrue(l.endsWith(around) || !l.startsWith(p + skip) || l.equals(p + notBest), l));
+                // or judged in the set as a swap and under the bar there (Absolution at Lv 100:
+                // the set's own pieces give the Defence it needs): the start below still builds
+                // a set around it
+                String bar = L.t("wynnlabs.road.trace_under_bar", "\u0001", "\u0001", "\u0001", "\u0001", "\u0001");
+                String underBar = p + L.t("wynnlabs.road.trace_skip", bar.substring(0, bar.indexOf('\u0001')));
+                lines.forEach(l -> assertTrue(l.endsWith(around) || !l.startsWith(p + skip) || l.equals(p + notBest)
+                        || l.startsWith(underBar), l));
                 String start = L.t("wynnlabs.road.trace_start_weapon", name.substring(0, name.indexOf(" Lv")));
                 assertTrue(notes.stream().anyMatch(l -> l.startsWith("Lv " + m + " ") && l.contains(start)),
                         "Lv " + m + ": no start around " + name);
@@ -239,9 +245,10 @@ class RoadmapMythicsTest {
         assertTrue(relik.stream().anyMatch(l -> l.startsWith("Lv 120 Olympic Lv93: ")) && !relik.contains(window),
                 "Olympic was dropped at Lv 120: " + relik.stream().filter(l -> l.contains("Olympic Lv93")).toList());
         // a start around it, unless the set already holds it (the search does not start around the
-        // weapon it is built on)
+        // weapon it is built on, even when another start wins in the end)
         boolean holds = steps.stream().anyMatch(s -> s.level() == 120 && s.build() != null
-                && s.build().get("WEAPON") != null && s.build().get("WEAPON").name().equals("Olympic"));
+                && s.build().get("WEAPON") != null && s.build().get("WEAPON").name().equals("Olympic"))
+                || relik.contains("Lv 120 Olympic Lv93: " + L.t("wynnlabs.road.trace_skip", L.t("wynnlabs.road.trace_held")));
         assertTrue(holds || notes.stream().anyMatch(l -> l.startsWith("Lv 120 ")
                         && l.contains(L.t("wynnlabs.road.trace_start_weapon", "Olympic"))),
                 "no start around Olympic at Lv 120");
