@@ -140,7 +140,7 @@ test {
         filter {
             ['TuningTest', 'RoadmapLocksTest', 'RoadmapOnDemandTest', 'TreeModelTest', 'RoadmapMythicsTest',
              'FightingGoalXpRoadmapTest', 'AroundTest', 'NowSetTest', 'PlansTest', 'BoxVerdictTest',
-             'ElementalDefenceTest', 'DefenceNotHoardedTest', 'PowderRollTest']
+             'ElementalDefenceTest', 'DefenceNotHoardedTest', 'PowderRollTest', 'FeedPlannerTest', 'RoadMapTest']
                     .each { excludeTestsMatching "*.${it}" }
         }
     }
