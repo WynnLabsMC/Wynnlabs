@@ -28,7 +28,7 @@ final class SettingsControls extends MenuPaint {
     /** The control's width (the reset included), as {@link #control} draws it. */
     int width(SetRow r, boolean picked) {
         int w = switch (r.kind()) {
-            case "switch", "advice" -> 19;
+            case "switch", "advice" -> 19 + (movable(r) ? moveWidth() + Theme.SP_2 : 0);
             case "rule" -> r.r().isSwitch() ? 19 : emeraldBox(r, picked) ? 2 * SQ + 2 * Theme.SP_1 + 40 + Theme.SP_1 + unitWidth()
                     : stepperWidth(SettingsRows.shortValue(r));
             case "step" -> stepperWidth(SettingsRows.shortValue(r));
@@ -67,6 +67,9 @@ final class SettingsControls extends MenuPaint {
             case "switch", "advice" -> {
                 UiToggle.draw(g, right - UiToggle.W, Type.BODY.onCaps(ty, UiToggle.H), SettingsRows.toggleOn(r), r.id(), mx, my);
                 w = UiToggle.W;
+                if (movable(r)) {
+                    w += Theme.SP_2 + move(g, r, right - w - Theme.SP_2, ty, mx, my);
+                }
             }
             case "rule" -> {
                 if (r.r().isSwitch()) {
@@ -104,6 +107,28 @@ final class SettingsControls extends MenuPaint {
                 rowTip(rx, cy, SQ, Ui.CHIP_H, L.t("wynnlabs.settings.reset_one"), SettingsRows.rowDefault(r));
             }
             w += Theme.SP_2 + SQ;
+        }
+        return w;
+    }
+
+    /** A switch for a movable HUD element (its place set in {@link HudEditScreen}). */
+    private static boolean movable(SetRow r) {
+        return r.kind().equals("switch") && r.id().equals("ridePanel");
+    }
+
+    private int moveWidth() {
+        return Type.BODY.width(font(), L.t("wynnlabs.hud.move")) + 2 * Theme.SP_3;
+    }
+
+    /** "Move": opens the HUD's move screen on this element; returns its width. */
+    private int move(GuiGraphics g, SetRow r, int right, int ty, int mx, int my) {
+        int w = moveWidth();
+        int x = right - w;
+        int y = Type.BODY.onCaps(ty, Ui.SMALL_H);
+        Ui.small(g, font(), L.t("wynnlabs.hud.move"), x, y, w, mx, my);
+        menu.toggles.add(new Object[] {new int[] {x, y, w, Ui.SMALL_H}, "#hudmove:" + RidePanel.ID});
+        if (mx >= x && mx < x + w && my >= y && my < y + Ui.SMALL_H) {
+            rowTip(x, y, w, Ui.SMALL_H, L.t("wynnlabs.hud.move"), L.t("wynnlabs.hud.move_tip"));
         }
         return w;
     }

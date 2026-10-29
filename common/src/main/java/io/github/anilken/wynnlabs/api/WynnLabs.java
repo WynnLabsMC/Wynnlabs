@@ -184,6 +184,13 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.XpMeter", XpMeter::onTick));
         platform.onEndTick(Perf.tick("tick.Vault", Vault::onTick));
         platform.onEndTick(Perf.tick("tick.MountBook", io.github.anilken.wynnlabs.mounts.MountBook::onTick));
+        // the mount panel's ridden mount, and its refresh (only with the panel and its refresh on)
+        platform.onEndTick(Perf.tick("tick.RideWatch", io.github.anilken.wynnlabs.mounts.RideWatch::onTick));
+        platform.onGameMessage((text, overlay) -> {
+            if (overlay) {
+                io.github.anilken.wynnlabs.mounts.RideWatch.onBar(text);
+            }
+        });
         platform.onEndTick(Perf.tick("tick.Coach", Coach::onTick));
         // the Endgame tab: raid and lootrun history, the reward pool seen, the aspect list
         platform.onEndTick(Perf.tick("tick.RaidLog", RaidLog::onTick));
@@ -206,6 +213,17 @@ public final class WynnLabs {
                 DpsHud.render(g, dt);
             } finally {
                 Perf.end("hud.DpsHud", t);
+            }
+        });
+        // the mount panel while riding (setting ridePanel, off by default)
+        platform.addHud(net.minecraft.resources.Identifier.fromNamespaceAndPath("wynnlabs", "ride"), (g, dt) -> {
+            long t = Perf.start();
+            try {
+                io.github.anilken.wynnlabs.ui.RidePanel.render(g, dt);
+            } catch (Throwable ignored) {
+                // a panel must never break the HUD
+            } finally {
+                Perf.end("hud.RidePanel", t);
             }
         });
         // the verdict badges on the hotbar's items (setting hotbarBadges), after the hotbar is drawn
@@ -290,6 +308,12 @@ public final class WynnLabs {
                 Wyn.listen(new WynntilsEvents.Tooltips());
             } catch (Throwable t) {
                 System.out.println("[WynnLabs] menu tooltip size hook unavailable: " + t);
+            }
+            // the mount panel: the mount Wynntils saw summoned or mounted
+            try {
+                Wyn.listen(new WynntilsEvents.Mounts());
+            } catch (Throwable t) {
+                System.out.println("[WynnLabs] mount events unavailable: " + t);
             }
             // the Mount Feeder's marks and row card
             try {

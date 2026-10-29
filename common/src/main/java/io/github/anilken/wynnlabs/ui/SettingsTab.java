@@ -201,6 +201,8 @@ final class SettingsTab extends MenuTab {
         } else if ("#keydel".equals(id)) {
             Prices.setKey("");
             menu.flash(L.t("wynnlabs.settings.key_removed"));
+        } else if (id.startsWith("#hudmove:")) {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new HudEditScreen(menu, id.substring(9)));
         } else if ("#archetype".equals(id)) {
             menu.archPicker.open(rect);
         } else if ("#goal".equals(id)) {

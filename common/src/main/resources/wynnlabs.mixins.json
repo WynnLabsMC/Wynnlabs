@@ -13,7 +13,9 @@
     "TooltipGapMixin",
     "GuiGraphicsAccessor",
     "ContainerHoverAccessor",
-    "SearchKeyMixin"
+    "SearchKeyMixin",
+    "RideRefreshMixin",
+    "RideUseMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -679,4 +679,79 @@ public final class WynntilsItems {
         Object name = c == null ? null : part(() -> Wyn.call(c, "displayName"));
         return name instanceof String s ? s : "";
     }
+
+    // ---- the ridden mount (the mount panel) ----
+    //
+    // Wynntils' mount model (Models.Mount) knows which mount was summoned and where its item is, and
+    // reads the live energy pool from the action bar. Looked up by name: not in every release this
+    // mod supports.
+    private static final String MOUNT_CHOICE = "com.wynntils.models.mount.type.MountChoice";
+
+    /** Wynntils' mount model, or null when this release has none. */
+    private static Object mountModel() {
+        try {
+            return com.wynntils.core.components.Models.class.getField("Mount").get(null);
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            return null;
+        }
+    }
+
+    /**
+     * The inventory slot of the mount Wynntils saw summoned last (its type's item): -1 when none is
+     * current or its item is not carried, -2 when this Wynntils cannot tell (no mount model).
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static int currentMountSlot() {
+        Object model = mountModel();
+        Class<?> choiceType = Wyn.type(MOUNT_CHOICE).orElse(null);
+        if (model == null || choiceType == null) {
+            return -2;
+        }
+        Optional<Method> find = Wyn.method(model.getClass(), "findMountSlotNum", choiceType);
+        if (find.isEmpty()) {
+            return -2;
+        }
+        try {
+            Object type = Wyn.call(model, "getCurrentMountType");
+            if (!(type instanceof Optional<?> o) || o.isEmpty() || !(o.get() instanceof Enum<?> kind)) {
+                return -1;
+            }
+            Object choice = Enum.valueOf((Class) choiceType, kind.name());
+            Object slot = Wyn.call(find.get(), model, choice);
+            return slot instanceof Integer i && i >= 0 ? i : -1;
+        } catch (RuntimeException | LinkageError e) {
+            return -2;
+        }
+    }
+
+    /** The live mount energy pool {current, max} Wynntils reads from the action bar; null when unknown. */
+    public static int[] currentMountEnergy() {
+        Object model = mountModel();
+        if (model == null) {
+            return null;
+        }
+        try {
+            Object e = Wyn.call(model, "getCurrentMountEnergy");
+            if (e instanceof Optional<?> o && o.isPresent() && o.get() instanceof CappedValue v) {
+                return new int[] {v.current(), v.max()};
+            }
+            return null;
+        } catch (RuntimeException | LinkageError e) {
+            return null;
+        }
+    }
+
+    /** Dev diagnostics: Wynntils' current mount type as it says it ("WYVERN", "none", or "no model"). */
+    public static String currentMountTypeName() {
+        Object model = mountModel();
+        if (model == null) {
+            return "no model";
+        }
+        try {
+            Object type = Wyn.call(model, "getCurrentMountType");
+            return type instanceof Optional<?> o ? o.map(String::valueOf).orElse("none") : String.valueOf(type);
+        } catch (RuntimeException | LinkageError e) {
+            return "error: " + e;
+        }
+    }
 }

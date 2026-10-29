@@ -42,8 +42,6 @@ public final class FeederRead {
     private static final Pattern WORDS = Pattern.compile("time|left|remain|ready|eat|digest|done|finish|feeding|kalan",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern FORMAT = Pattern.compile("§.");
-    /** The private-use glyphs Wynncraft draws its menus with (spacers, icons): never text. */
-    private static final Pattern GLYPHS = Pattern.compile("\\p{Co}");
 
     private FeederRead() {}
 
@@ -231,9 +229,26 @@ public final class FeederRead {
         return -1;
     }
 
+    /**
+     * Text without the resource pack's glyphs, by code point: everything past the basic plane (the
+     * game's U+CFFxx / U+D00xx spacers, planes 15 and 16, any font trick there; lore text is never
+     * written in it), private use (U+E000-F8FF), unassigned ones and stray surrogates.
+     */
+    public static String glyphless(String s) {
+        StringBuilder out = new StringBuilder(s.length());
+        s.codePoints().forEach(cp -> {
+            int t = Character.getType(cp);
+            if (cp < Character.MIN_SUPPLEMENTARY_CODE_POINT && t != Character.PRIVATE_USE && t != Character.SURROGATE
+                    && t != Character.UNASSIGNED) {
+                out.appendCodePoint(cp);
+            }
+        });
+        return out.toString();
+    }
+
     /** A lore line as text: no colour codes, no private-use glyphs, trimmed. */
     public static String text(String line) {
-        return GLYPHS.matcher(FORMAT.matcher(line).replaceAll("")).replaceAll("").trim();
+        return glyphless(FORMAT.matcher(line).replaceAll("")).trim();
     }
 
     /** A mount's skin ("Azure-Horn": its colours, shared by many): the line right after its "240 Potential" line, or null. */

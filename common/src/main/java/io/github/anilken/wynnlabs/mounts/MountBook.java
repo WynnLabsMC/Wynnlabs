@@ -271,6 +271,53 @@ public final class MountBook {
         return true;
     }
 
+    /** A mount item outside a feeder (the held reins), with the maxes last seen in a feeder; null for anything else. */
+    public static MountRead readItem(ItemStack stack) {
+        return read(stack, false);
+    }
+
+    /**
+     * Any item that shows a mount's stats: as {@link #readItem}, else from its name and lore
+     * ({@link RideLore}: the hotbar item that summons it), with the maxes last seen in a feeder.
+     */
+    public static MountRead readAny(ItemStack stack) {
+        MountRead m = readItem(stack);
+        if (m != null || stack == null || stack.isEmpty()) {
+            return m;
+        }
+        List<String> lore = lore(stack);
+        if (forSale(lore)) {
+            return null;
+        }
+        MountRead parsed = RideLore.parse(stack.getHoverName().getString(), lore);
+        return parsed == null ? null : withKnownMax(parsed, false, KNOWN_MAX);
+    }
+
+    /** Dev diagnostics: why {@link #readAny} gives what it gives for this item. */
+    public static String explain(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return "empty slot";
+        }
+        if (readItem(stack) != null) {
+            return "read by Wynntils as a mount";
+        }
+        List<String> lore = lore(stack);
+        if (forSale(lore)) {
+            return "a shop's offer";
+        }
+        return RideLore.parse(stack.getHoverName().getString(), lore) != null ? "read from its lore"
+                : "not a mount: " + RideLore.statLines(lore) + " stat lines (needs " + RideLore.MIN_STATS + ")";
+    }
+
+    /** Dev diagnostics: an item's lore lines as text. */
+    public static List<String> loreText(ItemStack stack) {
+        List<String> out = new ArrayList<>();
+        for (String l : lore(stack)) {
+            out.add(FeederRead.text(l));
+        }
+        return out;
+    }
+
     /** A mount's reins with its skin and state from the lore; null for anything else, a shop's offer included. */
     private static MountRead read(ItemStack stack, boolean inFeeder) {
         if (stack == null || stack.isEmpty()) {

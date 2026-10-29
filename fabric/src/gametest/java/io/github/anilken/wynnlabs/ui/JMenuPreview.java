@@ -40,7 +40,7 @@ public class JMenuPreview implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "craftsuggest", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai", "archetypes", "mounts", "feeder").contains(only)) {
+        if (only != null && !java.util.Set.of("jmenu", "home", "crafting", "craftsuggest", "rail", "settings", "quests", "today", "tree", "search", "bank", "endgame", "ai", "archetypes", "mounts", "feeder", "ride").contains(only)) {
             return;
         }
         // jmenu (or none): every shot; home / crafting / rail: only that screen's
@@ -70,6 +70,10 @@ public class JMenuPreview implements FabricClientGameTest {
             ctx.waitTicks(2);
             if ("mounts".equals(part)) {
                 MountsPreview.shots(ctx, out);          // needs no road map: straight to the Mounts tab
+                return;
+            }
+            if ("ride".equals(part)) {
+                RidePreview.shots(ctx, out);            // the mount panel on the HUD and its move screen
                 return;
             }
             if ("feeder".equals(part)) {

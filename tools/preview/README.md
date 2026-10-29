@@ -39,6 +39,8 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
   the places and the empty page (`MountsPreview`).
 - `-PpreviewOnly=feeder`: the Mount Feeder marks over a stand-in feeder (a chest titled "Mount Feeder"): the marks,
   the mouse on row 2 (its card) and row 4's card kept open (`FeederPreview`).
+- `-PpreviewOnly=ride`: the mount panel on the HUD, forced on without riding: a Wyvern at rest, Speed +1 / Handling +2 /
+  Boost −1 showing, a Horse with unknown maxes (Jump Height) and the move screen (`RidePreview`).
 - `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).
 - Another fixture: `-Dwynnlabs.previewFixture=synthetic` in the run's VM options
   (`fabric/build.gradle`, `loom.runs` → `clientGameTest`).

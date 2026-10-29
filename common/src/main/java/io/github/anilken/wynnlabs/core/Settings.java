@@ -52,6 +52,8 @@ public final class Settings {
         LABELS.put("survivalWarn", "wynnlabs.setting.survivalWarn");
         LABELS.put("coachToasts", "wynnlabs.setting.coachToasts");
         LABELS.put("dpsHud", "wynnlabs.setting.dpsHud");
+        LABELS.put("ridePanel", "wynnlabs.setting.ridePanel");
+        LABELS.put("rideRefresh", "wynnlabs.setting.rideRefresh");
         LABELS.put("sellGlow", "wynnlabs.setting.sellGlow");
         LABELS.put("verdictBadges", "wynnlabs.setting.verdictBadges");
         LABELS.put("hotbarBadges", "wynnlabs.setting.hotbarBadges");
@@ -138,6 +140,10 @@ public final class Settings {
         DESC.put("coachToasts", "wynnlabs.setting_desc.coachToasts");
         CATEGORY.put("dpsHud", "coach");
         DESC.put("dpsHud", "wynnlabs.setting_desc.dpsHud");
+        CATEGORY.put("ridePanel", "coach");
+        DESC.put("ridePanel", "wynnlabs.setting_desc.ridePanel");
+        CATEGORY.put("rideRefresh", "coach");
+        DESC.put("rideRefresh", "wynnlabs.setting_desc.rideRefresh");
         CATEGORY.put("sellSummary", "coach");
         DESC.put("sellSummary", "wynnlabs.setting_desc.sellSummary");
         CATEGORY.put("glowQuest", "quests");
@@ -317,7 +323,7 @@ public final class Settings {
      * busier extras, so a first run shows the mod's main work and the rest is a switch away.
      */
     private static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "groundGlowNormal", "priceApi",
-            "localApi", "apiWrite", "debug", "dpsHud", "autoUpdate",
+            "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "autoUpdate",
             "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "groundGlowOther", "hotbarBadges",
             "powderHint");
 

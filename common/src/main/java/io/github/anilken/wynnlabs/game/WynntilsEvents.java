@@ -139,6 +139,31 @@ public final class WynntilsEvents {
      * The Mount Feeder's marks and row card (FeederOverlay): drawn after the menu, and the clicks
      * and Esc that land on them. Every other click and key goes on to the game untouched.
      */
+    /**
+     * The mount panel: Wynntils saw a mount summoned (its keybind or the item) or mounted. Its own
+     * listener, registered on its own, as older Wynntils releases have no mount events.
+     */
+    public static final class Mounts {
+
+        @SubscribeEvent
+        public void onSummon(com.wynntils.models.mount.event.MountEvent.Summon e) {
+            try {
+                io.github.anilken.wynnlabs.mounts.RideWatch.onSummoned(String.valueOf(e.getMountType()), "wynntils summon event");
+            } catch (Throwable ignored) {
+                // the summon goes on as before
+            }
+        }
+
+        @SubscribeEvent
+        public void onMount(com.wynntils.models.mount.event.MountEvent.Mount e) {
+            try {
+                io.github.anilken.wynnlabs.mounts.RideWatch.onSummoned(String.valueOf(e.getMountType()), "wynntils mount event");
+            } catch (Throwable ignored) {
+                // the ride goes on as before
+            }
+        }
+    }
+
     public static final class Feeder {
 
         @SubscribeEvent
