@@ -123,6 +123,54 @@ final class SearchPreview {
             t.menus.open = SearchMenus.NONE;
             t.pickCategory(SearchCategory.ALL);
         });
+        mobDrops(ctx, out);
+    }
+
+    /**
+     * A mob with many actions and drops (Withered Quasinobility, only in a real Wynntils cache):
+     * the wrapped action rows inside the card, and its drops with icons and prices seeded by hand
+     * (every one but the last; Wynnventory is not in the preview, so nothing is requested).
+     */
+    private static void mobDrops(ClientGameTestContext ctx, Path out) {
+        String key = "mob:Withered Quasinobility";
+        if (ItemIndex.get().byKey(key) == null) {
+            return;
+        }
+        ctx.runOnClient(mc -> {
+            try {
+                Class<?> c = io.github.anilken.wynnlabs.market.Prices.class;
+                set(c, "installed", Boolean.TRUE);
+                set(c, "loaded", true);
+                set(c, "unavailable", true);            // onTick stays away: no reads, no requests
+                java.lang.reflect.Field f = c.getDeclaredField("PRICES");
+                f.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                var prices = (java.util.Map<String, io.github.anilken.wynnlabs.market.Prices.Price>) f.get(null);
+                var drops = ItemIndex.get().byKey(key).links(io.github.anilken.wynnlabs.search.Entry.ITEM);
+                long now = System.currentTimeMillis();
+                int[] values = {38, 410, 2_900, 17_500, 96};
+                for (int i = 0; i < drops.size() - 1; i++) {
+                    prices.put(drops.get(i).name(), new io.github.anilken.wynnlabs.market.Prices.Price(values[i % values.length],
+                            null, null, null, null, now, null, null));
+                }
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+            if (!TrackedMobs.get().has("Withered Quasinobility")) {
+                TrackedMobs.get().toggle("Withered Quasinobility");
+            }
+        });
+        tab(ctx, t -> t.show(key));
+        ctx.waitTicks(10);
+        shot(ctx, out, "search-mob-drops");
+        tab(ctx, t -> t.card.scroll = 10_000);
+        shot(ctx, out, "search-mob-drops-end");
+    }
+
+    private static void set(Class<?> c, String name, Object value) throws ReflectiveOperationException {
+        java.lang.reflect.Field f = c.getDeclaredField(name);
+        f.setAccessible(true);
+        f.set(null, value);
     }
 
     private static void tab(ClientGameTestContext ctx, Consumer<SearchTab> run) {

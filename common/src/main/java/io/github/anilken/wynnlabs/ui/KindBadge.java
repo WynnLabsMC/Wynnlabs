@@ -128,6 +128,11 @@ record KindBadge(String fill, String glyph, String wyn) {
         return s;
     }
 
+    /** The badge's tile alone, in {@code colour}, as a frame around an item's own icon (a mob's drops). */
+    static void frame(GuiGraphics g, int x, int y, int size, int colour) {
+        Kit.tile(g, x, y, size, light(colour), colour);
+    }
+
     /** The kind's colour a fifth of the way from the page's light paper. */
     static int light(int colour) {
         int r = (colour >> 16) & 255;

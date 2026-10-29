@@ -191,6 +191,54 @@ final class SearchThingCard extends MenuPaint {
 
     // ---- the sections under the rows ----
 
+    /** The icon column of an item row: Minecraft's 16 px item in a badge's tile with a pixel around it. */
+    private static final int ICON = 18;
+
+    /**
+     * An item the thing gives: its icon in a tile of its rarity's colour, like the card's badges
+     * (hover: the item's tooltip), its name opening its card
+     * (LINK, gold on hover; cut with "…" before the price) and its market price on the right when
+     * one is known; returns the y of the next row. Only prices already read are shown: no request.
+     */
+    private int item(GuiGraphics g, String name, Entry item, int x, int y, int w, int mx, int my) {
+        int ty = Type.BODY.yIn(y, ICON);
+        int tx = x + ICON + Theme.SP_3;
+        String price = price(item);
+        int pw = price == null ? 0 : Type.NUMBER.width(font(), price) + Theme.SP_4;
+        if (price != null) {
+            Type.NUMBER.drawRight(g, font(), price, x + w, ty, Theme.PRICE);
+        }
+        if (item == null) {
+            Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, x + w - pw - tx), tx, ty, Theme.INK_2);
+            return y + ICON + Theme.SP_2;
+        }
+        var stack = tab.icons.of(item);
+        KindBadge.frame(g, x, y, ICON, item.tier() == null ? Theme.INK_3 : SearchResultsPanel.colour(item));
+        g.renderItem(stack, x + 1, y + 1);
+        if (card.over(mx, my) && mx >= x && mx < x + ICON && my >= y && my < y + ICON) {
+            menu.hits.add(new MenuHit(x, y, ICON, ICON, stack, null, null));
+        }
+        String shown = Type.BODY.fit(font(), name, x + w - pw - tx);
+        int nw = Type.BODY.width(font(), shown);
+        boolean hover = card.over(mx, my) && mx >= tx && mx < tx + nw && my >= y && my < y + ICON;
+        Type.BODY.draw(g, font(), shown, tx, ty, hover ? Theme.GOLD_DEEP : Theme.LINK);
+        card.click(tx, y, nw, ICON, () -> tab.show(item.key()));
+        if (!shown.equals(name)) {
+            card.tip(tx, y, nw, ICON, mx, my, name);
+        }
+        return y + ICON + Theme.SP_2;
+    }
+
+    /** "~4 EB": the market price already read for a tradable item, else null (no price, no Wynnventory). */
+    private static String price(Entry item) {
+        if (item == null || !item.item() || !item.tradable()) {
+            return null;
+        }
+        io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(item.name());
+        Double v = p == null ? null : p.typical();
+        return v == null ? null : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(v);
+    }
+
     int draw(GuiGraphics g, Entry e, int x, int y, int w, int mx, int my) {
         int cy = y;
         ItemIndex index = ItemIndex.get();
@@ -203,11 +251,9 @@ final class SearchThingCard extends MenuPaint {
             };
             cy = card.sources.title(g, title, String.valueOf(items.size()), x, cy, w);
             for (Entry.Origin o : items) {
-                Entry item = index.byKey(o.name());
-                cy = item == null ? card.sources.line(g, o.name(), x, cy, w, Theme.INK_2)
-                        : card.sources.link(g, o.name(), x, cy, w, mx, my, () -> tab.show(item.key()));
+                cy = item(g, o.name(), index.byKey(o.name()), x, cy, w, mx, my);
             }
-            cy += Theme.SP_3;
+            cy += Theme.SP_1;
         }
         switch (e.kind()) {
             case QUEST -> cy = card.sources.link(g, L.t("wynnlabs.search.open_quests"), x, cy, w, mx, my, () -> {

@@ -216,9 +216,11 @@ final class SearchCardPanel extends MenuPaint {
         }
         loadWiki();
         int pad = Theme.SP_5;
-        int footY = y + h - pad - Ui.BUTTON_H;
+        // the actions may wrap onto more rows: measured first, so every row sits inside the card
+        int actionsH = actions(null, x + pad, 0, w - 2 * pad, mx, my);
+        int footY = y + h - pad - actionsH;
         int top = y + Theme.SP_2;
-        view = new int[] {x + 1, top, w - 2, footY - Theme.SP_4 - top};
+        view = new int[] {x + 1, top, w - 2, Math.max(0, footY - Theme.SP_4 - top)};
         int cw = w - 2 * pad - ScrollBar.W - Theme.SP_2;
         g.enableScissor(view[0], view[1], view[0] + view[2], view[1] + view[3]);
         int start = y + pad - scroll;
@@ -231,7 +233,7 @@ final class SearchCardPanel extends MenuPaint {
             bar.place(x + w - ScrollBar.W - Theme.SP_2, view[1], view[3], view[3], total, scroll);
             bar.draw(g, mx, my);
         }
-        view = new int[] {x, footY, w, Ui.BUTTON_H};
+        view = new int[] {x, footY, w, actionsH};
         actions(g, x + pad, footY, w - 2 * pad, mx, my);
     }
 
@@ -337,7 +339,10 @@ final class SearchCardPanel extends MenuPaint {
 
     // ---- the actions ----
 
-    /** "Compass ›" and the chips beside it, wrapping; returns the y under them. */
+    /**
+     * "Compass ›" and the chips beside it, wrapping; returns the y under them. With {@code g} null
+     * it only measures (nothing drawn, no clicks), by the same wrapping, so the two never disagree.
+     */
     private int actions(GuiGraphics g, int x, int y, int w, int mx, int my) {
         Area easiest = firstPlace();
         int bx = x;
@@ -345,8 +350,10 @@ final class SearchCardPanel extends MenuPaint {
         if (easiest != null) {
             String pin = L.t("wynnlabs.search.pin");
             int bw = Ui.iconButtonLabelWidth(font(), pin);
-            Ui.iconButtonLabel(g, font(), "compass", pin, bx, cy, bw, over(mx, my) ? mx : -1, my);
-            click(bx, cy, bw, Ui.BUTTON_H, this::pinEasiest);
+            if (g != null) {
+                Ui.iconButtonLabel(g, font(), "compass", pin, bx, cy, bw, over(mx, my) ? mx : -1, my);
+                click(bx, cy, bw, Ui.BUTTON_H, this::pinEasiest);
+            }
             bx += bw + Theme.SP_3;
         }
         boolean mapOk = easiest != null && GameState.current().running() && Wyn.up(Wyn.Feature.WAYPOINTS);
@@ -379,9 +386,11 @@ final class SearchCardPanel extends MenuPaint {
                 cy += Ui.BUTTON_H + Theme.SP_2;
                 chipY = cy + (Ui.BUTTON_H - Ui.CHIP_H) / 2;
             }
-            boolean on = c.length > 4 && (boolean) c[4];
-            Ui.iconChip(g, font(), (String) c[0], label, false, bx, chipY, cw, on, over(mx, my) ? mx : -1, my);
-            click(bx, chipY, cw, Ui.CHIP_H, (Runnable) c[3]);
+            if (g != null) {
+                boolean on = c.length > 4 && (boolean) c[4];
+                Ui.iconChip(g, font(), (String) c[0], label, false, bx, chipY, cw, on, over(mx, my) ? mx : -1, my);
+                click(bx, chipY, cw, Ui.CHIP_H, (Runnable) c[3]);
+            }
             bx += cw + Theme.SP_2;
         }
         return cy + Ui.BUTTON_H;
