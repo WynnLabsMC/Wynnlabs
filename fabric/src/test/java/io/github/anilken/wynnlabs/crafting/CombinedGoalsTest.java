@@ -57,8 +57,8 @@ class CombinedGoalsTest {
         Suggestions.GoalSet g = Suggestions.combined(List.of("rawspell", "mana"), 105, null);
         WhatCanICraft.Stock stock = new WhatCanICraft.Stock(Map.of(), Map.of(), Map.of());
         List<SetSuggestions.CraftSet> sets = new java.util.ArrayList<>();
-        SetSuggestions.runBand("relik", List.of(g), 103, stock, CraftGoldenTest.ingredients(), n -> null, 60,
-                new CraftSearch.Budget(120_000), sets::add);
+        SetSuggestions.runBand("relik", List.of(g), 103, stock, CraftGoldenTest.ingredients(), n -> null,
+                CraftGoldenTest.NO_DEADLINE_MS, new CraftSearch.Budget(CraftGoldenTest.NO_DEADLINE_MS), sets::add);
         assertTrue(!sets.isEmpty(), "a combined set is found");
         for (SetSuggestions.CraftSet s : sets) {
             Craft.Range spell = s.totals().getOrDefault("rawSpellDamage", Craft.Range.ZERO);

@@ -50,6 +50,13 @@ class CraftGoldenTest {
             new Golden("4mamaWJWJWJWJCfa0", "rawspell", "eff [0, 0, 160, 160, 160, 160] req [0, 0, 0, 52, 0] hp - dur 154..159 | fireDamage 16..16 gatherXpBonus 4..4 rawSpellDamage 76..96"),
             new Golden("4mamaWJWJWJWJyfa0", "rawspell", "eff [0, 0, 160, 160, 160, 160] req [0, 0, 0, 52, 0] hp - dur 154..159 | fireDamage 16..16 gatherXpBonus 4..4 rawSpellDamage 76..96"));
 
+    /**
+     * A search time far above what a full search takes here: the search runs to the end, so its
+     * answer is the same on any machine. A short slice stops it where the machine's speed says,
+     * and a slow or busy runner then gets a weaker answer.
+     */
+    static final long NO_DEADLINE_MS = 600_000;
+
     private static volatile List<Ingredient> all;
 
     /** The game's ingredients from the test resource, by the calculator's record. */

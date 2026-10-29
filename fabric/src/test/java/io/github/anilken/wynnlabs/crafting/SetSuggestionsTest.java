@@ -71,15 +71,16 @@ class SetSuggestionsTest {
         List<Ingredient> all = CraftGoldenTest.ingredients();
         WhatCanICraft.Stock stock = new WhatCanICraft.Stock(Map.of(), Map.of(), Map.of());
         Suggestions.GoalSet g = Suggestions.goalSets(List.of("rawspell"), 107, new int[] {0, 0, 40, 0, 0}).get(0);
-        SetSuggestions.CraftSet set = SetSuggestions.one("relik", g, 0, CraftSearch.Tier.ANY, 107, stock, all, n -> null, 3_000,
-                new CraftSearch.Budget(120_000));
+        SetSuggestions.CraftSet set = SetSuggestions.one("relik", g, 0, CraftSearch.Tier.ANY, 107, stock, all, n -> null,
+                CraftGoldenTest.NO_DEADLINE_MS, new CraftSearch.Budget(CraftGoldenTest.NO_DEADLINE_MS));
         for (SetSuggestions.Piece p : set.pieces()) {
             if (p.recipe() == null) {
                 continue;
             }
             CraftSearch.Request q = new CraftSearch.Request(p.recipe(), p.tier1(), p.tier2(), Craft.Speed.NORMAL, g.goal(), all,
                     Map.of(), 200, true, n -> null);
-            CraftSearch.Layout single = Suggestions.best(q, CraftSearch.Tier.ANY, 3_000, new CraftSearch.Budget(10_000), g.core());
+            CraftSearch.Layout single = Suggestions.best(q, CraftSearch.Tier.ANY, CraftGoldenTest.NO_DEADLINE_MS,
+                    new CraftSearch.Budget(CraftGoldenTest.NO_DEADLINE_MS), g.core());
             double mine = p.layout() == null ? 0 : p.layout().score();
             double alone = single == null ? 0 : single.score();
             assertEquals(alone, mine, 1e-6, p.type() + " in the set vs alone");
