@@ -442,12 +442,13 @@ public final class Roadmap {
 
     /**
      * What the map's rows and panels are made of, part of its key: raised when a saved map lacks
-     * something the menu now shows (2: a set's pick and its options judged in the set), so a map
+     * something the menu now shows (2: a set's pick and its options judged in the set; 6: each
+     * pick's step gain in the finished set, picks it is as good without gone), so a map
      * from before is built again once on load; the beam cache's sets stay (BeamCache.modelVersion
      * is the scoring's). A method, not a field: a field added by a hot swap keeps no value.
      */
     public static int mapVersion() {
-        return 5;
+        return 6;
     }
 
     /** Tests: the saved map is looked for again, and nothing is kept in memory. */

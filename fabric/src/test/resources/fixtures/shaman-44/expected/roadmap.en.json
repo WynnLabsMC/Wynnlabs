@@ -15,65 +15,11 @@
           "options": []
         },
         {
-          "slot": "HELMET",
-          "name": "New Moon",
-          "level": 37,
-          "tier": "LEGENDARY",
-          "gain": -0.2,
-          "from": "cave chest",
-          "price": null,
-          "tradable": false,
-          "options": [
-            {
-              "name": "New Moon",
-              "level": 37,
-              "gain": 0.6,
-              "from": "cave chest",
-              "tradable": false
-            },
-            {
-              "name": "Cerid's Precision",
-              "level": 42,
-              "gain": -1.7,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Pelier",
-              "level": 42,
-              "gain": -2.6,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Pierced Helmet",
-              "level": 37,
-              "gain": -3.9,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Avalanche",
-              "level": 43,
-              "gain": -4.6,
-              "from": "Fate of the Fallen quest",
-              "tradable": true
-            },
-            {
-              "name": "Advancement",
-              "level": 29,
-              "gain": -5.3,
-              "from": "Tempo Town merchant",
-              "tradable": false
-            }
-          ]
-        },
-        {
           "slot": "CHESTPLATE",
           "name": "Gladiator",
           "level": 40,
           "tier": "RARE",
-          "gain": 9.2,
+          "gain": 8.0,
           "from": "Isles of Fiction merchant",
           "price": null,
           "tradable": false,
@@ -127,7 +73,7 @@
           "name": "Prologue",
           "level": 36,
           "tier": "LEGENDARY",
-          "gain": 21.1,
+          "gain": 23.9,
           "from": "Isles of Fiction merchant",
           "price": null,
           "tradable": false,
@@ -181,7 +127,7 @@
           "name": "Desert Winds",
           "level": 33,
           "tier": "LEGENDARY",
-          "gain": 10.1,
+          "gain": 10.8,
           "from": "Blood-Encrusted Mastaba event",
           "price": null,
           "tradable": true,
@@ -235,7 +181,7 @@
           "name": "Desert Winds",
           "level": 33,
           "tier": "LEGENDARY",
-          "gain": 9.2,
+          "gain": 8.4,
           "from": "Blood-Encrusted Mastaba event",
           "price": null,
           "tradable": true,
@@ -289,7 +235,7 @@
           "name": "Desert Sands",
           "level": 36,
           "tier": "LEGENDARY",
-          "gain": 6.9,
+          "gain": 5.8,
           "from": "Blazing Combustion event",
           "price": null,
           "tradable": true,
@@ -297,49 +243,49 @@
             {
               "name": "Desert Sands",
               "level": 36,
-              "gain": 10.3,
+              "gain": 8.8,
               "from": "Blazing Combustion event",
               "tradable": true
             },
             {
               "name": "Rime",
               "level": 43,
-              "gain": 4.0,
+              "gain": 5.8,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Goblin Arm Bracer",
               "level": 43,
-              "gain": 3.2,
+              "gain": 3.0,
               "from": "Goblin Village merchant",
               "tradable": true
             },
             {
               "name": "Union",
               "level": 39,
-              "gain": 1.9,
+              "gain": 2.1,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Used Wolf Paw",
               "level": 30,
-              "gain": 1.6,
+              "gain": 1.4,
               "from": "Rymek merchant",
               "tradable": true
             },
             {
               "name": "Favian's Wing",
               "level": 36,
-              "gain": 1.3,
+              "gain": 1.1,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Vindicator",
               "level": 30,
-              "gain": -1.2,
+              "gain": -1.4,
               "from": "Trade Market",
               "tradable": true
             }
@@ -350,7 +296,7 @@
           "name": "Desert Wretch",
           "level": 34,
           "tier": "LEGENDARY",
-          "gain": 5.4,
+          "gain": 5.0,
           "from": "Improper Burial Rites event",
           "price": null,
           "tradable": true,
@@ -358,50 +304,50 @@
             {
               "name": "Desert Wretch",
               "level": 34,
-              "gain": 8.0,
+              "gain": 7.6,
               "from": "Improper Burial Rites event",
               "tradable": true
             },
             {
               "name": "Durum's Serenity",
               "level": 25,
-              "gain": -0.8,
+              "gain": -0.9,
               "from": "Bovine Barn altar",
               "tradable": false
             },
             {
+              "name": "Flickering Light",
+              "level": 29,
+              "gain": -1.7,
+              "from": "cave chest",
+              "tradable": true
+            },
+            {
               "name": "Dogfight",
               "level": 42,
-              "gain": -1.3,
+              "gain": -1.8,
               "from": "Trade Market",
               "tradable": true
             },
             {
               "name": "Sting-Glass Necklace",
               "level": 37,
-              "gain": -2.6,
+              "gain": -2.0,
               "from": "Almuj merchant",
               "tradable": false
             },
             {
-              "name": "Flickering Light",
-              "level": 29,
-              "gain": -3.1,
-              "from": "cave chest",
+              "name": "Dark Diadem",
+              "level": 24,
+              "gain": -2.3,
+              "from": "The Dark Descent quest",
               "tradable": true
             },
             {
               "name": "Charm of the Tick",
               "level": 35,
-              "gain": -3.9,
+              "gain": -2.5,
               "from": "cave chest",
-              "tradable": true
-            },
-            {
-              "name": "Dark Diadem",
-              "level": 24,
-              "gain": -3.9,
-              "from": "The Dark Descent quest",
               "tradable": true
             }
           ]
@@ -501,16 +447,16 @@
               "tradable": true
             },
             {
-              "name": "Upgraded Flare Blitz",
-              "level": 41,
-              "gain": -25.4,
-              "from": "Rymek merchant",
-              "tradable": true
-            },
-            {
               "name": "Cleansing Flame",
               "level": 40,
               "gain": -28.0,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Multiplication",
+              "level": 40,
+              "gain": -28.5,
               "from": "mob drop",
               "tradable": true
             },
@@ -528,7 +474,7 @@
           "name": "Astigmatism",
           "level": 48,
           "tier": "LEGENDARY",
-          "gain": 6.9,
+          "gain": 11.2,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -569,6 +515,13 @@
               "tradable": true
             },
             {
+              "name": "New Moon",
+              "level": 37,
+              "gain": 0.8,
+              "from": "cave chest",
+              "tradable": false
+            },
+            {
               "name": "Chimney",
               "level": 52,
               "gain": -0.4,
@@ -594,13 +547,6 @@
               "level": 55,
               "gain": -2.0,
               "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Wynnter Scarf",
-              "level": 40,
-              "gain": -5.8,
-              "from": "Isles of Fiction merchant",
               "tradable": true
             },
             {
@@ -2728,7 +2674,7 @@
           "name": "Insomniac",
           "level": 111,
           "tier": "UNIQUE",
-          "gain": 0.2,
+          "gain": 0.0,
           "from": "cave chest",
           "price": null,
           "tradable": true,
@@ -2803,7 +2749,7 @@
           "name": "Transfiguration",
           "level": 117,
           "tier": "MYTHIC",
-          "gain": 72.2,
+          "gain": 63.8,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -2860,65 +2806,11 @@
           ]
         },
         {
-          "slot": "HELMET",
-          "name": "Gambler's Ruin",
-          "level": 114,
-          "tier": "LEGENDARY",
-          "gain": -2.5,
-          "from": "mob drop",
-          "price": null,
-          "tradable": true,
-          "options": [
-            {
-              "name": "Gambler's Ruin",
-              "level": 114,
-              "gain": 852.6,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Astrolabe",
-              "level": 117,
-              "gain": 689.3,
-              "from": "lootrun",
-              "tradable": true
-            },
-            {
-              "name": "Nova",
-              "level": 111,
-              "gain": 564.6,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Albino",
-              "level": 118,
-              "gain": 449.3,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Impetus",
-              "level": 113,
-              "gain": 344.8,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Windthrow",
-              "level": 106,
-              "gain": 234.9,
-              "from": "mob drop",
-              "tradable": true
-            }
-          ]
-        },
-        {
           "slot": "CHESTPLATE",
           "name": "Mothwing Cloak",
           "level": 115,
           "tier": "FABLED",
-          "gain": 7.8,
+          "gain": 8.6,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -2972,7 +2864,7 @@
           "name": "Boulderstorm",
           "level": 118,
           "tier": "UNIQUE",
-          "gain": 1.1,
+          "gain": 0.1,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -3033,7 +2925,7 @@
           "name": "Insomniac",
           "level": 111,
           "tier": "UNIQUE",
-          "gain": 0.0,
+          "gain": 4.1,
           "from": "cave chest",
           "price": null,
           "tradable": true,
@@ -3073,7 +2965,7 @@
           "name": "Climber's Wraps",
           "level": 113,
           "tier": "UNIQUE",
-          "gain": 0.0,
+          "gain": 0.2,
           "from": "cave chest",
           "price": null,
           "tradable": true,

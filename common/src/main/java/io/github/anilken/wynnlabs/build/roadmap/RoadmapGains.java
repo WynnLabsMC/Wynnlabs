@@ -2,7 +2,6 @@ package io.github.anilken.wynnlabs.build.roadmap;
 
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
-import io.github.anilken.wynnlabs.build.Exclusive;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Gear;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Step;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Versus;
@@ -125,110 +124,6 @@ final class RoadmapGains {
             why.put(e.getKey(), new ArrayList<>(lines.subList(0, Math.min(lines.size(), Roadmap.WHY_LINES))));
         }
         return new Versus(out, why, against);
-    }
-
-    /**
-     * Each row's step as what its pick adds to the milestone's finished {@code set}: the set
-     * judged with it and with the slot as the milestone started ({@code start}: the last
-     * milestone's piece, or empty), not as the set stood when the pick went in. Picks that pay off
-     * together (a set's pieces, one carrying another's skill points) showed −17 % one after
-     * another while the whole set was well ahead; a pick that really costs the set something still
-     * shows it. A row whose slot cannot go back alone (the set no longer fits) goes back with one
-     * other change of the milestone ({@link #withPartner}), never to an empty slot where something
-     * was (a set without its weapon says nothing about the weapon); one that cannot even so
-     * keeps its number, a target's (NaN) too. Runs on the finished set, after the search's.
-     */
-    static void stepsInSet(List<Gear> gear, Map<String, Damage.Piece> set, Map<String, Damage.Piece> start,
-            Map<String, String> placed, int m, int earned, int[] prev) {
-        Build.Eval full = Build.allocate(set, m, earned);
-        if (full == null) {
-            return;
-        }
-        double fullJ = SetJudge.judged(full, prev, m);
-        for (int i = 0; i < gear.size(); i++) {
-            Gear g = gear.get(i);
-            String slot = placed.get(g.slot());
-            Damage.Piece pick = slot == null ? null : set.get(slot);
-            if (Double.isNaN(g.gain()) || pick == null || !pick.name().equalsIgnoreCase(g.info().name())) {
-                continue;
-            }
-            Damage.Piece was = start.get(slot);
-            if (was != null && was.key().equals(pick.key())) {
-                continue;
-            }
-            // never the slot left empty where something was: a Lv 70 set with no weapon at all
-            // (Void Catalyst's 40 Dexterity no longer fit) made Lightshow read +2104 %
-            double without = withSlot(set, slot, was, m, earned, prev);
-            if (Double.isNaN(without)) {
-                // the pick carries what another of the milestone's changes needs (a new weapon's
-                // skill points): it goes back together with that one, and the row shows what the
-                // two add. Left at the slot-by-slot number, The Modulator read −21 % at Lv 90
-                without = withPartner(set, start, slot, was, m, earned, prev);
-            }
-            if (Double.isNaN(without) || without <= 0) {
-                continue;
-            }
-            double rowGain = (fullJ / without - 1) * 100;
-            gear.set(i, new Gear(g.slot(), g.info(), rowGain, g.source(), g.price(), g.alt(),
-                    g.altSource(), g.detail(), g.alternatives(), setGain(g.options(), rowGain)));
-        }
-    }
-
-    /** {@code set} judged with {@code p} in {@code slot} (null: empty); NaN when that cannot be worn. */
-    private static double withSlot(Map<String, Damage.Piece> set, String slot, Damage.Piece p, int m, int earned,
-            int[] prev) {
-        Map<String, Damage.Piece> trial = new LinkedHashMap<>(set);
-        trial.remove(slot);
-        if (p != null) {
-            if (Exclusive.clash(trial, slot, Exclusive.group(p)) != null) {
-                return Double.NaN;
-            }
-            trial.put(slot, p);
-        }
-        Build.Eval ev = Build.allocate(trial, m, earned);
-        return ev == null ? Double.NaN : SetJudge.judged(ev, prev, m);
-    }
-
-    /**
-     * {@code set} with {@code slot} and one other slot the milestone changed both as they were
-     * when it started ({@code start}; empty where nothing was): the best such that can be worn, so
-     * the row claims the least it can. Never a slot left empty that held something: a set without
-     * its leggings says nothing about the leggings (Omniverse read +617 % that way). NaN when none
-     * can be worn.
-     */
-    private static double withPartner(Map<String, Damage.Piece> set, Map<String, Damage.Piece> start, String slot,
-            Damage.Piece was, int m, int earned, int[] prev) {
-        double best = Double.NaN;
-        for (String other : set.keySet()) {
-            Damage.Piece now = set.get(other);
-            Damage.Piece then = start.get(other);
-            if (other.equals(slot) || now == null || then != null && then.key().equals(now.key())) {
-                continue;
-            }
-            Map<String, Damage.Piece> trial = new LinkedHashMap<>(set);
-            trial.remove(slot);
-            trial.remove(other);
-            if (was != null) {
-                if (Exclusive.clash(trial, slot, Exclusive.group(was)) != null) {
-                    continue;
-                }
-                trial.put(slot, was);
-            }
-            if (then != null) {
-                if (Exclusive.clash(trial, other, Exclusive.group(then)) != null) {
-                    continue;
-                }
-                trial.put(other, then);
-            }
-            Build.Eval ev = Build.allocate(trial, m, earned);
-            if (ev != null) {
-                double j = SetJudge.judged(ev, prev, m);
-                if (Double.isNaN(best) || j > best) {
-                    best = j;
-                }
-            }
-        }
-        return best;
     }
 
     /**
@@ -454,7 +349,7 @@ final class RoadmapGains {
      * The options with a set's pick (first, marked) at its row's gain, and the others judged in
      * that set moved with it (their gains are on the pick's scale): the panel and the row agree.
      */
-    private static List<Roadmap.Option> setGain(List<Roadmap.Option> options, double rowGain) {
+    static List<Roadmap.Option> setGain(List<Roadmap.Option> options, double rowGain) {
         if (options == null || options.isEmpty() || !options.get(0).set()) {
             return options;
         }

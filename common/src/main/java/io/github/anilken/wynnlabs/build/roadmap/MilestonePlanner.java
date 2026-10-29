@@ -329,7 +329,9 @@ final class MilestonePlanner {
             }
         }
         if (baseline != null && ms.startSet != null) {
-            RoadmapGains.stepsInSet(gear, baseline, ms.startSet, placed, m, earned, prevAlloc);
+            long perfSteps = Perf.start();
+            StepGains.apply(gear, baseline, ms.startSet, placed, m, earned, prevAlloc);
+            Perf.end("roadmap.steps", perfSteps);
         }
         if (m == level && in.builds() > 0 && baseline != null && ms.startSet != null) {
             Roadmap.phase(5);
