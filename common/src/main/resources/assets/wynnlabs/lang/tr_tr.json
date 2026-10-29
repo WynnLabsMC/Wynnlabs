@@ -346,6 +346,8 @@
   "wynnlabs.price.problem_key": "Wynnventory key'i geçersiz (%s)",
   "wynnlabs.price.with_median": "~%s (median %s)",
   "wynnlabs.price.past_mark": "%s · Eski fiyat",
+  "wynnlabs.price.mount_band": "~%2$s Potential için ~%1$s (%3$s ilan)",
+  "wynnlabs.price.mount_depends": "Potential değerine göre değişir",
   "wynnlabs.vault.status_none": "Banka henüz açılmadı",
   "wynnlabs.vault.status_not_bank": "Açık menü banka değil: %s (%s)",
   "wynnlabs.vault.status_unknown": "tanınmadı",

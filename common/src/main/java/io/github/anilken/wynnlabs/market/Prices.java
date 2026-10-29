@@ -284,6 +284,8 @@ public final class Prices {
             }
         }
         out.addAll(Roadmap.lastNames());
+        // a mount's name price says nothing (it follows potential): not asked for
+        out.removeIf(MountPrices::isMountName);
         // untradable gear never has a price
         out.removeIf(n -> {
             var info = WynntilsItems.gearByName(n);

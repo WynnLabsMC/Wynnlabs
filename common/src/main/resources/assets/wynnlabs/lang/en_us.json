@@ -346,6 +346,8 @@
   "wynnlabs.price.problem_key": "Wynnventory key rejected (%s)",
   "wynnlabs.price.with_median": "~%s (median %s)",
   "wynnlabs.price.past_mark": "%s · Past price",
+  "wynnlabs.price.mount_band": "~%s for ~%s potential (%s listing)|~%s for ~%s potential (%s listings)",
+  "wynnlabs.price.mount_depends": "Depends on potential",
   "wynnlabs.vault.status_none": "No bank opened yet",
   "wynnlabs.vault.status_not_bank": "The open menu is not a bank: %s (%s)",
   "wynnlabs.vault.status_unknown": "not recognised",

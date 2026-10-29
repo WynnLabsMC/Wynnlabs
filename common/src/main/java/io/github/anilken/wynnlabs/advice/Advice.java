@@ -15,12 +15,14 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.game.WynntilsItems;
+import io.github.anilken.wynnlabs.market.MountPrices;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
 import io.github.anilken.wynnlabs.market.ShoppingSources;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Klass;
+import io.github.anilken.wynnlabs.model.Mount;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import net.minecraft.ChatFormatting;
@@ -655,6 +657,19 @@ public final class Advice {
             String priced = gear != null ? gear.data().name()
                     : parsed.isPresent() && parsed.get().name() != null
                             && !parsed.get().isBox() ? parsed.get().name() : null;
+            Mount mount = WynntilsItems.mount(stack);
+            if (mount != null || MountPrices.isMountName(priced)) {
+                // a mount's price follows its potential; its name price mixes every potential
+                int listed = mount == null ? 0 : Wyn.marketListingPrice(stack);
+                if (listed > 0) {
+                    MountPrices.seen(mount, listed);   // a listing on screen: kept with its potential
+                }
+                if (out.isEmpty()) {
+                    out.add(Component.empty());
+                }
+                out.add(L.c("wynnlabs.advice.price", MountPrices.text(mount)).withStyle(ChatFormatting.GOLD));
+                return;
+            }
             if (priced != null) {
                 Prices.refreshSoon(priced);           // hovered: ask for its listings if 10+ minutes old
                 int listed = Wyn.marketListingPrice(stack);

@@ -43,6 +43,7 @@ import io.github.anilken.wynnlabs.model.Capped;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Klass;
+import io.github.anilken.wynnlabs.model.Mount;
 import io.github.anilken.wynnlabs.model.Obtain;
 import io.github.anilken.wynnlabs.model.Requirement;
 import io.github.anilken.wynnlabs.model.Roll;
@@ -519,6 +520,31 @@ public final class WynntilsItems {
 
     private static boolean isAbilityNode(WynnItem item) {
         return Wyn.type(ABILITY_NODE_ITEM).map(t -> t.isInstance(item)).orElse(false);
+    }
+
+    // MountItem (getMountType().getMountItemName(), getMountInfo().potential()): not in every
+    // release this mod supports, so it is looked up by name; without it no stack is a mount.
+    private static final String MOUNT_ITEM = "com.wynntils.models.items.items.game.MountItem";
+
+    /**
+     * A mount stack ("Wyvern Reins"): its item name and potential. Null for anything else, for a
+     * mount's summon item and when this Wynntils does not read mounts.
+     */
+    public static Mount mount(ItemStack stack) {
+        Optional<WynnItem> p = Wyn.item(stack);
+        if (p.isEmpty() || !Wyn.type(MOUNT_ITEM).map(t -> t.isInstance(p.get())).orElse(false)) {
+            return null;
+        }
+        WynnItem item = p.get();
+        return part(() -> {
+            if (Boolean.TRUE.equals(Wyn.call(item, "isSummonItem"))) {
+                return null;
+            }
+            Object type = Wyn.call(item, "getMountType");
+            String name = (String) (type != null ? Wyn.call(type, "getMountItemName") : Wyn.call(item, "getName"));
+            int potential = (Integer) Wyn.call(Wyn.call(item, "getMountInfo"), "potential");
+            return name == null ? null : new Mount(name, potential);
+        });
     }
 
     private static Roll roll(StatActualValue v, StatRange range) {
