@@ -148,6 +148,18 @@ class MountsModelTest {
     }
 
     @Test
+    void aRideAlreadyDoneIsSkippedAndTheNextFoodIsShownWithItsStock() {
+        Material paper = io.github.anilken.wynnlabs.mounts.MountMaterials.byName("Birch Paper");
+        FeedPlan p = new FeedPlan(true, true, List.of(FeedStep.train(MountStat.ALTITUDE, 10, 2700, 0), FeedStep.feed(paper, 900, false)),
+                3600, 900, 2700, 0, MountStats.fresh(), 0, "test");
+        MountStats at10 = MountStats.uniform(10, 10, 30);            // Altitude already ridden to 10
+        FeedStep first = FeederOverlay.firstStep(io.github.anilken.wynnlabs.mounts.FeedProgress.pending(p, at10, 60));
+        assertEquals(FeedStep.Kind.FEED, first.kind());
+        assertEquals(paper, first.material());
+        assertEquals(List.of(MountsShop.Source.BAG), MountsShop.allot(List.of(first.material()), m -> m == paper ? 1 : 0, m -> 0));
+    }
+
+    @Test
     void theStockIsAllottedToTheRowsInOrder() {
         Material oil = io.github.anilken.wynnlabs.mounts.MountMaterials.byName("Gudgeon Oil");
         Material plank = io.github.anilken.wynnlabs.mounts.MountMaterials.byName("Acacia Plank");

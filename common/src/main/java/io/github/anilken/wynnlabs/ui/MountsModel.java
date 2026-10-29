@@ -13,6 +13,7 @@ import io.github.anilken.wynnlabs.mounts.FeedCache;
 import io.github.anilken.wynnlabs.mounts.FeedJob;
 import io.github.anilken.wynnlabs.mounts.FeedOptions;
 import io.github.anilken.wynnlabs.mounts.FeedPlanner;
+import io.github.anilken.wynnlabs.mounts.FeedProgress;
 import io.github.anilken.wynnlabs.mounts.Mount;
 import io.github.anilken.wynnlabs.mounts.Material;
 import io.github.anilken.wynnlabs.mounts.MountBook;
@@ -282,16 +283,25 @@ final class MountsModel {
         return o.read().key() + "|" + goal + "|" + opts;
     }
 
-    /** This mount's plan: running, cached (stale or not), or the cheap estimate. Never starts the exact one. */
+    /**
+     * This mount's plan: running, cached (stale or not), or the cheap estimate. Never starts the exact one.
+     * The rides it has already done are left out, and the rides left take only the levels still to go.
+     */
     FeedView feed(Owned o) {
         if (previewView != null) {
             return previewView;
         }
-        attachCache();
         Mount m = o.mount();
+        FeedOptions opts = options().road(m.type()).feedOptions();
+        FeedView v = planned(o, m, opts);
+        FeedPlan left = FeedProgress.pending(v.plan(), m.stats(), opts.trainSecPerLevel());
+        return left == v.plan() ? v : new FeedView(left, v.state(), v.savedAt(), v.explored());
+    }
+
+    private FeedView planned(Owned o, Mount m, FeedOptions opts) {
+        attachCache();
         MountStats stats = m.queue().applyTo(m.stats());
         FeedGoal goal = goalFor(o);
-        FeedOptions opts = options().road(m.type()).feedOptions();
         String key = keyOf(o, stats, goal, opts);
         if (job != null && key.equals(jobKey) && !job.done()) {
             return new FeedView(job.current(), FeedState.RUNNING, 0, job.stats().explored());
@@ -304,7 +314,7 @@ final class MountsModel {
                 }
                 // changed since: by following the plan (its foods queued or eaten) it is only further
                 // along, shown from the step reached; stale only when the mount matches no step of it
-                int k = io.github.anilken.wynnlabs.mounts.FeedProgress.of(c.plan(), c.state(), m.stats(), m.queue().pending());
+                int k = FeedProgress.of(c.plan(), c.state(), m.stats(), m.queue().pending());
                 if (k >= 0) {
                     return new FeedView(advanced(c.plan(), k), FeedState.CACHED, c.savedAtMillis(), 0);
                 }

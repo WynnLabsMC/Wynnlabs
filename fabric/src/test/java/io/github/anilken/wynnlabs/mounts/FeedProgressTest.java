@@ -50,4 +50,45 @@ class FeedProgressTest {
     void otherStatsThanAnyStepAreStale() {
         assertEquals(-1, FeedProgress.of(plan(), start, MountStats.uniform(5, 20, 40), List.of()));
     }
+
+    /** A ride to Altitude 10 (10 min), then paper. */
+    private FeedPlan rideFirst() {
+        List<FeedStep> steps = List.of(FeedStep.train(MountStat.ALTITUDE, 10, 600, 0), FeedStep.feed(paper, 900, false));
+        return new FeedPlan(true, true, steps, 1500, 900, 600, 0, start, 0, "test");
+    }
+
+    private MountStats altitude(int level) {
+        return FeedProgress.apply(start, FeedStep.train(MountStat.ALTITUDE, level, 0, 0));
+    }
+
+    @Test
+    void aRideAlreadyDoneIsPlanProgressNotAStalePlan() {
+        assertEquals(1, FeedProgress.of(rideFirst(), start, altitude(10), List.of()), "ridden to 10: past the ride");
+        assertEquals(0, FeedProgress.of(rideFirst(), start, altitude(7), List.of()), "still riding");
+    }
+
+    @Test
+    void aDoneRideIsLeftOutOfThePlan() {
+        FeedPlan left = FeedProgress.pending(rideFirst(), altitude(10), 60);
+        assertEquals(1, left.steps().size());
+        assertEquals(paper, left.steps().get(0).material());
+        assertEquals(900, left.totalTimeSec());
+        assertEquals(0, left.trainingTimeSec());
+    }
+
+    @Test
+    void aRidePartlyDoneTakesOnlyTheLevelsLeft() {
+        FeedPlan left = FeedProgress.pending(rideFirst(), altitude(7), 60);
+        FeedStep ride = left.steps().get(0);
+        assertEquals(MountStat.ALTITUDE, ride.stat());
+        assertEquals(10, ride.toLevel());
+        assertEquals(180, ride.durationSec() - ride.coveredSec(), "three levels at a minute each");
+        assertEquals(1080, left.totalTimeSec());
+    }
+
+    @Test
+    void nothingDoneLeavesThePlanAsItIs() {
+        FeedPlan p = rideFirst();
+        assertEquals(p, FeedProgress.pending(p, start, 0));
+    }
 }

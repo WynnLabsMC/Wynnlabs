@@ -5,8 +5,8 @@ import java.util.List;
 /**
  * How far a mount has come along its plan: following the plan never makes it stale. The mount
  * now (its stats with its queued foods on top) is compared with the plan's prediction after each
- * of its first k steps; when it matches one (the same limits, levels at least the trained ones,
- * and the foods in its queue the plan's own, in order) the plan is on track at step k.
+ * of its first k steps; when it matches some (the same limits, levels at least the trained ones,
+ * and the foods in its queue the plan's own, in order) the plan is on track at the furthest such k.
  */
 public final class FeedProgress {
 
@@ -25,17 +25,68 @@ public final class FeedProgress {
         for (Material m : queued) {
             here = here.fed(m);
         }
+        // the furthest step it matches: rides already done match the steps before them too
         List<FeedStep> steps = plan.steps();
         MountStats predicted = planStart;
+        int reached = -1;
         for (int k = 0; k <= steps.size(); k++) {
             if (k > 0) {
                 predicted = apply(predicted, steps.get(k - 1));
             }
             if (matches(here, predicted) && queueIsThePlans(steps, k, queued)) {
-                return k;
+                reached = k;
             }
         }
-        return -1;
+        return reached;
+    }
+
+    /** Whether a step is a ride already done: the stat's level now is at least its target. */
+    public static boolean rideDone(FeedStep s, MountStats now) {
+        return s != null && !s.isFeed() && s.stat() != null && now != null && now.level(s.stat().ordinal()) >= s.toLevel();
+    }
+
+    /**
+     * The plan as it stands now ({@code now}: the mount's stats; {@code secPerLevel}: riding time a
+     * level): the rides already done left out, and each ride left only as long as its levels still
+     * to go, never longer than planned. The same plan when nothing changes.
+     */
+    public static FeedPlan pending(FeedPlan p, MountStats now, int secPerLevel) {
+        if (p == null || now == null) {
+            return p;
+        }
+        List<FeedStep> out = new java.util.ArrayList<>(p.steps().size());
+        long cut = 0;
+        long cutCovered = 0;
+        boolean changed = false;
+        for (FeedStep s : p.steps()) {
+            if (s.isFeed() || s.stat() == null) {
+                out.add(s);
+                continue;
+            }
+            if (rideDone(s, now)) {
+                cut += s.durationSec() - s.coveredSec();
+                cutCovered += s.coveredSec();
+                changed = true;
+                continue;
+            }
+            int levels = s.toLevel() - now.level(s.stat().ordinal());
+            long dur = secPerLevel > 0 ? Math.min(s.durationSec(), (long) levels * secPerLevel) : s.durationSec();
+            if (dur < s.durationSec()) {
+                long covered = Math.min(s.coveredSec(), dur);
+                cut += (s.durationSec() - s.coveredSec()) - (dur - covered);
+                cutCovered += s.coveredSec() - covered;
+                out.add(FeedStep.train(s.stat(), s.toLevel(), dur, covered));
+                changed = true;
+            } else {
+                out.add(s);
+            }
+        }
+        if (!changed) {
+            return p;
+        }
+        return new FeedPlan(p.goalReached(), p.proven(), out, Math.max(0, p.totalTimeSec() - cut), p.feedTimeSec(),
+                Math.max(0, p.trainingTimeSec() - cut), Math.max(0, p.coveredTrainingSec() - cutCovered), p.end(), p.explored(),
+                p.source());
     }
 
     /** One step's effect: a food raises the limits; a ride raises a stat's level to its target. */
