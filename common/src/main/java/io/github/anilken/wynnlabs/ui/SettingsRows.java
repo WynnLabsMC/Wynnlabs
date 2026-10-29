@@ -111,6 +111,8 @@ final class SettingsRows {
                 p.row("choice", "dropGlow");
                 p.child("switch", "groundGlowShop", "dropGlow");
                 p.child("switch", "groundBeam", "dropGlow");
+                p.row("switch", "chestBeams");
+                p.child("step", "chestBeamTier", "chestBeams");
                 p.head("wynnlabs.settings.sec_tracked");
                 p.row("switch", "mobTrack");
                 p.child("switch", "mobTrackSound", "mobTrack");

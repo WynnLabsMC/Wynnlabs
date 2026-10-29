@@ -166,6 +166,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.TreePlanner", TreePlanner::onTick));
         platform.onEndTick(Perf.tick("tick.GroundMarkers", GroundMarkers::onTick));
         platform.onEndTick(Perf.tick("tick.MobTracker", MobTracker::onTick));
+        platform.onEndTick(Perf.tick("tick.ChestBeams", io.github.anilken.wynnlabs.ui.ChestBeams::onTick));
         platform.onEndTick(Perf.tick("tick.KeptMarks", io.github.anilken.wynnlabs.ui.KeptMarksSync::onTick));
         platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
         platform.onEndTick(Perf.tick("tick.AutoAdvice", WornGear::snapshotArmour));
@@ -258,6 +259,17 @@ public final class WynnLabs {
                 // a marker must never break the frame
             } finally {
                 Perf.end("world.MobTracker", t);
+            }
+        });
+        // the beams above known loot chests (setting chestBeams)
+        platform.onWorldRender((pose, buffers) -> {
+            long t = Perf.start();
+            try {
+                io.github.anilken.wynnlabs.ui.ChestBeams.renderWorld(pose, buffers);
+            } catch (Throwable ignored) {
+                // a beam must never break the frame
+            } finally {
+                Perf.end("world.ChestBeams", t);
             }
         });
         // the labels over mount powerups while riding

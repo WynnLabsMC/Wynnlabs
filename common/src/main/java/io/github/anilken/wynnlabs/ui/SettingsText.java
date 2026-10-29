@@ -214,6 +214,10 @@ final class SettingsText {
 
     /** A number setting's value as its row writes it ("85%"). */
     static String stepText(String key, int v) {
+        String zero = Settings.STEP_ZERO.get(key);
+        if (v == 0 && zero != null) {
+            return L.t(zero);
+        }
         String fmt = Settings.STEP_FORMAT.get(key);
         return fmt == null ? String.valueOf(v) : L.t(fmt, v);
     }

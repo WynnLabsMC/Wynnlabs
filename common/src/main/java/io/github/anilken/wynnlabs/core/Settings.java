@@ -27,7 +27,7 @@ public final class Settings {
 
     static {
         for (String k : new String[] {"itemAdvice", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
-            "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "mobTrack",
+            "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "mobTrack",
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
             "feederHighlight", "miniQuests", "questGuides", "localApi", "apiWrite", "debug", "webFont", "menuResume"}) {
@@ -75,6 +75,8 @@ public final class Settings {
     public static final Map<String, String> STEP_LABELS = new LinkedHashMap<>();
     /** Number setting → the language key that writes its value ("85%"); plain digits when absent. */
     public static final Map<String, String> STEP_FORMAT = new LinkedHashMap<>();
+    /** Number setting → the language key for its value 0 when that means something else ("All"). */
+    public static final Map<String, String> STEP_ZERO = new LinkedHashMap<>();
     private static final Map<String, Integer> STEP_DEFAULT = new LinkedHashMap<>();
 
     static {
@@ -89,6 +91,13 @@ public final class Settings {
         STEP_FORMAT.put("powerupLabelSize", "wynnlabs.settings.percent");
         STEP_DEFAULT.put("powerupLabelSize", 100);
         DESC.put("powerupLabelSize", "wynnlabs.setting_desc.powerupLabelSize");
+        // the fewest stars a loot chest needs for a beam; 0 is every chest, unknown tier too
+        STEPS.put("chestBeamTier", new int[] {0, 1, 2, 3});
+        STEP_LABELS.put("chestBeamTier", "wynnlabs.setting.chestBeamTier");
+        STEP_FORMAT.put("chestBeamTier", "wynnlabs.settings.stars_up");
+        STEP_ZERO.put("chestBeamTier", "wynnlabs.settings.stars_all");
+        STEP_DEFAULT.put("chestBeamTier", 0);
+        DESC.put("chestBeamTier", "wynnlabs.setting_desc.chestBeamTier");
     }
 
     /** A stepped number setting's value (its default when unset). */
@@ -246,7 +255,7 @@ public final class Settings {
      */
     static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "priceApi",
             "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "rideRefresh",
-            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint");
+            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint", "chestBeams");
 
     public static boolean on(String key) {
         load();
