@@ -95,17 +95,20 @@ public final class Coach {
         if (HP.size() < 5 || hp <= 0 || hp > max * 0.6) {
             return;
         }
-        // damage only: sum the drops, ignore heals, over the window
-        double lost = 0;
-        Sample prev = null;
-        for (Sample s : HP) {
-            if (prev != null && s.hp() < prev.hp()) {
-                lost += prev.hp() - s.hp();
-            }
-            prev = s;
-        }
+        // damage only: sum the drops, ignore heals, over the window; a healer or a player who stays
+        // in the fight (tank, healer, boss) by the net loss: healing it out is no reason to warn
         double seconds = (now - HP.peekFirst().time()) / 1000.0;
-        if (seconds < 1 || lost <= 0) {
+        if (seconds < 1) {
+            return;
+        }
+        List<Integer> hps = new ArrayList<>(HP.size());
+        HP.forEach(s -> hps.add(s.hp()));
+        if (HealAdvice.lost(hps, false) <= 0) {
+            return;                             // the cheap check first: nothing lost, no stance needed
+        }
+        HealAdvice.Stance stance = HealAdvice.now();
+        double lost = HealAdvice.lost(hps, stance.net());
+        if (lost <= 0) {
             return;
         }
         double rate = lost / seconds;
@@ -115,9 +118,9 @@ public final class Coach {
         if (left > 4.5) {
             return;
         }
-        // in a raid: quiet, and not every few seconds (health drops fast there all the time)
-        boolean raid = Wyn.inRaid();
-        if (!SurvivalPace.due(now, warnedAt, raid)) {
+        // in a raid or a boss fight: quiet, and not every few seconds (health drops fast there all the time)
+        boolean quiet = Wyn.inRaid() || stance.boss();
+        if (!SurvivalPace.due(now, warnedAt, quiet)) {
             return;
         }
         double limit = Danger.riskHere(mc) >= 2 ? 4.5 : 3;
@@ -126,13 +129,9 @@ public final class Coach {
         }
         warnedAt = now;
         warnUntil = now + 2500;
-        int potions = potions(mc);
-        int slot = potionSlot(mc);
         String secs = String.format(Locale.ROOT, "%.1f", left);
-        warnText = potions <= 0 ? L.t("wynnlabs.coach.warn_no_potion", secs)
-                : slot >= 0 ? L.t("wynnlabs.coach.warn_potion_slot", secs, slot + 1)
-                : L.t("wynnlabs.coach.warn_potion_bag", secs);
-        if (!SurvivalPace.sound(raid)) {
+        warnText = HealAdvice.warning(secs, stance, potions(mc), potionSlot(mc)).text();
+        if (!SurvivalPace.sound(quiet)) {
             return;
         }
         try {

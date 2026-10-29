@@ -119,6 +119,9 @@ final class SettingsRows {
                 p.child("switch", "mobTrackSound", "mobTrack");
                 p.head("wynnlabs.settings.sec_warnings");
                 p.row("multi", "warnings");
+                // the low HP warning's and the death coach's words for healers and tanks
+                p.child("switch", "healerAdvice", "survivalWarn|deathCoach");
+                p.row("switch", "deathCoach");
             }
             case "progress" -> {
                 p.head("wynnlabs.settings.sec_chat");

@@ -360,6 +360,24 @@ public final class Wyn {
         return guard(Feature.STATS, () -> Models.CharacterStats.getMana().map(WynntilsItems::capped), Optional.empty());
     }
 
+    /**
+     * The full health of the mob you are hitting (Wynntils' focused mob, from the game's damage
+     * bar: its health now over its percent left), 0 when none or nothing was hit in the last 10 s.
+     */
+    public static long focusedMobMaxHealth() {
+        return guard(Feature.STATS, () -> {
+            if (System.currentTimeMillis() - Models.Combat.getLastDamageDealtTimestamp() > 10_000) {
+                return 0L;
+            }
+            long hp = Models.Combat.getFocusedMobHealth();
+            var pct = Models.Combat.getFocusedMobHealthPercent();
+            if (hp <= 0 || pct == null || pct.max() <= 0) {
+                return Math.max(0L, hp);
+            }
+            return Math.round(hp * (double) pct.max() / Math.max(1, pct.current()));
+        }, 0L);
+    }
+
     // ---- items and gear (the rest of the mod reads them through WynntilsItems) ----
 
     static Optional<WynnItem> item(ItemStack stack) {

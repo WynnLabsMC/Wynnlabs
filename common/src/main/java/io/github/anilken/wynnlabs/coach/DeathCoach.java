@@ -71,9 +71,11 @@ public final class DeathCoach {
 
     /** Every line the coach gives, for matching advice an older version saved already worded. */
     private static final List<String> ADVICE_KEYS = List.of("wynnlabs.death.repeat_here", "wynnlabs.death.area_level",
-            "wynnlabs.death.burst", "wynnlabs.death.add_defence", "wynnlabs.death.no_potions", "wynnlabs.death.one_off");
+            "wynnlabs.death.burst", "wynnlabs.death.add_defence", "wynnlabs.death.no_potions", "wynnlabs.death.one_off",
+            "wynnlabs.death.heal_sooner", "wynnlabs.death.heal_sooner_combo", "wynnlabs.death.out_of_mana",
+            "wynnlabs.death.one_off_heal", "wynnlabs.death.one_off_tank", "wynnlabs.death.repeat_boss");
 
-    private record Sample(long time, int hp, int max) {}
+    private record Sample(long time, int hp, int max, int mana) {}
 
     private static final Pattern DIED = Pattern.compile("You have died at \\[(-?\\d+), (-?\\d+), (-?\\d+)]");
     private static final Pattern CHARGES = Pattern.compile("\\[(\\d+)/(\\d+)]");
@@ -105,7 +107,8 @@ public final class DeathCoach {
         }
         long now = System.currentTimeMillis();
         try {
-            Wyn.health().ifPresent(h -> RECENT.addLast(new Sample(now, h.current(), h.max())));
+            int mana = Wyn.mana().map(m -> m.current()).orElse(-1);
+            Wyn.health().ifPresent(h -> RECENT.addLast(new Sample(now, h.current(), h.max(), mana)));
         } catch (Throwable ignored) {
         }
         while (!RECENT.isEmpty() && now - RECENT.peekFirst().time() > 12_000) {
@@ -139,8 +142,12 @@ public final class DeathCoach {
         int hpMax = 0;
         long fullAt = now;
         int peak = -1;
+        int mana = -1;                          // the mana while still alive (it may refill on death)
         for (Sample s : RECENT) {
             hpMax = Math.max(hpMax, s.max());
+            if (s.hp() > 0) {
+                mana = s.mana();
+            }
             if (s.hp() >= peak) {
                 peak = s.hp();
                 fullAt = s.time();
@@ -169,13 +176,13 @@ public final class DeathCoach {
         }
         Death d = new Death(now, x, y, z, level, area, near, areaLevel, ehp, hpMax, seconds, potions(mc), mobs(mc),
                 new ArrayList<>());
-        d.advice().addAll(advise(d, mc));
+        d.advice().addAll(advise(d, mc, HealAdvice.now().withMana(mana)));
         DEATHS.add(d);
         while (DEATHS.size() > 100) {
             DEATHS.remove(0);
         }
         save();
-        if (!d.advice().isEmpty()) {
+        if (!d.advice().isEmpty() && Settings.on("deathCoach")) {
             Chat.say(L.c("wynnlabs.death.chat_prefix").withStyle(ChatFormatting.LIGHT_PURPLE)
                     .append(Component.literal(String.join(" · ", d.adviceText())).withStyle(ChatFormatting.GRAY)));
         }
@@ -215,18 +222,27 @@ public final class DeathCoach {
 
     // ---- deciding ----
 
-    private static List<Words> advise(Death d, Minecraft mc) {
-        return advise(d, DEATHS, MenuWatcher.assigned(io.github.anilken.wynnlabs.model.SkillKind.DEFENCE));
+    private static List<Words> advise(Death d, Minecraft mc, HealAdvice.Stance stance) {
+        return advise(d, DEATHS, MenuWatcher.assigned(io.github.anilken.wynnlabs.model.SkillKind.DEFENCE), stance);
     }
 
     /** The coach's lines for a death, given the deaths before it and the Defence points assigned. */
     public static List<Words> advise(Death d, List<Death> before, int defence) {
+        return advise(d, before, defence, HealAdvice.Stance.NONE);
+    }
+
+    /**
+     * The same, for how the player fights ({@link HealAdvice}): a self-healer is told to heal
+     * sooner (or to keep mana for it) instead of bringing pots, and one who stays in the fight
+     * (tank, healer, boss) is not told to back off.
+     */
+    static List<Words> advise(Death d, List<Death> before, int defence, HealAdvice.Stance stance) {
         List<Words> out = new ArrayList<>();
         int here = (int) before.stream()
                 .filter(o -> Math.hypot(o.x() - d.x(), o.z() - d.z()) < 200 && d.time() - o.time() < 3 * 3600_000L)
                 .count() + 1;
         if (here >= 2) {
-            out.add(Words.of("wynnlabs.death.repeat_here", here));
+            out.add(stance.boss() ? Words.of("wynnlabs.death.repeat_boss", here) : Words.of("wynnlabs.death.repeat_here", here));
         }
         if (d.areaLevel() > d.level()) {
             out.add(Words.of("wynnlabs.death.area_level", d.areaLevel(), d.level()));
@@ -238,11 +254,19 @@ public final class DeathCoach {
                 out.add(Words.of("wynnlabs.death.add_defence", defence));
             }
         }
-        if (d.potions() == 0) {
+        HealAdvice.Healer heal = stance.healer();
+        if (heal != null && !HealAdvice.canCast(heal, stance.mana())) {
+            out.add(Words.of("wynnlabs.death.out_of_mana"));
+        } else if (heal != null && d.potions() == 0) {
+            out.add(heal.combo().isEmpty() ? Words.of("wynnlabs.death.heal_sooner")
+                    : Words.of("wynnlabs.death.heal_sooner_combo", heal.combo()));
+        } else if (d.potions() == 0) {
             out.add(Words.of("wynnlabs.death.no_potions"));
         }
         if (out.isEmpty()) {
-            out.add(Words.of("wynnlabs.death.one_off"));
+            out.add(heal != null ? Words.of("wynnlabs.death.one_off_heal")
+                    : stance.holds() ? Words.of("wynnlabs.death.one_off_tank")
+                    : Words.of("wynnlabs.death.one_off"));
         }
         return out;
     }

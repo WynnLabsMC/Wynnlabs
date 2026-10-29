@@ -29,7 +29,7 @@ public final class Settings {
         for (String k : new String[] {"itemAdvice", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
             "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "trackedDrops", "mobTrack",
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
-            "survivalWarn", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
+            "survivalWarn", "healerAdvice", "deathCoach", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
             "feederHighlight", "miniQuests", "questGuides", "localApi", "apiWrite", "debug", "webFont", "menuResume"}) {
             LABELS.put(k, "wynnlabs.setting." + k);
             DESC.put(k, "wynnlabs.setting_desc." + k);
