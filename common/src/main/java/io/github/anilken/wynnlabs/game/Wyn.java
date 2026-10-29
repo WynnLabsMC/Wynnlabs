@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.wynntils.core.components.Handlers;
 import com.wynntils.core.components.Managers;
 import com.wynntils.core.components.Models;
+import com.wynntils.models.abilities.AbilityModel;
 import com.wynntils.models.abilitytree.AbilityTreeModel;
 import com.wynntils.models.abilitytree.type.AbilityTreeConnectionType;
 import com.wynntils.models.abilitytree.type.AbilityTreeInfo;
@@ -358,6 +359,20 @@ public final class Wyn {
 
     public static Optional<Capped> mana() {
         return guard(Feature.STATS, () -> Models.CharacterStats.getMana().map(WynntilsItems::capped), Optional.empty());
+    }
+
+    /**
+     * A Shaman's Blood Pool in percent, from its boss bar (Wynntils' blood pool bar), or -1 while
+     * the bar is not shown.
+     */
+    public static int bloodPool() {
+        return guard(Feature.STATS, () -> {
+            if (!AbilityModel.bloodPoolBar.isActive()) {
+                return -1;
+            }
+            var p = AbilityModel.bloodPoolBar.getBarProgress();
+            return p == null || p.value() == null ? -1 : p.value().current();
+        }, -1);
     }
 
     /**

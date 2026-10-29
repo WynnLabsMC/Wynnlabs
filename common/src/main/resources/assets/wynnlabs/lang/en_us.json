@@ -424,6 +424,7 @@
   "wynnlabs.coach.warn_potion_bag": "⚠ Dead in ~%s s: pot is in your inventory (put it on the hotbar!), back off",
   "wynnlabs.coach.warn_heal_combo": "⚠ Dead in ~%s s: heal now (%s)",
   "wynnlabs.coach.warn_heal_now": "⚠ Dead in ~%s s: heal now",
+  "wynnlabs.coach.warn_heal_or_potion": "⚠ Dead in ~%s s: %s (%s) or a pot",
   "wynnlabs.coach.warn_fast_no_potion": "⚠ HP dropping fast, ~%s s left: no pots",
   "wynnlabs.coach.warn_fast_potion_slot": "⚠ HP dropping fast, ~%s s left: drink the pot in slot %s",
   "wynnlabs.coach.warn_fast_potion_bag": "⚠ HP dropping fast, ~%s s left: pot is in your inventory (put it on the hotbar!)",

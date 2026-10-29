@@ -424,6 +424,7 @@
   "wynnlabs.coach.warn_potion_bag": "⚠ ~%s sn'de ölürsün: pot envanterde (hotbar'a koy!), geri çekil",
   "wynnlabs.coach.warn_heal_combo": "⚠ ~%s sn'de ölürsün: hemen heal at (%s)",
   "wynnlabs.coach.warn_heal_now": "⚠ ~%s sn'de ölürsün: hemen heal at",
+  "wynnlabs.coach.warn_heal_or_potion": "⚠ ~%s sn'de ölürsün: %s (%s) ya da pot",
   "wynnlabs.coach.warn_fast_no_potion": "⚠ Can hızla düşüyor, ~%s sn kaldı: pot yok",
   "wynnlabs.coach.warn_fast_potion_slot": "⚠ Can hızla düşüyor, ~%s sn kaldı: %s. slottaki potu iç",
   "wynnlabs.coach.warn_fast_potion_bag": "⚠ Can hızla düşüyor, ~%s sn kaldı: pot envanterde (hotbar'a koy!)",

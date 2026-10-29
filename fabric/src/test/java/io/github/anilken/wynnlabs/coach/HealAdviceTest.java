@@ -83,17 +83,47 @@ class HealAdviceTest {
     }
 
     @Test
-    void paladinAndAcolyteHeal() {
-        assertEquals(HealAdvice.Healer.UNKNOWN, HealAdvice.selfHeal(Klass.WARRIOR, "TANK", "Paladin", List.of(), null));
-        assertEquals(HealAdvice.Healer.UNKNOWN, HealAdvice.selfHeal(Klass.WARRIOR, "DAMAGE", "",
-                List.of("Rejuvenating Skin", "Heavenly Trumpet"), null));
-        assertNull(HealAdvice.selfHeal(Klass.WARRIOR, "DAMAGE", "Fallen", List.of("Rejuvenating Skin"), null));
+    void paladinIsNoHealerButHolds() {
+        assertNull(HealAdvice.selfHeal(Klass.WARRIOR, "TANK", "Paladin", List.of(), null));
+        assertNull(HealAdvice.selfHeal(Klass.WARRIOR, "DAMAGE", "", List.of("Rejuvenating Skin", "Heavenly Trumpet"), null));
+        assertEquals(HealAdvice.Healer.UNKNOWN, HealAdvice.selfHeal(Klass.WARRIOR, "HEALER", "Paladin", List.of(), null),
+                "the Healer goal still heals");
+        assertTrue(HealAdvice.paladin(Klass.WARRIOR, "Paladin+Fallen@70", List.of(), null), "chosen");
+        assertFalse(HealAdvice.paladin(Klass.WARRIOR, "Fallen", List.of(), null));
+        List<AbilityNode> tree = List.of(node("P1", "Paladin"), node("P2", "Paladin"), node("P3", "Paladin"),
+                node("P4", "Paladin"), node("P5", "Paladin"), node("F1", "Fallen"));
+        assertTrue(HealAdvice.paladin(Klass.WARRIOR, "", List.of("P1", "P2", "P3", "P4", "P5", "F1"), tree), "leans Paladin");
+        assertFalse(HealAdvice.paladin(Klass.WARRIOR, "", List.of("P1", "P2", "P3", "P4", "F1"), tree), "four nodes");
+        assertFalse(HealAdvice.paladin(Klass.MAGE, "Paladin", List.of(), null));
+    }
+
+    private static final List<AbilityNode> SHAMAN_TREE =
+            List.of(node("Aura", null, "Click Combo: RIGHT-LEFT-LEFT", "Mana Cost: 40"));
+    private static final HealAdvice.Healer AURA = new HealAdvice.Healer("Aura", "R-L-L", 40, 15);
+
+    @Test
+    void acolyteHealsWithAura() {
         assertEquals(HealAdvice.Healer.UNKNOWN, HealAdvice.selfHeal(Klass.SHAMAN, "DAMAGE", "Acolyte", List.of(), null),
                 "tree unread: no combo");
-        List<AbilityNode> shaman = List.of(node("Aura", null, "Click Combo: RIGHT-LEFT-LEFT", "Mana Cost: 40"));
-        assertEquals(new HealAdvice.Healer("Aura", "R-L-L", 40), HealAdvice.selfHeal(Klass.SHAMAN, "DAMAGE", "",
-                List.of("Aura", "Regeneration", "Sacrificial Shrine"), shaman), "Aura heals with the Shrine");
-        assertNull(HealAdvice.selfHeal(Klass.SHAMAN, "DAMAGE", "Summoner", List.of("Regeneration"), shaman));
+        assertEquals(AURA, HealAdvice.selfHeal(Klass.SHAMAN, "DAMAGE", "",
+                List.of("Aura", "Regeneration", "Sacrificial Shrine"), SHAMAN_TREE), "Aura heals with the Shrine, for blood");
+        assertNull(HealAdvice.selfHeal(Klass.SHAMAN, "DAMAGE", "Summoner", List.of("Regeneration"), SHAMAN_TREE));
+    }
+
+    @Test
+    void auraNeedsItsBloodPool() {
+        HealAdvice.Stance full = new HealAdvice.Stance(AURA, false, false, 200, 40);
+        assertEquals("wynnlabs.coach.warn_heal_combo", key(HealAdvice.warning("2.0", full, 5, 3)));
+        HealAdvice.Stance dry = new HealAdvice.Stance(AURA, false, false, 200, 10);
+        assertEquals("wynnlabs.coach.warn_potion_slot", key(HealAdvice.warning("2.0", dry, 5, 3)), "too little blood: pots");
+        assertEquals("wynnlabs.coach.warn_no_potion", key(HealAdvice.warning("2.0", dry, 0, -1)));
+        HealAdvice.Stance unread = stance(AURA, false, false, 200);
+        Words both = HealAdvice.warning("2.0", unread, 5, 3);
+        assertEquals("wynnlabs.coach.warn_heal_or_potion", key(both), "pool unread with a pot: either");
+        assertEquals(List.of("2.0", "Aura", "R-L-L"), both.args());
+        assertEquals("wynnlabs.coach.warn_heal_combo", key(HealAdvice.warning("2.0", unread, 0, -1)), "no pot: the heal");
+        assertEquals("wynnlabs.coach.warn_heal_combo", key(HealAdvice.warning("2.0", stance(MAGE, false, false, 200), 5, 3)),
+                "Heal costs no blood");
     }
 
     @Test

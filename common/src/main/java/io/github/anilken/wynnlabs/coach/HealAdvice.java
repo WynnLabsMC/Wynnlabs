@@ -21,8 +21,8 @@ import java.util.regex.Pattern;
 
 /**
  * Who the survival warning and the death coach talk to. A player who heals themself is told to
- * heal, not to drink pots; one who is meant to stay in the fight (goal Tank or Healer, or in a
- * boss fight) is not told to back off, and their health is judged by what they net lose, so
+ * heal, not to drink pots; one who is meant to stay in the fight (goal Tank or Healer, a Paladin,
+ * or in a boss fight) is not told to back off, and their health is judged by what they net lose, so
  * healing it out is not a reason to warn. All of it behind the healerAdvice switch: off, both
  * speak as they did before.
  */
@@ -32,20 +32,30 @@ final class HealAdvice {
 
     /**
      * A self-heal: the spell cast for it ("Heal", "Aura"; "" when there is none to name), its
-     * click combo ("R-L-R", "" when unknown) and mana cost (0 when unknown).
+     * click combo ("R-L-R", "" when unknown), mana cost (0 when unknown) and Blood Pool cost in
+     * percent (0 for none).
      */
-    record Healer(String spell, String combo, int cost) {
+    record Healer(String spell, String combo, int cost, int blood) {
 
         static final Healer UNKNOWN = new Healer("", "", 0);
+
+        Healer(String spell, String combo, int cost) {
+            this(spell, combo, cost, 0);
+        }
     }
 
     /**
      * The moment's picture: the self-heal (null for none), whether the player stays in the fight
-     * rather than backing off, whether that is a boss fight, and the mana (-1 when unknown).
+     * rather than backing off, whether that is a boss fight, the mana and the Blood Pool percent
+     * (-1 when unknown).
      */
-    record Stance(Healer healer, boolean holds, boolean boss, int mana) {
+    record Stance(Healer healer, boolean holds, boolean boss, int mana, int blood) {
 
         static final Stance NONE = new Stance(null, false, false, -1);
+
+        Stance(Healer healer, boolean holds, boolean boss, int mana) {
+            this(healer, holds, boss, mana, -1);
+        }
 
         /** Whether the warning judges health by its net loss (heals count) rather than damage alone. */
         boolean net() {
@@ -53,7 +63,7 @@ final class HealAdvice {
         }
 
         Stance withMana(int m) {
-            return new Stance(healer, holds, boss, m);
+            return new Stance(healer, holds, boss, m, blood);
         }
     }
 
@@ -62,11 +72,18 @@ final class HealAdvice {
     static final String MAGE_COMBO = "R-L-R";
     static final int MAGE_COST = 35;
 
-    /** Shaman's Aura heals the party once Sacrificial Shrine is taken. Its combo and cost when the tree does not say. */
+    /**
+     * Shaman's Aura heals the party once Sacrificial Shrine is taken, for its mana and 15% of the
+     * Blood Pool. Its combo and cost when the tree does not say.
+     */
     static final String SHAMAN_AURA = "Aura";
     static final String SHAMAN_SHRINE = "Sacrificial Shrine";
     static final String SHAMAN_COMBO = "R-L-L";
     static final int SHAMAN_COST = 40;
+    static final int SHAMAN_BLOOD = 15;
+
+    /** Warrior's Paladin: no heal spell, it lives on regeneration and stays in the fight like a tank. */
+    static final String PALADIN = "Paladin";
 
     /** Heal nodes (the heal spell itself not counted) that make a player a healer whatever the archetype. */
     static final int HEAL_NODES = 2;
@@ -85,12 +102,14 @@ final class HealAdvice {
             return Stance.NONE;
         }
         Klass cls = Wyn.classType();
-        Healer h = selfHeal(cls, Setup.goal(), TreePlanner.chosen(), GameState.current().unlockedAbilities(),
-                Wyn.abilityTree(cls));
+        List<String> unlocked = GameState.current().unlockedAbilities();
+        List<AbilityNode> tree = Wyn.abilityTree(cls);
+        Healer h = selfHeal(cls, Setup.goal(), TreePlanner.chosen(), unlocked, tree);
         int max = Wyn.health().map(c -> c.max()).orElse(0);
         boolean boss = bossFight(Wyn.focusedMobMaxHealth(), max);
         int mana = Wyn.mana().map(c -> c.current()).orElse(-1);
-        return new Stance(h, holds(Setup.goal(), boss), boss, mana);
+        boolean holds = holds(Setup.goal(), boss) || paladin(cls, TreePlanner.chosen(), unlocked, tree);
+        return new Stance(h, holds, boss, mana, h != null && h.blood() > 0 ? Wyn.bloodPool() : -1);
     }
 
     /*
@@ -99,10 +118,11 @@ final class HealAdvice {
      * - Mage, Light Bender: the archetype built on Heal (Orphion's Pulse, Larger Heal,
      *   Purification, Sunflare, ... and the Dawn ultimate). Arcanist turns Heal into a mana
      *   transfer and Riftwalker uses it to bind its rift: there it is no healer's heal.
-     * - Shaman, Acolyte: Sacrificial Shrine makes Aura heal every ally; Blood Sorrow and the
-     *   Monument to Gloom ultimate heal too. Regeneration (any archetype) makes the Totem heal.
-     * - Warrior, Paladin: no heal spell, but it lives on regeneration (Rejuvenating Skin) and
-     *   gives the party overhealth (Heavenly Trumpet) and a second chance.
+     * - Shaman, Acolyte: Sacrificial Shrine makes Aura heal every ally (it then also costs 15%
+     *   Blood Pool); Blood Sorrow and the Monument to Gloom ultimate heal too. Regeneration (any
+     *   archetype) makes the Totem heal.
+     * - Warrior, Paladin: no heal spell to cast; it lives on regeneration (Rejuvenating Skin) and
+     *   War Scream with Holy Power, so it is no healer but stays in the fight like a tank.
      * - Archer and Assassin have no heal worth the name (Assassin's Soul Siphon is a little
      *   overhealth); only the Healer goal makes them healers.
      */
@@ -112,7 +132,6 @@ final class HealAdvice {
         return switch (cls) {
             case MAGE -> "Light Bender";
             case SHAMAN -> "Acolyte";
-            case WARRIOR -> "Paladin";
             default -> "";
         };
     }
@@ -124,7 +143,6 @@ final class HealAdvice {
                     "Lightweaver", "Interweave", "Sunflare", "Dawn");
             case SHAMAN -> List.of(SHAMAN_SHRINE, "Regeneration", "Blood Sorrow", "Blood Rite", "Greater Sacrifice",
                     "Monument to Gloom");
-            case WARRIOR -> List.of("Rejuvenating Skin", "Heavenly Trumpet", "Second Chance", "Sparkling Hope");
             default -> List.of();
         };
     }
@@ -153,20 +171,30 @@ final class HealAdvice {
             return spell(tree, MAGE_HEAL, MAGE_COMBO, MAGE_COST);
         }
         if (cls == Klass.SHAMAN && have.contains(SHAMAN_SHRINE)) {
-            return spell(tree, SHAMAN_AURA, SHAMAN_COMBO, SHAMAN_COST);
+            Healer aura = spell(tree, SHAMAN_AURA, SHAMAN_COMBO, SHAMAN_COST);
+            return new Healer(aura.spell(), aura.combo(), aura.cost(), SHAMAN_BLOOD);
         }
         return Healer.UNKNOWN;
     }
 
-    /** Whether the player plays the class's healing archetype: chosen as the larger part, else leaned to. */
+    /** Whether the player is a Warrior playing Paladin (chosen as the larger part, else leaned to). */
+    static boolean paladin(Klass cls, String chosen, List<String> unlocked, List<AbilityNode> tree) {
+        return cls == Klass.WARRIOR && plays(PALADIN, chosen, unlocked == null ? List.of() : unlocked, tree);
+    }
+
     private static boolean playsHealer(Klass cls, String chosen, List<String> have, List<AbilityNode> tree) {
         String heal = healArchetype(cls);
-        if (heal.isEmpty()) {
-            return false;
-        }
+        return !heal.isEmpty() && plays(heal, chosen, have, tree);
+    }
+
+    /**
+     * Whether the player plays an archetype: chosen as the larger part, else (none chosen) with
+     * {@link #LEAN_NODES} unlocked nodes of it and more than of any other.
+     */
+    private static boolean plays(String archetype, String chosen, List<String> have, List<AbilityNode> tree) {
         ArchetypeMix mix = ArchetypeMix.parse(chosen);
         if (!mix.auto()) {
-            return mix.weight(heal) > 0.5;
+            return mix.weight(archetype) > 0.5;
         }
         if (tree == null || have.isEmpty()) {
             return false;
@@ -177,9 +205,9 @@ final class HealAdvice {
                 count.merge(n.archetype(), 1, Integer::sum);
             }
         }
-        int mine = count.getOrDefault(heal, 0);
+        int mine = count.getOrDefault(archetype, 0);
         return mine >= LEAN_NODES
-                && count.entrySet().stream().allMatch(e -> e.getKey().equals(heal) || e.getValue() < mine);
+                && count.entrySet().stream().allMatch(e -> e.getKey().equals(archetype) || e.getValue() < mine);
     }
 
     /** A spell as the heal: its combo and cost from the tree's text, else the defaults given. */
@@ -219,7 +247,7 @@ final class HealAdvice {
         return sb.toString();
     }
 
-    /** Whether the player stays in the fight: a tank or healer goal, or a boss to fight. */
+    /** Whether the player stays in the fight: a tank or healer goal, or a boss to fight (a Paladin too, see {@link #paladin}). */
     static boolean holds(String goal, boolean boss) {
         return boss || "TANK".equals(goal) || "HEALER".equals(goal);
     }
@@ -232,6 +260,11 @@ final class HealAdvice {
     /** Whether the heal can be cast: mana unknown, cost unknown, or enough of it. */
     static boolean canCast(Healer h, int mana) {
         return mana < 0 || h.cost() <= 0 || mana >= h.cost();
+    }
+
+    /** The same, with the Blood Pool too when the heal costs some: unknown, or enough of it. */
+    static boolean canCast(Healer h, int mana, int blood) {
+        return canCast(h, mana) && (h.blood() <= 0 || blood < 0 || blood >= h.blood());
     }
 
     /**
@@ -254,11 +287,15 @@ final class HealAdvice {
 
     /**
      * The warning: heal now when the heal can be cast, else the pots; without "back off" for a
-     * player who stays in. {@code slot} the hotbar slot (0-8) holding a pot, -1 for none.
+     * player who stays in. A heal that costs Blood Pool while the pool is not read offers both the
+     * heal and a pot. {@code slot} the hotbar slot (0-8) holding a pot, -1 for none.
      */
     static Words warning(String secs, Stance s, int potions, int slot) {
         Healer h = s.healer();
-        if (h != null && canCast(h, s.mana())) {
+        if (h != null && canCast(h, s.mana(), s.blood())) {
+            if (h.blood() > 0 && s.blood() < 0 && potions > 0 && !h.combo().isEmpty()) {
+                return Words.of("wynnlabs.coach.warn_heal_or_potion", secs, h.spell(), h.combo());
+            }
             return h.combo().isEmpty() ? Words.of("wynnlabs.coach.warn_heal_now", secs)
                     : Words.of("wynnlabs.coach.warn_heal_combo", secs, h.combo());
         }
