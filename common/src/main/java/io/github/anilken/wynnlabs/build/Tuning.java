@@ -199,6 +199,8 @@ public final class Tuning {
             case "survivalWeight" -> c.focus == DAMAGE ? 0.75 : c.focus == TANKY ? 2.5 : 1.0;
             case "survivalPower" -> c.focus == DAMAGE ? 0.75 : c.focus == TANKY ? 1.5 : 1.0;
             case "ehpFloorScale" -> c.focus == DAMAGE ? 0.9 : c.focus == TANKY ? 1.25 : 1.0;
+            // where health stops paying in full: higher when leaning tanky
+            case "ehpSoftCap" -> c.focus == TANKY ? 1.5 : 1.0;
             // mana: its two parts apart, the spells' cost cut and the mana back every 5 s
             case "costCutLean" -> c.leans(LEAN_COST) ? 3.0 : 1.0;
             case "manaRegenLean" -> c.leans(LEAN_MANA) ? 3.0 : 1.0;

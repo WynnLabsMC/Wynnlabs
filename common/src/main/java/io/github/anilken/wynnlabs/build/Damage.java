@@ -342,6 +342,51 @@ public final class Damage {
         return m + (1 - m) * Math.exp(-a * (1 - r) * (1 - r));
     }
 
+    /**
+     * The health the score counts once it is past {@code knee}: the same below it, then
+     * knee + h·(1 − exp(−(health − knee) / h)) with h = knee / 2, so it leaves the knee with no
+     * kink and levels off at 1.5 × knee. The Damage goal puts the knee at 1.5 × the floor, so
+     * health stops paying at about 2.25 × the floor (Balanced 2.5 → 3.75 ×; Safe, Tank and Healer
+     * have none). Community damage builds sit at 1-2 × the floor; with health counted to 6 × a
+     * pick with less damage outscored them by 2-8 ×, and a log past the knee still left 1.5-2.5 ×.
+     * 0 or less turns it off.
+     */
+    static double softCap(double ehp, double knee) {
+        if (knee <= 0 || ehp <= knee) {
+            return ehp;
+        }
+        double h = knee / 2;
+        return knee + h * (1 - Math.exp(-(ehp - knee) / h));
+    }
+
+    /**
+     * What a build whose health drains keeps of its life factor, from the share of its own max
+     * health lost every regen tick (4 s) after life steal and the tree's own heals: m + (1 - m) /
+     * (1 + w·share / (1 - m)), slope -w at no drain and never under m (rules.model.drainWeight 4,
+     * drainFloor 0.5). A −250/4 s drain on 20k health costs about 5 %, Nether's Scar's −2500 on
+     * 13k about 30 %; scaled by the level's health it was 0.3 for both.
+     */
+    static double drainFactor(double share) {
+        if (share <= 0) {
+            return 1;
+        }
+        double m = Math.max(0, Math.min(0.95, model("drainFloor", 0.5)));
+        double w = Math.max(0, model("drainWeight", 4.0));
+        return m + (1 - m) / (1 + w * share / (1 - m));
+    }
+
+    /**
+     * Health regen a tick as the game applies it: a positive raw value is raised by its %, a
+     * negative one shrinks with a positive % and never turns into a heal (WynnBuilder: min(0,
+     * raw − raw·%)), and a negative % deepens it.
+     */
+    public static double healthRegen(double raw, double pct) {
+        if (raw >= 0) {
+            return raw * (1 + pct / 100.0);
+        }
+        return Math.min(0, raw - raw * pct / 100.0);
+    }
+
     /** The floor's table for a Damage build: level, elemental effective health, straight lines between. */
     public static double ehpTable(int level) {
         int[][] t = {{1, 0}, {50, 2000}, {60, 4000}, {70, 6500}, {80, 9000}, {90, 12000}, {100, 16000},
@@ -681,12 +726,17 @@ public final class Damage {
                 : 1 + xpWeight * xp / 100.0;
         // speed penalties count more than bonuses (rules.model.speedPenaltyWeight)
         double fSpeed = speedFactor(speed);
+        // the goals that fight for damage stop paying in full for health far above what the level
+        // needs (softCap, rules.model.ehpSoftCap times the floor): the log and the power below see
+        // the capped value, the floor itself the real one
+        double floor = ehpFloor(level);
+        double ehpScored = softCap(ehpElemental, model("ehpSoftCap", 0) * floor);
         double fLife = Math.max(0.2, 1 + model("survivalWeight", 0.2)
-                * Math.log(ehpElemental / (model("hpBase", 5) + model("hpPerLevel", 5) * level)));
-        // Sustain: health regen (raw, raised by its %) and half the life steal, which only works
-        // while hitting. Below zero the health drains even out of a fight, so it weighs far more
-        // than a bonus does (Winter's Essence, −65 regen, was picked as an upgrade).
-        double regen = stat(s, "healthRegenRaw") * (1 + stat(s, "healthRegen") / 100.0) + 0.5 * stat(s, "lifeSteal");
+                * Math.log(ehpScored / (model("hpBase", 5) + model("hpPerLevel", 5) * level)));
+        // Sustain: health regen (healthRegen) and half the life steal, which only works while
+        // hitting. Below zero the health drains even out of a fight, so it weighs more than a bonus
+        // does (Winter's Essence, −65 regen, was picked as an upgrade); see drainFactor
+        double regen = healthRegen(stat(s, "healthRegenRaw"), stat(s, "healthRegen")) + 0.5 * stat(s, "lifeSteal");
         double regenScale = model("hpBase", 5) + model("hpPerLevel", 5) * level;
         // the Healer goal's healing (Healing): the tree's heals as often as the mana pays for, for
         // you and the party. A healer's own heals cover a drain (one tick of regen every 4 s, the
@@ -698,21 +748,27 @@ public final class Damage {
                 : null;
         if (healWeight > 0) {
             regen += 4 * healing.self();
+        } else if (regen < 0 && TreeModel.active() != null && TreeModel.active().heals != null
+                && !TreeModel.active().heals.isEmpty()) {
+            // any build's own heals from the tree cover a drain (up to none left, never a bonus)
+            Healing.Result own = Healing.of(s, Math.max(1, health), manaPer5, manaPool(s, intel), intReduction, spells,
+                    TreeModel.active().heals);
+            regen = Math.min(0, regen + 4 * own.self());
         }
         double fRegen = regen < 0
-                ? Math.max(0.3, 1 + model("negativeRegenWeight", 2.0) * regen / regenScale)
+                ? drainFactor(-regen / Math.max(1, health))
                 : 1 + model("regenWeight", 0.2) * Math.min(1, regen / regenScale);
         fLife *= fRegen;
         // health also counts as a power of itself (rules.model.survivalPower, set by the goal: 0.25
         // for Damage up to 1 for a Tank), so more of it keeps paying where the log above flattens
         double power = model("survivalPower", 0.25);
         if (power > 0) {
-            fLife *= Math.pow(ehpElemental / regenScale, power);
+            fLife *= Math.pow(ehpScored / regenScale, power);
         }
         // below the floor for this level a build pays a smooth, bounded share (floorFactor), so
         // damage is not bought with paper armour: the skill points, the road map and the build
         // plan all see it, as it is part of the score
-        fLife *= floorFactor(ehpElemental, ehpFloor(level));
+        fLife *= floorFactor(ehpElemental, floor);
         // Mana, from the stats alone: the mana back every 5 s over the game's base 25, divided by
         // what is left of the spells' cost; no time and no fight are simulated. A build with no
         // mana stats and no Intelligence is 1; +25 mana every 5 s (or half the cost off) is 2,

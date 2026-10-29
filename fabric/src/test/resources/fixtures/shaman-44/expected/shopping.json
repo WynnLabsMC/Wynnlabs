@@ -1,5 +1,5 @@
 {
-  "count": 19,
+  "count": 15,
   "items": [
     {
       "slot": "HELMET",
@@ -8,8 +8,8 @@
       "name": "Astigmatism",
       "tier": "LEGENDARY",
       "level": 48,
-      "score": 12.7,
-      "gain": 12.7,
+      "score": 11.3,
+      "gain": 11.3,
       "skillRequirements": {
         "STRENGTH": 12,
         "DEXTERITY": 12,
@@ -41,8 +41,8 @@
       "name": "Sawdust",
       "tier": "LEGENDARY",
       "level": 49,
-      "score": 11.1,
-      "gain": 11.1,
+      "score": 11.2,
+      "gain": 11.2,
       "source": "TRADE_MARKET",
       "restriction": "NONE",
       "powderSlots": 3,
@@ -76,8 +76,8 @@
       "name": "Bob's Battle Chestplate",
       "tier": "UNIQUE",
       "level": 45,
-      "score": 5.7,
-      "gain": 5.7,
+      "score": 5.8,
+      "gain": 5.8,
       "questRequirement": "Bob's Lost Soul",
       "source": "TRADE_MARKET",
       "restriction": "NONE",
@@ -125,8 +125,8 @@
       "name": "Kaleidoscope",
       "tier": "RARE",
       "level": 47,
-      "score": 18.9,
-      "gain": 18.9,
+      "score": 19.0,
+      "gain": 19.0,
       "skillRequirements": {
         "STRENGTH": 10,
         "DEXTERITY": 10,
@@ -139,31 +139,14 @@
       "powderSlots": 2
     },
     {
-      "slot": "BOOTS",
-      "rank": 2,
-      "tradable": true,
-      "name": "Cerid's Ingenuity",
-      "tier": "LEGENDARY",
-      "level": 45,
-      "score": 8.5,
-      "gain": 8.5,
-      "skillRequirements": {
-        "INTELLIGENCE": 15,
-        "DEFENCE": 20
-      },
-      "source": "DUNGEON: Ice Barrows",
-      "restriction": "NONE",
-      "powderSlots": 2
-    },
-    {
       "slot": "RING",
       "rank": 1,
       "tradable": true,
       "name": "Marble",
       "tier": "RARE",
       "level": 48,
-      "score": 5.4,
-      "gain": 5.4,
+      "score": 4.1,
+      "gain": 4.1,
       "skillRequirements": {
         "STRENGTH": 8,
         "DEXTERITY": 8,
@@ -179,34 +162,6 @@
       "slot": "RING",
       "rank": 2,
       "tradable": true,
-      "name": "Precious",
-      "tier": "LEGENDARY",
-      "level": 41,
-      "score": 1.7,
-      "gain": 1.7,
-      "source": "TRADE_MARKET",
-      "restriction": "NONE",
-      "powderSlots": 0,
-      "price": 2623,
-      "priceText": "41 EB"
-    },
-    {
-      "slot": "RING",
-      "rank": 3,
-      "tradable": true,
-      "name": "Goblin Hex Focus",
-      "tier": "RARE",
-      "level": 42,
-      "score": 1.5,
-      "gain": 1.5,
-      "source": "MERCHANT: Goblin Village",
-      "restriction": "NONE",
-      "powderSlots": 0
-    },
-    {
-      "slot": "RING",
-      "rank": 4,
-      "tradable": true,
       "name": "Horseshoe",
       "tier": "RARE",
       "level": 44,
@@ -221,19 +176,16 @@
     },
     {
       "slot": "RING",
-      "rank": 5,
+      "rank": 3,
       "tradable": true,
-      "name": "Quartron's Eye",
+      "name": "Goblin Hex Focus",
       "tier": "RARE",
-      "level": 49,
-      "score": 1.0,
-      "gain": 1.0,
-      "questRequirement": "Rise of the Quartron",
-      "source": "TRADE_MARKET",
+      "level": 42,
+      "score": 1.4,
+      "gain": 1.4,
+      "source": "MERCHANT: Goblin Village",
       "restriction": "NONE",
-      "powderSlots": 0,
-      "price": 1113,
-      "priceText": "17 EB"
+      "powderSlots": 0
     },
     {
       "slot": "BRACELET",
@@ -242,31 +194,13 @@
       "name": "Rime",
       "tier": "LEGENDARY",
       "level": 43,
-      "score": 6.2,
-      "gain": 6.2,
+      "score": 4.7,
+      "gain": 4.7,
       "skillRequirements": {
         "INTELLIGENCE": 15,
         "AGILITY": 30
       },
       "source": "CAVE_LOOT_CHEST: Between level 39 and 47",
-      "restriction": "NONE",
-      "powderSlots": 0
-    },
-    {
-      "slot": "BRACELET",
-      "rank": 2,
-      "tradable": true,
-      "name": "Marius' Lament",
-      "tier": "RARE",
-      "level": 49,
-      "score": 3.0,
-      "gain": 3.0,
-      "skillRequirements": {
-        "DEXTERITY": 12,
-        "INTELLIGENCE": 12,
-        "AGILITY": 12
-      },
-      "source": "CAVE_LOOT_CHEST: Between level 45 and 53",
       "restriction": "NONE",
       "powderSlots": 0
     },

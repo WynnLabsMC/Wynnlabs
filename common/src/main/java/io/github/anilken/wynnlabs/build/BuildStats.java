@@ -51,9 +51,9 @@ public final class BuildStats {
             return stats.getOrDefault(key, 0.0);
         }
 
-        /** Health regen as the game applies it: the raw value raised by its %. */
+        /** Health regen as the game applies it (Damage.healthRegen). */
         public double regen() {
-            return stat("healthRegenRaw") * (1 + stat("healthRegen") / 100.0);
+            return Damage.healthRegen(stat("healthRegenRaw"), stat("healthRegen"));
         }
 
         /** Health regen as effective health: what it heals counted the way the damage you take is. */

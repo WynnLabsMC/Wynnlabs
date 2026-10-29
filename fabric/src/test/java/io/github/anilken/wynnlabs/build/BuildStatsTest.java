@@ -54,9 +54,9 @@ class BuildStatsTest {
         Damage.Result r = Damage.evaluate(List.of(set.get("RING1")), weapon, points, 50);
         BuildStats.Side s = BuildStats.of(set, points, r, null, 50);
 
-        assertEquals(-30, s.regen(), 1e-9, "raw regen raised by its %, a negative one too");
+        assertEquals(-10, s.regen(), 1e-9, "a negative raw regen shrinks with a positive % (WynnBuilder)");
         assertEquals(-110, s.defence("fire"), 1e-9, "an element's own defence plus the all-element one");
-        assertEquals(-30 * r.ehp() / r.health(), s.effectiveRegen(), 1e-9, "regen counted as effective health");
+        assertEquals(-10 * r.ehp() / r.health(), s.effectiveRegen(), 1e-9, "regen counted as effective health");
         assertTrue(s.parts() != null, "the spell panel's breakdown comes with the side");
         assertEquals(r.mainDps() / Damage.HITS[s.attackTier()], s.perAttack(), 1e-9, "one main attack: its DPS over hits per second");
         s.parts().spells().forEach(sp -> assertTrue(sp.cost() >= 1, "each spell has its mana cost: " + sp.name()));

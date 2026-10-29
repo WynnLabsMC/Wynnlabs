@@ -752,6 +752,13 @@
               "tradable": true
             },
             {
+              "name": "Ormrod's Isolation",
+              "level": 33,
+              "gain": 4.8,
+              "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
               "name": "Spider Bracelet",
               "level": 19,
               "gain": 3.2,
@@ -763,13 +770,6 @@
               "level": 19,
               "gain": 2.2,
               "from": "loot chest",
-              "tradable": true
-            },
-            {
-              "name": "Ormrod's Isolation",
-              "level": 33,
-              "gain": 0.4,
-              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
@@ -1223,6 +1223,13 @@
               "tradable": true
             },
             {
+              "name": "Sanguine Spaulder",
+              "level": 32,
+              "gain": 66.2,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
               "name": "Standoff",
               "level": 33,
               "gain": 63.3,
@@ -1262,13 +1269,6 @@
               "level": 32,
               "gain": 22.8,
               "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Angel Wing Shroud",
-              "level": 27,
-              "gain": 21.8,
-              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
