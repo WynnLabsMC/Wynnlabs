@@ -129,7 +129,7 @@ final class SettingsRows {
             "coach", List.of(
                     new String[] {"wynnlabs.settings.sec_chat", "chatUpgrade", "chatSkills", "chatLevelUp"},
                     new String[] {"wynnlabs.settings.sec_warnings", "dangerWarn", "survivalWarn", "coachToasts"},
-                    new String[] {"wynnlabs.settings.sec_screen", "dpsHud", "sellSummary", "ridePanel", "rideRefresh"}),
+                    new String[] {"wynnlabs.settings.sec_screen", "dpsHud", "sellSummary", "ridePanel", "powerupLabels", "rideRefresh"}),
             "quests", List.<String[]>of(
                     new String[] {"wynnlabs.settings.sec_quests", "glowQuest", "miniQuests"}),
             "build", List.<String[]>of(

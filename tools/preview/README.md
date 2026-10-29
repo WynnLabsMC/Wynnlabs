@@ -41,6 +41,8 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
   the mouse on row 2 (its card) and row 4's card kept open (`FeederPreview`).
 - `-PpreviewOnly=ride`: the mount panel on the HUD, forced on without riding: a Wyvern at rest, Speed +1 / Handling +2 /
   Boost −1 showing, a Horse with unknown maxes (Jump Height) and the move screen (`RidePreview`).
+- `-PpreviewOnly=powerups`: the powerup labels drawn by the world pass, one of each powerup in front of the player
+  (no models), for a Wyvern with three maxed stats (dimmed) and a Horse (Jump Height) (`PowerupPreview`).
 - `-PpreviewOnly=rail`: only one shot per rail tab (the page headers and section tabs).
 - Another fixture: `-Dwynnlabs.previewFixture=synthetic` in the run's VM options
   (`fabric/build.gradle`, `loom.runs` → `clientGameTest`).

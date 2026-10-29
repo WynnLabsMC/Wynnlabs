@@ -186,6 +186,8 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.MountBook", io.github.anilken.wynnlabs.mounts.MountBook::onTick));
         // the mount panel's ridden mount, and its refresh (only with the panel and its refresh on)
         platform.onEndTick(Perf.tick("tick.RideWatch", io.github.anilken.wynnlabs.mounts.RideWatch::onTick));
+        // the powerups around a rider, for their labels (setting powerupLabels); reads only
+        platform.onEndTick(Perf.tick("tick.Powerups", io.github.anilken.wynnlabs.mounts.Powerups::onTick));
         platform.onGameMessage((text, overlay) -> {
             if (overlay) {
                 io.github.anilken.wynnlabs.mounts.RideWatch.onBar(text);
@@ -256,6 +258,17 @@ public final class WynnLabs {
                 // a marker must never break the frame
             } finally {
                 Perf.end("world.MobTracker", t);
+            }
+        });
+        // the labels over mount powerups while riding
+        platform.onWorldRender((pose, buffers) -> {
+            long t = Perf.start();
+            try {
+                io.github.anilken.wynnlabs.ui.PowerupLabels.renderWorld(pose, buffers);
+            } catch (Throwable ignored) {
+                // a label must never break the frame
+            } finally {
+                Perf.end("world.PowerupLabels", t);
             }
         });
         // leaving the server closes the session report

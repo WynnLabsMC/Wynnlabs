@@ -219,4 +219,53 @@ class RideRefreshTest {
         assertTrue(opens <= 200 / RideRefresh.MIN_GAP + 1, "opens " + opens);
         assertTrue(opens >= 3, "opens " + opens);
     }
+
+    /** Riding with the mount panel off and the powerup labels on (or off). */
+    private static Ctx labelsOnly(boolean labels) {
+        return new Ctx(true, false, true, true, false, false, 3, true, labels);
+    }
+
+    @Test
+    void anEnergyBoostInSightAsksForOneRefreshWithThePanelOff() {
+        Sent net = new Sent();
+        RideRefresh r = new RideRefresh(net);
+        run(r, 0, 40, labelsOnly(true));
+        assertEquals(List.of(), net.log, "no slot re-selects and no opens without the panel");
+        r.signal(41);                                 // the action bar's signals serve the panel only
+        run(r, 41, 60, labelsOnly(true));
+        assertEquals(0, net.count("open"));
+        assertTrue(r.ask(61));
+        run(r, 61, 61, labelsOnly(true));
+        assertEquals(List.of("open"), net.log);
+        assertTrue(r.onOpenScreen(9));
+        assertTrue(r.onContent(9, () -> { }));
+        assertEquals(List.of("open", "close 9"), net.log);
+    }
+
+    @Test
+    void theLabelsAskAtMostOnceEveryFiveSeconds() {
+        Sent net = new Sent();
+        RideRefresh r = new RideRefresh(net);
+        int opens = 0;
+        for (long t = 0; t < 300; t++) {
+            r.ask(t);                                 // the scan asks every time it sees the boost
+            r.tick(t, labelsOnly(true));
+            if (r.state() == State.PENDING) {
+                opens++;
+                r.onOpenScreen(5);
+                r.onContent(5, () -> { });
+            }
+        }
+        assertEquals(3, opens);                       // at 0, 100 and 200
+        assertFalse(r.ask(250));
+    }
+
+    @Test
+    void withTheLabelsOffAnAskSendsNothing() {
+        Sent net = new Sent();
+        RideRefresh r = new RideRefresh(net);
+        r.ask(0);
+        run(r, 0, 200, labelsOnly(false));
+        assertEquals(List.of(), net.log);
+    }
 }

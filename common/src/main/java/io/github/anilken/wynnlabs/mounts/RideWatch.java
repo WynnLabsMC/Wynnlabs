@@ -70,6 +70,14 @@ public final class RideWatch {
         return preview != null ? preview : current;
     }
 
+    /**
+     * The powerup labels see an Energy Boost while the pool is only estimated: ask for the hidden
+     * inventory refresh (it goes out only with "Refresh mount info" on, at most once every 5 s).
+     */
+    public static void askForPool() {
+        REFRESH.ask(tick);
+    }
+
     /** Whether the panel shows now (a preview always). */
     public static boolean showing(Minecraft mc) {
         if (preview != null) {
@@ -121,7 +129,8 @@ public final class RideWatch {
     public static void onTick(Minecraft mc) {
         tick++;
         var p = mc.player;
-        if (p == null || !p.isPassenger() || !panelOn()) {
+        // read while the panel or the powerup labels (which dim maxed stats) need the mount
+        if (p == null || !p.isPassenger() || !(panelOn() || Powerups.on())) {
             current = null;
             lastHeld = null;
             mountSlot = -1;
@@ -194,8 +203,8 @@ public final class RideWatch {
             view = v;
         }
         boolean busy = mc.options.keyUse.isDown() || mc.options.keyAttack.isDown();
-        REFRESH.tick(tick, new RideRefresh.Ctx(true, true, Settings.on("rideRefresh") && Wyn.hasCharacter(), current != null,
-                mc.screen != null, busy, selected, mountSlot == selected));
+        REFRESH.tick(tick, new RideRefresh.Ctx(true, panelOn(), Settings.on("rideRefresh") && Wyn.hasCharacter(), current != null,
+                mc.screen != null, busy, selected, mountSlot == selected, Powerups.on()));
     }
 
     /** The player used the held item (client-side, before it is sent): its slot is kept when it reads as a mount. */

@@ -15,7 +15,11 @@
     "ContainerHoverAccessor",
     "SearchKeyMixin",
     "RideRefreshMixin",
-    "RideUseMixin"
+    "RideUseMixin",
+    "PowerupDisplayAccessor",
+    "PowerupModelAccessor",
+    "PowerupLayerAccessor",
+    "PowerupSpriteAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

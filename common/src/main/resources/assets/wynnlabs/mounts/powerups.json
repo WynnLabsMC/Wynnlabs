@@ -1,0 +1,15 @@
+{
+  "_comment": "Mount powerups on the ground, by fingerprint: the lowercase hex SHA-256 of the type display's main sprite (its original image's pixels as ARGB ints, big-endian, row by row). stat: a mount stat (Speed ... Training) or a boost; colour: the label's colour. All ten are verified against the textures in the Wynncraft resource pack; Speed, Acceleration, Altitude, Energy and Training also by pickup in game. For debugging only (they change between pack versions, never key on them): the type model ids in the pack checked were Acceleration 5797, Altitude 5805, Energy 5810, Energy Boost 5818, Handling 5822, Boost 5828, Speed 5833, Speed Boost 5839, Toughness 5843, Training 5848.",
+  "powerups": [
+    {"print": "e1bff8cfbd3fd657968bc89b944cbb7714067b68f2d3b6d544af6e2f98cefe69", "stat": "Speed", "colour": "#FDDA61", "verified": true},
+    {"print": "4eb77051600f1ec496226a09d8a9772c04aa2fda08001583565f469aa89977a3", "stat": "Acceleration", "colour": "#8EEFFE", "verified": true},
+    {"print": "1ece3c46905b7d0f38f39fd6ac19d619feaf275e971475b77052d3653b2c3ea9", "stat": "Altitude", "colour": "#F1F1F1", "verified": true},
+    {"print": "0545df224eee4aced9950ff3022f96b80dfd1986655c0987f63eab0287f5373b", "stat": "Energy", "colour": "#159156", "verified": true},
+    {"print": "1b060e6c1ca2d20939877a5f172f05292ae885879c60d4027888c193d94fd96e", "stat": "Handling", "colour": "#F35F2C", "verified": true},
+    {"print": "3c6daab602847e619e976cb9a675c3aeebe7f480a8e0fbb2dd29b252070e4195", "stat": "Toughness", "colour": "#ADB8B0", "verified": true},
+    {"print": "e91e0f555f16eb95969f934699891bb322b3e8687278e6346ab9efdf24d16601", "stat": "Boost", "colour": "#F98BFE", "verified": true},
+    {"print": "0f45c84d9b604bce9fc98f8a4a8364042957ea58f4fd3c86b9b48ccec24dc96c", "stat": "Training", "colour": "#CF8B6E", "verified": true},
+    {"print": "a62a04b132fd96a7616d66618500c8fd84d1a3bbb5290a4b7adc43e78928a8f2", "stat": "Energy Boost", "colour": "#00FF40", "verified": true},
+    {"print": "5c911db01ac62ea367665951acec5af352a4145b5172d907c23bc8394428761d", "stat": "Speed Boost", "colour": "#6A7BD9", "verified": true}
+  ]
+}

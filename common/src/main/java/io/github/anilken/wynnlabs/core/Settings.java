@@ -53,6 +53,7 @@ public final class Settings {
         LABELS.put("coachToasts", "wynnlabs.setting.coachToasts");
         LABELS.put("dpsHud", "wynnlabs.setting.dpsHud");
         LABELS.put("ridePanel", "wynnlabs.setting.ridePanel");
+        LABELS.put("powerupLabels", "wynnlabs.setting.powerupLabels");
         LABELS.put("rideRefresh", "wynnlabs.setting.rideRefresh");
         LABELS.put("sellGlow", "wynnlabs.setting.sellGlow");
         LABELS.put("verdictBadges", "wynnlabs.setting.verdictBadges");
@@ -142,6 +143,8 @@ public final class Settings {
         DESC.put("dpsHud", "wynnlabs.setting_desc.dpsHud");
         CATEGORY.put("ridePanel", "coach");
         DESC.put("ridePanel", "wynnlabs.setting_desc.ridePanel");
+        CATEGORY.put("powerupLabels", "coach");
+        DESC.put("powerupLabels", "wynnlabs.setting_desc.powerupLabels");
         CATEGORY.put("rideRefresh", "coach");
         DESC.put("rideRefresh", "wynnlabs.setting_desc.rideRefresh");
         CATEGORY.put("sellSummary", "coach");
@@ -193,6 +196,12 @@ public final class Settings {
         STEP_FORMAT.put("menuTooltipScale", "wynnlabs.settings.percent");
         STEP_DEFAULT.put("menuTooltipScale", 85);
         DESC.put("menuTooltipScale", "wynnlabs.setting_desc.menuTooltipScale");
+        STEPS.put("powerupLabelSize", new int[] {75, 100, 125, 150});
+        STEP_LABELS.put("powerupLabelSize", "wynnlabs.setting.powerupLabelSize");
+        STEP_PARENT.put("powerupLabelSize", "powerupLabels");
+        STEP_FORMAT.put("powerupLabelSize", "wynnlabs.settings.percent");
+        STEP_DEFAULT.put("powerupLabelSize", 100);
+        DESC.put("powerupLabelSize", "wynnlabs.setting_desc.powerupLabelSize");
     }
 
     /** A stepped number setting's value (its default when unset). */
