@@ -230,7 +230,7 @@ final class MountsRoad {
     }
 
     /** The generation your best unfinished mount belongs to (0 with none). */
-    private static int currentGeneration(List<RoadMap.Generation> gens, List<MountsModel.Owned> owned) {
+    static int currentGeneration(List<RoadMap.Generation> gens, List<MountsModel.Owned> owned) {
         int best = 0;
         for (int i = 0; i < gens.size(); i++) {
             if (!inGeneration(gens, i, owned).isEmpty()) {

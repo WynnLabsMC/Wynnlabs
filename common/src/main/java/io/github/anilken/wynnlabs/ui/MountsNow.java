@@ -14,7 +14,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,9 +32,21 @@ final class MountsNow {
     private static final int ICON = 16;
     private static final int SHOP_W = 190;
 
+    /** How long a copy button shows its check. */
+    private static final long COPIED_MS = 1000;
+
     private final MountsTab tab;
     private final MountsScroll scroll = new MountsScroll();
     boolean open;
+    /** The name a copy button put on the clipboard last, and when (its check shows for a moment). */
+    private String copied;
+    private long copiedAt;
+    /** The shopping list's first food row this frame {x, y, w, h}, or null (the previews hover it). */
+    int[] shopRowAt;
+    /** The mount (a member's key) whose plan shows; null: the default pick. */
+    String picked;
+    /** The generation's mounts, grouped, this frame (the mounts menu lists them). */
+    List<MountsGroups.Group> groups;
 
     MountsNow(MountsTab tab) {
         this.tab = tab;
@@ -47,7 +58,12 @@ final class MountsNow {
 
     void draw(GuiGraphics g, int x, int y, int w, int h, RoadMap.Plan plan, int mx, int my) {
         MountType type = tab.model.type();
-        MountsModel.Owned cur = tab.model.current();
+        tab.model.pump();
+        // every mount of the generation still fed, the same ones grouped; the picked group's plan shows
+        groups = MountsGroups.group(MountsGroups.members(tab.model, plan));
+        int gi = MountsGroups.find(groups, picked);
+        MountsGroups.Group sel = gi < 0 ? null : groups.get(gi);
+        MountsModel.Owned cur = sel != null && sel.first().owned() != null ? sel.first().owned() : tab.model.current();
         Mount m = cur != null ? cur.mount() : Mount.fresh(type);
         // with a mount: its plan as the cache, the running job or the estimate has it; without one,
         // the first generation's estimate from the road map
@@ -60,13 +76,17 @@ final class MountsNow {
         int sw = shop ? SHOP_W : 0;
         int lw = shop ? w - sw - 2 * Theme.SP_5 - 1 : w;
         long total = steps.stream().mapToLong(Step::sec).sum();
-        String head = L.t("wynnlabs.mounts.now") + " · " + headline(cur, m);
+        String head = L.t("wynnlabs.mounts.now") + " · " + headline(cur, m, sel == null ? 1 : sel.size());
         String time = total > 0 ? "~" + MountsText.dur(total) : "";
         int tw = Type.META.width(font(), time);
         Type.LABEL.draw(g, font(), Type.LABEL.fit(font(), head, lw - tw - Theme.SP_3), x, y, Theme.INK);
         Type.META.drawRight(g, font(), time, x + lw, y, Theme.WARN);
         Kit.hair(g, x, y + Type.LABEL.lineHeight + Theme.SP_1, lw, 1, Theme.LINE);
         int top = y + Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3;
+        tab.mountAt = null;
+        if (groups.size() > 1 || sel != null && sel.size() > 1) {
+            top += MountsNowChips.draw(tab, this, g, x, top, lw, groups, gi, mx, my) + Theme.SP_3;
+        }
         if (view != null) {
             top += status(g, x, top, lw, cur, view, mx, my) + Theme.SP_3;
         }
@@ -135,13 +155,17 @@ final class MountsNow {
         return Ui.SMALL_H;
     }
 
-    private String headline(MountsModel.Owned cur, Mount m) {
+    /** What "Now" does: buy, breed, or feed this mount ({@code n} > 1: the group of n mounts with one plan). */
+    private String headline(MountsModel.Owned cur, Mount m, int n) {
         if (cur == null) {
             return L.t("wynnlabs.mounts.head_buy", m.type().display());
         }
         var goal = tab.model.goalFor(cur);
         if (goal.reachedBy(m.queue().applyTo(m.stats()))) {
             return L.t("wynnlabs.mounts.head_breed", m.name());
+        }
+        if (n > 1) {
+            return L.t(goal.fullLimits() ? "wynnlabs.mounts.head_full_n" : "wynnlabs.mounts.head_ready_n", n, m.type().display());
         }
         return L.t(goal.fullLimits() ? "wynnlabs.mounts.head_full" : "wynnlabs.mounts.head_ready", m.name());
     }
@@ -159,7 +183,7 @@ final class MountsNow {
         }
         long left = m.queue().secondsLeft();
         for (Material q : m.queue().pending()) {
-            out.add(new Step(null, q.name(), q.name(), "L" + q.level(), L.t("wynnlabs.mounts.queued", MountsText.dur(left)), Theme.INK_2,
+            out.add(new Step(null, q.name(), q.name(), L.t("wynnlabs.mounts.lv", q.level()), L.t("wynnlabs.mounts.queued", MountsText.dur(left)), Theme.INK_2,
                     0, L.t("wynnlabs.mounts.say_queued", q.name()), m.stats().gainsFrom(q)));
         }
         if (fp != null) {
@@ -171,7 +195,7 @@ final class MountsNow {
                     double price = MountsModel.price(mat);
                     String note = bank > 0 ? L.t("wynnlabs.mounts.in_bank") : price >= 0 ? L.t("wynnlabs.mounts.buy_at", MountsText.em(price)) : "";
                     String say = L.t(s.swap() ? "wynnlabs.mounts.say_swap" : "wynnlabs.mounts.say_feed", mat.name(), m.name());
-                    out.add(new Step(null, mat.name(), mat.name(), "L" + mat.level(), note, bank > 0 ? Theme.GOOD : Theme.INK_2,
+                    out.add(new Step(null, mat.name(), mat.name(), L.t("wynnlabs.mounts.lv", mat.level()), note, bank > 0 ? Theme.GOOD : Theme.INK_2,
                             s.durationSec(), say, stats.gainsFrom(mat)));
                     stats = stats.fed(mat);
                 } else {
@@ -244,8 +268,13 @@ final class MountsNow {
             role.draw(g, font(), name, nx, ty, Theme.INK);
             if (s.level() != null) {
                 int lx = nx + role.width(font(), name) + Theme.SP_3;
-                if (lx + Type.META.width(font(), s.level()) <= right) {
+                int lw = Type.META.width(font(), s.level());
+                if (lx + lw <= right) {
                     Type.META.draw(g, font(), s.level(), lx, ty, Theme.INK_2);
+                    if (mx >= lx && mx < lx + lw && my >= ty && my < ty + Type.META.lineHeight && scroll.shows(my)) {
+                        tab.tip(lx, ty, lw, Type.META.lineHeight, List.of(Component.literal(L.t("wynnlabs.mounts.lv_tip"))
+                                .withStyle(ChatFormatting.GRAY)));
+                    }
                 }
             }
             if (lit && scroll.shows(cy)) {
@@ -304,20 +333,13 @@ final class MountsNow {
 
     private void shopping(GuiGraphics g, int x, int y, int w, int h, MountsModel.Owned cur, FeedPlan fp, RoadMap.Plan plan, int mx, int my) {
         MountsModel.Options opt = MountsModel.options();
-        Map<Material, Integer> need = new LinkedHashMap<>();
-        Map<Material, Integer> banked = new LinkedHashMap<>();
-        if (fp != null) {
-            for (var e : fp.materials().entrySet()) {
-                int bank = opt.useBank ? Math.min(e.getValue(), MountsModel.inBank(e.getKey())) : 0;
-                if (bank > 0) {
-                    banked.put(e.getKey(), bank);
-                }
-                if (e.getValue() - bank > 0) {
-                    need.put(e.getKey(), e.getValue() - bank);
-                }
-            }
-        }
+        shopRowAt = null;
         int buy = plan == null ? 0 : Math.max(0, plan.mountsToBuy() - tab.model.owned(tab.model.type()).size());
+        // the whole generation's foods, not only this mount's
+        List<MountsShop.Feeding> feeding = MountsShop.generation(tab.model, plan, cur, fp, buy);
+        MountsShop.Shop list = MountsShop.shop(feeding, FeederOverlay::bagCount, opt.useBank ? MountsModel::inBank : null, buy);
+        Map<Material, Integer> need = list.need();
+        Map<Material, Integer> banked = list.banked();
         double each = MountsModel.mountPrice(tab.model.type());
         double total = cost(need) + (each > 0 ? each * buy : 0);
         String t = total > 0 ? "~" + MountsText.em(total) : "";
@@ -331,15 +353,16 @@ final class MountsNow {
             MountsText.icon(g, tab.model.type(), x, cy, ICON);
             String name = tab.model.type().display() + " ×" + buy;
             int ty = cy + (ICON - Type.BODY.lineHeight) / 2;
+            int r = x + w - copyButton(g, tab.model.type().display(), x + w, ty, mx, my) - Theme.SP_3;
             String price = each > 0 ? MountsText.em(each * buy) : "—";
             int pw = Type.NUMBER.width(font(), price);
-            Type.NUMBER.drawRight(g, font(), price, x + w, ty, Theme.PRICE);
+            Type.NUMBER.drawRight(g, font(), price, r, ty, Theme.PRICE);
             String via = opt.buyTm ? "TM" : "";
             int vw = via.isEmpty() ? 0 : Type.META.width(font(), via) + Theme.SP_3;
             if (!via.isEmpty()) {
-                Type.META.draw(g, font(), via, x + w - pw - vw, ty, Theme.INK_2);
+                Type.META.draw(g, font(), via, r - pw - vw, ty, Theme.INK_2);
             }
-            Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, w - ICON - Theme.SP_3 - pw - vw - Theme.SP_3), x + ICON + Theme.SP_3,
+            Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, r - x - ICON - Theme.SP_3 - pw - vw - Theme.SP_3), x + ICON + Theme.SP_3,
                     ty, Theme.INK);
             if (each > 0 && my >= cy && my < cy + ICON && mx >= x && mx < x + w) {
                 tab.tip(x, cy, w, ICON, List.of(Component.literal(L.t("wynnlabs.mounts.mount_price_tip", MountsText.em(each)))
@@ -361,13 +384,24 @@ final class MountsNow {
             String price = p < 0 ? "—" : MountsText.em(p * e.getValue());
             int pw = Type.NUMBER.width(font(), price);
             int ty = cy + (ICON - Type.BODY.lineHeight) / 2;
-            Type.NUMBER.drawRight(g, font(), price, x + w, ty, Theme.PRICE);
+            int r = x + w - copyButton(g, mat.name(), x + w, ty, mx, my) - Theme.SP_3;
+            Type.NUMBER.drawRight(g, font(), price, r, ty, Theme.PRICE);
             String name = mat.name() + " ×" + e.getValue();
-            Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, w - ICON - Theme.SP_3 - pw - Theme.SP_3), x + ICON + Theme.SP_3, ty, Theme.INK);
+            Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, r - x - ICON - Theme.SP_3 - pw - Theme.SP_3), x + ICON + Theme.SP_3, ty, Theme.INK);
             if (my >= cy && my < cy + ICON && mx >= x && mx < x + w) {
-                tab.tip(x, cy, w, ICON, List.of(Component.literal(mat.name() + " · L" + mat.level()).withStyle(ChatFormatting.GOLD),
-                        Component.literal(p < 0 ? L.t("wynnlabs.mounts.no_price") : L.t("wynnlabs.mounts.price_each", MountsText.em(p)))
-                                .withStyle(ChatFormatting.GRAY)));
+                List<Component> tip = new ArrayList<>();
+                tip.add(Component.literal(mat.name() + " · " + L.t("wynnlabs.mounts.lv", mat.level())).withStyle(ChatFormatting.GOLD));
+                tip.add(Component.literal(p < 0 ? L.t("wynnlabs.mounts.no_price") : L.t("wynnlabs.mounts.price_each", MountsText.em(p)))
+                        .withStyle(ChatFormatting.GRAY));
+                List<String> who = list.forWhom().getOrDefault(mat, List.of());
+                if (!who.isEmpty()) {
+                    List<String> words = who.stream().map(s -> s.startsWith("+") ? L.t("wynnlabs.mounts.shop_new", s.substring(1)) : s).toList();
+                    tip.add(Component.literal(L.t("wynnlabs.mounts.shop_for", String.join(", ", words))).withStyle(ChatFormatting.GRAY));
+                }
+                tab.tip(x, cy, w, ICON, tip);
+            }
+            if (shopRowAt == null) {
+                shopRowAt = new int[] {x, cy, w, ICON};
             }
             cy += rowH + Theme.SP_2;
         }
@@ -377,6 +411,28 @@ final class MountsNow {
             String line = L.t("wynnlabs.mounts.from_bank", String.join(", ", names));
             Type.META.draw(g, font(), Type.META.fit(font(), line, w), x, cy + Theme.SP_1, Theme.GOOD);
         }
+    }
+
+    /**
+     * A copy button ending at {@code right} on the row whose text line starts at {@code ty}: the
+     * plain name onto the clipboard (to paste into the Trade Market's search), a check for a
+     * second after. Only the clipboard: nothing is sent to the game. Returns its width.
+     */
+    private int copyButton(GuiGraphics g, String name, int right, int ty, int mx, int my) {
+        int bw = Ui.CHIP_H + 2;
+        int bx = right - bw;
+        int by = Type.BODY.onCaps(ty, Ui.CHIP_H);
+        boolean just = name.equals(copied) && System.currentTimeMillis() - copiedAt < COPIED_MS;
+        Ui.iconButton(g, just ? "check" : "copy", bx, by, false, mx, my);
+        tab.click(bx, by, bw, Ui.CHIP_H, () -> {
+            net.minecraft.client.Minecraft.getInstance().keyboardHandler.setClipboard(name);
+            copied = name;
+            copiedAt = System.currentTimeMillis();
+        });
+        if (mx >= bx && mx < bx + bw && my >= by && my < by + Ui.CHIP_H) {
+            tab.tip(bx, by, bw, Ui.CHIP_H, List.of(Component.literal(L.t("wynnlabs.mounts.copy_name"))));
+        }
+        return bw;
     }
 
     // ---- input ----

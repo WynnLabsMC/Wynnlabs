@@ -259,7 +259,7 @@ public final class FeederRead {
         for (int i = 0; i + 1 < lore.size(); i++) {
             if (text(lore.get(i)).matches("\\d+ Potential")) {
                 String n = text(lore.get(i + 1));
-                return n.isEmpty() || n.contains(" ") && !n.contains("-") ? null : n;
+                return n.isEmpty() || clickHint(n) || n.contains(" ") && !n.contains("-") ? null : n;
             }
         }
         return null;
@@ -281,7 +281,7 @@ public final class FeederRead {
                 stats = true;
                 continue;
             }
-            if (t.contains("Click to")) {
+            if (clickHint(t)) {
                 break;
             }
             if (stats && !t.isEmpty() && !t.matches(".*\\d+/\\d+ \\(\\d+\\).*")) {
@@ -289,6 +289,16 @@ public final class FeederRead {
             }
         }
         return last;
+    }
+
+    /**
+     * Whether a lore line is a click hint, not text about the mount: "Left-Click for Flute",
+     * "Right-Click to Release", "Shift-Click …", "Drop to …".
+     */
+    public static boolean clickHint(String line) {
+        String t = text(line).toLowerCase(java.util.Locale.ROOT);
+        return t.matches("^(left|right|middle|shift|ctrl)[- ]?(\\+ ?)?(left|right)?[- ]?click\\b.*") || t.startsWith("drop to")
+                || t.contains("click to");
     }
 
     /** A material's name without colour codes, stars or tier marks ("Copper Ingot ✫✫" → "Copper Ingot"). */

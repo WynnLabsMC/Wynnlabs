@@ -337,17 +337,47 @@ final class MountsModel {
         MountStats stats = m.queue().applyTo(m.stats());
         FeedGoal goal = goalFor(o);
         FeedOptions opts = options().road(m.type()).feedOptions();
-        cancelFeed();
+        if (job != null && !job.done()) {
+            job.cancel();                               // a running one stops ("Calculate all" goes on after it)
+        }
         attachCache();
         jobKey = keyOf(o, stats, goal, opts);
         job = FeedPlanner.start(new FeedPlanner.Request(o.read().key(), stats, goal, opts));
     }
 
-    /** Cancel: the job keeps its best plan so far (saved, not proven). */
+    /** Cancel: the job keeps its best plan so far (saved, not proven); "Calculate all" stops too. */
     static void cancelFeed() {
+        if (queue != null) {
+            queue.clear();
+        }
         if (job != null && !job.done()) {
             job.cancel();
         }
+    }
+
+    /** Mounts waiting for their exact plan after "Calculate all", calculated one at a time. */
+    private static java.util.ArrayDeque<Owned> queue;
+
+    /** "Calculate all": the exact plan of each of these with none yet, one after the other on the slow thread. */
+    void startAll(List<Owned> mounts) {
+        cancelFeed();
+        queue = new java.util.ArrayDeque<>(mounts);
+        pump();
+    }
+
+    /** Starts the next queued mount once the running job is done (each frame the page is drawn). */
+    void pump() {
+        while (queue != null && !queue.isEmpty() && (job == null || job.done())) {
+            Owned o = queue.poll();
+            if (feed(o).state() == FeedState.NONE) {
+                startFeed(o);
+            }
+        }
+    }
+
+    /** How many mounts "Calculate all" still has to do (the running one not counted). */
+    static int queued() {
+        return queue == null ? 0 : queue.size();
     }
 
     @SuppressWarnings("unchecked")

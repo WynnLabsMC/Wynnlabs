@@ -26,6 +26,8 @@ final class MountsTab extends MenuTab {
     static final int TYPE_MENU = 1;
     static final int OPTIONS_MENU = 2;
     static final int TARGET_MENU = 3;
+    /** The road map's mounts, when their chips do not fit on one line. */
+    static final int MOUNT_MENU = 4;
 
     final MountsModel model = new MountsModel();
     final MountsCard card = new MountsCard(this);
@@ -39,6 +41,7 @@ final class MountsTab extends MenuTab {
     int[] typeAt;
     int[] optionsAt;
     int[] targetAt;
+    int[] mountAt;
 
     MountsTab(RoadmapScreen menu) {
         super(menu);
@@ -188,6 +191,10 @@ final class MountsTab extends MenuTab {
     private List<UiMenu.Item> items() {
         UiMenu.Items out = new UiMenu.Items();
         MountsModel.Options o = MountsModel.options();
+        if (open == MOUNT_MENU) {
+            var gs = road.now.groups;
+            return MountsNowChips.items(gs, gs == null ? -1 : MountsGroups.find(gs, road.now.picked));
+        }
         if (open == TARGET_MENU) {
             for (int t : io.github.anilken.wynnlabs.mounts.RoadMap.TARGETS) {
                 MountsModel.Pending<io.github.anilken.wynnlabs.mounts.RoadMap.Plan> p = model.road(t);
@@ -257,6 +264,9 @@ final class MountsTab extends MenuTab {
                 if (id.startsWith("t:")) {
                     o.type = id.substring(2);
                     open = NONE;
+                } else if (id.startsWith("m:")) {
+                    road.now.picked = id.substring(2);
+                    open = NONE;
                 } else if (id.startsWith("g:")) {
                     o.target = Integer.parseInt(id.substring(2));
                     open = NONE;
@@ -276,7 +286,8 @@ final class MountsTab extends MenuTab {
     }
 
     private int[] anchor() {
-        return open == TYPE_MENU ? typeAt : open == OPTIONS_MENU ? optionsAt : open == TARGET_MENU ? targetAt : null;
+        return open == TYPE_MENU ? typeAt : open == OPTIONS_MENU ? optionsAt : open == TARGET_MENU ? targetAt
+                : open == MOUNT_MENU ? mountAt : null;
     }
 
     private final Popup popups = new Popup() {

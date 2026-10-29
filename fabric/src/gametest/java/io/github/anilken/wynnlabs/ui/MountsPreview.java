@@ -91,6 +91,7 @@ final class MountsPreview {
         // the road map's estimates come from the planner thread (about a second the first time)
         ctx.waitTicks(120);
         shot(ctx, out, "mounts-road-700");
+        shopHover(ctx, out);
         step(ctx, out, "mounts-road-step", t -> t.road.now.open = true);
         step(ctx, out, "mounts-road-menu", t -> {
             t.road.now.open = false;
@@ -137,6 +138,29 @@ final class MountsPreview {
             MountsModel.previewRoad = null;
             MountsModel.previewView = null;
         });
+    }
+
+    /**
+     * The shopping list's first food row: its tooltip (inside the window), the copy button's
+     * tooltip, and the check right after a click on it. Nothing when the list is not shown (small).
+     */
+    private static void shopHover(ClientGameTestContext ctx, Path out) {
+        int[] row = ctx.computeOnClient(mc -> ((RoadmapScreen) mc.screen).mounts.road.now.shopRowAt);
+        if (row == null) {
+            return;
+        }
+        double s = ctx.computeOnClient(mc -> (double) MenuScale.effective());
+        ctx.getInput().setCursorPos((row[0] + row[2] / 3.0) * s, (row[1] + row[3] / 2.0) * s);
+        ctx.waitTicks(5);
+        shot(ctx, out, "mounts-shop-tip");
+        ctx.getInput().setCursorPos((row[0] + row[2] - 8) * s, (row[1] + row[3] / 2.0) * s);
+        ctx.waitTicks(5);
+        shot(ctx, out, "mounts-shop-copy");
+        ctx.getInput().pressMouse(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        ctx.waitTicks(2);
+        shot(ctx, out, "mounts-shop-copied");
+        ctx.getInput().setCursorPos(2, 2);
+        ctx.waitTicks(2);
     }
 
     private static void step(ClientGameTestContext ctx, Path out, String name, Consumer<MountsTab> change) {

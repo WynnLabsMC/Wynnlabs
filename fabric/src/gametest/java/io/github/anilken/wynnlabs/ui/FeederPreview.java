@@ -86,6 +86,19 @@ final class FeederPreview {
             });
         });
         ctx.waitTicks(40);
+        // one of row 1's next food in the bag (a stand-in count: real items in the inventory make the
+        // tick read them through Wynntils, which the preview does not have): row 1 marks it as in the
+        // bag, later rows wanting it buy it
+        ctx.runOnClient(mc -> {
+            FeederOverlay.previewBag = new java.util.HashMap<>();
+            for (MountBook.Live row : MountBook.live()) {
+                var next = row.row().number() == 1 ? FeederOverlay.nextFood(FeederOverlay.owned(row)) : null;
+                if (next != null) {
+                    FeederOverlay.previewBag.put(next.name(), 1);
+                }
+            }
+        });
+        ctx.waitTicks(5);
         ctx.getInput().setCursorPos(2, 2);
         ctx.waitTicks(10);
         shot(ctx, out, "feeder-marks");
@@ -107,6 +120,7 @@ final class FeederPreview {
         shot(ctx, out, "feeder-pinned");
         ctx.runOnClient(mc -> {
             FeederOverlay.reset();
+            FeederOverlay.previewBag = null;
             MountBook.previewLive(null);
             MountBook.preview(null);
             mc.setScreen(null);

@@ -2,8 +2,10 @@ package io.github.anilken.wynnlabs.mounts;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -105,6 +107,18 @@ class FeederReadTest {
         assertEquals("Azure-Horn", FeederRead.skin(lore));
         assertEquals("Ready to Feed/Breed", FeederRead.state(lore));
         assertNull(FeederRead.skin(List.of("Copper Ingot")));
+    }
+
+    @Test
+    void clickHintsAreNeitherTheSkinNorTheState() {
+        List<String> lore = new ArrayList<>(mountLore("Azure-Horn", ""));
+        lore.add(lore.size() - 2, " Left-Click for Flute");
+        lore.set(lore.size() - 1, " Drop to Release");
+        assertNull(FeederRead.state(lore), "no state line: the click hint is not one");
+        assertNull(FeederRead.skin(List.of("240 Potential", " Left-Click for Flute")));
+        assertTrue(FeederRead.clickHint("Right-Click to Rename"));
+        assertTrue(FeederRead.clickHint("Shift-Click to Pickup"));
+        assertFalse(FeederRead.clickHint("Ready to Feed/Breed"));
     }
 
     @Test

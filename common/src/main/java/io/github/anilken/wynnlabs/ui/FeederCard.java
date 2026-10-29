@@ -1,6 +1,7 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
+import io.github.anilken.wynnlabs.mounts.FeedStep;
 import io.github.anilken.wynnlabs.mounts.FeederRead;
 import io.github.anilken.wynnlabs.mounts.Material;
 import io.github.anilken.wynnlabs.mounts.Mount;
@@ -35,7 +36,10 @@ final class FeederCard {
         MountStats now = m.stats();
         MountStats after = m.queue().applyTo(now);
         int statsH = MountStat.COUNT * (Type.MICRO.lineHeight + Theme.SP_1);
-        int h = Theme.SP_3 + Type.META.lineHeight + Type.MICRO.lineHeight + Theme.SP_3 + statsH + Theme.SP_2 + 1 + Theme.SP_2
+        // a ride first takes one more line: the food it opens, dimmer
+        FeedStep first = row.partnerKey() != null ? null : FeederOverlay.nextStep(o);
+        int thenH = first != null && !first.isFeed() && FeederOverlay.nextFood(o) != null ? Type.MICRO.lineHeight : 0;
+        int h = thenH + Theme.SP_3 + Type.META.lineHeight + Type.MICRO.lineHeight + Theme.SP_3 + statsH + Theme.SP_2 + 1 + Theme.SP_2
                 + Type.META.lineHeight + Type.MICRO.lineHeight + Theme.SP_3 + Ui.SMALL_H + Theme.SP_3;
         var slots = screen.getMenu().slots;
         int rowY = top + slots.get(row.row().mountSlot()).y + 8;
@@ -111,8 +115,34 @@ final class FeederCard {
         // the next food and where it is
         MountsModel.Owned partner = FeederOverlay.owned(row.partnerKey());
         Material next = row.partnerKey() != null ? null : FeederOverlay.nextFood(o);
+        FeedStep step = first;
         int tx = x + 12 + Theme.SP_2;
-        if (row.partnerKey() != null) {
+        if (step != null && !step.isFeed() && step.stat() != null) {
+            // a ride first: the stat's level up to the step's, then (dimmer) the food it opens
+            String stat = step.stat().display();
+            int lvl = now.level(step.stat().ordinal());
+            Art.icon(g, "trending-up", x + 2, Type.META.onCaps(y, 8), 8, Theme.INK_2);
+            long sec = Math.max(0, step.durationSec() - step.coveredSec());
+            String time = sec > 0 ? "~" + MountsText.durShort(sec) : "";
+            int timeW = time.isEmpty() ? 0 : Type.MICRO.width(font, time) + Theme.SP_2;
+            Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.mounts.next_ride", stat, step.toLevel()), x + w - tx - timeW), tx, y,
+                    Theme.INK);
+            if (!time.isEmpty()) {
+                Type.MICRO.drawRight(g, font, time, x + w, Type.META.yIn(y, Type.META.lineHeight), Theme.WARN);
+            }
+            int ly = y + Type.META.lineHeight;
+            String prog = L.t("wynnlabs.mounts.ride_progress", stat, lvl, step.toLevel());
+            int barW = 40;
+            Type.MICRO.draw(g, font, Type.MICRO.fit(font, prog, x + w - tx - barW - Theme.SP_3), tx, ly, Theme.INK_2);
+            int by = Type.MICRO.onCaps(ly, BAR_H);
+            g.fill(x + w - barW, by, x + w, by + BAR_H, 0x229A855C);
+            g.fill(x + w - barW, by, x + w - barW + barW * Math.min(lvl, step.toLevel()) / Math.max(1, step.toLevel()), by + BAR_H,
+                    Theme.INK_2);
+            if (next != null) {
+                Type.MICRO.draw(g, font, Type.MICRO.fit(font, L.t("wynnlabs.mounts.then_food", next.name(), next.level()), x + w - tx), tx,
+                        ly + Type.MICRO.lineHeight, Theme.INK_3);
+            }
+        } else if (row.partnerKey() != null) {
             // two mounts in this row: they breed; no food is planned meanwhile
             Art.icon(g, "heart", x + 2, y + 2, 8, 0xFFD9534F);
             String with = partner == null ? L.t("wynnlabs.mounts.breeding") : L.t("wynnlabs.mounts.breeding_with", partner.mount().name());
@@ -124,9 +154,11 @@ final class FeederCard {
                     Theme.INK);
             String place;
             int ink = Theme.GOOD;
-            if (FeederOverlay.inBag(next.name())) {
+            // where this row's share of the stock comes from (the rows before it take theirs first)
+            MountsShop.Source src = FeederOverlay.source(row.row().number(), next);
+            if (src == MountsShop.Source.BAG) {
                 place = L.t("wynnlabs.mounts.place_bag");
-            } else if (MountsModel.inBank(next) > 0) {
+            } else if (src == MountsShop.Source.BANK) {
                 place = L.t("wynnlabs.mounts.place_bank");
             } else {
                 double p = MountsModel.price(next);
@@ -137,7 +169,7 @@ final class FeederCard {
         } else {
             Type.META.draw(g, font, L.t("wynnlabs.mounts.next_none"), x, y, Theme.INK_3);
         }
-        y += Type.META.lineHeight + Type.MICRO.lineHeight + Theme.SP_3;
+        y += Type.META.lineHeight + Type.MICRO.lineHeight + thenH + Theme.SP_3;
         // the plan: where it stands, and its button (never started by itself)
         MountsModel.FeedView v = model.feed(o);
         String state = switch (v.state()) {

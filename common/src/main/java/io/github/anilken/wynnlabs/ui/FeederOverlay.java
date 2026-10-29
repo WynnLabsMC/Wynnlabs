@@ -18,8 +18,11 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -55,6 +58,8 @@ public final class FeederOverlay {
     /** The next foods (clean names) of every row, for the bag's frames; worked out once a second. */
     private static Set<String> nextFoods = Set.of();
     private static long nextAt;
+    /** Where each row's next food comes from, by row number, as the marks drew it last ({@link #allotted}). */
+    private static Map<Integer, MountsShop.Source> sources;
 
     private FeederOverlay() {}
 
@@ -117,6 +122,22 @@ public final class FeederOverlay {
         return null;
     }
 
+    /** The plan's step to do now (a food or a ride), or null. */
+    static FeedStep nextStep(MountsModel.Owned o) {
+        return o == null ? null : firstStep(model().feed(o).plan());
+    }
+
+    /** The plan's first step: a ride comes before a food that needs its level. Pure, for the test. */
+    static FeedStep firstStep(FeedPlan p) {
+        return p == null || p.steps().isEmpty() ? null : p.steps().get(0);
+    }
+
+    /** The food a row eats now: none while a ride must come first. */
+    private static Material eatsNow(MountsModel.Owned o) {
+        FeedStep s = nextStep(o);
+        return s != null && s.isFeed() ? s.material() : null;
+    }
+
     // ---- drawing, after the menu ----
 
     public static void render(AbstractContainerScreen<?> screen, GuiGraphics g, int mx, int my) {
@@ -142,6 +163,7 @@ public final class FeederOverlay {
             slotBoxes.add(new int[] {left + s.x - 1, top + s.y - 1, 18, 18});
         }
         g.nextStratum();
+        Map<Integer, MountsShop.Source> from = allotted();
         for (MountBook.Live row : MountBook.live()) {
             FeederRead.Row r = row.row();
             if (r.mountSlot() >= slots.size()) {
@@ -191,32 +213,41 @@ public final class FeederOverlay {
             if (tagHover) {
                 hovered = r.number();
             }
-            // the next food, faint, in the first free trough slot, and where it is
-            Material next = breeding ? null : nextFood(o);
-            if (next != null && row.freeSlot() >= 0 && row.freeSlot() < slots.size()) {
+            // the step to do now, faint, in the first free trough slot: the food and where it is, or
+            // a ride icon when the mount must ride first (its next food needs a stat it lacks)
+            FeedStep step = breeding ? null : nextStep(o);
+            if (step != null && row.freeSlot() >= 0 && row.freeSlot() < slots.size()) {
                 Slot fs = slots.get(row.freeSlot());
                 int fx = left + fs.x;
                 int fy = top + fs.y;
-                MountsText.item(g, next.name(), fx + 2, fy + 2, 12);
-                g.fill(fx + 2, fy + 2, fx + 14, fy + 14, 0x66404040);
-                String[] mark = mark(next);
-                Art.box(g, fx + 10, fy + 9, 8, 8, 4, 0xFFF3E6C4, mark[1].equals("buy") ? Theme.PRICE : Theme.GOOD);
-                Type.MICRO.draw(g, font, mark[0], fx + 10 + (8 - Type.MICRO.width(font, mark[0])) / 2,
-                        Type.MICRO.yIn(fy + 9, 8), mark[1].equals("buy") ? Theme.PRICE : Theme.GOOD);
+                if (step.isFeed()) {
+                    MountsText.item(g, step.material().name(), fx + 2, fy + 2, 12);
+                    g.fill(fx + 2, fy + 2, fx + 14, fy + 14, 0x66404040);
+                    mark(g, from.getOrDefault(r.number(), MountsShop.Source.BUY), fx + 10, fy + 9);
+                } else {
+                    Art.box(g, fx + 1, fy + 1, 14, 14, 4, 0x99F3E6C4, 0);
+                    Art.icon(g, "trending-up", fx + 4, fy + 4, 8, Theme.INK_2);
+                }
             }
-            // the time left on the food being eaten: a thin bar under the trough, the time at its end
+            // the time left on the food being eaten (feeding rows only): a thin bar along the trough's
+            // bottom, and the time at a fixed spot in the row, right-aligned just left of the first
+            // locked slot and centred on the trough (never at the bar's end, never in another row)
             long left1 = row.remainingSec() < 0 ? -1 : Math.max(0, row.remainingSec());
-            if (left1 > 0 && !r.trough().isEmpty() && !m.queue().pending().isEmpty()) {
+            if (!breeding && left1 > 0 && !r.trough().isEmpty() && !m.queue().pending().isEmpty()) {
                 int x0 = left + slots.get(r.trough().get(0)).x;
                 int x1 = x0 + 18 * Math.max(1, r.open()) - 2;
                 long whole = FeederRead.timers(m.stats(), m.queue().pending())[0];
                 double frac = whole <= 0 ? 0 : Math.min(1, left1 / (double) whole);
                 g.fill(x0, sy + 17, x1, sy + 18, 0x80000000);
                 g.fill(x0, sy + 17, x0 + (int) Math.round((x1 - x0) * frac), sy + 18, 0xFFE0AE3E);
+                int lock = r.open() < r.trough().size() && r.trough().get(r.open()) < slots.size()
+                        ? left + slots.get(r.trough().get(r.open())).x - 1 : x1 + 2;
                 String t = MountsText.durShort(left1);
                 int tw = Type.MICRO.width(font, t) + 2 * Theme.SP_1;
-                Art.box(g, x1 - tw, sy - 4, tw, 8, 3, 0xCC1A130C, 0);
-                Type.MICRO.draw(g, font, t, x1 - tw + Theme.SP_1, Type.MICRO.yIn(sy - 4, 8), 0xFFFFE071);
+                int th = 8;
+                int ty0 = sy + (16 - th) / 2;
+                Art.box(g, lock - Theme.SP_1 - tw, ty0, tw, th, 3, 0xCC1A130C, 0);
+                Type.MICRO.draw(g, font, t, lock - Theme.SP_1 - tw + Theme.SP_1, Type.MICRO.yIn(ty0, th), 0xFFFFE071);
             }
         }
         chip(screen, g, font, top, mx, my);
@@ -249,30 +280,71 @@ public final class FeederOverlay {
         }
     }
 
-    /** "B" bank / "I" bag / "$" buy (localised), and which. */
-    private static String[] mark(Material m) {
-        if (inBag(m.name())) {
-            return new String[] {L.t("wynnlabs.mounts.mark_bag"), "bag"};
+    /**
+     * Where each row's next food comes from this frame, by row number: the bag's and the bank's
+     * stock shared out in row order ({@link MountsShop#allot}), so two rows never count one item.
+     */
+    private static Map<Integer, MountsShop.Source> allotted() {
+        List<MountBook.Live> rows = new ArrayList<>(MountBook.live());
+        rows.sort(java.util.Comparator.comparingInt(l -> l.row().number()));
+        List<Material> wants = new ArrayList<>();
+        for (MountBook.Live row : rows) {
+            MountsModel.Owned o = row.partnerKey() != null ? null : owned(row);
+            wants.add(o == null ? null : eatsNow(o));
         }
-        if (MountsModel.inBank(m) > 0) {
-            return new String[] {L.t("wynnlabs.mounts.mark_bank"), "bank"};
+        List<MountsShop.Source> src = MountsShop.allot(wants, FeederOverlay::bagCount, MountsModel::inBank);
+        Map<Integer, MountsShop.Source> out = new HashMap<>();
+        for (int i = 0; i < rows.size(); i++) {
+            if (src.get(i) != null) {
+                out.put(rows.get(i).row().number(), src.get(i));
+            }
         }
-        return new String[] {L.t("wynnlabs.mounts.mark_buy"), "buy"};
+        sources = out;
+        return out;
     }
 
-    static boolean inBag(String name) {
+    /** Where this row's next food comes from (as its mark says), BUY when the overlay has not placed it. */
+    static MountsShop.Source source(int row, Material next) {
+        MountsShop.Source s = sources == null ? null : sources.get(row);
+        if (s != null) {
+            return s;
+        }
+        return bagCount(next) > 0 ? MountsShop.Source.BAG : MountsModel.inBank(next) > 0 ? MountsShop.Source.BANK : MountsShop.Source.BUY;
+    }
+
+    /** The mark's icon and colour: a backpack (green) for the bag, the bank (blue), a coin (gold) to buy. */
+    private static void mark(GuiGraphics g, MountsShop.Source s, int x, int y) {
+        String icon = s == MountsShop.Source.BAG ? "backpack" : s == MountsShop.Source.BANK ? "building-bank" : "coin";
+        int ink = s == MountsShop.Source.BAG ? Theme.GOOD : s == MountsShop.Source.BANK ? Theme.LINK : Theme.PRICE;
+        Art.box(g, x, y, 8, 8, 4, 0xFFF3E6C4, ink);
+        Art.icon(g, icon, x + 1, y + 1, 6, ink);
+    }
+
+    /** How many items of this name the bag holds. */
+    static int bagCount(Material m) {
+        return m == null ? 0 : bagCount(m.name());
+    }
+
+    /** Previews: the bag's counts by name instead of the player's inventory (null: the inventory). */
+    static Map<String, Integer> previewBag;
+
+    static int bagCount(String name) {
+        if (previewBag != null) {
+            return previewBag.getOrDefault(name, 0);
+        }
         var p = Minecraft.getInstance().player;
         if (p == null) {
-            return false;
+            return 0;
         }
         Inventory inv = p.getInventory();
+        int n = 0;
         for (int i = 0; i < inv.getContainerSize(); i++) {
             var st = inv.getItem(i);
             if (!st.isEmpty() && FeederRead.clean(st.getHoverName().getString()).equalsIgnoreCase(name)) {
-                return true;
+                n += st.getCount();
             }
         }
-        return false;
+        return n;
     }
 
     /** One chip over the menu: the target, the generation now and the mounts to buy; opens the Mounts tab. */

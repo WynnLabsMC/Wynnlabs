@@ -61,6 +61,8 @@ const ICONS = [
   'scale', 'eraser', 'edit',
   // the Mounts tab
   'horse',
+  // the Mount Feeder's marks: in the bag (with building-bank and coin)
+  'backpack',
   // a plan's missing piece whose source is unknown
   'question-mark',
 ];
