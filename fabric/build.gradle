@@ -152,6 +152,12 @@ test {
     systemProperty 'wynnlabs.fixtures', fixtures.absolutePath
     systemProperty 'wynnlabs.updateFixtures', rootProject.hasProperty('updateFixtures')
     systemProperty 'wynnlabs.debugDump', rootProject.hasProperty('debugDump')
+    // -PreferenceBuilds: the reference build benchmark (the community guide against the road map's
+    // pick) and the cursed builds robustness check; minutes long, off in a normal run
+    systemProperty 'wynnlabs.referenceBuilds', rootProject.hasProperty('referenceBuilds')
+    if (rootProject.hasProperty('referenceBuilds')) {
+        outputs.upToDateWhen { false }
+    }
     // -PwithTurkish: also run the Turkish test cases (and their .tr fixtures); without it the tests are English only
     systemProperty 'wynnlabs.testTurkish', rootProject.hasProperty('withTurkish')
     // -PdumpQuests: write the shipped quest guides (en.json) from the pages tools/quests/fetch.py kept
