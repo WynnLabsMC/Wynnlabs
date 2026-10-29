@@ -72,7 +72,7 @@ public final class DeathCoach {
     /** Every line the coach gives, for matching advice an older version saved already worded. */
     private static final List<String> ADVICE_KEYS = List.of("wynnlabs.death.repeat_here", "wynnlabs.death.area_level",
             "wynnlabs.death.burst", "wynnlabs.death.add_defence", "wynnlabs.death.no_potions", "wynnlabs.death.one_off",
-            "wynnlabs.death.heal_sooner", "wynnlabs.death.heal_sooner_combo", "wynnlabs.death.out_of_mana",
+            "wynnlabs.death.heal_sooner", "wynnlabs.death.heal_sooner_combo", "wynnlabs.death.heal_sooner_spell", "wynnlabs.death.out_of_mana",
             "wynnlabs.death.one_off_heal", "wynnlabs.death.one_off_tank", "wynnlabs.death.repeat_boss");
 
     private record Sample(long time, int hp, int max, int mana) {}
@@ -259,7 +259,8 @@ public final class DeathCoach {
             out.add(Words.of("wynnlabs.death.out_of_mana"));
         } else if (heal != null && d.potions() == 0) {
             out.add(heal.combo().isEmpty() ? Words.of("wynnlabs.death.heal_sooner")
-                    : Words.of("wynnlabs.death.heal_sooner_combo", heal.combo()));
+                    : HealAdvice.MAGE_HEAL.equals(heal.spell()) ? Words.of("wynnlabs.death.heal_sooner_combo", heal.combo())
+                    : Words.of("wynnlabs.death.heal_sooner_spell", heal.spell(), heal.combo()));
         } else if (d.potions() == 0) {
             out.add(Words.of("wynnlabs.death.no_potions"));
         }

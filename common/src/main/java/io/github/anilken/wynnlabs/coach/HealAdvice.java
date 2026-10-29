@@ -2,7 +2,9 @@ package io.github.anilken.wynnlabs.coach;
 
 import com.google.gson.JsonArray;
 
+import io.github.anilken.wynnlabs.build.ArchetypeMix;
 import io.github.anilken.wynnlabs.build.Setup;
+import io.github.anilken.wynnlabs.build.TreePlanner;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.core.Words;
 import io.github.anilken.wynnlabs.game.GameState;
@@ -10,8 +12,10 @@ import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.model.AbilityNode;
 import io.github.anilken.wynnlabs.model.Klass;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,8 +30,14 @@ final class HealAdvice {
 
     private HealAdvice() {}
 
-    /** A self-heal spell: its click combo ("R-L-R", "" when unknown) and mana cost (0 when unknown). */
-    record Healer(String combo, int cost) {}
+    /**
+     * A self-heal: the spell cast for it ("Heal", "Aura"; "" when there is none to name), its
+     * click combo ("R-L-R", "" when unknown) and mana cost (0 when unknown).
+     */
+    record Healer(String spell, String combo, int cost) {
+
+        static final Healer UNKNOWN = new Healer("", "", 0);
+    }
 
     /**
      * The moment's picture: the self-heal (null for none), whether the player stays in the fight
@@ -52,6 +62,17 @@ final class HealAdvice {
     static final String MAGE_COMBO = "R-L-R";
     static final int MAGE_COST = 35;
 
+    /** Shaman's Aura heals the party once Sacrificial Shrine is taken. Its combo and cost when the tree does not say. */
+    static final String SHAMAN_AURA = "Aura";
+    static final String SHAMAN_SHRINE = "Sacrificial Shrine";
+    static final String SHAMAN_COMBO = "R-L-L";
+    static final int SHAMAN_COST = 40;
+
+    /** Heal nodes (the heal spell itself not counted) that make a player a healer whatever the archetype. */
+    static final int HEAL_NODES = 2;
+    /** Unlocked nodes of one archetype (and more than of any other) that make it the one you lean to. */
+    static final int LEAN_NODES = 5;
+
     /** A mob with this many times your health is a boss (bosses have far more than any pack mob). */
     static final int BOSS_RATIO = 30;
 
@@ -64,36 +85,119 @@ final class HealAdvice {
             return Stance.NONE;
         }
         Klass cls = Wyn.classType();
-        Healer h = selfHeal(cls, Setup.goal(), GameState.current().unlockedAbilities(), Wyn.abilityTree(cls));
+        Healer h = selfHeal(cls, Setup.goal(), TreePlanner.chosen(), GameState.current().unlockedAbilities(),
+                Wyn.abilityTree(cls));
         int max = Wyn.health().map(c -> c.max()).orElse(0);
         boolean boss = bossFight(Wyn.focusedMobMaxHealth(), max);
         int mana = Wyn.mana().map(c -> c.current()).orElse(-1);
         return new Stance(h, holds(Setup.goal(), boss), boss, mana);
     }
 
-    /**
-     * The player's self-heal: a Mage's Heal (every Mage; unless the tree was read and Heal is not
-     * in it), else with the Healer goal a heal of unknown combo. {@code unlocked} may be empty
-     * when the tree was not read yet; {@code tree} may be null.
+    /*
+     * Who heals, from the Wynncraft 2.x ability trees (the Wynncraft API's ability map as Wynntils
+     * caches it, read 2026-10-29):
+     * - Mage, Light Bender: the archetype built on Heal (Orphion's Pulse, Larger Heal,
+     *   Purification, Sunflare, ... and the Dawn ultimate). Arcanist turns Heal into a mana
+     *   transfer and Riftwalker uses it to bind its rift: there it is no healer's heal.
+     * - Shaman, Acolyte: Sacrificial Shrine makes Aura heal every ally; Blood Sorrow and the
+     *   Monument to Gloom ultimate heal too. Regeneration (any archetype) makes the Totem heal.
+     * - Warrior, Paladin: no heal spell, but it lives on regeneration (Rejuvenating Skin) and
+     *   gives the party overhealth (Heavenly Trumpet) and a second chance.
+     * - Archer and Assassin have no heal worth the name (Assassin's Soul Siphon is a little
+     *   overhealth); only the Healer goal makes them healers.
      */
-    static Healer selfHeal(Klass cls, String goal, List<String> unlocked, List<AbilityNode> tree) {
-        if (cls == Klass.MAGE && (unlocked == null || unlocked.isEmpty() || unlocked.contains(MAGE_HEAL))) {
-            AbilityNode node = null;
-            if (tree != null) {
-                for (AbilityNode n : tree) {
-                    if (MAGE_HEAL.equals(n.name())) {
-                        node = n;
-                        break;
-                    }
+
+    /** The archetype that heals, for a class ("" for none). */
+    static String healArchetype(Klass cls) {
+        return switch (cls) {
+            case MAGE -> "Light Bender";
+            case SHAMAN -> "Acolyte";
+            case WARRIOR -> "Paladin";
+            default -> "";
+        };
+    }
+
+    /** The nodes that make a player heal more (the heal spell itself not among them). */
+    static List<String> healNodes(Klass cls) {
+        return switch (cls) {
+            case MAGE -> List.of("Orphion's Pulse", "Larger Heal", "Purification", "Fortitude", "Sunshower",
+                    "Lightweaver", "Interweave", "Sunflare", "Dawn");
+            case SHAMAN -> List.of(SHAMAN_SHRINE, "Regeneration", "Blood Sorrow", "Blood Rite", "Greater Sacrifice",
+                    "Monument to Gloom");
+            case WARRIOR -> List.of("Rejuvenating Skin", "Heavenly Trumpet", "Second Chance", "Sparkling Hope");
+            default -> List.of();
+        };
+    }
+
+    /**
+     * The player's self-heal, or null for one who does not heal. A healer has the Healer goal,
+     * plays the class's healing archetype ({@code chosen}, the planner's choice as
+     * {@link ArchetypeMix#spec}, as the larger part; with none chosen the archetype most unlocked
+     * nodes are of), or took {@link #HEAL_NODES} heal nodes. A Mage with only the plain Heal and
+     * a damage archetype is none. {@code unlocked} may be empty and {@code tree} null when not
+     * read yet: then only the goal and the chosen archetype count. The heal cast is a Mage's
+     * Heal, a Shaman's Aura with Sacrificial Shrine, else one without a combo.
+     */
+    static Healer selfHeal(Klass cls, String goal, String chosen, List<String> unlocked, List<AbilityNode> tree) {
+        List<String> have = unlocked == null ? List.of() : unlocked;
+        if (cls == Klass.MAGE && !have.isEmpty() && !have.contains(MAGE_HEAL)) {
+            return "HEALER".equals(goal) ? Healer.UNKNOWN : null;   // no Heal to cast
+        }
+        List<String> heals = healNodes(cls);
+        boolean healer = "HEALER".equals(goal) || playsHealer(cls, chosen, have, tree)
+                || have.stream().filter(heals::contains).count() >= HEAL_NODES;
+        if (!healer) {
+            return null;
+        }
+        if (cls == Klass.MAGE) {
+            return spell(tree, MAGE_HEAL, MAGE_COMBO, MAGE_COST);
+        }
+        if (cls == Klass.SHAMAN && have.contains(SHAMAN_SHRINE)) {
+            return spell(tree, SHAMAN_AURA, SHAMAN_COMBO, SHAMAN_COST);
+        }
+        return Healer.UNKNOWN;
+    }
+
+    /** Whether the player plays the class's healing archetype: chosen as the larger part, else leaned to. */
+    private static boolean playsHealer(Klass cls, String chosen, List<String> have, List<AbilityNode> tree) {
+        String heal = healArchetype(cls);
+        if (heal.isEmpty()) {
+            return false;
+        }
+        ArchetypeMix mix = ArchetypeMix.parse(chosen);
+        if (!mix.auto()) {
+            return mix.weight(heal) > 0.5;
+        }
+        if (tree == null || have.isEmpty()) {
+            return false;
+        }
+        Map<String, Integer> count = new HashMap<>();
+        for (AbilityNode n : tree) {
+            if (n.archetype() != null && !n.archetype().isEmpty() && have.contains(n.name())) {
+                count.merge(n.archetype(), 1, Integer::sum);
+            }
+        }
+        int mine = count.getOrDefault(heal, 0);
+        return mine >= LEAN_NODES
+                && count.entrySet().stream().allMatch(e -> e.getKey().equals(heal) || e.getValue() < mine);
+    }
+
+    /** A spell as the heal: its combo and cost from the tree's text, else the defaults given. */
+    private static Healer spell(List<AbilityNode> tree, String name, String combo, int cost) {
+        AbilityNode node = null;
+        if (tree != null) {
+            for (AbilityNode n : tree) {
+                if (name.equals(n.name())) {
+                    node = n;
+                    break;
                 }
             }
-            String text = node == null ? "" : text(node);
-            Matcher c = COMBO.matcher(text);
-            Matcher m = COST.matcher(text);
-            String combo = c.find() ? letter(c.group(1)) + "-" + letter(c.group(2)) + "-" + letter(c.group(3)) : MAGE_COMBO;
-            return new Healer(combo, m.find() ? Integer.parseInt(m.group(1)) : MAGE_COST);
         }
-        return "HEALER".equals(goal) ? new Healer("", 0) : null;
+        String text = node == null ? "" : text(node);
+        Matcher c = COMBO.matcher(text);
+        Matcher m = COST.matcher(text);
+        return new Healer(name, c.find() ? letter(c.group(1)) + "-" + letter(c.group(2)) + "-" + letter(c.group(3)) : combo,
+                m.find() ? Integer.parseInt(m.group(1)) : cost);
     }
 
     private static String letter(String click) {

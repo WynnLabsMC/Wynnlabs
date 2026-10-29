@@ -414,6 +414,7 @@
   "wynnlabs.death.one_off": "Looks like a one-off; back off when your health gets low",
   "wynnlabs.death.heal_sooner": "Heal sooner, before your health gets low",
   "wynnlabs.death.heal_sooner_combo": "Heal sooner: cast Heal (%s) before your health gets low",
+  "wynnlabs.death.heal_sooner_spell": "Heal sooner: cast %s (%s) before your health gets low",
   "wynnlabs.death.out_of_mana": "You had no mana left to heal; keep enough for one heal",
   "wynnlabs.death.one_off_heal": "Looks like a one-off; heal earlier, while your health is still high",
   "wynnlabs.death.one_off_tank": "Looks like a one-off; heal or drink a pot earlier, or add effective HP",
