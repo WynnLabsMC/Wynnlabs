@@ -133,7 +133,14 @@ public final class Sources {
      * attack hits a second, max health and the summons' entries ({@link #summons}).
      */
     record Inputs(Map<String, Double> stats, Map<String, Double> shares, double baseDps, double[] skillBonus,
-            double multiplier, double casts, double mainHits, double health, List<Source> summons) {}
+            double multiplier, double casts, double mainHits, double health, List<Source> summons,
+            Healing.Result healing) {
+
+        Inputs(Map<String, Double> stats, Map<String, Double> shares, double baseDps, double[] skillBonus,
+                double multiplier, double casts, double mainHits, double health, List<Source> summons) {
+            this(stats, shares, baseDps, skillBonus, multiplier, casts, mainHits, health, summons, null);
+        }
+    }
 
     /** Fills {@code parts.sources()} for one evaluation, with the tree overlay in force. */
     static void fill(Damage.Breakdown parts, Inputs in) {
@@ -189,11 +196,16 @@ public final class Sources {
         out.addAll(in.summons());
         TreeModel.Overlay o = TreeModel.active();
         if (o != null && o.heals != null) {
-            double amount = in.health() * Math.max(0, 1 + in.stats().getOrDefault("healingEfficiency", 0.0) / 100.0);
+            double efficiency = Math.max(0, 1 + in.stats().getOrDefault("healingEfficiency", 0.0) / 100.0);
+            Healing.Result healing = in.healing();
             for (SourceText.Heal h : o.heals) {
-                double heal = h.fraction() * amount;
-                // a heal naming no spell has no casts to go by: its own clock, else none a second
-                double casts = h.spell() == null ? 0 : castRate.getOrDefault(h.spell(), 0.0);
+                // regeneration (Sunflare's) is not raised by Healing Efficiency
+                double heal = h.fraction() * in.health() * (h.efficiency() ? efficiency : 1);
+                // a heal naming no spell has no casts to go by: its own clock, else none a second;
+                // the heal cast as often as the mana pays for it (Healing)
+                double casts = h.spell() == null ? 0
+                        : healing != null && h.spell().equals(healing.spell()) ? healing.casts()
+                        : castRate.getOrDefault(h.spell(), 0.0);
                 double perSecond = h.every() > 0 ? heal / h.every() : heal * casts;
                 out.add(new Source(h.name(), "heal", h.spell(), 0, 0, h.every() > 0 ? 1 / h.every() : 0, 1, 0,
                         casts, heal, perSecond, List.of()));

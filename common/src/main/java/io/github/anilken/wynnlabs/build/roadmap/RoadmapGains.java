@@ -342,6 +342,8 @@ final class RoadmapGains {
         rel(lines, L.t("wynnlabs.road.spell_damage"), x.spellDps(), y.spellDps());
         rel(lines, L.t("wynnlabs.road.main_attack"), x.mainDps(), y.mainDps());
         rel(lines, L.t("wynnlabs.road.effective_health"), x.ehp(), y.ehp());
+        // the Healer goal's healing a second, yours and the party's (0 for the other goals)
+        rel(lines, L.t("wynnlabs.road.healing"), x.healPerSecond(), y.healPerSecond());
         double mx = mana(x);
         double my = mana(y);
         if (mx > 0 && Math.abs(my / mx - 1) >= 0.01) {

@@ -184,9 +184,14 @@ public final class Setup {
      * factor 0.3 from 3 becomes its 0 (from 3 only these); 5 turns the spell cost weight round (a cut
      * is kept positive in the item data); 6 drops the mana steal discount (mana steal counts whole)
      * and the weights your own picks used to raise; 7 drops the simulated fight's mana keys (the
-     * mana part comes from the stats alone).
+     * mana part comes from the stats alone); 8 gives the Healer goal its weights again (the
+     * healing it keeps up is scored as a power, {@link #HEALER_KEYS}).
      */
-    static final int SURVIVAL_MODEL = 7;
+    static final int SURVIVAL_MODEL = 8;
+
+    /** The Healer goal's weights that 8 writes again. */
+    private static final String[] HEALER_KEYS = {"healWeight", "damageWeight", "manaWeight", "survivalWeight",
+        "survivalPower"};
 
     /**
      * A preset's model weights: survival, regen, mana, heal, damage, survival power, then the
@@ -201,8 +206,10 @@ public final class Setup {
             case "SAFE" -> new double[] {0.7, 0.3, 0.3, 0, 1.0, 0.6, 1, 1, 1, 0, 0, 1.3, 1};
             // a tank holds the line: health counts in full, damage little
             case "TANK" -> new double[] {1.4, 0.6, 0.3, 0, 0.4, 1.0, 1, 1, 1, 0, 0, 1.6, 0};
-            // a healer keeps casting heals: max health × Healing Efficiency × casts, then survival
-            case "HEALER" -> new double[] {0.5, 0.3, 0.6, 1.5, 0.3, 0.4, 1, 1, 1, 0, 0, 1.3, 0};
+            // a healer is scored by the healing it keeps up for itself and the party (Healing: the
+            // tree's heals × Healing Efficiency × the casts the mana pays for), then survival as a
+            // log alone: its own heals keep it up, so health past the floor is no tank's power
+            case "HEALER" -> new double[] {0.5, 0.3, 0.6, 1.0, 0.2, 0, 1, 1, 1, 0, 0, 1.3, 0};
             // one big target: the hit per cast, walk speed and XP matter less
             case "BOSS" -> new double[] {0.3, 0.2, 0.3, 0, 1.0, 0.3, 0.3, 0.5, 0.6, 1.2, 0, 1.15, 1};
             // many weak targets: run from pack to pack and keep casting
@@ -284,6 +291,15 @@ public final class Setup {
             model.remove("fightSeconds");
             model.remove("baseMana");
             model.remove("manaMeasuredAt");
+        }
+        // 8: the Healer goal scores the healing it keeps up as a power (Healing), not a log of max
+        // health × Healing Efficiency, so its weights come from the goal again (one set by hand stays)
+        if (from < 8 && g.equals("HEALER")) {
+            for (String k : HEALER_KEYS) {
+                if (!byHand.contains(k)) {
+                    model.addProperty(k, w[keys.indexOf(k)]);
+                }
+            }
         }
         model.addProperty("survivalModel", SURVIVAL_MODEL);
     }

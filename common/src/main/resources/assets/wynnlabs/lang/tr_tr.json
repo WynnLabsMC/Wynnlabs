@@ -246,6 +246,7 @@
   "wynnlabs.road.spell_damage": "Spell Damage",
   "wynnlabs.road.main_attack": "Main Attack",
   "wynnlabs.road.effective_health": "Effective HP",
+  "wynnlabs.road.healing": "Saniyede iyileştirme",
   "wynnlabs.road.mana": "Mana: %s → %s",
   "wynnlabs.road.walk_speed": "Walk Speed: %s → %s",
   "wynnlabs.road.xp_bonus": "XP bonusu: %s → %s",

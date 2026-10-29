@@ -280,7 +280,7 @@ final class TreeReading {
                 double f = SourceText.factor(text.scales(), have, h.name().toLowerCase(Locale.ROOT), true, null);
                 double[] mod = h.spell() == null ? null : spellMods.get(h.spell());
                 double per = mod == null ? 1 : mod[1];
-                heals.add(new SourceText.Heal(h.name(), h.spell(), h.fraction() * f * per, h.every()));
+                heals.add(h.times(f * per));
             }
         }
         List<SourceText.Ultimate> ultimates = new ArrayList<>();

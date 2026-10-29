@@ -91,6 +91,11 @@ public final class Damage {
         public double costCut() {
             return factors.length > 7 ? factors[7] : 0;
         }
+
+        /** The healing a second the Healer goal scores, yours and the party's (Healing); 0 for the other goals. */
+        public double healPerSecond() {
+            return factors.length > 8 ? factors[8] : 0;
+        }
     }
 
     /**
@@ -492,6 +497,23 @@ public final class Damage {
                 * (Tuning.weight("manaRegenLean") * regen + Tuning.weight("costCutLean") * cut));
     }
 
+    /** A spell slot's name in the cost IDs ("1st" … "4th"). */
+    static String nth(int idx) {
+        return idx == 1 ? "1st" : idx == 2 ? "2nd" : idx == 3 ? "3rd" : "4th";
+    }
+
+    /**
+     * A spell's mana per cast: Intelligence cuts the base cost, then the raw cost IDs of its slot,
+     * then the % ones, at least 1 (WynnBuilder getSpellCost). The item data keeps a cut as a
+     * positive number (Wynntils has "-15% 3rd Spell Cost" as 15), so a cost ID takes off what it says.
+     */
+    static double spellCost(Map<String, Double> s, double baseCost, int idx, double intReduction) {
+        String nth = nth(idx);
+        double cost = (baseCost * (1 - intReduction) - stat(s, "raw" + nth + "SpellCost"))
+                * (1 - stat(s, nth + "SpellCost") / 100.0);
+        return Math.max(1, cost);
+    }
+
     /** The game's own mana back every 5 s, the mana part's yardstick. */
     static final double BASE_MANA_PER_5 = 25;
 
@@ -555,14 +577,9 @@ public final class Damage {
             double dmg = hit(s, split(c, shares), baseDps, skillBonus, true, el,
                     sp.has("hits") ? sp.get("hits").getAsDouble() : 1);
             int idx = sp.has("index") ? sp.get("index").getAsInt() : 0;
-            String nth = idx == 1 ? "1st" : idx == 2 ? "2nd" : idx == 3 ? "3rd" : "4th";
+            String nth = nth(idx);
             double baseCost = sp.has("cost") ? sp.get("cost").getAsDouble() : 30;
-            // Intelligence cuts the base cost, then the raw cost IDs, then the % ones, at least 1
-            // (WynnBuilder getSpellCost). The item data keeps a cut as a positive number (Wynntils
-            // has "-15% 3rd Spell Cost" as 15), so a cost ID takes off what it says
-            double cost = (baseCost * (1 - intReduction) - stat(s, "raw" + nth + "SpellCost"))
-                    * (1 - stat(s, nth + "SpellCost") / 100.0);
-            cost = Math.max(1, cost);
+            double cost = spellCost(s, baseCost, idx, intReduction);
             // what the build takes off this spell's cost (below 0 when an ID raises it), counted
             // by its share: a cut on a spell you do not cast counts nothing
             cutSum += share * (1 - cost / Math.max(1, baseCost));
@@ -671,6 +688,17 @@ public final class Damage {
         // than a bonus does (Winter's Essence, −65 regen, was picked as an upgrade).
         double regen = stat(s, "healthRegenRaw") * (1 + stat(s, "healthRegen") / 100.0) + 0.5 * stat(s, "lifeSteal");
         double regenScale = model("hpBase", 5) + model("hpPerLevel", 5) * level;
+        // the Healer goal's healing (Healing): the tree's heals as often as the mana pays for, for
+        // you and the party. A healer's own heals cover a drain (one tick of regen every 4 s, the
+        // wiki's Identifications page), so a negative regen or life steal does not sink it
+        double healWeight = model("healWeight", 0);
+        Healing.Result healing = healWeight > 0 || parts != null
+                ? Healing.of(s, Math.max(1, health), manaPer5, manaPool(s, intel), intReduction, spells,
+                        TreeModel.active() == null ? null : TreeModel.active().heals)
+                : null;
+        if (healWeight > 0) {
+            regen += 4 * healing.self();
+        }
         double fRegen = regen < 0
                 ? Math.max(0.3, 1 + model("negativeRegenWeight", 2.0) * regen / regenScale)
                 : 1 + model("regenWeight", 0.2) * Math.min(1, regen / regenScale);
@@ -690,13 +718,14 @@ public final class Damage {
         // mana stats and no Intelligence is 1; +25 mana every 5 s (or half the cost off) is 2,
         // worth manaWeight × ln 2 (+21 % at 0.3, the Mana chip triples the weight)
         double fMana = manaFactor(manaPer5, costCut);
-        // A role besides damage (the Tank and Healer goals): heals in every class are a share of
-        // the caster's max health, raised by Healing Efficiency, once per cast; damage then counts
-        // less (damageWeight below 1), so a tank or healer is not judged as a damage dealer
-        // Healing Efficiency far below -100 % (Immolation's -650 %) heals nothing, never less: the
-        // log of a negative heal was NaN, and a NaN score threw the weapon out as "does not fit"
-        double heal = Math.max(1e-9, Math.max(1, health) * (1 + stat(s, "healingEfficiency") / 100.0) * Math.max(0.2, casts));
-        double fHeal = Math.max(0.2, 1 + model("healWeight", 0) * Math.log(heal / regenScale));
+        // A healer (the Healer goal, rules.model.healWeight above 0) is scored by the healing it
+        // keeps up (Healing, worked out above): a power of the health a second every 5 s over the
+        // level's health, so twice the healing is worth 2^healWeight times the score. Damage then
+        // counts less (damageWeight below 1). Healing Efficiency far below -100 % (Immolation's
+        // -650 %) heals nothing, never less: a NaN score threw the weapon out
+        double fHeal = healWeight > 0
+                ? Math.pow(Math.max(1e-6, healing.value() * 5 / regenScale), healWeight)
+                : 1;
         // Boss fights reward a big hit per cast (rules.model.burstWeight), loot runs Loot Bonus and
         // Loot Quality (rules.model.lootWeight); both 0 unless the goal asks for them
         double fBurst = Math.pow(Math.max(1, dmgPerCast) / regenScale, model("burstWeight", 0));
@@ -706,11 +735,14 @@ public final class Damage {
         if (parts != null) {
             // the same numbers source by source: each spell, summon, area and heal (Sources)
             Sources.fill(parts, new Sources.Inputs(s, shares, baseDps, skillBonus, multiplier, casts, HITS[tierNow],
-                    Math.max(1, health), summonList));
+                    Math.max(1, health), summonList, healing));
         }
+        // the Healer goal's healing a second (yours and the party's) after the mana stats
+        double[] factors = healWeight > 0
+                ? new double[] {totalNoFeel, fLife, fMana, fSpeed, fXp, feelFactor, manaPer5, costCut, healing.value()}
+                : new double[] {totalNoFeel, fLife, fMana, fSpeed, fXp, feelFactor, manaPer5, costCut};
         return new Result(objective, spellDps, mainDps, casts, ehp, xp, speed, dmgPerCast,
-                new double[] {totalNoFeel, fLife, fMana, fSpeed, fXp, feelFactor, manaPer5, costCut}, ehpElemental, Math.max(1, health),
-                pieces, weapon);
+                factors, ehpElemental, Math.max(1, health), pieces, weapon);
     }
 
     /**
@@ -782,6 +814,9 @@ public final class Damage {
         }
         if (!parts.isEmpty()) {
             o.add("parts", parts);
+        }
+        if (r.healPerSecond() > 0) {
+            o.addProperty("healPerSecond", Math.round(r.healPerSecond()));
         }
         o.addProperty("xpBonus", r.xp());
         o.addProperty("walkSpeed", r.speed());

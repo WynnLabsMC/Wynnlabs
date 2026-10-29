@@ -33,8 +33,34 @@ final class SourceText {
 
     private SourceText() {}
 
-    /** A heal of the tree: {@code fraction} of your max health per cast of {@code spell}, or every {@code every} s while it lasts. */
-    record Heal(String name, String spell, double fraction, double every) {}
+    /**
+     * A heal of the tree: {@code fraction} of your max health per cast of {@code spell}, or every
+     * {@code every} s while it lasts. {@code allies}: it heals the party too, not just you ("Pulse
+     * Self Heal" does not); {@code efficiency}: Healing Efficiency raises it (a "Health Regen" is
+     * regeneration, which it does not raise, after the wiki's Identifications page);
+     * {@code pulses}: how many pulses {@code fraction} comes in, {@code delay} s apart after the
+     * cast (0: all at once). A recast cuts the pulses still to come (the wiki's Mage ability tree).
+     */
+    record Heal(String name, String spell, double fraction, double every, boolean allies, boolean efficiency,
+            int pulses, double delay) {
+
+        Heal(String name, String spell, double fraction, double every) {
+            this(name, spell, fraction, every, true, true, 0, 0);
+        }
+
+        /** The same heal with another fraction (cut by the nodes that cut it). */
+        Heal times(double f) {
+            return new Heal(name, spell, fraction * f, every, allies, efficiency, pulses, delay);
+        }
+
+        /** The share of {@code fraction} a cast heals when the next comes {@code interval} s later. */
+        double landed(double interval) {
+            if (pulses <= 0 || delay <= 0) {
+                return 1;
+            }
+            return Math.min(pulses, Math.max(0, interval) / delay) / pulses;
+        }
+    }
 
     /** An ultimate that deals damage: its first damage block per hit, hits per second while it is up (0: one go). */
     record Ultimate(String name, double[] conv, double rate) {}
@@ -65,6 +91,12 @@ final class SourceText {
 
     private static final Pattern HEAL = Pattern.compile("heal: (\\d+(?:\\.\\d+)?)% \\(of your max health");
     private static final Pattern HEAL_WORD = Pattern.compile("\\bheals?\\b");
+    private static final Pattern REGEN = Pattern.compile("health regen: (\\d+(?:\\.\\d+)?)% per second \\(of your max health");
+    private static final Pattern PULSES = Pattern.compile("pulsing (\\d+) more times");
+    private static final Pattern DELAY = Pattern.compile("delay: (\\d+(?:\\.\\d+)?)s \\(per pulse");
+    private static final Pattern DURATION = Pattern.compile("duration: (\\d+(?:\\.\\d+)?)s");
+    private static final Pattern COOLDOWN = Pattern.compile("cooldown: (\\d+(?:\\.\\d+)?)s");
+    private static final Pattern ALLIES = Pattern.compile("\\ball(?:ies| players)\\b|\\bevery player\\b|\\bally\\b");
     private static final Pattern EVERY = Pattern.compile("every (\\d+(?:\\.\\d+)?)s");
     private static final Pattern DO_LESS = Pattern.compile("([a-z' ]+?) will do (\\d+)% (less|more) damage");
     private static final Pattern HEAL_LESS = Pattern.compile("([a-z' ]+?) will heal (\\d+)% (less|more) health");
@@ -128,7 +160,12 @@ final class SourceText {
             Matcher h = HEAL.matcher(low);
             if (h.find()) {
                 String healed = spell ? n.name() : lastSpellBefore(low, spells, h.start(), byLow);
-                heals.add(new Heal(n.name(), healed, Double.parseDouble(h.group(1)) / 100.0, healEvery(low)));
+                heals.add(heal(n.name(), healed, low, h));
+            } else {
+                Matcher r = REGEN.matcher(low);
+                if (r.find()) {
+                    heals.add(regen(n.name(), low, r, spells, byLow));
+                }
             }
         }
         return new Reading(spellOf, heals, ultimates, scales, each, perNoun, resist);
@@ -201,6 +238,42 @@ final class SourceText {
         s.addProperty("perCount", mod[1]);
         s.addProperty("waves", mod[2]);
         s.addProperty("hits", (s.has("hits") ? s.get("hits").getAsDouble() : 1) * mod[1] * mod[2]);
+    }
+
+    /**
+     * A "Total Heal: 15% (of your max health)" line: Orphion's Pulse's "pulsing 2 more times" and
+     * "Pulse Self Heal: 20%" make it 2 × 20 % for you alone, "Delay: 1.5s (per pulse)" apart; a
+     * heal that names allies or every player heals the party too.
+     */
+    private static Heal heal(String name, String healed, String low, Matcher h) {
+        double fraction = Double.parseDouble(h.group(1)) / 100.0;
+        Matcher p = PULSES.matcher(low);
+        int pulses = p.find() ? Integer.parseInt(p.group(1)) : 0;
+        double delay = 0;
+        if (pulses > 0) {
+            fraction *= pulses;
+            Matcher d = DELAY.matcher(low);
+            delay = d.find() ? Double.parseDouble(d.group(1)) : 0;
+        }
+        boolean self = low.contains("self heal");
+        return new Heal(name, healed, fraction, healEvery(low), !self && ALLIES.matcher(low).find(), true, pulses, delay);
+    }
+
+    /**
+     * Sunflare's "Health Regen: 5% per second (of your max health)" for its "Duration: 10s" once
+     * every "Cooldown: 20s": on average 2.5 % a second. Regeneration, so Healing Efficiency does
+     * not raise it; it comes with the spell that sets it off ("your next Heal"). Its "Mana Regen"
+     * is left out: the text does not say whether it reaches you as well as the allies.
+     */
+    private static Heal regen(String name, String low, Matcher r, List<String> spells, Map<String, String> byLow) {
+        double perSecond = Double.parseDouble(r.group(1)) / 100.0;
+        Matcher d = DURATION.matcher(low);
+        Matcher c = COOLDOWN.matcher(low);
+        double duration = d.find() ? Double.parseDouble(d.group(1)) : 0;
+        double cooldown = c.find() ? Double.parseDouble(c.group(1)) : 0;
+        double share = duration > 0 && cooldown > duration ? duration / cooldown : 1;
+        return new Heal(name, lastSpellBefore(low, spells, r.start(), byLow), perSecond * share, 1,
+                ALLIES.matcher(low).find(), false, 0, 0);
     }
 
     /** The spell named last before {@code at} in {@code low}; null when none. */

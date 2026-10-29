@@ -199,6 +199,13 @@ public final class TreeModel {
             if (taken != 1) {
                 k.append("|r").append(Math.round(taken * 1000));
             }
+            // the heals: the Healer goal scores them (Healing)
+            for (SourceText.Heal h : heals == null ? List.<SourceText.Heal>of() : heals) {
+                k.append("|h").append(h.name()).append(':').append(h.spell()).append(',')
+                        .append(Math.round(h.fraction() * 10000)).append(',').append(Math.round(h.every() * 100))
+                        .append(',').append(h.allies() ? 'a' : 's').append(h.efficiency() ? 'e' : 'r')
+                        .append(',').append(h.pulses()).append('x').append(Math.round(h.delay() * 100));
+            }
             this.key = k.toString();
         }
 
