@@ -1958,6 +1958,8 @@
   "wynnlabs.import.why_class": "Class'ına uygun değil",
   "wynnlabs.import.tomes": "Tome'lar: %s",
   "wynnlabs.import.skills": "Elle verilen skill puanları: %s",
+  "wynnlabs.import.tree": "Ability tree: %s node · %s",
+  "wynnlabs.import.aspects": "Aspect'ler: %s",
   "wynnlabs.import.note": "Sadece item'lar alınır: powder, tome ve SP bilgi için gösterilir",
   "wynnlabs.import.confirm": "Bunların etrafında kur",
   "wynnlabs.import.confirm_tip": "Seçtiğin item'ların yerine geçerler",

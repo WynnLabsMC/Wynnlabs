@@ -19,7 +19,7 @@ import java.util.Map;
  * WynnBuilder's build links ("wynnbuilder.github.io/builder/#..."), read by the mod's own code
  * from the published format alone. Only what the build-around list needs is read: the nine
  * pieces with their powders, the tomes, the skill points set by hand and the level; the aspects
- * and the ability tree after them are left alone.
+ * and the ability tree after them are kept as bits for {@link WynnBuilderTree}.
  *
  * <p>The current form is a bit string, lowest bit first, six bits per letter (0-9, A-Z, a-z, +,
  * -): 12 in six bits, the data version in ten, then per piece a 2-bit kind (an item by id + 1, 0
@@ -53,9 +53,11 @@ public final class WynnBuilderLink {
      * A decoded link: its WynnBuilder data version ("2.2.5.0"; {@code newer} when the mod's table
      * is older than the link, read with the newest widths it knows), the pieces it fills, the
      * tomes' names, the skill points set by hand (Strength … Agility, null when WynnBuilder works
-     * them out) and the level.
+     * them out) and the level. {@code rest} is what follows, the aspects and the ability tree, as
+     * '0' and '1' ({@link WynnBuilderTree} reads it with the weapon's class); empty in the older form.
      */
-    public record Build(String version, boolean newer, List<Piece> pieces, List<String> tomes, List<Integer> skills, int level) {}
+    public record Build(String version, boolean newer, List<Piece> pieces, List<String> tomes, List<Integer> skills, int level,
+                        String rest) {}
 
     /** The widths of one data version's fields. */
     record Widths(String name, int items, int tomes, int tomeSlots, int slots, int powderTiers, int powderBits, int wrapBits,
@@ -68,15 +70,20 @@ public final class WynnBuilderLink {
 
     private WynnBuilderLink() {}
 
-    /** The build in a pasted link or its hash; null when the text is not a WynnBuilder build link. */
+    /**
+     * The build in a pasted link or its hash; null when the text is not a WynnBuilder build link.
+     * The text may carry more: WynnBuilder's copied text (the link, a new line, the item list), a
+     * forum's link wrapper ("proxy.php?link=https%3A%2F%2F…%23…") or escaped new lines ("%0A").
+     */
     public static Build decode(String text) {
         if (text == null) {
             return null;
         }
-        String s = text.strip();
-        int hash = s.indexOf('#');
-        String query = hash < 0 ? "" : s.substring(0, hash);
-        String tag = hash < 0 ? s : s.substring(hash + 1);
+        String s = unescape(text.strip());
+        int site = s.toLowerCase(java.util.Locale.ROOT).indexOf("wynnbuilder");
+        int hash = s.indexOf('#', Math.max(site, 0));
+        String query = hash < 0 ? "" : s.substring(Math.max(site, 0), hash);
+        String tag = cut(hash < 0 ? s : s.substring(hash + 1));
         if (tag.isEmpty()) {
             return null;
         }
@@ -92,6 +99,38 @@ public final class WynnBuilderLink {
         } catch (RuntimeException e) {
             return null;                                // cut short or not a build: not a link
         }
+    }
+
+    /**
+     * "%XX" escapes turned back into their letters ("%23" is '#', "%0A" a new line). A link's own
+     * letters never hold '%', and '+' is one of them, so a '+' stays a '+'.
+     */
+    static String unescape(String s) {
+        if (s.indexOf('%') < 0) {
+            return s;
+        }
+        StringBuilder out = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            int hi = i + 2 < s.length() ? Character.digit(s.charAt(i + 1), 16) : -1;
+            int lo = hi < 0 ? -1 : Character.digit(s.charAt(i + 2), 16);
+            if (c == '%' && lo >= 0) {
+                out.append((char) (hi * 16 + lo));
+                i += 2;
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
+    }
+
+    /** The hash up to the first letter a link does not use (a new line, a space, the forum's "&hash="). */
+    static String cut(String tag) {
+        int end = 0;
+        while (end < tag.length() && (DIGITS.indexOf(tag.charAt(end)) >= 0 || tag.charAt(end) == '_')) {
+            end++;
+        }
+        return tag.substring(0, end);
     }
 
     // ---- the current form ----
@@ -152,7 +191,7 @@ public final class WynnBuilderLink {
             skills = Collections.unmodifiableList(Arrays.asList(sp));
         }
         int level = b.take(1) == 0 ? w.maxLevel() : b.take(w.levelBits());
-        return new Build(w.name(), newer, List.copyOf(pieces), List.copyOf(tomes), skills, level);
+        return new Build(w.name(), newer, List.copyOf(pieces), List.copyOf(tomes), skills, level, b.rest());
     }
 
     /** A crafted piece's bits: a 0 bit, 7-bit version, six ingredients and the recipe (12 each), two tiers, a weapon's speed, padding. */
@@ -273,7 +312,7 @@ public final class WynnBuilderLink {
                 at += width;
             }
         }
-        return new Build(legacyVersion(v, query, t), false, List.copyOf(pieces), List.copyOf(tomes), skills, level);
+        return new Build(legacyVersion(v, query, t), false, List.copyOf(pieces), List.copyOf(tomes), skills, level, "");
     }
 
     /** The data version an older link names: "?v=N" from form 8 on (else the last the older form knew), the first one before. */
@@ -361,6 +400,15 @@ public final class WynnBuilderLink {
                 throw new IllegalArgumentException("link too short");
             }
             at += n;
+        }
+
+        /** The bits not read yet, as '0' and '1'. */
+        String rest() {
+            StringBuilder s = new StringBuilder(bits.length - at);
+            for (int i = at; i < bits.length; i++) {
+                s.append(bits[i] ? '1' : '0');
+            }
+            return s.toString();
         }
     }
 

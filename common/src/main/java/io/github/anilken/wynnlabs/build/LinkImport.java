@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.build;
 
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.model.ItemData;
+import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.Slot;
 
 import java.util.ArrayList;
@@ -12,7 +13,9 @@ import java.util.Map;
 /**
  * A WynnBuilder build link turned into the items to build around: each piece of the link found
  * in the game's item database by name, or why it is left out. The kept ones go to
- * {@link Locks#set} once the player confirms; powders, tomes and skill points are only shown.
+ * {@link Locks#set} once the player confirms; powders, tomes and skill points are only shown. The
+ * link's ability tree and aspects are read with its weapon's class (yours when the weapon is
+ * crafted, custom or not in the database).
  */
 public final class LinkImport {
 
@@ -22,8 +25,11 @@ public final class LinkImport {
     /** One piece of the link: what it is, the item when the database has it, and whether it is kept. */
     public record Row(WynnBuilderLink.Piece piece, ItemData info, Why why) {}
 
-    /** The link's rows in its order and the items kept (one per slot, two rings). */
-    public record Result(WynnBuilderLink.Build build, List<Row> rows, List<ItemData> kept) {}
+    /**
+     * The link's rows in its order, the items kept (one per slot, two rings) and the link's
+     * ability tree and aspects (null when the link has none or its class is not known).
+     */
+    public record Result(WynnBuilderLink.Build build, List<Row> rows, List<ItemData> kept, WynnBuilderTree.Tree tree) {}
 
     private LinkImport() {}
 
@@ -52,7 +58,38 @@ public final class LinkImport {
             }
             rows.add(new Row(p, info, why));
         }
-        return new Result(build, List.copyOf(rows), Locks.resolve(state, names));
+        return new Result(build, List.copyOf(rows), Locks.resolve(state, names), WynnBuilderTree.of(build, klass(rows, state)));
+    }
+
+    /**
+     * The link's own tree as the model's overlay at the link's level, to score its items with the
+     * nodes it was made for ({@link TreeModel#with}); null when the link has no tree, is for
+     * another class than yours, or the model cannot read your class's tree.
+     */
+    public static TreeModel.Overlay overlay(Result r) {
+        if (r == null || r.tree() == null || r.tree().klass() != GameState.current().classType()) {
+            return null;
+        }
+        TreeModel.Run base = TreeModel.run("");
+        if (base == null) {
+            return null;
+        }
+        int level = r.build().level();
+        return new TreeModel.Run(base.reads, base.spellNames, r.tree().nodes(), List.of(), level, "", 1, base.passiveCap,
+                base.bonuses, base.text).at(level);
+    }
+
+    /** The class the link is for: its weapon's, else yours. */
+    static Klass klass(List<Row> rows, GameState state) {
+        for (Row r : rows) {
+            if (r.piece().slot() == WynnBuilderLink.WEAPON && r.info() != null && r.info().slot().isWeapon()) {
+                Klass k = r.info().requirements().klass().orElse(r.info().slot().klass());
+                if (k != null && k != Klass.NONE) {
+                    return k;
+                }
+            }
+        }
+        return state.classType();
     }
 
     /**

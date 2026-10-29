@@ -187,10 +187,19 @@ final class BuildImportView {
         }
     }
 
-    /** The lines under the pieces: the tomes and the skill points set by hand (information only). */
+    /** The lines under the pieces: the tree's archetype points, the aspects, the tomes and the skill points set by hand. */
     private static List<String> info(LinkImport.Result r) {
         List<String> out = new ArrayList<>();
         WynnBuilderLink.Build b = r.build();
+        if (r.tree() != null && r.tree().nodes().size() > 1) {
+            List<String> arch = new ArrayList<>();
+            r.tree().archetypes().forEach((a, n) -> arch.add(a + " " + n));
+            out.add(L.t("wynnlabs.import.tree", r.tree().nodes().size(), String.join(" · ", arch)));
+            if (!r.tree().aspects().isEmpty()) {
+                out.add(L.t("wynnlabs.import.aspects", String.join(", ",
+                        r.tree().aspects().stream().map(a -> a.name() + " " + a.tier()).toList())));
+            }
+        }
         if (!b.tomes().isEmpty()) {
             out.add(L.t("wynnlabs.import.tomes", String.join(", ", b.tomes())));
         }

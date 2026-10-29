@@ -1958,6 +1958,8 @@
   "wynnlabs.import.why_class": "Not for your class",
   "wynnlabs.import.tomes": "Tomes: %s",
   "wynnlabs.import.skills": "Skill points set by hand: %s",
+  "wynnlabs.import.tree": "Ability tree: %s nodes · %s",
+  "wynnlabs.import.aspects": "Aspects: %s",
   "wynnlabs.import.note": "Only the items are kept: powders, tomes and SP are shown for reference",
   "wynnlabs.import.confirm": "Build around these",
   "wynnlabs.import.confirm_tip": "They replace your picked items",
