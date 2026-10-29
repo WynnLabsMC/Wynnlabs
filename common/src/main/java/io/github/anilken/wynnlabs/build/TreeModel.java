@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.core.Rules;
-import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.model.AbilityNode;
@@ -24,8 +23,8 @@ import java.util.function.Supplier;
  * Cheaper node lowers the spell it names; a spell not bought yet gets no share; summons and
  * traps that hit on their own clock ("Total Damage: 40% (of your DPS)" … "every 0.25s") add
  * passive damage in their elements; "0.5 Mana per second" adds to the mana that comes back;
- * before the archetype's first node the main attack weighs as for no archetype; and with the
- * treeBonuses setting on, the passive damage bonuses ({@link TreeBonuses}: "Main Attack Damage:
+ * before the archetype's first node the main attack weighs as for no archetype; and the
+ * passive damage bonuses ({@link TreeBonuses}: "Main Attack Damage:
  * +5%", "Earth Damage: +20%", "Total Damage: +4%" for a spell or a summon) raise what they name.
  *
  * <p>An {@link Overlay} is in force on a thread while a build or a road map milestone is worked
@@ -391,7 +390,7 @@ public final class TreeModel {
          */
         final double earlyMainAttack;
         final double passiveCap;
-        /** The nodes' passive damage bonuses by node name; empty with the treeBonuses setting off. */
+        /** The nodes' passive damage bonuses by node name. */
         final Map<String, TreeBonuses.Bonus> bonuses;
         /** What else the text says, for the breakdown source by source ({@link Sources#read}). */
         final SourceText.Reading text;
@@ -475,7 +474,7 @@ public final class TreeModel {
             List<String> have = gs.unlockedAbilities() == null ? List.of() : List.copyOf(gs.unlockedAbilities());
             List<String> spells = spellNames(tree, cls);
             double cap = Rules.sub("model", "summonCap", 2.5);
-            boolean withBonuses = Settings.on("treeBonuses");
+            boolean withBonuses = true;               // the tree's passive bonuses always count
             String key = withBonuses + "|" + cls + "|" + arch + "|" + gs.level() + "|" + have + "|" + spells + "|" + cap + "|" + summonAlive() + "," + Sources.fightShare(false) + "|"
                     + System.identityHashCode(tree) + ":" + tree.size();
             Object[] last = lastRun;

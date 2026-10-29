@@ -35,7 +35,7 @@ public final class GroundGlow {
 
     /** The same for any entity showing an item (drops can be item displays too). */
     public static Integer colour(int entityId, ItemStack stack) {
-        if (!Settings.on("groundGlow")) {
+        if (!(Settings.choice("dropGlow") >= 1)) {
             return null;
         }
         long now = System.currentTimeMillis();
@@ -120,7 +120,7 @@ public final class GroundGlow {
             if (v.type() != null && v.type().contains("Emerald")) {
                 return null;                    // pouches too
             }
-            if (!Settings.on("groundGlowOther")) {
+            if (!(Settings.choice("dropGlow") == 2)) {
                 return null;
             }
             boolean starred = v.kind() == ItemView.Kind.INGREDIENT || v.kind() == ItemView.Kind.MATERIAL;
@@ -134,7 +134,7 @@ public final class GroundGlow {
                 if (Settings.on("groundGlowShop") && Shopping.find(info.name()) != null) {
                     return 0xFFAA00;
                 }
-                if (info.tier() == Tier.NORMAL && !Settings.on("groundGlowNormal")) {
+                if (info.tier() == Tier.NORMAL && !(Settings.choice("dropGlow") == 2)) {
                     return null;
                 }
                 Integer rgb = info.tier().colour().getColor();
@@ -142,12 +142,12 @@ public final class GroundGlow {
             }
             Integer starCount = WynntilsItems.ingredientStars(STARS.matcher(plain).replaceAll("").trim());
             if (starCount != null) {
-                return Settings.on("groundGlowOther") ? stars(starCount) : null;
+                return (Settings.choice("dropGlow") == 2) ? stars(starCount) : null;
             }
             // not recognised yet: gear-looking drops by their name colour, anything else white
             tier = tierFromColour(stack.getHoverName());
             if (tier == null || tier == Tier.SET) {
-                return Settings.on("groundGlowOther") ? WHITE : null;   // green names are mostly misc items
+                return (Settings.choice("dropGlow") == 2) ? WHITE : null;   // green names are mostly misc items
             }
         }
         if (tier == null) {
@@ -156,7 +156,7 @@ public final class GroundGlow {
         if (gearName != null && Settings.on("groundGlowShop") && Shopping.find(gearName) != null) {
             return 0xFFAA00;                    // gold: on your shopping list
         }
-        if (tier == Tier.NORMAL && !Settings.on("groundGlowNormal")) {
+        if (tier == Tier.NORMAL && !(Settings.choice("dropGlow") == 2)) {
             return null;
         }
         Integer rgb = tier.colour().getColor();

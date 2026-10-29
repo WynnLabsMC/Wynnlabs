@@ -869,9 +869,6 @@ public final class RoadmapScreen extends Screen {
             onClose();
             return true;
         }
-        if (tab == TAB_SETTINGS && settings.scaleClicked(ex, ey)) {
-            return true;                                // the next frame draws at the new scale
-        }
         if (rail.helpClicked(ex, ey)) {
             return true;
         }
@@ -993,6 +990,10 @@ public final class RoadmapScreen extends Screen {
                 home.detail = null;
             } else if (c.equals("#qtodayothers")) {
                 today.action(c);
+            } else if (c.equals("#qslots")) {
+                // the bag row's slot limit chip: the same rule as Settings › Trading
+                io.github.anilken.wynnlabs.advice.MarketSlots.setLimited(!io.github.anilken.wynnlabs.advice.MarketSlots.limited());
+                today.refreshNow();
             } else if (!questsTab.action(c)) {
                 home.action(c, event.button());
             }

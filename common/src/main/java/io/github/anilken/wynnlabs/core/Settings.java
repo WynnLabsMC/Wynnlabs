@@ -11,179 +11,68 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Feature switches, toggled on the road map's settings tab (J) and kept in
- * config/wynnlabs/settings.json for every character. Everything is on by default.
+ * Feature switches, choices and numbers, set on the menu's settings tab and kept in
+ * config/wynnlabs/settings.json for every character. Most switches are on by default.
  */
 public final class Settings {
 
-    /** Key → label shown in the menu, in menu order. */
-    /** Setting → its language key, in the order the settings tab shows them. */
+    /**
+     * Every switch → its language key. The settings tab picks and orders them by page
+     * ({@code ui/SettingsRows}); a few live on their own tab (feederOverlay and feederHighlight on
+     * Mounts, dpsHud on the tree) or the AI tab (localApi, apiWrite) and are only listed here.
+     */
     public static final Map<String, String> LABELS = new LinkedHashMap<>();
-
-    static {
-        LABELS.put("itemAdvice", "wynnlabs.setting.itemAdvice");
-        LABELS.put("altAdvice", "wynnlabs.setting.altAdvice");
-        LABELS.put("menuAdvice", "wynnlabs.setting.menuAdvice");
-        LABELS.put("wornHint", "wynnlabs.setting.wornHint");
-        LABELS.put("powderHint", "wynnlabs.setting.powderHint");
-        LABELS.put("tooltipPrice", "wynnlabs.setting.tooltipPrice");
-        LABELS.put("boxPrices", "wynnlabs.setting.boxPrices");
-        LABELS.put("glowTree", "wynnlabs.setting.glowTree");
-        LABELS.put("glowUpgrade", "wynnlabs.setting.glowUpgrade");
-        LABELS.put("glowShop", "wynnlabs.setting.glowShop");
-        LABELS.put("chatUpgrade", "wynnlabs.setting.chatUpgrade");
-        LABELS.put("chatSkills", "wynnlabs.setting.chatSkills");
-        LABELS.put("chatLevelUp", "wynnlabs.setting.chatLevelUp");
-        LABELS.put("groundGlow", "wynnlabs.setting.groundGlow");
-        LABELS.put("groundBeam", "wynnlabs.setting.groundBeam");
-        LABELS.put("groundGlowShop", "wynnlabs.setting.groundGlowShop");
-        LABELS.put("groundGlowNormal", "wynnlabs.setting.groundGlowNormal");
-        LABELS.put("groundGlowOther", "wynnlabs.setting.groundGlowOther");
-        LABELS.put("mobTrack", "wynnlabs.setting.mobTrack");
-        LABELS.put("mobTrackSound", "wynnlabs.setting.mobTrackSound");
-        LABELS.put("autoTree", "wynnlabs.setting.autoTree");
-        LABELS.put("treeBonuses", "wynnlabs.setting.treeBonuses");
-        LABELS.put("glowQuest", "wynnlabs.setting.glowQuest");
-        LABELS.put("priceApi", "wynnlabs.setting.priceApi");
-        LABELS.put("dangerWarn", "wynnlabs.setting.dangerWarn");
-        LABELS.put("sellSummary", "wynnlabs.setting.sellSummary");
-        LABELS.put("bankHint", "wynnlabs.setting.bankHint");
-        LABELS.put("sourceHint", "wynnlabs.setting.sourceHint");
-        LABELS.put("survivalWarn", "wynnlabs.setting.survivalWarn");
-        LABELS.put("coachToasts", "wynnlabs.setting.coachToasts");
-        LABELS.put("dpsHud", "wynnlabs.setting.dpsHud");
-        LABELS.put("ridePanel", "wynnlabs.setting.ridePanel");
-        LABELS.put("powerupLabels", "wynnlabs.setting.powerupLabels");
-        LABELS.put("rideRefresh", "wynnlabs.setting.rideRefresh");
-        LABELS.put("sellGlow", "wynnlabs.setting.sellGlow");
-        LABELS.put("verdictBadges", "wynnlabs.setting.verdictBadges");
-        LABELS.put("hotbarBadges", "wynnlabs.setting.hotbarBadges");
-        LABELS.put("feederOverlay", "wynnlabs.setting.feederOverlay");
-        LABELS.put("feederHighlight", "wynnlabs.setting.feederHighlight");
-        LABELS.put("miniQuests", "wynnlabs.setting.miniQuests");
-        LABELS.put("questGuides", "wynnlabs.setting.questGuides");
-        LABELS.put("updateCheck", "wynnlabs.setting.updateCheck");
-        LABELS.put("autoUpdate", "wynnlabs.setting.autoUpdate");
-        LABELS.put("localApi", "wynnlabs.setting.localApi");
-        LABELS.put("apiWrite", "wynnlabs.setting.apiWrite");
-        LABELS.put("debug", "wynnlabs.setting.debug");
-        LABELS.put("webFont", "wynnlabs.setting.webFont");
-        LABELS.put("menuResume", "wynnlabs.setting.menuResume");
-    }
-
-    /** Setting → its settings-tab category (tips, glow, coach, quests, build, data). */
-    static final Map<String, String> CATEGORY = new LinkedHashMap<>();
-    /** Setting → the language key of its one-line description. */
+    /** Switch, choice or number → the language key of its one-line description. */
     public static final Map<String, String> DESC = new LinkedHashMap<>();
 
     static {
-        CATEGORY.put("webFont", "look");
-        DESC.put("webFont", "wynnlabs.setting_desc.webFont");
-        CATEGORY.put("menuResume", "look");
-        DESC.put("menuResume", "wynnlabs.setting_desc.menuResume");
-        CATEGORY.put("itemAdvice", "tips");
-        DESC.put("itemAdvice", "wynnlabs.setting_desc.itemAdvice");
-        CATEGORY.put("altAdvice", "tips");
-        DESC.put("altAdvice", "wynnlabs.setting_desc.altAdvice");
-        CATEGORY.put("wornHint", "tips");
-        DESC.put("wornHint", "wynnlabs.setting_desc.wornHint");
-        CATEGORY.put("powderHint", "tips");
-        DESC.put("powderHint", "wynnlabs.setting_desc.powderHint");
-        CATEGORY.put("tooltipPrice", "tips");
-        DESC.put("tooltipPrice", "wynnlabs.setting_desc.tooltipPrice");
-        CATEGORY.put("boxPrices", "tips");
-        DESC.put("boxPrices", "wynnlabs.setting_desc.boxPrices");
-        CATEGORY.put("bankHint", "tips");
-        DESC.put("bankHint", "wynnlabs.setting_desc.bankHint");
-        CATEGORY.put("sourceHint", "tips");
-        DESC.put("sourceHint", "wynnlabs.setting_desc.sourceHint");
-        CATEGORY.put("glowTree", "glow");
-        DESC.put("glowTree", "wynnlabs.setting_desc.glowTree");
-        CATEGORY.put("glowUpgrade", "glow");
-        DESC.put("glowUpgrade", "wynnlabs.setting_desc.glowUpgrade");
-        CATEGORY.put("glowShop", "glow");
-        DESC.put("glowShop", "wynnlabs.setting_desc.glowShop");
-        CATEGORY.put("groundGlow", "glow");
-        DESC.put("groundGlow", "wynnlabs.setting_desc.groundGlow");
-        CATEGORY.put("groundBeam", "glow");
-        DESC.put("groundBeam", "wynnlabs.setting_desc.groundBeam");
-        CATEGORY.put("groundGlowShop", "glow");
-        DESC.put("groundGlowShop", "wynnlabs.setting_desc.groundGlowShop");
-        CATEGORY.put("groundGlowNormal", "glow");
-        DESC.put("groundGlowNormal", "wynnlabs.setting_desc.groundGlowNormal");
-        CATEGORY.put("groundGlowOther", "glow");
-        DESC.put("groundGlowOther", "wynnlabs.setting_desc.groundGlowOther");
-        CATEGORY.put("mobTrack", "glow");
-        DESC.put("mobTrack", "wynnlabs.setting_desc.mobTrack");
-        CATEGORY.put("mobTrackSound", "glow");
-        DESC.put("mobTrackSound", "wynnlabs.setting_desc.mobTrackSound");
-        CATEGORY.put("sellGlow", "glow");
-        DESC.put("sellGlow", "wynnlabs.setting_desc.sellGlow");
-        CATEGORY.put("verdictBadges", "glow");
-        DESC.put("verdictBadges", "wynnlabs.setting_desc.verdictBadges");
-        CATEGORY.put("hotbarBadges", "glow");
-        DESC.put("hotbarBadges", "wynnlabs.setting_desc.hotbarBadges");
-        CATEGORY.put("feederOverlay", "glow");
-        DESC.put("feederOverlay", "wynnlabs.setting_desc.feederOverlay");
-        CATEGORY.put("feederHighlight", "glow");
-        DESC.put("feederHighlight", "wynnlabs.setting_desc.feederHighlight");
-        CATEGORY.put("chatUpgrade", "coach");
-        CATEGORY.put("chatSkills", "coach");
-        DESC.put("chatSkills", "wynnlabs.setting_desc.chatSkills");
-        DESC.put("chatUpgrade", "wynnlabs.setting_desc.chatUpgrade");
-        CATEGORY.put("chatLevelUp", "coach");
-        DESC.put("chatLevelUp", "wynnlabs.setting_desc.chatLevelUp");
-        CATEGORY.put("dangerWarn", "coach");
-        DESC.put("dangerWarn", "wynnlabs.setting_desc.dangerWarn");
-        CATEGORY.put("survivalWarn", "coach");
-        DESC.put("survivalWarn", "wynnlabs.setting_desc.survivalWarn");
-        CATEGORY.put("coachToasts", "coach");
-        DESC.put("coachToasts", "wynnlabs.setting_desc.coachToasts");
-        CATEGORY.put("dpsHud", "coach");
-        DESC.put("dpsHud", "wynnlabs.setting_desc.dpsHud");
-        CATEGORY.put("ridePanel", "coach");
-        DESC.put("ridePanel", "wynnlabs.setting_desc.ridePanel");
-        CATEGORY.put("powerupLabels", "coach");
-        DESC.put("powerupLabels", "wynnlabs.setting_desc.powerupLabels");
-        CATEGORY.put("rideRefresh", "coach");
-        DESC.put("rideRefresh", "wynnlabs.setting_desc.rideRefresh");
-        CATEGORY.put("sellSummary", "coach");
-        DESC.put("sellSummary", "wynnlabs.setting_desc.sellSummary");
-        CATEGORY.put("glowQuest", "quests");
-        DESC.put("glowQuest", "wynnlabs.setting_desc.glowQuest");
-        CATEGORY.put("miniQuests", "quests");
-        DESC.put("miniQuests", "wynnlabs.setting_desc.miniQuests");
-        CATEGORY.put("menuAdvice", "build");
-        DESC.put("menuAdvice", "wynnlabs.setting_desc.menuAdvice");
-        CATEGORY.put("autoTree", "build");
-        DESC.put("autoTree", "wynnlabs.setting_desc.autoTree");
-        CATEGORY.put("treeBonuses", "build");
-        DESC.put("treeBonuses", "wynnlabs.setting_desc.treeBonuses");
-        CATEGORY.put("priceApi", "data");
-        DESC.put("priceApi", "wynnlabs.setting_desc.priceApi");
-        CATEGORY.put("questGuides", "data");
-        DESC.put("questGuides", "wynnlabs.setting_desc.questGuides");
-        CATEGORY.put("updateCheck", "data");
-        DESC.put("updateCheck", "wynnlabs.setting_desc.updateCheck");
-        CATEGORY.put("autoUpdate", "data");
-        DESC.put("autoUpdate", "wynnlabs.setting_desc.autoUpdate");
-        CATEGORY.put("localApi", "ai");
-        DESC.put("localApi", "wynnlabs.setting_desc.localApi");
-        CATEGORY.put("apiWrite", "ai");
-        DESC.put("apiWrite", "wynnlabs.setting_desc.apiWrite");
-        CATEGORY.put("debug", "data");
-        DESC.put("debug", "wynnlabs.setting_desc.debug");
+        for (String k : new String[] {"itemAdvice", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
+            "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "mobTrack",
+            "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
+            "survivalWarn", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
+            "feederHighlight", "miniQuests", "questGuides", "localApi", "apiWrite", "debug", "webFont", "menuResume"}) {
+            LABELS.put(k, "wynnlabs.setting." + k);
+            DESC.put(k, "wynnlabs.setting_desc." + k);
+        }
     }
 
     /**
-     * Number settings with − and + on the settings tab: key → the values they step through, in
-     * order. Their row sits under the switch they belong to ({@link #STEP_PARENT}).
+     * Settings with one of three values (a row of chips): key → its default. They replaced
+     * families of switches ({@link SettingsMigration}): dropGlow 0 off, 1 gear, 2 every drop;
+     * slotBadges 0 off, 1 inventory, 2 inventory and hotbar; treeHelp 0 off, 1 tips, 2 tips and
+     * glow; updates 0 off, 1 notify, 2 install by itself.
      */
+    public static final Map<String, Integer> CHOICES = new LinkedHashMap<>();
+
+    static {
+        CHOICES.put("dropGlow", 1);
+        CHOICES.put("slotBadges", 1);
+        CHOICES.put("treeHelp", 2);
+        CHOICES.put("updates", 1);
+        CHOICES.keySet().forEach(k -> DESC.put(k, "wynnlabs.setting_desc." + k));
+    }
+
+    /** A choice setting's value, 0 up to 2 (its default when unset). */
+    public static int choice(String key) {
+        int d = CHOICES.getOrDefault(key, 0);
+        return Math.max(0, Math.min(2, number(key, d)));
+    }
+
+    /** A choice set; its default is not written to settings.json. */
+    public static synchronized void setChoice(String key, int value) {
+        load();
+        if (value == CHOICES.getOrDefault(key, 0)) {
+            NUMBERS.remove(key);
+        } else {
+            NUMBERS.put(key, value);
+        }
+        save();
+    }
+
+    /** Number settings with − and + on the settings tab: key → the values they step through, in order. */
     public static final Map<String, int[]> STEPS = new LinkedHashMap<>();
     /** Number setting → its language key. */
     public static final Map<String, String> STEP_LABELS = new LinkedHashMap<>();
-    /** Number setting → the switch its row sits under on the settings tab. */
-    public static final Map<String, String> STEP_PARENT = new LinkedHashMap<>();
     /** Number setting → the language key that writes its value ("85%"); plain digits when absent. */
     public static final Map<String, String> STEP_FORMAT = new LinkedHashMap<>();
     private static final Map<String, Integer> STEP_DEFAULT = new LinkedHashMap<>();
@@ -192,13 +81,11 @@ public final class Settings {
         // tooltip size while a menu is open, in percent; 100 leaves tooltips as the game draws them
         STEPS.put("menuTooltipScale", new int[] {70, 75, 80, 85, 90, 95, 100});
         STEP_LABELS.put("menuTooltipScale", "wynnlabs.setting.menuTooltipScale");
-        STEP_PARENT.put("menuTooltipScale", "tooltipPrice");
         STEP_FORMAT.put("menuTooltipScale", "wynnlabs.settings.percent");
         STEP_DEFAULT.put("menuTooltipScale", 85);
         DESC.put("menuTooltipScale", "wynnlabs.setting_desc.menuTooltipScale");
         STEPS.put("powerupLabelSize", new int[] {75, 100, 125, 150});
         STEP_LABELS.put("powerupLabelSize", "wynnlabs.setting.powerupLabelSize");
-        STEP_PARENT.put("powerupLabelSize", "powerupLabels");
         STEP_FORMAT.put("powerupLabelSize", "wynnlabs.settings.percent");
         STEP_DEFAULT.put("powerupLabelSize", 100);
         DESC.put("powerupLabelSize", "wynnlabs.setting_desc.powerupLabelSize");
@@ -234,20 +121,20 @@ public final class Settings {
         setNumber(key, options[Math.max(0, Math.min(options.length - 1, at))]);
     }
 
-    public static String category(String key) {
-        return CATEGORY.getOrDefault(key, "tips");
-    }
-
     /**
      * Keys of features that were removed (loot chest glow and labels, far chest markers, party and
-     * nameless glow). An old settings.json may still hold them: they are dropped on load, so the
-     * next save no longer writes them.
+     * nameless glow, the manual menu scale, the tree bonus switch) or folded into a choice
+     * ({@link SettingsMigration}). An old settings.json may still hold them: they are dropped on
+     * load, after the migration read them, so the next save no longer writes them.
      */
     static final java.util.Set<String> REMOVED = java.util.Set.of("chestGlow", "chestGlowUnknown", "chestLabel",
-            "chestMinStars", "chestFar", "chestFarTier", "chestFarDistance", "partyGlow", "namelessGlow");
+            "chestMinStars", "chestFar", "chestFarTier", "chestFarDistance", "partyGlow", "namelessGlow",
+            "groundGlow", "groundGlowNormal", "groundGlowOther", "verdictBadges", "hotbarBadges", "glowTree", "menuAdvice",
+            "updateCheck", "autoUpdate", "treeBonuses", "menuScale");
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Map<String, Boolean> VALUES = new LinkedHashMap<>();
+    private static final Map<String, Integer> NUMBERS = new LinkedHashMap<>();
     private static volatile boolean loaded;
     /**
      * What {@link #on} and {@link #number} read: immutable copies of VALUES and NUMBERS, swapped
@@ -273,33 +160,60 @@ public final class Settings {
         if (loaded) {
             return;
         }
+        boolean migrated = false;
         try {
             if (Files.exists(file())) {
-                read(GSON.fromJson(Files.readString(file(), StandardCharsets.UTF_8), JsonObject.class));
+                migrated = read(GSON.fromJson(Files.readString(file(), StandardCharsets.UTF_8), JsonObject.class));
             }
         } catch (Exception e) {
             System.out.println("[WynnLabs] could not read settings.json: " + e);
         }
+        NUMBERS.put(SettingsMigration.VERSION_KEY, SettingsMigration.VERSION);
         publish();
         loaded = true;
+        if (migrated) {
+            save();                             // once: the merged switches are written as their choices
+        }
     }
 
-    /** A settings file's switches and numbers into VALUES and NUMBERS, skipping removed features. */
-    private static void read(JsonObject o) {
+    /**
+     * A settings file's switches and numbers into VALUES and NUMBERS: a file from before the
+     * settings' regrouping is migrated first, then removed features are skipped. Returns whether
+     * it was migrated (the file is then saved once in its new form).
+     */
+    private static boolean read(JsonObject o) {
         if (o == null) {
-            return;
+            return false;
         }
+        Map<String, Boolean> bools = new LinkedHashMap<>();
+        Map<String, Integer> nums = new LinkedHashMap<>();
         o.entrySet().forEach(e -> {
-            if (REMOVED.contains(e.getKey()) || !e.getValue().isJsonPrimitive()) {
-                return;                         // a feature that is gone, or a value we never wrote
+            if (!e.getValue().isJsonPrimitive()) {
+                return;                         // a value we never wrote
             }
             var p = e.getValue().getAsJsonPrimitive();
             if (p.isBoolean()) {
-                VALUES.put(e.getKey(), p.getAsBoolean());
+                bools.put(e.getKey(), p.getAsBoolean());
             } else if (p.isNumber()) {
-                NUMBERS.put(e.getKey(), p.getAsInt());
+                nums.put(e.getKey(), p.getAsInt());
             }
         });
+        boolean migrate = nums.getOrDefault(SettingsMigration.VERSION_KEY, 0) < SettingsMigration.VERSION;
+        if (migrate) {
+            SettingsMigration.apply(bools, nums);
+        }
+        bools.forEach((k, v) -> {
+            if (!REMOVED.contains(k)) {
+                VALUES.put(k, v);
+            }
+        });
+        nums.forEach((k, v) -> {
+            if (!REMOVED.contains(k)) {
+                NUMBERS.put(k, v);
+            }
+        });
+        NUMBERS.put(SettingsMigration.VERSION_KEY, SettingsMigration.VERSION);
+        return migrate;
     }
 
     /** New read copies after a change; call with the class lock held. */
@@ -308,9 +222,7 @@ public final class Settings {
         numbersNow = Map.copyOf(NUMBERS);
     }
 
-    private static final Map<String, Integer> NUMBERS = new LinkedHashMap<>();
-
-    /** Tests only: these values instead of settings.json, never saved. */
+    /** Tests only: these values instead of settings.json (migrated as a file would be), never saved. */
     public static synchronized void use(JsonObject o) {
         VALUES.clear();
         NUMBERS.clear();
@@ -328,13 +240,13 @@ public final class Settings {
     }
 
     /**
-     * Switches that start off; everything else starts on. Past the second line: the chattier and
-     * busier extras, so a first run shows the mod's main work and the rest is a switch away.
+     * Switches that start off; everything else starts on. The chattier and busier extras, and the
+     * one that asks the server for something (rideRefresh), so a first run shows the mod's main
+     * work and the rest is a switch away.
      */
-    private static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "groundGlowNormal", "priceApi",
-            "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "autoUpdate",
-            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "groundGlowOther", "hotbarBadges",
-            "powderHint");
+    static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "priceApi",
+            "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "rideRefresh",
+            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint");
 
     public static boolean on(String key) {
         load();
@@ -404,9 +316,11 @@ public final class Settings {
         }
     }
 
+    /** GET /settings: every switch, on or off, and every choice as its number. */
     public static JsonObject json() {
         JsonObject o = new JsonObject();
         LABELS.keySet().forEach(k -> o.addProperty(k, on(k)));
+        CHOICES.keySet().forEach(k -> o.addProperty(k, choice(k)));
         return o;
     }
 }

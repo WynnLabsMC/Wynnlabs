@@ -34,6 +34,13 @@ final class TodayTab extends MenuTab {
     private List<Today.Day> days = List.of();
     private long daysAt;
 
+    /** What the rows read, again on the next frame (a rule they follow just changed). */
+    void refreshNow() {
+        if (rows != null) {
+            rows.stale();
+        }
+    }
+
     private TodayRows rows() {
         if (rows == null) {
             rows = new TodayRows(menu);

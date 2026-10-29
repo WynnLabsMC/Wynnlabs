@@ -1,9 +1,10 @@
 package io.github.anilken.wynnlabs.ui;
 
+import io.github.anilken.wynnlabs.advice.MarketSlots;
 import io.github.anilken.wynnlabs.core.L;
-import io.github.anilken.wynnlabs.core.Settings;
-import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.core.RuleEditor;
+import io.github.anilken.wynnlabs.core.Rules;
+import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.core.UpdateCheck;
 import io.github.anilken.wynnlabs.core.Words;
 import io.github.anilken.wynnlabs.game.Wyn;
@@ -16,9 +17,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The settings' two pages that are not rows: About (the update card, the links, the version and
- * Wynntils) and the Wynnventory key under its row (where prices come from, the key box with Save
- * and Remove). Clicks come back through {@link SettingsTab}.
+ * The settings' parts that are not rows: About (behind the "?": the update card, the keys, the
+ * links, the version and Wynntils), the Wynnventory key under live prices, the per-character
+ * notice with its reset, and what a click on a row does. Clicks come back through {@link SettingsTab}.
  */
 final class SettingsPages extends MenuPaint {
 
@@ -36,7 +37,7 @@ final class SettingsPages extends MenuPaint {
         {"wynnlabs.about.report", REPO + "/issues/new/choose"},
         {"wynnlabs.about.licence", REPO + "/blob/main/LICENSE"}};
 
-    // ---- settings: About ----
+    // ---- About ----
 
     /** The update card, made on first use. */
     private AboutUpdateCard updateCard;
@@ -49,9 +50,9 @@ final class SettingsPages extends MenuPaint {
     }
 
     /**
-     * About (the rail's "?"): whether this is the newest Wynn Labs and what to do about it
-     * ({@link AboutUpdateCard}); with a newer release its first changes and "All changes ›"; the
-     * keys as the player has bound them; the links (source, a bug report, the licence); one META
+     * About (the "?" and the rail's Help): whether this is the newest Wynn Labs and what to do
+     * about it ({@link AboutUpdateCard}); with a newer release its first changes and "All changes ›";
+     * the keys as the player has bound them; the links (source, a bug report, the licence); one META
      * line with the mod's version, loader and Wynntils, and a warning only when a Wynntils feature is off.
      */
     void drawAboutPage(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
@@ -156,20 +157,7 @@ final class SettingsPages extends MenuPaint {
     /** The About page's buttons: the update card's, the setting, a link. */
     void aboutClick(String id) {
         if (id.equals("#upd:setting")) {
-            // Prices and data, the update check picked
-            for (int c = 0; c < SettingsRows.SETTING_CATS.length; c++) {
-                if (SettingsRows.SETTING_CATS[c].equals("data")) {
-                    tab.settingsCat = c;
-                    tab.clearView();
-                    List<SettingsRows.SetRow> rows = SettingsRows.settingRows("data");
-                    for (int i = 0; i < rows.size(); i++) {
-                        if (rows.get(i).id().equals("updateCheck")) {
-                            tab.pickCat = c;
-                            tab.pickRow = i;
-                        }
-                    }
-                }
-            }
+            tab.showSetting("updates");             // Online & updates, "New versions" picked
             return;
         }
         if (updateCard().click(id) || !id.startsWith("#link:")) {
@@ -185,12 +173,12 @@ final class SettingsPages extends MenuPaint {
 
     /** The height {@link #drawKeyDetail} takes under the key's row. */
     static int keyDetailHeight() {
-        return SettingsRows.keyBoxNeeded() ? 2 * Type.META.lineHeight + Theme.SP_2 + Ui.SMALL_H : 3 * Type.META.lineHeight;
+        return SettingsText.keyBoxNeeded() ? 2 * Type.META.lineHeight + Theme.SP_2 + Ui.SMALL_H : 3 * Type.META.lineHeight;
     }
 
     /**
-     * Under the key's row: where the prices and bank notes come from, then the key (built in, or
-     * the box to paste your own with Save and Remove).
+     * Under the live prices' note, once "Key…" is open: where the prices and bank notes come from,
+     * then the key (built in, or the box to paste your own with Save and Remove).
      */
     void drawKeyDetail(GuiGraphics g, int x, int y, int w, int mx, int my) {
         Words problem = Prices.problem;
@@ -201,7 +189,7 @@ final class SettingsPages extends MenuPaint {
         Type.META.draw(g, font(), Type.META.fit(font(), prices, w), x, y, pr == null ? Theme.GOOD : Theme.BAD);
         Type.META.draw(g, font(), Type.META.fit(font(), bank, w), x, y + Type.META.lineHeight, an == null ? Theme.GOOD : Theme.BAD);
         int ky = y + 2 * Type.META.lineHeight;
-        tab.keyBoxShown = SettingsRows.keyBoxNeeded();
+        tab.keyBoxShown = SettingsText.keyBoxNeeded();
         if (!tab.keyBoxShown) {
             // the key built into the mod works: nothing to ask for
             Type.META.draw(g, font(), Type.META.fit(font(), L.t("wynnlabs.settings.key") + L.t("wynnlabs.settings.key_builtin"), w),
@@ -241,20 +229,34 @@ final class SettingsPages extends MenuPaint {
         tab.searchHit = UiInput.search(g, font(), tab.searchBox, L.t("wynnlabs.settings.search_hint"), true, x, y, w, mx, my);
     }
 
-    /** The rules' reset as an error notice at the page's foot (ending at {@code bottom}); returns its height. */
-    int rulesNotice(GuiGraphics g, int x, int bottom, int w, int mx, int my) {
+    // ---- this character's rules ----
+
+    private Ui.Action resetAction() {
         boolean armed = System.currentTimeMillis() - tab.resetArmedAt < SettingsTab.RESET_WINDOW_MS;
-        Ui.Action act = new Ui.Action("refresh", L.t(armed ? "wynnlabs.rules.reset_confirm" : "wynnlabs.rules.reset"));
-        String text = L.t("wynnlabs.rules.per_character") + ". " + L.t("wynnlabs.rules.reset_notice");
-        int lines = Math.min(2, Type.BODY.wrap(font(), text, Ui.noticeTextRoom(font(), act, w)).size());
-        int nh = Ui.noticeHeight(lines);
+        return new Ui.Action("refresh", L.t(armed ? "wynnlabs.rules.reset_confirm" : "wynnlabs.rules.reset"));
+    }
+
+    private String noticeText() {
+        return L.t("wynnlabs.rules.for_character", SettingsText.character());
+    }
+
+    /** The notice's height at width {@code w}: its text on at most two lines. */
+    int rulesNoticeHeight(int w) {
+        int lines = Math.min(2, Type.BODY.wrap(font(), noticeText(), Ui.noticeTextRoom(font(), resetAction(), w)).size());
+        return Ui.noticeHeight(lines);
+    }
+
+    /** "These rules are for Shaman, lv. 44" as a calm info notice, with the two-click reset at its end. */
+    void rulesNotice(GuiGraphics g, int x, int y, int w, int mx, int my) {
+        int nh = rulesNoticeHeight(w);
         int[][] hit = new int[1][];
-        Ui.notice(g, font(), Ui.Level.ERROR, List.of(text), act, x, bottom - nh, w, nh, mx, my, hit);
+        Ui.notice(g, font(), Ui.Level.INFO, List.of(noticeText()), resetAction(), x, y, w, nh, mx, my, hit);
         if (hit[0] != null) {
             menu.toggles.add(new Object[] {hit[0], "#rulesreset"});
         }
-        return nh;
     }
+
+    // ---- a click on a row ----
 
     /** A row picked, flipped or put back to its default, by its "#…:cat:index" ref. */
     void settingsAction(String id) {
@@ -268,11 +270,14 @@ final class SettingsPages extends MenuPaint {
             return;
         }
         SettingsRows.SetRow r = rows.get(i);
-        tab.pickCat = ref[0];
-        tab.pickRow = i;
         if (id.startsWith("#ssel:")) {
+            boolean again = tab.pickCat == ref[0] && tab.pickRow == i;
+            tab.pickCat = ref[0];
+            tab.pickRow = again ? -1 : i;           // a second click closes what it does
             return;
         }
+        tab.pickCat = ref[0];
+        tab.pickRow = i;
         if (id.startsWith("#stog:")) {
             switch (r.kind()) {
                 case "switch" -> {
@@ -282,7 +287,8 @@ final class SettingsPages extends MenuPaint {
                     }
                 }
                 case "advice" -> adviceHere(!Rules.adviceHere());
-                default -> RuleEditor.step(r.r(), 1);
+                default -> {
+                }
             }
             return;
         }
@@ -294,20 +300,63 @@ final class SettingsPages extends MenuPaint {
                     menu.reinit();
                 }
             }
+            case "multi" -> {
+                for (String k : SettingsRows.MULTI.get(r.id()).keys()) {
+                    Settings.reset(k);
+                }
+            }
+            case "choice" -> Settings.resetNumber(r.id());
             case "step" -> Settings.resetNumber(r.id());
             case "advice" -> adviceHere(true);
-            case "scale" -> Settings.resetNumber("menuScale");
             case "lang" -> {
                 Settings.setNumber("langOverride", 0);
                 menu.rebuildMap();
             }
             case "fill" -> Settings.resetNumber("menuFill");
             case "rule" -> RuleEditor.reset(r.r());
+            case "rulemulti" -> {
+                for (String k : SettingsRows.MULTI.get(r.id()).keys()) {
+                    RuleEditor.reset(RuleEditor.byId(k));
+                }
+            }
+            case "preset" -> RuleEditor.applyPreset(RuleEditor.NORMAL);
+            case "slots" -> {
+                MarketSlots.setLimited(true);
+                RuleEditor.reset(RuleEditor.byId("market_slots"));
+            }
             default -> {
                 return;
             }
         }
-        menu.flash(L.t("wynnlabs.settings.reset_done", SettingsRows.rowTitle(r)));
+        menu.flash(L.t("wynnlabs.settings.reset_done", SettingsText.rowTitle(r)));
+    }
+
+    /** A chip of a row: "#opt:kind:id:index". */
+    void optionClicked(String id) {
+        String[] p = id.split(":");
+        String kind = p[1];
+        String key = p[2];
+        int i = Integer.parseInt(p[3]);
+        switch (kind) {
+            case "multi" -> Settings.toggle(SettingsRows.MULTI.get(key).keys()[i]);
+            case "rulemulti" -> RuleEditor.step(RuleEditor.byId(SettingsRows.MULTI.get(key).keys()[i]), 1);
+            case "choice" -> Settings.setChoice(key, i);
+            case "lang" -> {
+                Settings.setNumber("langOverride", i);
+                menu.rebuildMap();              // its text is in the old language: rebuilt in the background
+            }
+            case "fill" -> {
+                int v = SettingsRows.FILLS[i];
+                if (v == 100) {
+                    Settings.resetNumber("menuFill");
+                } else {
+                    Settings.setNumber("menuFill", v);
+                }
+            }
+            case "preset" -> RuleEditor.applyPreset(i);
+            default -> {
+            }
+        }
     }
 
     /** Advice on this character on or off; the road map follows. */

@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
-import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.model.AbilityNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +28,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * The ability tree's passive damage bonuses (TreeBonuses) as the game's own Archer and Shaman
  * trees word them: the proficiencies on the main attack, the masteries on their element, a
  * spell node's "+50%" on that spell and Crystal Knives on the puppets; what does not read
- * plainly is left out; and with the treeBonuses setting off the model is as it was.
+ * plainly is left out; and they are always counted (the switch that turned them off is gone).
  */
 class TreeBonusesTest {
 
@@ -156,35 +155,22 @@ class TreeBonusesTest {
     }
 
     @Test
-    void offLeavesTheModelAsItWas() throws IOException {
+    void alwaysOnEvenWhereAnOldSettingTurnedThemOff() throws IOException {
         var dir = Fixtures.root().resolve("shaman-44");
         assumeTrue(Files.exists(dir.resolve("state.json")), "no shaman-44 fixture");
         List<AbilityNode> nodes = TreeModelTest.tree("shaman");
         List<String> have = TreeModelTest.summonerAt44(nodes);
         FixtureState.load(dir).withTree(nodes, have).install("en");
-        assertTrue(Settings.on("treeBonuses"), "on by default");
-        TreeModel.Run on = TreeModel.run();
-        assertNotNull(on);
-        assertFalse(on.bonuses.isEmpty(), "the Shaman tree has bonuses");
-
-        JsonObject off = Settings.json();
-        off.addProperty("treeBonuses", false);
-        Settings.use(off);
+        // the switch is gone: a settings.json from before that turned it off loads without it
+        JsonObject old = new JsonObject();
+        old.addProperty("treeBonuses", false);
+        Settings.use(old);
         TreeModel.Run run = TreeModel.run();
-        assertTrue(run.bonuses.isEmpty());
-        int level = GameState.current().level();
-        TreeModel.Overlay o = run.at(level);
-        TreeModel.Overlay before = TreeReading.overlay(level, run.reads, run.spellNames, run.taken(level),
-                o.mainAttack, run.passiveCap, java.util.Map.of(), run.text);
-        assertEquals(before.key(), o.key(), "the same overlay as without bonuses");
-        assertTrue(o.bonus.isEmpty());
+        assertNotNull(run);
+        assertFalse(run.bonuses.isEmpty(), "the Shaman tree has bonuses");
         JsonArray rules = new JsonArray();
         SHAMAN_SPELLS.forEach(n -> rules.add(spell(n, 1, 3)));
-        assertEquals(before.spells(rules).toString(), o.spells(rules).toString());
-        assertNotEquals(rules.toString(), on.at(100).spells(rules).toString(), "on, Imbued Totem and the rest raise spells");
-        Map<String, Double> stats = new HashMap<>();
-        o.addStats(stats);
-        assertTrue(stats.isEmpty());
-        assertNotEquals(on.at(100).key(), run.at(100).key(), "on, the plan's bonuses are in the key");
+        assertNotEquals(rules.toString(), run.at(100).spells(rules).toString(), "Imbued Totem and the rest raise spells");
+        Settings.use(new JsonObject());
     }
 }

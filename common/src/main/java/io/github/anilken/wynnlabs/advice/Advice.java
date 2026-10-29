@@ -287,7 +287,7 @@ public final class Advice {
         String key = ItemJson.keyOf(stack);
         // Menu buttons (ability nodes, skill buttons) and items have their own switch
         boolean menu = key != null && (key.startsWith("ability:") || key.startsWith("name:"));
-        boolean showAdvice = Settings.on(menu ? "menuAdvice" : "itemAdvice");
+        boolean showAdvice = menu ? Settings.choice("treeHelp") >= 1 : Settings.on("itemAdvice");
         Entry e = ENTRIES.isEmpty() || !showAdvice ? null : ENTRIES.get(key);
         String tag = null;
         String caution = null;

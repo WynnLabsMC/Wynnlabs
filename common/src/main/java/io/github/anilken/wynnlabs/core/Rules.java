@@ -78,7 +78,7 @@ public final class Rules {
                 "incomingElements": {"neutral": 0.5, "earth": 0.1, "thunder": 0.1, "water": 0.1, "fire": 0.1, "air": 0.1}
               },
               "grind": {"levelsBelow": 3, "levelsAbove": 3},
-              "trade": {"valuableTiers": ["MYTHIC", "FABLED"], "junkTiers": ["NORMAL"], "minTradeMarketPrice": 1920, "legendaryMinPercent": 80, "anyMinPercent": 95, "revealMinProfit": 640, "marketFeePercent": 5, "marketSlots": 0, "keepRollPercent": 80},
+              "trade": {"valuableTiers": ["MYTHIC", "FABLED"], "junkTiers": ["NORMAL"], "minTradeMarketPrice": 1920, "revealMinProfit": 640, "marketFeePercent": 5, "marketSlots": 0, "marketSlotsLimit": true, "keepRollPercent": 80},
               "names": {},
               "kinds": {}
             }
@@ -105,6 +105,7 @@ public final class Rules {
                 Saver.settle(f);                    // a change still waiting to be written goes first
                 merge(base, GSON.fromJson(Files.readString(f, StandardCharsets.UTF_8), JsonObject.class));
             }
+            mergeRollRules(base);
             fresh = !Files.exists(f) && !Profile.id().isEmpty();   // first time: Setup picks a build
             if (!Profile.currentClass().isEmpty()) {
                 base.addProperty("class", Profile.currentClass());
@@ -124,6 +125,7 @@ public final class Rules {
     public static synchronized void use(JsonObject saved) {
         JsonObject base = GSON.fromJson(DEFAULTS, JsonObject.class);
         merge(base, saved.deepCopy());
+        mergeRollRules(base);
         Setup.upgrade(base);                    // survival weights from before the health floor
         rules = base;
         version++;
@@ -147,6 +149,31 @@ public final class Rules {
         version++;
         save();
         return rules;
+    }
+
+    /**
+     * The three roll rules of before the settings' regrouping (2026-10) as one: trade.keepRollPercent,
+     * the lowest overall roll that sells on the Trade Market, for every item. Every rules.json
+     * saved before held all three (the whole document is saved), so their presence marks a file
+     * that still needs this, once. keepRollPercent was 80 for nearly everyone and already covered
+     * both others at their defaults (Legendary 80, any item 95), so it is kept as it is; only a
+     * player who had turned it off (0) gets the any-item threshold (default 95), the one of the
+     * old three that applied to every item. Mythic, raid and event handling are other rules.
+     */
+    static void mergeRollRules(JsonObject rules) {
+        JsonObject trade = rules.getAsJsonObject("trade");
+        if (trade == null || !trade.has("legendaryMinPercent") && !trade.has("anyMinPercent")) {
+            return;
+        }
+        double keep = trade.has("keepRollPercent") && trade.get("keepRollPercent").isJsonPrimitive()
+                ? trade.get("keepRollPercent").getAsDouble() : 80;
+        if (keep <= 0) {
+            double any = trade.has("anyMinPercent") && trade.get("anyMinPercent").isJsonPrimitive()
+                    ? trade.get("anyMinPercent").getAsDouble() : 95;
+            trade.addProperty("keepRollPercent", Math.round(Math.max(50, Math.min(100, any))));
+        }
+        trade.remove("legendaryMinPercent");
+        trade.remove("anyMinPercent");
     }
 
     public static synchronized JsonObject reset() {

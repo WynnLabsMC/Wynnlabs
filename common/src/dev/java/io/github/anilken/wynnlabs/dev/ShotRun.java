@@ -174,8 +174,8 @@ final class ShotRun {
     static final String QUEST_FILTER = "MINI";
     /** The quest kinds shown: a secret (steps pane) and a cave (place pane); the others look like one of them. */
     static final String[] QUEST_KINDS = {"SECRET_DISCOVERY", "CAVE"};
-    /** The settings' pages shown after About: a list of switches (glow) and the pages laid out their own way. */
-    static final String[] SETTING_PAGES = {"look", "glow", "rules", "data"};
+    /** The settings' pages shown after Basics: switches with their children (world) and the pages laid out their own way. */
+    static final String[] SETTING_PAGES = {"world", "mounts", "trading", "advanced"};
     /** The level road of a gathering profession (spots instead of recipes); the crafting one is the road as it opens. */
     static final String ROAD_GATHER = "MINING";
 

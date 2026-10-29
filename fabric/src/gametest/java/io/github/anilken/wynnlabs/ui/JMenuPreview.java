@@ -140,7 +140,7 @@ public class JMenuPreview implements FabricClientGameTest {
                 try {
                     Field f = SettingsTab.class.getDeclaredField("SETTING_CATS");
                     f.setAccessible(true);
-                    int i = java.util.Arrays.asList((String[]) f.get(null)).indexOf("rules");
+                    int i = java.util.Arrays.asList((String[]) f.get(null)).indexOf("advanced");
                     set(((RoadmapScreen) mc.screen).settings, "settingsCat", Math.max(0, i));
                 } catch (ReflectiveOperationException e) {
                     throw new RuntimeException(e);
@@ -154,7 +154,7 @@ public class JMenuPreview implements FabricClientGameTest {
                     try {
                         Field f = SettingsTab.class.getDeclaredField("SETTING_CATS");
                         f.setAccessible(true);
-                        int i = java.util.Arrays.asList((String[]) f.get(null)).indexOf("glow");
+                        int i = java.util.Arrays.asList((String[]) f.get(null)).indexOf("world");
                         set(((RoadmapScreen) mc.screen).settings, "settingsCat", Math.max(0, i));
                         set(((RoadmapScreen) mc.screen).settings, "settingsScroll", scroll);
                     } catch (ReflectiveOperationException e) {
@@ -198,19 +198,56 @@ public class JMenuPreview implements FabricClientGameTest {
     }
 
     /**
-     * -PpreviewOnly=settings: the settings' pages (a category with a row picked, the rules, prices
-     * and data, the look, About), a search and the changed settings.
+     * -PpreviewOnly=settings: every settings page with a row picked (Basics: Drop glow; Trading:
+     * the slot limit, then the limit off and the key open; Advanced: the preset with "Selling and
+     * rerolling" open, then a number changed by hand), About, a search and the changed settings.
      */
     private static void settingsShots(ClientGameTestContext ctx, Path out) throws Exception {
         ctx.runOnClient(mc -> set(mc.screen, "tab", RoadmapScreen.TAB_SETTINGS));
-        int[][] pages = {{3, 1}, {7, 1}, {8, 1}, {1, 2}, {0, 0}};
-        String[] names = {"glow", "rules", "data", "look", "about"};
+        ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).settings.openFolds.add("sell"));
+        int[][] pages = {{0, 6}, {1, 5}, {2, 1}, {3, 7}, {4, 1}, {5, 1}, {6, 3}, {7, 4}};
+        String[] names = {"basics", "items", "world", "progress", "mounts", "trading", "online", "advanced"};
         for (int i = 0; i < pages.length; i++) {
             int[] p = pages[i];
             ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).settings.previewSettings(p[0], p[1], false));
             ctx.waitTicks(3);
             shot(ctx, out, "settings-" + names[i]);
         }
+        // Trading with the slot limit off and the key open; Mounts with the panel and the refresh on
+        ctx.runOnClient(mc -> {
+            io.github.anilken.wynnlabs.advice.MarketSlots.setLimited(false);
+            ((RoadmapScreen) mc.screen).settings.previewSettings(5, 11, false);
+            ((RoadmapScreen) mc.screen).settings.keyOpen = true;
+        });
+        ctx.waitTicks(3);
+        shot(ctx, out, "settings-trading-off");
+        ctx.runOnClient(mc -> {
+            io.github.anilken.wynnlabs.advice.MarketSlots.setLimited(true);
+            ((RoadmapScreen) mc.screen).settings.keyOpen = false;
+            io.github.anilken.wynnlabs.core.Settings.set("ridePanel", true);
+            io.github.anilken.wynnlabs.core.Settings.set("rideRefresh", true);
+            ((RoadmapScreen) mc.screen).settings.previewSettings(4, 4, false);
+        });
+        ctx.waitTicks(3);
+        shot(ctx, out, "settings-mounts-on");
+        // Advanced: a number of the preset changed by hand (Custom), "Shopping list" open
+        ctx.runOnClient(mc -> {
+            io.github.anilken.wynnlabs.core.Settings.reset("ridePanel");
+            io.github.anilken.wynnlabs.core.Settings.reset("rideRefresh");
+            io.github.anilken.wynnlabs.core.RuleEditor.step(io.github.anilken.wynnlabs.core.RuleEditor.byId("min_gain"), 1);
+            ((RoadmapScreen) mc.screen).settings.openFolds.remove("sell");
+            ((RoadmapScreen) mc.screen).settings.openFolds.add("shop");
+            ((RoadmapScreen) mc.screen).settings.previewSettings(7, 11, false);
+        });
+        ctx.waitTicks(3);
+        shot(ctx, out, "settings-advanced-custom");
+        ctx.runOnClient(mc -> {
+            io.github.anilken.wynnlabs.core.RuleEditor.applyPreset(io.github.anilken.wynnlabs.core.RuleEditor.NORMAL);
+            ((RoadmapScreen) mc.screen).settings.openFolds.clear();
+            ((RoadmapScreen) mc.screen).settings.showAbout();
+        });
+        ctx.waitTicks(3);
+        shot(ctx, out, "settings-about");
         ctx.runOnClient(mc -> {
             Field f = SettingsTab.class.getDeclaredField("searchBox");
             f.setAccessible(true);
@@ -219,7 +256,7 @@ public class JMenuPreview implements FabricClientGameTest {
         ctx.waitTicks(3);
         shot(ctx, out, "settings-search");
         ctx.runOnClient(mc -> {
-            ((RoadmapScreen) mc.screen).settings.previewSettings(3, -1, false);
+            ((RoadmapScreen) mc.screen).settings.previewSettings(2, -1, false);
             ((RoadmapScreen) mc.screen).settings.showChanged = true;
         });
         ctx.waitTicks(3);
@@ -227,7 +264,7 @@ public class JMenuPreview implements FabricClientGameTest {
         // the goal row's dropdown, open under its chip
         ctx.runOnClient(mc -> {
             ((RoadmapScreen) mc.screen).settings.showChanged = false;
-            ((RoadmapScreen) mc.screen).settings.previewSettings(6, 3, false);
+            ((RoadmapScreen) mc.screen).settings.previewSettings(3, 5, false);
         });
         ctx.waitTicks(3);
         ctx.runOnClient(mc -> {

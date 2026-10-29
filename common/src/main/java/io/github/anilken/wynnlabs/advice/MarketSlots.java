@@ -56,8 +56,35 @@ public final class MarketSlots {
         };
     }
 
-    /** The orders the advice may fill: the rule when set (1-30), else what the rank allows. */
+    /** Orders when the slot limit is off: more than any inventory and bank list, so every item fits. */
+    static final int UNLIMITED = 1 << 20;
+
+    /**
+     * The orders the advice may fill: the limit ({@link #limit}) while the rule
+     * rules.trade.marketSlotsLimit is on (the default), else no limit at all.
+     */
     public static int slots() {
+        return limited() ? limit() : UNLIMITED;
+    }
+
+    /** Whether the advice keeps to the Trade Market's slots (off: every item worth listing goes there). */
+    public static boolean limited() {
+        com.google.gson.JsonObject t = Rules.get().getAsJsonObject("trade");
+        return t == null || !t.has("marketSlotsLimit") || !t.get("marketSlotsLimit").isJsonPrimitive()
+                || t.get("marketSlotsLimit").getAsBoolean();
+    }
+
+    /** The slot limit turned on or off for this character; the number is kept either way. */
+    public static void setLimited(boolean on) {
+        com.google.gson.JsonObject t = new com.google.gson.JsonObject();
+        t.addProperty("marketSlotsLimit", on);
+        com.google.gson.JsonObject change = new com.google.gson.JsonObject();
+        change.add("trade", t);
+        Rules.update(change);
+    }
+
+    /** The limit itself: the rule when set (1-30), else what the rank allows. */
+    public static int limit() {
         long set = Math.round(Rules.sub("trade", "marketSlots", 0));
         return set >= 1 ? (int) Math.min(MAX, set) : forRank(Wyn.supporterRank());
     }

@@ -327,13 +327,13 @@ class ShotRunTest {
         runToEnd(run, game);
         // the language first, then the menu; each view selected and its steps taken before its capture
         assertEquals(List.of("flags true", "lang 1", "open"), game.log.subList(0, 3));
-        assertEquals(List.of("en-01-settings-main.png", "en-02-settings-look.png", "en-03-settings-glow.png",
-                "en-04-settings-rules.png", "en-05-settings-data.png", "en-06-settings-changed.png"), captured(game));
-        int look = game.log.indexOf("act settings:cat:look");
-        assertEquals(List.of("select settings", "backdrop 0", "act settings:cat:look", "settle"), game.log.subList(look - 2, look + 2));
-        int first = game.log.indexOf("grab en-02-settings-look.png 0");
-        assertEquals(List.of("grab en-02-settings-look.png 0", "backdrop 1", "grab en-02-settings-look.png 1",
-                "capture en-02-settings-look.png"), game.log.subList(first, first + 4));
+        assertEquals(List.of("en-01-settings-main.png", "en-02-settings-world.png", "en-03-settings-mounts.png",
+                "en-04-settings-trading.png", "en-05-settings-advanced.png", "en-06-settings-changed.png"), captured(game));
+        int look = game.log.indexOf("act settings:cat:world");
+        assertEquals(List.of("select settings", "backdrop 0", "act settings:cat:world", "settle"), game.log.subList(look - 2, look + 2));
+        int first = game.log.indexOf("grab en-02-settings-world.png 0");
+        assertEquals(List.of("grab en-02-settings-world.png 0", "backdrop 1", "grab en-02-settings-world.png 1",
+                "capture en-02-settings-world.png"), game.log.subList(first, first + 4));
         // then the page's line, the screen, the language and the flags back, and one message with the count
         int restore = game.log.indexOf("restore");
         assertEquals(List.of("page settings 6 0 []", "restore", "lang 2", "flags false", "done 6"),

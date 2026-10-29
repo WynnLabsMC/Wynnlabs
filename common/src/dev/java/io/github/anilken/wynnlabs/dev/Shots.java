@@ -240,7 +240,7 @@ public final class Shots {
     static Component start(String options) {
         if (!Settings.on("debug")) {
             return L.c("wynnlabs.shots.debug_off", L.t("wynnlabs.setting.debug"), L.t("wynnlabs.screen.tab_settings"),
-                    L.t("wynnlabs.settings.cat_data")).withStyle(ChatFormatting.YELLOW);
+                    L.t("wynnlabs.settings.page_advanced")).withStyle(ChatFormatting.YELLOW);
         }
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) {

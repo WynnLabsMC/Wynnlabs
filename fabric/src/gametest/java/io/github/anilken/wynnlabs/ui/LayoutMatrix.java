@@ -66,7 +66,7 @@ public class LayoutMatrix implements FabricClientGameTest {
     /** 8: the old secret discoveries page, now a kind in the quests tab (no page of its own). */
     private static final int NO_PAGE = 8;
     /** The settings tab's categories, in its order: each one is measured and shot. */
-    private static final String[] SETTING_CATS = {"about", "look", "tips", "glow", "coach", "quests", "build", "rules", "data"};
+    private static final String[] SETTING_CATS = {"basics", "items", "world", "progress", "mounts", "trading", "online", "advanced"};
     /**
      * The settings tab's other views, after its categories: the About page's three update states,
      * a rule picked (changed from its default) and a switch picked; compact shows each picked
@@ -1073,23 +1073,23 @@ public class LayoutMatrix implements FabricClientGameTest {
         String page = "https://github.com/anilken/wynnlabs/releases/tag/";
         switch (name) {
             case "about-uptodate" -> {
-                screen.settings.previewSettings(0, 0, false);
+                screen.settings.showAbout();
                 UpdateCheck.preview(new UpdateCheck.State(UpdateCheck.Status.UP_TO_DATE, UpdateCheck.Reason.NONE, "0.3.0",
                         "v0.3.0", page + "v0.3.0", now - 5 * 86_400_000L, now - 4 * 60_000L));
             }
             case "about-new" -> {
-                screen.settings.previewSettings(0, 0, false);
+                screen.settings.showAbout();
                 UpdateCheck.preview(new UpdateCheck.State(UpdateCheck.Status.NEWER, UpdateCheck.Reason.NONE, "0.3.0",
                         "v0.4.0", page + "v0.4.0", now - 3 * 86_400_000L, now - 2 * 60_000L));
             }
             case "about-failed" -> {
-                screen.settings.previewSettings(0, 0, false);
+                screen.settings.showAbout();
                 UpdateCheck.preview(new UpdateCheck.State(UpdateCheck.Status.FAILED, UpdateCheck.Reason.OFFLINE, "0.3.0",
                         null, null, 0, now - 60_000L));
             }
             case "about-downloading", "about-ready", "about-install-failed" -> {
                 // the updater's states: a jar for this game, then downloading at 40 %, ready, or last run's install failed
-                screen.settings.previewSettings(0, 0, false);
+                screen.settings.showAbout();
                 UpdateAsset jar = new UpdateAsset("wynnlabs-fabric-0.4.0.jar", 4_320_605, "0".repeat(64),
                         "https://github.com/anilken/Wynnlabs/releases/download/v0.4.0/wynnlabs-fabric-0.4.0.jar");
                 UpdateCheck.preview(new UpdateCheck.State(UpdateCheck.Status.NEWER, UpdateCheck.Reason.NONE, "0.3.0",
@@ -1101,12 +1101,12 @@ public class LayoutMatrix implements FabricClientGameTest {
                 }
             }
             case "rules-picked" -> {
-                RuleEditor.Rule tooLow = RuleEditor.RULES.get(0);
+                RuleEditor.Rule tooLow = RuleEditor.byId("too_low");
                 RuleEditor.step(tooLow, 1);
                 RuleEditor.step(tooLow, 1);
-                screen.settings.previewSettings(7, 1, compact);           // Rules > Selling old gear > Outdated, at 6 lv
+                screen.settings.previewSettings(7, 6, compact);           // Advanced > Selling and rerolling > too low, at 6 lv
             }
-            case "tips-picked" -> screen.settings.previewSettings(2, 1, compact);   // Tooltips > Keep items for your other characters
+            case "tips-picked" -> screen.settings.previewSettings(1, 2, compact);   // Items > Keep items for your alts
             default -> {
                 UpdateCheck.reset();
                 screen.settings.previewSettings(view, 0, false);
@@ -1121,7 +1121,7 @@ public class LayoutMatrix implements FabricClientGameTest {
             UpdateInstall.preview(null);
         }
         if (settingsName(view).equals("rules-picked")) {
-            RuleEditor.reset(RuleEditor.RULES.get(0));
+            RuleEditor.reset(RuleEditor.byId("too_low"));
         }
     }
 

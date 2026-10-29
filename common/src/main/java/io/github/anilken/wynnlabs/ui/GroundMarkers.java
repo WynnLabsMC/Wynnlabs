@@ -27,7 +27,7 @@ public final class GroundMarkers {
 
     public static void onTick(Minecraft mc) {
         if (++tick % 4 != 0 || mc.player == null || mc.level == null
-                || !Settings.on("groundGlow") || !Settings.on("groundBeam")) {
+                || !(Settings.choice("dropGlow") >= 1) || !Settings.on("groundBeam")) {
             return;
         }
         try {

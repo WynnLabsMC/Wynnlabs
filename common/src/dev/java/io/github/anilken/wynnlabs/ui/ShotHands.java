@@ -552,7 +552,7 @@ public final class ShotHands {
         return true;
     }
 
-    /** The settings' pages by their number (0 About). */
+    /** The settings' pages by their number (0 Basics). */
     public static String[] settingPages() {
         return SettingsRows.SETTING_CATS.clone();
     }

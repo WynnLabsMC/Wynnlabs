@@ -39,8 +39,6 @@ public final class RuleEditor {
             num("wynnlabs.rules.off_skills", "wynnlabs.rules.off_skills_desc", "shopping", "maxOffSkillPoints", 10, 0, 100, 5, ""),
             new Rule("wynnlabs.rules.tm_price", "wynnlabs.rules.tm_price_desc", "trade", "minTradeMarketPrice", 1920, 0, 0, 0,
                     new double[] {320, 640, 1280, 1920, 2560, 4096, 8192, 16384, 32768, 65536}, "E", null),
-            num("wynnlabs.rules.legendary_keep", "wynnlabs.rules.legendary_keep_desc", "trade", "legendaryMinPercent", 80, 50, 100, 5, "%"),
-            num("wynnlabs.rules.any_keep", "wynnlabs.rules.any_keep_desc", "trade", "anyMinPercent", 95, 50, 100, 1, "%"),
             num("wynnlabs.rules.reroll", "wynnlabs.rules.reroll_desc", null, "rerollBelowPercent", 30, 0, 100, 5, "%"),
             num("wynnlabs.rules.quest_margin", "wynnlabs.rules.quest_margin_desc", null, "questLevelMargin", 4, 0, 15, 1, "lv"),
             num("wynnlabs.rules.grind_below", "wynnlabs.rules.grind_below_desc", "grind", "levelsBelow", 3, 0, 10, 1, "lv"),
@@ -54,8 +52,8 @@ public final class RuleEditor {
             // 0 = from the account's rank (MarketSlots)
             num("wynnlabs.rules.market_slots", "wynnlabs.rules.market_slots_desc", "trade", "marketSlots", 0, 0,
                     MarketSlots.MAX, 1, "slots"),
-            // 0 = off: a high roll is judged by its price like any other
-            num("wynnlabs.rules.keep_roll", "wynnlabs.rules.keep_roll_desc", "trade", "keepRollPercent", 80, 0, 100, 5, "%"),
+            // one threshold for every item (it replaced the Legendary and any-item roll rules, Rules.mergeRollRules)
+            num("wynnlabs.rules.keep_roll", "wynnlabs.rules.keep_roll_desc", "trade", "keepRollPercent", 80, 50, 100, 5, "%"),
             // how much more an untradable dungeon, raid or quest piece must gain than a market one
             num("wynnlabs.rules.effort", "wynnlabs.rules.effort_desc", "shopping", "untradableEffortPercent", 5, 0, 30, 1, "%"),
             // picks this close to the best: what you have first, then the cheaper
@@ -95,17 +93,73 @@ public final class RuleEditor {
         return g.getAsJsonObject().getAsJsonArray(r.key()).deepCopy();
     }
 
-    /**
-     * The settings tab's sections of the rules, in the order it lists them: a language key and
-     * indexes into {@link #RULES}.
-     */
-    public record Section(String title, int[] rules) {}
+    /** The rule with this short id ("too_low"), or null. */
+    public static Rule byId(String id) {
+        for (Rule r : RULES) {
+            if (id(r).equals(id)) {
+                return r;
+            }
+        }
+        return null;
+    }
 
-    public static final List<Section> SECTIONS = List.of(
-            new Section("wynnlabs.rules.sec_sell", new int[] {0, 1}),
-            new Section("wynnlabs.rules.sec_shopping", new int[] {2, 3, 20, 21, 22, 4, 5, 13, 14, 15}),
-            new Section("wynnlabs.rules.sec_trade", new int[] {6, 16, 17, 18, 19, 7, 8, 9}),
-            new Section("wynnlabs.rules.sec_quests", new int[] {10, 11, 12}));
+    /** The index of the rule with this short id in {@link #RULES}, -1 when none. */
+    public static int indexOf(String id) {
+        for (int i = 0; i < RULES.size(); i++) {
+            if (id(RULES.get(i)).equals(id)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    // ---- "How picky should advice be?": Relaxed, Normal, Strict ----
+
+    /** The rules a preset sets, by short id. */
+    public static final List<String> PRESET_RULES = List.of("too_low", "too_high", "reroll", "old_gear", "min_gain", "effort",
+            "cost_tie", "ahead", "off_skills");
+    /** Each preset rule's value under Relaxed, Normal and Strict; Normal is every default, so no one's advice changed. */
+    private static final double[][] PRESET_VALUES = {{6, 4, 2}, {8, 5, 3}, {20, 30, 45}, {6, 8, 12}, {5, 10, 15}, {3, 5, 10},
+        {25, 15, 5}, {8, 5, 3}, {20, 10, 5}};
+    /** Normal: the preset of the defaults. */
+    public static final int NORMAL = 1;
+
+    /** A preset's value of one of its rules. */
+    public static double presetValue(int preset, String id) {
+        return PRESET_VALUES[PRESET_RULES.indexOf(id)][preset];
+    }
+
+    /** The preset (0 Relaxed, 1 Normal, 2 Strict) every preset rule now matches; -1 (Custom) when none. */
+    public static int preset() {
+        for (int p = 0; p < 3; p++) {
+            boolean all = true;
+            for (int i = 0; i < PRESET_RULES.size() && all; i++) {
+                all = Math.abs(value(byId(PRESET_RULES.get(i))) - PRESET_VALUES[i][p]) < 1e-9;
+            }
+            if (all) {
+                return p;
+            }
+        }
+        return -1;
+    }
+
+    /** Every preset rule set to the preset's value at once, for this character. */
+    public static void applyPreset(int preset) {
+        JsonObject change = new JsonObject();
+        for (int i = 0; i < PRESET_RULES.size(); i++) {
+            Rule r = byId(PRESET_RULES.get(i));
+            JsonPrimitive v = new JsonPrimitive((long) PRESET_VALUES[i][preset]);
+            if (r.group() == null) {
+                change.add(r.key(), v);
+            } else {
+                if (!change.has(r.group())) {
+                    change.add(r.group(), new JsonObject());
+                }
+                change.getAsJsonObject(r.group()).add(r.key(), v);
+            }
+        }
+        Rules.update(change);
+    }
 
     /** "8 lv", "%10", "1.9 LE", "on", "Auto (HERO: 15)". */
     public static String display(Rule r) {
@@ -238,6 +292,7 @@ public final class RuleEditor {
     }
 
     public static void reset() {
+        MarketSlots.setLimited(true);
         for (Rule r : RULES) {
             if (r.isSwitch()) {
                 JsonArray list = list(r);

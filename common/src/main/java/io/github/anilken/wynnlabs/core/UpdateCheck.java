@@ -113,7 +113,7 @@ public final class UpdateCheck {
 
     /** The reminder or the auto update is on: the automatic check may ask. */
     private static boolean wanted() {
-        return Settings.on("updateCheck") || Settings.on("autoUpdate");
+        return Settings.choice("updates") >= 1;
     }
 
     /**
@@ -268,10 +268,10 @@ public final class UpdateCheck {
         if (!newer || !auto || UpdatePrefs.silenced(r.tag())) {
             return;
         }
-        if (Settings.on("autoUpdate") && UpdateDownload.start(asset, r.tag(), true)) {
+        if (Settings.choice("updates") == 2 && UpdateDownload.start(asset, r.tag(), true)) {
             return;
         }
-        if (Settings.on("updateCheck")) {
+        if (Settings.choice("updates") >= 1) {
             pending = r;
         }
     }

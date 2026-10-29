@@ -125,12 +125,12 @@ public final class TooltipListener {
         var mc = Minecraft.getInstance();
         Advice.Entry e = Advice.find(stack, k -> k.startsWith("ability:") || k.startsWith("name:"));
         if (e != null) {
-            if (!Settings.on("glowTree") || e.verdict() == Verdict.TAKEN) {
+            if (!(Settings.choice("treeHelp") == 2) || e.verdict() == Verdict.TAKEN) {
                 return -1;                          // a taken step keeps only its number
             }
             return Advice.rgb(e.verdict());
         } else if (isSkillButton(stack)) {
-            if (!Settings.on("glowTree")) {
+            if (!(Settings.choice("treeHelp") == 2)) {
                 return -1;
             }
             Advice.Entry auto = AutoAdvice.cached(stack);
@@ -301,7 +301,7 @@ public final class TooltipListener {
 
     /** The word and the where-to-sell icon on a slot at x, y (the J menu preview draws them too). */
     public static void drawBadge(GuiGraphics g, int x, int y, net.minecraft.world.item.ItemStack stack) {
-        if (stack.isEmpty() || !Settings.on("verdictBadges")) {
+        if (stack.isEmpty() || !(Settings.choice("slotBadges") >= 1)) {
             return;
         }
         BadgeFacts f = badgeFacts(stack);
@@ -362,7 +362,7 @@ public final class TooltipListener {
         }
         // the tree's nodes fill the menu's first 6 rows (9 x 6 = 54 slots); the archetype and
         // point icons below carry node names too, and get no number
-        if (!Rules.adviceHere() || !Settings.on("glowTree") || slot.index >= 54
+        if (!Rules.adviceHere() || !(Settings.choice("treeHelp") == 2) || slot.index >= 54
                 || Minecraft.getInstance().player != null && slot.container == Minecraft.getInstance().player.getInventory()) {
             return;
         }

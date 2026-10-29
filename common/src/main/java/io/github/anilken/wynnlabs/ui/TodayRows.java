@@ -54,6 +54,11 @@ final class TodayRows extends MenuPaint {
     /** The other characters' chips and their "+N" list. */
     final TodayOthers othersChips;
 
+    /** Read again on the next refresh. */
+    void stale() {
+        readAt = 0;
+    }
+
     /** What the rows read, again every three seconds. */
     void refresh() {
         long now = System.currentTimeMillis();
@@ -229,7 +234,13 @@ final class TodayRows extends MenuPaint {
         if (bag != null && bag.blacksmith().size() + bag.market().size() > 0) {
             String meta = L.t("wynnlabs.today.bag_meta", bag.blacksmith().size(), bag.market().size())
                     + (bag.marketValue() > 0 ? " · ~" + Prices.fmt(bag.marketValue()) : "");
-            y = row(g, x, y, w, "shopping-cart", Theme.INK, L.t("wynnlabs.today.bag_head"), meta, null, null, null, null, mx, my);
+            // the Trade Market slot limit as a quick switch: the counts follow at once
+            boolean limited = io.github.anilken.wynnlabs.advice.MarketSlots.limited();
+            String chip = limited ? L.t("wynnlabs.today.slot_limit", io.github.anilken.wynnlabs.advice.MarketSlots.limit())
+                    : L.t("wynnlabs.today.no_slot_limit");
+            List<Component> tip = List.of(Component.literal(chip).withStyle(ChatFormatting.WHITE),
+                    L.c(limited ? "wynnlabs.today.slot_limit_tip_on" : "wynnlabs.today.slot_limit_tip_off").withStyle(ChatFormatting.GRAY));
+            y = row(g, x, y, w, "shopping-cart", Theme.INK, L.t("wynnlabs.today.bag_head"), meta, chip, tip, "#qslots", null, mx, my);
         }
         int mf = Coach.manaFailsLast5Min();
         if (mf > 0) {

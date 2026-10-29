@@ -82,11 +82,6 @@ final class SellAdvice {
             where = L.t("wynnlabs.auto.sell_valuable_tier", AutoAdvice.nice(tier));
         } else if (high) {
             where = L.t("wynnlabs.auto.sell_market_high_roll_no_price", Math.round(pct));
-        } else if (tier.equals("LEGENDARY") && pct >= Rules.sub("trade", "legendaryMinPercent", 80)
-                || pct >= Rules.sub("trade", "anyMinPercent", 95)) {
-            // without a price the 30 EB rule cannot be checked: say so instead of guessing
-            where = L.t("wynnlabs.auto.sell_blacksmith_high_roll", Math.round(pct),
-                    Prices.fmt(Rules.sub("trade", "minTradeMarketPrice", 1920)));
         } else {
             where = L.t("wynnlabs.auto.sell_blacksmith_no_price");
         }

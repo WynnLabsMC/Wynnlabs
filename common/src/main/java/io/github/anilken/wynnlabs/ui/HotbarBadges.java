@@ -27,7 +27,7 @@ public final class HotbarBadges {
         Minecraft mc = Minecraft.getInstance();
         var player = mc.player;
         if (player == null || mc.options.hideGui || mc.screen != null || player.isSpectator()
-                || !Settings.on("hotbarBadges") || !Rules.adviceHere()) {
+                || !(Settings.choice("slotBadges") == 2) || !Rules.adviceHere()) {
             return;
         }
         var inv = player.getInventory();

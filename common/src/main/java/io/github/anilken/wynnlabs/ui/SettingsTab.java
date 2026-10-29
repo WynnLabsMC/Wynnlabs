@@ -1,9 +1,8 @@
 package io.github.anilken.wynnlabs.ui;
 
-import io.github.anilken.wynnlabs.build.Setup;
+import io.github.anilken.wynnlabs.advice.MarketSlots;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.RuleEditor;
-import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.core.UpdateCheck;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -13,13 +12,14 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.MouseButtonEvent;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
- * The settings tab: the categories (a list on the left, compact a filter row), a page of rows on
- * one grid ({@link SettingsList}), the search box in the title row, the changed settings, the
- * About page and the Wynnventory key. The model is {@link SettingsRows}.
+ * The settings tab: the pages by feature (a list on the left, compact a filter row; Basics
+ * first), a page of rows on one grid ({@link SettingsList}), the search box in the title row, the
+ * changed settings, About behind the "?" and the Wynnventory key. The model is {@link SettingsRows}.
  */
 final class SettingsTab extends MenuTab {
 
@@ -27,16 +27,18 @@ final class SettingsTab extends MenuTab {
         super(menu);
         list = new SettingsList(menu, this);
         pages = new SettingsPages(menu, this);
+        nav = new SettingsNav(menu, this);
     }
 
     private final SettingsList list;
-    private final SettingsPages pages;
+    final SettingsPages pages;
+    private final SettingsNav nav;
 
     // ---- the tab ----
 
     @Override
     void draw(GuiGraphics g, int x, int y, int w, int h, int mx, int my, float pt) {
-        drawSettings(g, x, y, w, h, mx, my, pt);
+        drawSettings(g, x, y, w, h, mx, my);
     }
 
     @Override
@@ -48,7 +50,7 @@ final class SettingsTab extends MenuTab {
                 net.minecraft.network.chat.Style.EMPTY));
         ruleBox = UiInput.box(font(), "wynnlabs.rules.type_hint", null, v -> { });
         ruleBox.setMaxLength(12);
-        ruleBoxFor = -1;
+        ruleBoxFor = null;
         searchBox = UiInput.box(font(), "wynnlabs.settings.search_hint", searchBox, s -> settingsScroll = 0);
         return List.of(keyBox, ruleBox, searchBox);
     }
@@ -64,17 +66,6 @@ final class SettingsTab extends MenuTab {
         return false;
     }
 
-    /** A click on a menu scale choice; the next frame draws at the new scale. */
-    boolean scaleClicked(double ex, double ey) {
-        for (int[] r : scaleRects) {
-            if (in(ex, ey, r)) {
-                Settings.setNumber("menuScale", r[4]);
-                return true;
-            }
-        }
-        return false;
-    }
-
     /** Focuses a box the click is in (it takes the click); false when it is in none. */
     private boolean boxClicked(EditBox box, int[] rect, MouseButtonEvent event, boolean doubleClick) {
         if (rect == null || !in(event.x(), event.y(), rect)) {
@@ -86,10 +77,6 @@ final class SettingsTab extends MenuTab {
         return true;
     }
 
-    /**
-     * A click on the settings, AI or damage tab: the boxes, then the switches, chips and buttons
-     * this frame drew ({@link RoadmapScreen#toggles}). True when one took it.
-     */
     /** The settings list's scroll bar: dragged, clicked or wheeled. */
     final ScrollBar settingsBar = new ScrollBar();
 
@@ -107,6 +94,10 @@ final class SettingsTab extends MenuTab {
         settingsBar.mouseReleased();
     }
 
+    /**
+     * A click on the settings tab: the boxes, then the switches, chips and buttons this frame drew
+     * ({@link RoadmapScreen#toggles}). True when one took it.
+     */
     boolean toggleClicked(MouseButtonEvent event, boolean doubleClick) {
         if (menu.tab() == RoadmapScreen.TAB_SETTINGS && settingsListRect != null && settingsBar.mouseClicked(event.x(), event.y())) {
             settingsScroll = settingsBar.offset();
@@ -125,7 +116,7 @@ final class SettingsTab extends MenuTab {
             return true;
         }
         searchBox.setFocused(false);
-        if (ruleBoxFor >= 0 && boxClicked(ruleBox, ruleBoxRect, event, doubleClick)) {
+        if (ruleBoxFor != null && boxClicked(ruleBox, ruleBoxRect, event, doubleClick)) {
             return true;
         }
         if (ruleBox.isFocused()) {
@@ -146,26 +137,21 @@ final class SettingsTab extends MenuTab {
             ruleUnit = (ruleUnit + 1) % UNIT_NAMES.length;
             ruleBox.setFocused(true);       // saved with the new unit
             saveRuleBox();
-        } else if (id.startsWith("#fill:")) {
-            int v = Integer.parseInt(id.substring(6));
-            if (v == 100) {
-                Settings.resetNumber("menuFill");
-            } else {
-                Settings.setNumber("menuFill", v);
-            }
-        } else if (id.startsWith("#lang:")) {
-            Settings.setNumber("langOverride", Integer.parseInt(id.substring(6)));
-            menu.rebuildMap();              // its text is in the old language: rebuilt in the background
         } else if (id.startsWith("#cat:")) {
             settingsCat = Integer.parseInt(id.substring(5));
+            aboutOpen = false;
             clearView();
         } else if (id.startsWith("#sfirst:")) {
             filterFirst = Math.max(0, filterFirst + Integer.parseInt(id.substring(8)));
         } else if (id.equals("#sshowchanged")) {
             showChanged = true;
+            aboutOpen = false;
             searchBox.setValue("");
             settingsScroll = 0;
         } else if (id.equals("#sclearview")) {
+            clearView();
+        } else if (id.equals("#about")) {
+            aboutOpen = !aboutOpen;
             clearView();
         } else if (id.equals("#searchopen")) {
             searchOpen = !searchOpen;
@@ -174,19 +160,27 @@ final class SettingsTab extends MenuTab {
             } else {
                 searchBox.setValue("");
             }
-        } else if (id.startsWith("#sall:")) {
-            int[] ref = SettingsPages.ref(id);
-            SectionSwitches.flip(sectionKeys(ref[0], ref[1]));
+        } else if (id.startsWith("#fold:")) {
+            String f = id.substring(6);
+            if (!openFolds.remove(f)) {
+                openFolds.add(f);
+            }
         } else if (id.startsWith("#ssel:") || id.startsWith("#stog:") || id.startsWith("#sreset:")) {
             pages.settingsAction(id);
+        } else if (id.startsWith("#opt:")) {
+            pages.optionClicked(id);
         } else if (id.startsWith("#upd:") || id.startsWith("#link:")) {
             pages.aboutClick(id);
         } else if (id.startsWith("#rule:")) {
             String[] p = id.split(":");
-            RuleEditor.step(RuleEditor.RULES.get(Integer.parseInt(p[1])), Integer.parseInt(p[2]));
+            RuleEditor.step(RuleEditor.byId(p[1]), Integer.parseInt(p[2]));
         } else if (id.startsWith("#step:")) {
             String[] p = id.split(":");
             Settings.step(p[1], Integer.parseInt(p[2]));
+        } else if (id.equals("#slots")) {
+            MarketSlots.setLimited(!MarketSlots.limited());
+        } else if (id.equals("#keyopen")) {
+            keyOpen = !keyOpen;
         } else if ("#rulesreset".equals(id)) {
             // two steps: the first click asks, a second within a few seconds resets
             if (System.currentTimeMillis() - resetArmedAt < RESET_WINDOW_MS) {
@@ -207,11 +201,8 @@ final class SettingsTab extends MenuTab {
             menu.archPicker.open(rect);
         } else if ("#goal".equals(id)) {
             goalMenu.open(rect);           // the goal list opens under its chip; a row picks it
-        } else {
+        } else if (!id.startsWith("#")) {
             Settings.toggle(id);
-            if ("webFont".equals(id)) {
-                menu.reinit();             // init() again: the screen and its boxes take the new font now
-            }
         }
     }
 
@@ -261,7 +252,7 @@ final class SettingsTab extends MenuTab {
     }
 
     EditBox keyBox;
-    /** False while the key built into the mod is in use: the settings row then asks for nothing. */
+    /** False while the key built into the mod is in use: the key's box asks for nothing. */
     boolean keyBoxShown = true;
 
     /** Saves what is in the key box (live prices switch on with it) and empties the box. */
@@ -282,7 +273,7 @@ final class SettingsTab extends MenuTab {
 
     // ---- state ----
 
-    /** The categories, by name (the preview finds its pages here). */
+    /** The pages, by name (the preview finds its pages here). */
     private static final String[] SETTING_CATS = SettingsRows.SETTING_CATS;
 
     int settingsCat;
@@ -290,40 +281,47 @@ final class SettingsTab extends MenuTab {
     int settingsScrollMax;
     /** The list's box this frame, for the wheel. */
     int[] settingsListRect;
-    /** The picked row (its example shows): a category and an index in its rows; -1 for none. */
+    /** The picked row (what it does and its example show): a page and an index in its rows; -1 for none. */
     int pickCat = -1;
     int pickRow = -1;
-    /** The list of every changed setting instead of a category. */
+    /** The list of every changed setting instead of a page. */
     boolean showChanged;
+    /** About (the "?") instead of a page. */
+    boolean aboutOpen;
+    /** The live prices' key box open under its note ("Key…"). */
+    boolean keyOpen;
+    /** The folding sections that are open (Advanced: the rules' groups, the look, bug reports). */
+    final Set<String> openFolds = new HashSet<>();
     /** Compact: the search box open under the title row. */
     private boolean searchOpen;
-    /** Compact: the categories' filter row's first chip. */
+    /** Compact: the pages' filter row's first chip. */
     int filterFirst;
     EditBox searchBox;
     UiInput.Hit searchHit;
     /** When the rules' reset was asked for: a second click within {@link #RESET_WINDOW_MS} resets. */
     long resetArmedAt;
     static final long RESET_WINDOW_MS = 4000;
-    final List<int[]> scaleRects = new ArrayList<>();   // {x, y, w, h, scale}
 
-    /** Opens the About page (the rail's Help). */
+    /** Opens About (the rail's Help, or the "?" at the foot of the pages). */
     void showAbout() {
-        settingsCat = 0;                            // SETTING_CATS[0] is "about"
+        aboutOpen = true;
         clearView();
     }
 
-    /** Back to the picked category: no search, not the changed list. */
+    /** Back to the picked page: no search, not the changed list. */
     void clearView() {
         showChanged = false;
         if (searchBox != null) {
             searchBox.setValue("");
         }
         settingsScroll = 0;
-        keyBox.setFocused(false);
+        if (keyBox != null) {
+            keyBox.setFocused(false);
+        }
         menu.setFocused(null);
     }
 
-    /** Whether the page lists search results or the changed settings instead of a category. */
+    /** Whether the page lists search results or the changed settings instead of a page. */
     boolean listView() {
         return showChanged || searchBox != null && !searchBox.getValue().isBlank();
     }
@@ -334,8 +332,6 @@ final class SettingsTab extends MenuTab {
                 ? new MenuRail.Badge(MenuRail.Badge.Kind.GOOD_DOT, "", L.t("wynnlabs.screen.rail_badge_update"))
                 : null;
     }
-
-    static final int SET_ROW = 32;
 
     // ---- the page ----
 
@@ -358,12 +354,10 @@ final class SettingsTab extends MenuTab {
     }
 
     /**
-     * The settings: the categories on the left (compact: a filter row on top), then the page: a
-     * category's rows under its title, or the search results, or every changed setting. Rules end
-     * in the reset as an error notice; About shows the version, the update check and the links.
+     * The settings: the pages on the left (compact: a filter row on top and the foot under the
+     * page), then a page's rows, or the search results, or every changed setting, or About.
      */
-    private void drawSettings(GuiGraphics g, int x, int y, int w, int h, int mx, int my, float pt) {
-        scaleRects.clear();
+    private void drawSettings(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         keyBoxShown = false;                    // set again where the key box is drawn
         ruleBoxRect = null;
         settingsListRect = null;
@@ -374,27 +368,29 @@ final class SettingsTab extends MenuTab {
         int cx = x;
         int cw = w;
         int top = y;
+        int bottom = y + h;
         if (compact) {
-            top += list.filter(g, x, y, w, mx, my) + Theme.SP_4;
+            top += nav.filter(g, x, y, w, mx, my) + Theme.SP_4;
             if (searchOpen) {
                 pages.searchField(g, x, top, w, mx, my);
                 top += Ui.CHIP_H + Theme.SP_4;
             }
+            bottom -= SettingsNav.FOOT_H + Theme.SP_3;
+            nav.compactFoot(g, x, bottom + Theme.SP_3, w, mx, my);
             cx += Theme.SP_3;                  // room for the picked row's wash and the changed dot
             cw -= Theme.SP_3;
         } else {
-            int nw = SettingsList.NAV_W;
-            list.nav(g, x + Theme.SP_2, y, nw - Theme.SP_2, h, mx, my);
+            int nw = SettingsNav.NAV_W;
+            nav.nav(g, x + Theme.SP_2, y, nw - Theme.SP_2, h, mx, my);
             Kit.hair(g, x + nw + Theme.SP_5, y, 1, h, Theme.LINE);
             cx = x + nw + Theme.SP_7;
             cw = w - nw - Theme.SP_7;
         }
-        int bottom = y + h;
         String query = searchBox.getValue().strip();
         if (!query.isEmpty() || showChanged) {
             String title = showChanged ? L.t("wynnlabs.settings.changed_title") : L.t("wynnlabs.settings.search_title", query);
             if (!compact) {
-                top += list.pageHead(g, cx, top, cw, title, null, null);
+                top += list.pageHead(g, cx, top, cw, title);
             }
             List<SettingsList.Item> items = SettingsList.found(showChanged ? null : query);
             if (items.isEmpty()) {
@@ -405,39 +401,23 @@ final class SettingsTab extends MenuTab {
             list.list(g, items, cx, top, cw, bottom - top, compact, mx, my);
             return;
         }
-        String cat = SETTING_CATS[settingsCat];
-        if (!compact) {
-            top += list.pageHead(g, cx, top, cw, L.t(SettingsRows.SETTING_CAT_NAMES[settingsCat]),
-                    L.t(SettingsRows.SETTING_CAT_DESC[settingsCat]), cat.equals("about") ? null : L.t("wynnlabs.settings.applies_now"));
-        }
-        if (cat.equals("about")) {
+        if (aboutOpen) {
+            if (!compact) {
+                top += list.pageHead(g, cx, top, cw, L.t("wynnlabs.settings.about_title"));
+            }
             pages.drawAboutPage(g, cx, top, cw, bottom - top, mx, my);
             return;
         }
-        if (cat.equals("rules")) {
-            bottom -= pages.rulesNotice(g, cx, bottom, cw, mx, my) + Theme.SP_4;
-        }
-        list.list(g, SettingsList.catItems(settingsCat), cx, top, cw, bottom - top, compact, mx, my);
+        list.list(g, SettingsList.catItems(settingsCat, openFolds), cx, top, cw, bottom - top, compact, mx, my);
     }
 
-    /** The switches under the section title at {@code head} of category {@code cat}, when it gets the "all off / all on" link. */
-    List<String> sectionKeys(int cat, int head) {
-        List<SetRow> rows = SettingsRows.settingRows(SETTING_CATS[cat]);
-        List<String> keys = new ArrayList<>();
-        for (int j = head + 1; j < rows.size() && !rows.get(j).head(); j++) {
-            if (rows.get(j).kind().equals("switch")) {
-                keys.add(rows.get(j).id());
-            }
-        }
-        return SectionSwitches.keys(SETTING_CATS[cat], keys);
-    }
-
-    /** Opened on one setting (the box window's "Turn on" for live prices): its category, its row picked. */
+    /** Opened on one setting (the box window's "Turn on" for live prices, About's update button): its page, its row picked. */
     void showSetting(String id) {
-        for (int c = 0; c < SETTING_CATS.length; c++) {
+        for (int k = 1; k <= SETTING_CATS.length; k++) {
+            int c = k % SETTING_CATS.length;            // a feature page before Basics
             List<SetRow> rows = SettingsRows.settingRows(SETTING_CATS[c]);
             for (int r = 0; r < rows.size(); r++) {
-                if (id.equals(rows.get(r).id())) {
+                if (id.equals(rows.get(r).id()) && !rows.get(r).head()) {
                     previewSettings(c, r, false);
                     return;
                 }
@@ -445,22 +425,28 @@ final class SettingsTab extends MenuTab {
         }
     }
 
-    /** The preview's shots: this category with this row picked ({@code detail} is no longer a separate page). */
+    /** The preview's shots: this page with this row picked (its folding section opened). */
     void previewSettings(int cat, int row, boolean detail) {
         settingsCat = cat;
         pickCat = cat;
         pickRow = row;
         settingsScroll = 0;
+        aboutOpen = false;
         if (searchBox != null) {
             searchBox.setValue("");
         }
         showChanged = false;
+        List<SetRow> rows = SettingsRows.settingRows(SETTING_CATS[Math.max(0, Math.min(SETTING_CATS.length - 1, cat))]);
+        if (row >= 0 && row < rows.size() && rows.get(row).fold() != null) {
+            openFolds.add(rows.get(row).fold());
+        }
     }
 
     // ---- the rule box (an emerald rule's amount) ----
 
     EditBox ruleBox;
-    int ruleBoxFor = -1;                    // the rule the box shows, an index in RuleEditor.RULES
+    /** The rule the box shows, by its short id; null for none. */
+    String ruleBoxFor;
     int[] ruleBoxRect;
     int ruleUnit;                           // 0 E, 1 EB, 2 LE
     static final String[] UNIT_NAMES = {"E", "EB", "LE"};
@@ -468,8 +454,8 @@ final class SettingsTab extends MenuTab {
 
     /** Saves what was typed in the rule box, in the chip's unit; a value that is no value is left as it was. */
     private void saveRuleBox() {
-        if (ruleBoxFor >= 0 && ruleBoxFor < RuleEditor.RULES.size()) {
-            RuleEditor.Rule r = RuleEditor.RULES.get(ruleBoxFor);
+        RuleEditor.Rule r = ruleBoxFor == null ? null : RuleEditor.byId(ruleBoxFor);
+        if (r != null) {
             String typed = ruleBox.getValue().trim();
             // a unit typed in the box ("1 le") wins over the chip
             boolean ok = RuleEditor.set(r, typed.matches(".*[a-zA-Z].*") ? typed : typed + " " + UNIT_NAMES[ruleUnit]);
@@ -477,15 +463,5 @@ final class SettingsTab extends MenuTab {
         }
         ruleBox.setFocused(false);
         menu.setFocused(null);
-    }
-
-    // ---- the Wynnventory key (drawn by SettingsPages) ----
-
-    static int keyDetailHeight() {
-        return SettingsPages.keyDetailHeight();
-    }
-
-    void drawKeyDetail(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        pages.drawKeyDetail(g, x, y, w, mx, my);
     }
 }
