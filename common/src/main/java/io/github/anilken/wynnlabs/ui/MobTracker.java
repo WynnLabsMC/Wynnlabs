@@ -213,7 +213,8 @@ public final class MobTracker {
         return k;
     }
 
-    private static void tell(Minecraft mc, String text, long now) {
+    /** The notice (and, with mobTrackSound, the bell); tracked drops use it too. */
+    static void tell(Minecraft mc, String text, long now) {
         notice = text;
         noticeUntil = now + NOTICE_MS;
         if (Settings.on("mobTrackSound")) {

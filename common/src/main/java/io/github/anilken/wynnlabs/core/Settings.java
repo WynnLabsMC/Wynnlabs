@@ -27,7 +27,7 @@ public final class Settings {
 
     static {
         for (String k : new String[] {"itemAdvice", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
-            "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "mobTrack",
+            "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "trackedDrops", "mobTrack",
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
             "feederHighlight", "miniQuests", "questGuides", "localApi", "apiWrite", "debug", "webFont", "menuResume"}) {

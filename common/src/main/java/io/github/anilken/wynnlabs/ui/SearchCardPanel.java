@@ -359,14 +359,18 @@ final class SearchCardPanel extends MenuPaint {
         boolean mapOk = easiest != null && GameState.current().running() && Wyn.up(Wyn.Feature.WAYPOINTS);
         List<Area> every = entry.item() ? List.of() : entry.places();
         String url = entry.item() || SearchThingCard.wiki(entry) ? ItemWiki.url(entry.name()) : null;
+        // a mob is tracked by its floating name, an item by its drops on the ground
         boolean mob = entry.kind() == io.github.anilken.wynnlabs.search.Kind.MOB;
-        boolean tracked = mob && io.github.anilken.wynnlabs.search.TrackedMobs.get().has(entry.name());
-        String mobName = entry.name();
+        var trackList = mob ? io.github.anilken.wynnlabs.search.TrackedMobs.get()
+                : entry.item() ? io.github.anilken.wynnlabs.search.TrackedMobs.items() : null;
+        boolean tracked = trackList != null && trackList.has(entry.name());
+        String trackName = entry.name();
         Object[][] chips = {
-            {tracked ? "check" : "target", L.t(tracked ? "wynnlabs.search.tracking" : "wynnlabs.search.track"), mob, (Runnable) () -> {
-                boolean now = io.github.anilken.wynnlabs.search.TrackedMobs.get().toggle(mobName);
-                menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", mobName));
-            }, tracked},
+            {tracked ? "check" : "target", L.t(tracked ? "wynnlabs.search.tracking" : "wynnlabs.search.track"), trackList != null,
+                (Runnable) () -> {
+                    boolean now = trackList.toggle(trackName);
+                    menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", trackName));
+                }, tracked},
             {"map-2", L.t("wynnlabs.search.open_map"), mapOk, (Runnable) this::openMap},
             {"compass", L.t("wynnlabs.search.pin_all"), every.size() > 1,
                 (Runnable) () -> pinAll(io.github.anilken.wynnlabs.search.SourceRank.nearest(every, SearchTab.position(), every.size()))},

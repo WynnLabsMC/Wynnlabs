@@ -18,9 +18,9 @@ import java.util.stream.Stream;
  * The search tab in the J menu preview: the item index read from a game folder's Wynntils cache
  * ({@code -PpreviewWynntils=<folder>}, read only) or, without one, from the trimmed test copies.
  * Shots: the catalogue before anything is typed, an item ("lucky rab"), its card with every row on
- * the map and the "Marked" list open, a tracked mob and the "Tracked" list, a place, the Stats
- * category and a stat, nothing found with "did you mean", and the filter menu. On a small window
- * ({@code -PpreviewSize=1380x960}) the card is the drawer.
+ * the map and the "Marked" list open, a tracked mob and the "Tracked" list, the "Tracked items"
+ * list, a place, the Stats category and a stat, nothing found with "did you mean", and the filter
+ * menu. On a small window ({@code -PpreviewSize=1380x960}) the card is the drawer.
  */
 final class SearchPreview {
 
@@ -94,8 +94,18 @@ final class SearchPreview {
         });
         ctx.waitTicks(10);
         shot(ctx, out, "search-mob-tracked");
+        // two items tracked as well: their own chip and list, each row with the item's picture
+        ctx.runOnClient(mc -> {
+            for (String item : new String[] {"Lucky Rabbit's Foot", "Bear Mask"}) {
+                if (!TrackedMobs.items().has(item)) {
+                    TrackedMobs.items().toggle(item);
+                }
+            }
+        });
         tab(ctx, t -> t.menus.toggle(SearchMenus.TRACKED));
         shot(ctx, out, "search-tracked");
+        tab(ctx, t -> t.menus.toggle(SearchMenus.ITEMS));
+        shot(ctx, out, "search-tracked-items");
         tab(ctx, t -> t.menus.open = SearchMenus.NONE);
         search(ctx, "cinfras");
         shot(ctx, out, "search-place");
@@ -129,7 +139,7 @@ final class SearchPreview {
     /**
      * A mob with many actions and drops (Withered Quasinobility, only in a real Wynntils cache):
      * the wrapped action rows inside the card, and its drops with icons and prices seeded by hand
-     * (every one but the last; Wynnventory is not in the preview, so nothing is requested).
+     * (every one but the last; Wynnventory is not in the preview, so nothing is requested), the second tracked.
      */
     private static void mobDrops(ClientGameTestContext ctx, Path out) {
         String key = "mob:Withered Quasinobility";
@@ -158,6 +168,11 @@ final class SearchPreview {
             }
             if (!TrackedMobs.get().has("Withered Quasinobility")) {
                 TrackedMobs.get().toggle("Withered Quasinobility");
+            }
+            // the second drop tracked: its row's toggle shows the check
+            var drops = ItemIndex.get().byKey(key).links(io.github.anilken.wynnlabs.search.Entry.ITEM);
+            if (drops.size() > 1 && !TrackedMobs.items().has(drops.get(1).name())) {
+                TrackedMobs.items().toggle(drops.get(1).name());
             }
         });
         tab(ctx, t -> t.show(key));

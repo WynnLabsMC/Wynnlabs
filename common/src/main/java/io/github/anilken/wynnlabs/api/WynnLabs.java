@@ -166,6 +166,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.TreePlanner", TreePlanner::onTick));
         platform.onEndTick(Perf.tick("tick.GroundMarkers", GroundMarkers::onTick));
         platform.onEndTick(Perf.tick("tick.MobTracker", MobTracker::onTick));
+        platform.onEndTick(Perf.tick("tick.DropTracker", io.github.anilken.wynnlabs.ui.DropTracker::onTick));
         platform.onEndTick(Perf.tick("tick.ChestBeams", io.github.anilken.wynnlabs.ui.ChestBeams::onTick));
         platform.onEndTick(Perf.tick("tick.KeptMarks", io.github.anilken.wynnlabs.ui.KeptMarksSync::onTick));
         platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
@@ -272,6 +273,17 @@ public final class WynnLabs {
                 Perf.end("world.ChestBeams", t);
             }
         });
+        // the beams and names over tracked items on the ground (setting trackedDrops)
+        platform.onWorldRender((pose, buffers) -> {
+            long t = Perf.start();
+            try {
+                io.github.anilken.wynnlabs.ui.DropTracker.renderWorld(pose, buffers);
+            } catch (Throwable ignored) {
+                // a marker must never break the frame
+            } finally {
+                Perf.end("world.DropTracker", t);
+            }
+        });
         // the labels over mount powerups while riding
         platform.onWorldRender((pose, buffers) -> {
             long t = Perf.start();
@@ -288,6 +300,7 @@ public final class WynnLabs {
             Coach.saveSession(System.currentTimeMillis());
             DpsMeter.LIVE.reset();
             MobTracker.reset();
+            io.github.anilken.wynnlabs.ui.DropTracker.reset();
             RaidLog.disconnected();
             LootrunLog.disconnected();
         });

@@ -75,17 +75,27 @@ public final class PowerupLabels {
             if (d < NEAR) {
                 continue;
             }
-            float k = scale(d, size, s.size());
-            pose.pushPose();
-            pose.translate(x, y, z);
-            pose.mulPose(camera.rotation());
-            pose.scale(k, -k, k);
-            font.drawInBatch(s.text(), -font.width(s.text()) / 2f, 0, colour(s.colour(), s.dim()), false,
-                    pose.last().pose(), buffers, Font.DisplayMode.NORMAL, BACKING, LightTexture.FULL_BRIGHT);
-            pose.popPose();
+            draw(pose, buffers, font, camera, x, y, z, s.text(), font.width(s.text()), colour(s.colour(), s.dim()),
+                    scale(d, size, s.size()));
         }
         if (buffers instanceof MultiBufferSource.BufferSource source) {
             source.endBatch();
         }
+    }
+
+    /**
+     * One label: {@code text} ({@code width} wide) centred at ({@code x}, {@code y}, {@code z})
+     * relative to the camera, facing it, at scale {@code k}, on a name tag's backing, no shadow;
+     * depth tested (NORMAL), so blocks in front hide it. Shared with the tracked drops' names.
+     */
+    static void draw(PoseStack pose, MultiBufferSource buffers, Font font, Camera camera, double x, double y, double z,
+                     String text, int width, int argb, float k) {
+        pose.pushPose();
+        pose.translate(x, y, z);
+        pose.mulPose(camera.rotation());
+        pose.scale(k, -k, k);
+        font.drawInBatch(text, -width / 2f, 0, argb, false, pose.last().pose(), buffers, Font.DisplayMode.NORMAL,
+                BACKING, LightTexture.FULL_BRIGHT);
+        pose.popPose();
     }
 }

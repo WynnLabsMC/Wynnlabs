@@ -41,4 +41,14 @@ class UiMenuTest {
         assertEquals(java.util.List.of(add), UiMenu.pinned(all));
         assertEquals(true, add.asDim().pinned(), "a dim pinned row stays pinned");
     }
+
+    @Test
+    void anItemsPictureSurvivesTheOtherSettersAndKeepsTheIcon() {
+        var stack = net.minecraft.world.item.ItemStack.EMPTY;
+        UiMenu.Item it = UiMenu.Item.of("i:0", "backpack", "Bear Mask", "✕", false).stack(stack)
+                .tip(java.util.List.of()).group().asLink().pin();
+        assertEquals(stack, it.stack());
+        assertEquals("backpack", it.icon(), "the icon stays for an empty picture");
+        assertEquals(null, UiMenu.Item.of("a", null, "A", null, false).stack());
+    }
 }

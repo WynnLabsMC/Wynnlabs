@@ -37,8 +37,8 @@ public final class GroundMarkers {
                     continue;
                 }
                 ItemStack stack = ie.getItem();
-                if (e.distanceTo(mc.player) > 48) {
-                    continue;
+                if (e.distanceTo(mc.player) > 48 || DropTracker.marks(e.getId())) {
+                    continue;                   // a tracked item has its own beam
                 }
                 Integer colour = GroundGlow.colour(e.getId(), stack);
                 if (colour == null) {

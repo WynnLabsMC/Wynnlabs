@@ -197,19 +197,24 @@ final class SearchThingCard extends MenuPaint {
     /**
      * An item the thing gives: its icon in a tile of its rarity's colour, like the card's badges
      * (hover: the item's tooltip), its name opening its card
-     * (LINK, gold on hover; cut with "…" before the price) and its market price on the right when
-     * one is known; returns the y of the next row. Only prices already read are shown: no request.
+     * (LINK, gold on hover; cut with "…" before the price), its market price on the right when
+     * one is known, and at the row's end a Track toggle like the card's own chip (the target, a
+     * gold check while tracked); returns the y of the next row. Only prices already read are shown: no request.
      */
     private int item(GuiGraphics g, String name, Entry item, int x, int y, int w, int mx, int my) {
         int ty = Type.BODY.yIn(y, ICON);
         int tx = x + ICON + Theme.SP_3;
+        int r = x + w;
+        if (item != null && item.item()) {
+            r -= track(g, item.name(), r, y, mx, my) + Theme.SP_2;
+        }
         String price = price(item);
         int pw = price == null ? 0 : Type.NUMBER.width(font(), price) + Theme.SP_4;
         if (price != null) {
-            Type.NUMBER.drawRight(g, font(), price, x + w, ty, Theme.PRICE);
+            Type.NUMBER.drawRight(g, font(), price, r, ty, Theme.PRICE);
         }
         if (item == null) {
-            Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, x + w - pw - tx), tx, ty, Theme.INK_2);
+            Type.BODY.draw(g, font(), Type.BODY.fit(font(), name, r - pw - tx), tx, ty, Theme.INK_2);
             return y + ICON + Theme.SP_2;
         }
         var stack = tab.icons.of(item);
@@ -218,7 +223,7 @@ final class SearchThingCard extends MenuPaint {
         if (card.over(mx, my) && mx >= x && mx < x + ICON && my >= y && my < y + ICON) {
             menu.hits.add(new MenuHit(x, y, ICON, ICON, stack, null, null));
         }
-        String shown = Type.BODY.fit(font(), name, x + w - pw - tx);
+        String shown = Type.BODY.fit(font(), name, r - pw - tx);
         int nw = Type.BODY.width(font(), shown);
         boolean hover = card.over(mx, my) && mx >= tx && mx < tx + nw && my >= y && my < y + ICON;
         Type.BODY.draw(g, font(), shown, tx, ty, hover ? Theme.GOLD_DEEP : Theme.LINK);
@@ -227,6 +232,24 @@ final class SearchThingCard extends MenuPaint {
             card.tip(tx, y, nw, ICON, mx, my, name);
         }
         return y + ICON + Theme.SP_2;
+    }
+
+    /**
+     * An item row's Track toggle ending at {@code r}, centred on the icon: the same list and flash
+     * as the card's Track chip (its beam and name on the ground); returns its width.
+     */
+    private int track(GuiGraphics g, String name, int r, int y, int mx, int my) {
+        int bw = Ui.CHIP_H + 2;
+        int bx = r - bw;
+        int by = y + Ui.iconIn(ICON, Ui.CHIP_H);
+        boolean on = io.github.anilken.wynnlabs.search.TrackedMobs.items().has(name);
+        Ui.iconButton(g, on ? "check" : "target", bx, by, on, card.over(mx, my) ? mx : -1, my);
+        card.click(bx, by, bw, Ui.CHIP_H, () -> {
+            boolean now = io.github.anilken.wynnlabs.search.TrackedMobs.items().toggle(name);
+            menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", name));
+        });
+        card.tip(bx, by, bw, Ui.CHIP_H, mx, my, L.t(on ? "wynnlabs.search.tracking_tip" : "wynnlabs.search.track_item_tip"));
+        return bw;
     }
 
     /** "~4 EB": the market price already read for a tradable item, else null (no price, no Wynnventory). */

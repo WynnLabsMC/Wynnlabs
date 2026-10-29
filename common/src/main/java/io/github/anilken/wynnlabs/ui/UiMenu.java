@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.ui;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,38 +35,39 @@ final class UiMenu {
      * {@code link} drawn as an action (LINK ink) rather than a choice; {@code groupStart} a
      * hairline above it; {@code tip} its tooltip; {@code heading} a section's name over the rows
      * after it (META, not a choice: no hover, no click, the keys pass it); {@code pinned} kept under
-     * the scrolling rows, always in view ({@link #pin}).
+     * the scrolling rows, always in view ({@link #pin}); {@code stack} an item's own picture in
+     * place of the icon ({@link #stack}).
      */
     record Item(String id, String icon, String label, String sub, String meta, boolean chosen, boolean link, boolean dim,
-                boolean groupStart, List<Component> tip, int tint, boolean heading, boolean pinned) {
+                boolean groupStart, List<Component> tip, int tint, boolean heading, boolean pinned, ItemStack stack) {
 
         static Item of(String id, String icon, String label, String meta, boolean chosen) {
-            return new Item(id, icon, label, null, meta, chosen, false, false, false, null, 0, false, false);
+            return new Item(id, icon, label, null, meta, chosen, false, false, false, null, 0, false, false, null);
         }
 
         /** A section's name ("Combined"): drawn small over the rows after it, never picked. */
         static Item heading(String label) {
-            return new Item(null, null, label, null, null, false, false, false, false, null, 0, true, false);
+            return new Item(null, null, label, null, null, false, false, false, false, null, 0, true, false, null);
         }
 
         Item sub(String s) {
-            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip, tint, heading, pinned);
+            return new Item(id, icon, label, s, meta, chosen, link, dim, groupStart, tip, tint, heading, pinned, stack);
         }
 
         Item group() {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip, tint, heading, pinned);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, true, tip, tint, heading, pinned, stack);
         }
 
         Item asLink() {
-            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip, tint, heading, pinned);
+            return new Item(id, icon, label, sub, meta, chosen, true, dim, groupStart, tip, tint, heading, pinned, stack);
         }
 
         Item asDim() {
-            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip, tint, heading, pinned);
+            return new Item(id, icon, label, sub, meta, chosen, link, true, groupStart, tip, tint, heading, pinned, stack);
         }
 
         Item tip(List<Component> t) {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t, tint, heading, pinned);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, t, tint, heading, pinned, stack);
         }
 
         /**
@@ -73,12 +75,17 @@ final class UiMenu {
          * view, after a hairline.
          */
         Item pin() {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, tint, heading, true);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, tint, heading, true, stack);
+        }
+
+        /** An item's own picture (drawn at 12 pixels) in place of the icon; null keeps the icon. */
+        Item stack(ItemStack s) {
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, tint, heading, pinned, s);
         }
 
         /** A colour of its own (a tier): a dot before the name and the name in it. */
         Item tint(int colour) {
-            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, colour, heading, pinned);
+            return new Item(id, icon, label, sub, meta, chosen, link, dim, groupStart, tip, colour, heading, pinned, stack);
         }
     }
 
@@ -208,7 +215,7 @@ final class UiMenu {
     /** The panel's width for these items: the widest label or second line, the icon and the right note. */
     static int width(Font font, List<Item> items, int min) {
         int w = min;
-        boolean icons = items.stream().anyMatch(i -> i.icon() != null || i.tint() != 0);
+        boolean icons = items.stream().anyMatch(i -> i.icon() != null || i.tint() != 0 || i.stack() != null);
         int tick = items.stream().anyMatch(Item::chosen) ? ICON + Theme.SP_2 : 0;
         for (Item it : items) {
             int lw = Type.LABEL.width(font, it.label());
@@ -313,7 +320,7 @@ final class UiMenu {
         int x = b[0];
         int y = b[1];
         Kit.softCard(g, x, y, w, h);
-        boolean icons = all.stream().anyMatch(i -> i.icon() != null || i.tint() != 0);
+        boolean icons = all.stream().anyMatch(i -> i.icon() != null || i.tint() != 0 || i.stack() != null);
         int rw = w - (scrolls ? ScrollBar.HIT : 0);
         int ry = y + Theme.SP_2;
         for (int i = st.scroll; i < st.scroll + visible && i < items.size(); i++) {
@@ -378,7 +385,15 @@ final class UiMenu {
     private static void face(GuiGraphics g, Font font, Item it, int x, int ry, int rw, boolean icons) {
         int ty = ry + Theme.SP_2;
         int tx = x + Theme.SP_3;
-        if (it.icon() != null) {
+        if (it.stack() != null && !it.stack().isEmpty()) {
+            // the item's picture at 12 pixels, centred where the 8-pixel icon would be
+            int iy = Type.BODY.onCaps(ty, ICON) - 2;
+            g.pose().pushMatrix();
+            g.pose().translate(tx - 2, iy);
+            g.pose().scale(12 / 16f, 12 / 16f);
+            g.renderItem(it.stack(), 0, 0);
+            g.pose().popMatrix();
+        } else if (it.icon() != null) {
             Art.icon(g, it.icon(), tx, Type.BODY.onCaps(ty, ICON), ICON,
                     it.dim() ? Theme.INK_3 : it.link() ? Theme.LINK : it.chosen() ? Theme.INK : Theme.INK_3);
         } else if (it.tint() != 0) {

@@ -13,13 +13,17 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 /**
  * The mobs the player chose to track from the search card ("Track" on a mob row), per
  * character in {@code characters/<id>/tracked-mobs.json} (written in the background by
  * {@link Saver}). Read again when the character changes; {@link #keys} is what the tracker
- * compares floating names with ({@link MobName#key}).
+ * compares floating names with ({@link MobName#key}). The items tracked the same way ("Track" on
+ * an item's card) are a second list of this kind, {@link #items()}, in {@code tracked-items.json},
+ * keyed by the cleaned item name ({@link #itemKey}) that ground drops are compared with.
  */
 public final class TrackedMobs {
 
@@ -27,13 +31,20 @@ public final class TrackedMobs {
     public static final int MAX = 12;
     private static final Gson GSON = new Gson();
     private static TrackedMobs shared;
+    private static TrackedMobs sharedItems;
 
     private final Path file;
+    private final UnaryOperator<String> key;
     private final List<String> names = new ArrayList<>();
     private volatile Set<String> keys = Set.of();
 
     TrackedMobs(Path file) {
+        this(file, MobName::key);
+    }
+
+    TrackedMobs(Path file, UnaryOperator<String> key) {
         this.file = file;
+        this.key = key;
         try {
             if (file != null && Files.isRegularFile(file)) {
                 String text = Files.readString(file, StandardCharsets.UTF_8);
@@ -48,7 +59,7 @@ public final class TrackedMobs {
                 Saver.known(file, text);
             }
         } catch (Exception e) {
-            System.out.println("[WynnLabs] tracked-mobs.json unreadable: " + e);
+            System.out.println("[WynnLabs] " + file.getFileName() + " unreadable: " + e);
         }
         rekey();
     }
@@ -62,6 +73,30 @@ public final class TrackedMobs {
         return shared;
     }
 
+    /** This character's tracked items, read again when another character is played. */
+    public static synchronized TrackedMobs items() {
+        Path f = Profile.dir().resolve("tracked-items.json");
+        if (sharedItems == null || !f.equals(sharedItems.file)) {
+            sharedItems = new TrackedMobs(f, TrackedMobs::itemKey);
+        }
+        return sharedItems;
+    }
+
+    /** An item name as the item list compares it: cleaned ("Unidentified ", stars, glyphs off), lower case. */
+    public static String itemKey(String name) {
+        return ItemNames.clean(name).toLowerCase(Locale.ROOT);
+    }
+
+    /** The tracked name as the player picked it (proper case) for one of {@link #keys}, else the key. */
+    public synchronized String name(String k) {
+        for (String n : names) {
+            if (key.apply(n).equals(k)) {
+                return n;
+            }
+        }
+        return k;
+    }
+
     /** The tracked names as the item data writes them, oldest first. */
     public synchronized List<String> names() {
         return List.copyOf(names);
@@ -73,9 +108,9 @@ public final class TrackedMobs {
     }
 
     public synchronized boolean has(String name) {
-        String k = MobName.key(name);
+        String k = key.apply(name);
         for (String n : names) {
-            if (MobName.key(n).equals(k)) {
+            if (key.apply(n).equals(k)) {
                 return true;
             }
         }
@@ -84,13 +119,13 @@ public final class TrackedMobs {
 
     /** Tracks {@code name}, or stops tracking it when it already is; returns whether it is tracked now. */
     public synchronized boolean toggle(String name) {
-        if (name == null || MobName.key(name).isEmpty()) {
+        if (name == null || key.apply(name).isEmpty()) {
             return false;
         }
         boolean now;
         if (has(name)) {
-            String k = MobName.key(name);
-            names.removeIf(n -> MobName.key(n).equals(k));
+            String k = key.apply(name);
+            names.removeIf(n -> key.apply(n).equals(k));
             now = false;
         } else {
             names.add(name.strip());
@@ -103,7 +138,7 @@ public final class TrackedMobs {
         return now;
     }
 
-    /** Stops tracking every mob. */
+    /** Stops tracking every name on this list. */
     public synchronized void clear() {
         names.clear();
         changed();
@@ -123,7 +158,7 @@ public final class TrackedMobs {
     private void rekey() {
         Set<String> k = new HashSet<>();
         for (String n : names) {
-            k.add(MobName.key(n));
+            k.add(key.apply(n));
         }
         keys = Set.copyOf(k);
     }

@@ -514,6 +514,7 @@ public final class ShotHands {
                 int which = switch (arg) {
                     case "marks" -> SearchMenus.MARKS;
                     case "tracked" -> SearchMenus.TRACKED;
+                    case "tracked_items" -> SearchMenus.ITEMS;
                     case "recent" -> SearchMenus.RECENT;
                     case "sort" -> SearchMenus.SORT;
                     case "filter" -> SearchMenus.FILTER;

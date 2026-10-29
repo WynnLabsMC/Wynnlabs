@@ -115,12 +115,7 @@ public final class ChestBeams {
                 if (a < 0.02f || dist > clip) {
                     continue;
                 }
-                // strips across the line of sight: a core and a faint halo, fading out toward the top
-                double len = Math.max(1e-3, Math.sqrt(dx * dx + dz * dz));
-                float ux = (float) (-dz / len);
-                float uz = (float) (dx / len);
-                strip(pose, quads, dx, dy, dz, ux, uz, 0.05f, b.colour(), 0.6f * a);
-                strip(pose, quads, dx, dy, dz, ux, uz, 0.15f, b.colour(), 0.18f * a);
+                Beams.draw(pose, quads, dx, dy, dz, HEIGHT, b.colour(), a);
             }
         } catch (Throwable t) {
             failed = true;                          // once broken, stay out of the frame loop
@@ -137,25 +132,6 @@ public final class ChestBeams {
     static float fade(double dist) {
         double edge = RANGE * 0.15;
         return (float) Math.max(0, Math.min(1, (RANGE - dist) / edge));
-    }
-
-    /** One upright strip, {@code half} wide each side along (ux, uz), from y up {@link #HEIGHT}. */
-    private static void strip(PoseStack pose, VertexConsumer v, float x, float y, float z, float ux, float uz,
-                              float half, int rgb, float alpha) {
-        int a = Math.round(255 * Math.max(0, Math.min(1, alpha)));
-        if (a == 0) {
-            return;
-        }
-        int r = rgb >> 16 & 0xFF;
-        int g = rgb >> 8 & 0xFF;
-        int b = rgb & 0xFF;
-        float ox = ux * half;
-        float oz = uz * half;
-        var p = pose.last();
-        v.addVertex(p, x - ox, y, z - oz).setColor(r, g, b, a);
-        v.addVertex(p, x + ox, y, z + oz).setColor(r, g, b, a);
-        v.addVertex(p, x + ox, y + HEIGHT, z + oz).setColor(r, g, b, 0);
-        v.addVertex(p, x - ox, y + HEIGHT, z - oz).setColor(r, g, b, 0);
     }
 
     private static double sq(double v) {

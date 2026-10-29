@@ -18,16 +18,17 @@ import java.util.Locale;
  * picked one gold; when the row is narrow the others drop their words, then their counts. After
  * it the chosen stat as a chip with ✕, then the recent searches (where there is room), and on the
  * right "Filter ▾" with how many filters are on. On the title row: "Marked N ▾" (the map marks the
- * player kept) and "Tracked N ▾" (the tracked mobs), each only when it has any.
+ * player kept), "Tracked items N ▾" and "Tracked N ▾" (the tracked mobs), each only when it has any.
  */
 final class SearchStrip extends MenuPaint {
 
     private static final SearchCategory[] CATS = SearchCategory.values();
     private final SearchTab tab;
-    /** The anchors of the menus this row opens, this frame: filter, marks, tracked. */
+    /** The anchors of the menus this row opens, this frame: filter, marks, tracked mobs, tracked items. */
     int[] filterAt;
     int[] marksAt;
     int[] trackedAt;
+    int[] itemsAt;
 
     SearchStrip(SearchTab tab) {
         super(tab.menu);
@@ -145,30 +146,32 @@ final class SearchStrip extends MenuPaint {
 
     // ---- the title row ----
 
-    /** "Marked N ▾" and "Tracked N ▾", right to left from {@code right}; returns the width taken. */
+    /**
+     * "Tracked N ▾", "Tracked items N ▾", the undo after a "Stop all" or "Remove all" and "Marked
+     * N ▾", right to left from {@code right}, each while all of them so far fit in {@code room};
+     * returns the width taken.
+     */
     int title(GuiGraphics g, int right, int y, int room, int mx, int my) {
         int r = right;
-        marksAt = null;
-        trackedAt = null;
-        int tracked = TrackedMobs.get().names().size();
         int cy = y - 3;
-        if (tracked > 0) {
-            String t = L.t("wynnlabs.search.tracked_n", tracked);
-            int w = Ui.iconChipWidth(font(), "target", t, true);
-            if (w <= room) {
-                r -= w;
-                trackedAt = new int[] {r, cy, w, Ui.CHIP_H};
-                UiMenu.chip(g, font(), "target", t, r, cy, tab.menus.open == SearchMenus.TRACKED, mx, my);
-                tab.click(r, cy, w, Ui.CHIP_H, () -> tab.menus.toggle(SearchMenus.TRACKED));
-                r -= Theme.SP_2;
-            }
+        int mobs = TrackedMobs.get().names().size();
+        int items = TrackedMobs.items().names().size();
+        trackedAt = null;
+        itemsAt = null;
+        marksAt = null;
+        if (mobs > 0 && right - r + chipW("target", L.t("wynnlabs.search.tracked_n", mobs)) <= room) {
+            trackedAt = menuChip(g, "target", L.t("wynnlabs.search.tracked_n", mobs), r, cy, SearchMenus.TRACKED, mx, my);
+            r = trackedAt[0] - Theme.SP_2;
         }
-        SearchMenus.Undo undo = tab.menus.undo();
-        if (undo != null) {
+        if (items > 0 && right - r + chipW("backpack", L.t("wynnlabs.search.tracked_items_n", items)) <= room) {
+            itemsAt = menuChip(g, "backpack", L.t("wynnlabs.search.tracked_items_n", items), r, cy, SearchMenus.ITEMS, mx, my);
+            r = itemsAt[0] - Theme.SP_2;
+        }
+        if (tab.menus.undo() != null) {
             // just after "Remove all" / "Stop all": the way back, until it times out or the list changes
             String t = L.t("wynnlabs.search.undo");
             int w = Ui.iconChipWidth(font(), "arrow-left", t, false);
-            if (w <= room) {
+            if (right - r + w <= room) {
                 r -= w;
                 Ui.iconChip(g, font(), "arrow-left", t, false, r, cy, w, false, mx, my);
                 tab.click(r, cy, w, Ui.CHIP_H, tab.menus::undoNow);
@@ -176,17 +179,23 @@ final class SearchStrip extends MenuPaint {
             }
         }
         int marks = tab.card.keptMarks().size();
-        if (marks > 0) {
-            String t = L.t("wynnlabs.search.marked_n", marks);
-            int w = Ui.iconChipWidth(font(), "map-2", t, true);
-            if (right - r + w <= room) {
-                r -= w;
-                marksAt = new int[] {r, cy, w, Ui.CHIP_H};
-                UiMenu.chip(g, font(), "map-2", t, r, cy, tab.menus.open == SearchMenus.MARKS, mx, my);
-                tab.click(r, cy, w, Ui.CHIP_H, () -> tab.menus.toggle(SearchMenus.MARKS));
-                r -= Theme.SP_2;
-            }
+        if (marks > 0 && right - r + chipW("map-2", L.t("wynnlabs.search.marked_n", marks)) <= room) {
+            marksAt = menuChip(g, "map-2", L.t("wynnlabs.search.marked_n", marks), r, cy, SearchMenus.MARKS, mx, my);
+            r = marksAt[0] - Theme.SP_2;
         }
         return r == right ? 0 : right - r - Theme.SP_2;
+    }
+
+    private int chipW(String icon, String label) {
+        return Ui.iconChipWidth(font(), icon, label, true);
+    }
+
+    /** A chip with a caret ending at {@code right} that opens menu {@code which}; returns its box. */
+    private int[] menuChip(GuiGraphics g, String icon, String label, int right, int y, int which, int mx, int my) {
+        int w = chipW(icon, label);
+        int x = right - w;
+        UiMenu.chip(g, font(), icon, label, x, y, tab.menus.open == which, mx, my);
+        tab.click(x, y, w, Ui.CHIP_H, () -> tab.menus.toggle(which));
+        return new int[] {x, y, w, Ui.CHIP_H};
     }
 }
