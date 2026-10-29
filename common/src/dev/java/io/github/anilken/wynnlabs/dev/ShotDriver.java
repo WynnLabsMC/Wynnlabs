@@ -42,7 +42,9 @@ final class ShotDriver {
     /** A tab's name in commands and file names: "home", "craft", "endgame" … (its language key's end). */
     static String tabName(int tab) {
         String key = ShotHands.tabKeys()[tab];
-        return key.substring(key.lastIndexOf("tab_") + 4);
+        int at = key.lastIndexOf("tab_");
+        // the Mounts tab's sections are keyed "sec_mounts", "sec_road", "sec_places"
+        return at >= 0 ? key.substring(at + 4) : key.substring(key.lastIndexOf("sec_") + 4);
     }
 
     static String[] tabNames() {

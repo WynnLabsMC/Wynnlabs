@@ -22,7 +22,7 @@ class ShotRunTest {
 
     /** Each menu tab number's name, as the menu numbers them. */
     private static final String[] NAMES = {"home", "today", "quests", "deaths", "bank", "settings", "ai", "damage", "discoveries",
-        "tree", "craft", "endgame", "search"};
+        "tree", "craft", "endgame", "search", "mounts", "road", "places"};
 
     /** A game that writes down what is done to it. A picture is two grabs (over black, over white); "capture" marks the last. */
     private static final class Fake implements ShotRun.Stage {
@@ -225,7 +225,7 @@ class ShotRunTest {
         }
         assertEquals(List.copyOf(ShotRun.PAGES.keySet()), pages);
         assertEquals(List.of("today", "home", "build", "quests", "guide", "tree", "damage", "endgame", "bank", "crafting", "search",
-                "box", "ai", "settings", "update"), pages);
+                "box", "mounts", "road", "places", "ai", "settings", "update"), pages);
         for (String page : pages) {
             List<ShotRun.Shot> views = ShotRun.plan(NAMES, page);
             // each view of a page once, and few enough that no list of near-alike views comes back

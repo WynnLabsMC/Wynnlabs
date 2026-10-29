@@ -158,6 +158,9 @@ final class ShotRun {
         m.put("crafting", "craft");
         m.put("search", "search");
         m.put("box", "search");             // the Trade Market window an item card opens
+        m.put("mounts", "mounts");
+        m.put("road", "road");              // the Mounts tab's road map section
+        m.put("places", "places");          // and its places section
         m.put("ai", "ai");
         m.put("settings", "settings");
         m.put("update", "settings");        // the update window About opens
@@ -295,6 +298,7 @@ final class ShotRun {
                 out.add(shot(page, t, null, w, List.of("window:box"), null, List.of()));
                 out.add(shot(page, t, "stats", WAIT, List.of("window:box", "box:stats"), null, List.of()));
             }
+            case "mounts", "road", "places" -> out.add(shot(page, t, null, w, List.of(), null, List.of()));
             case "ai" -> {
                 out.add(shot(page, t, null, w, List.of(), null, List.of()));
                 out.add(view(page, t, "reads", "ai:reads"));
