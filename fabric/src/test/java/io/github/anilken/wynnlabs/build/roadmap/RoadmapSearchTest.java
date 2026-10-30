@@ -16,6 +16,7 @@ import io.github.anilken.wynnlabs.model.Slot;
 import io.github.anilken.wynnlabs.model.StatRange;
 import io.github.anilken.wynnlabs.model.Tier;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * picks the same whatever the threads, and it finds a set built around a weapon that loses as a
  * swap into armour made for another (a Mythic that needs its own skill).
  */
+@Tag("heavy")
 class RoadmapSearchTest {
 
     @AfterEach
@@ -141,6 +143,7 @@ class RoadmapSearchTest {
     }
 
     @Test
+    @Tag("slow")
     void theSameInputsGiveTheSamePicksOnAnyThreads() throws Exception {
         String four = fourThreads().sets();
         String one = withThreads(1);

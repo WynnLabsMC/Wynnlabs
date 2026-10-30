@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStreamReader;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * least as much as the shared recipe. The ingredients are the game's (October 2026), trimmed
  * to what the calculator reads.
  */
+@Tag("heavy")
 class CraftGoldenTest {
 
     /** A shared recipe: its link's hash, the goal set it serves, and its craft as compared. */

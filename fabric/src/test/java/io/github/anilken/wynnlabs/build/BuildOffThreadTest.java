@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.build;
 
 import io.github.anilken.wynnlabs.game.FixtureRun;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 /** The build plan worked out on another thread from a snapshot equals the one worked out in place. */
+@Tag("heavy")
 class BuildOffThreadTest {
 
     @Test

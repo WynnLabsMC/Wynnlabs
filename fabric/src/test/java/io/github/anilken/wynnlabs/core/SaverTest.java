@@ -1,5 +1,6 @@
 package io.github.anilken.wynnlabs.core;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -12,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The background writer: bursts become one write, equal text is skipped, flush writes at once. */
+@Tag("heavy")
 class SaverTest {
 
     @TempDir

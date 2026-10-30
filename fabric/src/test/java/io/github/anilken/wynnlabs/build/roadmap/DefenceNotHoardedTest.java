@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * (Lv 120: 100 Defence, 62 Agility) and the damage skills never got another one; the bounded
  * penalty lets the floor pull, but damage keeps getting points.
  */
+@Tag("heavy")
 class DefenceNotHoardedTest {
 
     @AfterEach

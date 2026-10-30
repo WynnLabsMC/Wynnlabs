@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.build;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.model.Klass;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
  * RoleGoalWarriorTest and the play styles PlayStyleGoalTest and LootXpGoalTest, so their road
  * maps build side by side.
  */
+@Tag("heavy")
 class RoleGoalTest {
 
     @AfterEach

@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.build.roadmap;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Home's build score gauge fills toward one goal, the road map's last milestone: a Lv 5
  * character's 32 filled the whole arc (no goal read as full) while 26.0k on another was a sliver.
  */
+@Tag("heavy")
 class BuildScoreGaugeTest {
 
     @AfterEach

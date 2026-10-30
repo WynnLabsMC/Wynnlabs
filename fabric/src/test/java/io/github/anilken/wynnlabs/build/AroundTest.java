@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.build.roadmap.RoadmapLocksTest;
 import io.github.anilken.wynnlabs.game.FixtureState;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * from each other in at least two slots and carry the right labels; a newer request or Cancel
  * drops what an older search finds.
  */
+@Tag("heavy")
 class AroundTest {
 
     @AfterEach

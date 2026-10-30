@@ -6,6 +6,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.model.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Elemental defences count in the build's survival (design decision 6) while effective health
  * stays WynnBuilder's; and the allocator says why a build does not fit (design decision 8).
  */
+@Tag("heavy")
 class ElementalDefenceTest {
 
     @AfterEach

@@ -43,6 +43,25 @@ public final class BeamCache {
     private static String loadedFor;
     private static boolean dirty;
 
+    /**
+     * Tests only: a store beyond this JVM, so the test JVMs and later runs search a set once
+     * (null in the game, and after {@link #clear}).
+     */
+    public interface Shared {
+        /** The entry kept for the key, or null; may wait while another JVM searches it. */
+        Map<String, String> load(String key);
+
+        /** Keeps a searched entry. */
+        void keep(String key, Map<String, String> entry);
+    }
+
+    private static Shared shared;
+
+    /** Tests only: shares the results through {@code s} (null: this JVM's memory only). */
+    public static synchronized void share(Shared s) {
+        shared = s;
+    }
+
     private static synchronized Map<String, Map<String, String>> entries() {
         String id = Profile.id();
         if (!id.equals(loadedFor)) {
@@ -70,8 +89,22 @@ public final class BeamCache {
         return id.isEmpty() ? null : Profile.dir().resolve("roadmap-cache.json");
     }
 
-    static synchronized boolean has(String key) {
-        return entries().containsKey(key);
+    static boolean has(String key) {
+        Shared s;
+        synchronized (BeamCache.class) {
+            if (entries().containsKey(key)) {
+                return true;
+            }
+            s = shared;
+        }
+        Map<String, String> e = s == null ? null : s.load(key);    // outside the lock: it may wait
+        if (e == null) {
+            return false;
+        }
+        synchronized (BeamCache.class) {
+            entries().put(key, e);
+        }
+        return true;
     }
 
     /** True when the beam found nothing better for these inputs. */
@@ -135,6 +168,9 @@ public final class BeamCache {
             all.remove(all.keySet().iterator().next());
         }
         dirty = true;
+        if (shared != null) {
+            shared.keep(key, e);
+        }
     }
 
     /** Writes the entries when they changed (the road map builder calls this after a map). */
@@ -152,8 +188,9 @@ public final class BeamCache {
         }
     }
 
-    /** Tests only: forget everything. */
+    /** Tests only: forget everything, and share nothing until the next {@link #share}. */
     public static synchronized void clear() {
+        shared = null;
         entries = new LinkedHashMap<>(16, 0.75f, true);
         loadedFor = null;
         dirty = false;

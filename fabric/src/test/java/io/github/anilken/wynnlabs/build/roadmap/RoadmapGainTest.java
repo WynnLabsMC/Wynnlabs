@@ -11,6 +11,7 @@ import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.model.ItemData;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * sources and off-skill points by their own level; today's listings do not move far milestones.
  * The tests that only read the plain map share one build of it ({@link SharedRoadmaps}).
  */
+@Tag("heavy")
 class RoadmapGainTest {
 
     @AfterEach

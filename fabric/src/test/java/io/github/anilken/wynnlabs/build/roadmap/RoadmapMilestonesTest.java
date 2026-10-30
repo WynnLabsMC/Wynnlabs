@@ -11,6 +11,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.model.ItemData;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -30,6 +31,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * The chained map is the shared plain one ({@link SharedRoadmaps}); a new character's pills are
  * checked on FreshCharacterTest's map.
  */
+@Tag("heavy")
 class RoadmapMilestonesTest {
 
     @AfterEach
@@ -95,6 +97,7 @@ class RoadmapMilestonesTest {
     }
 
     @Test
+    @Tag("slow")
     void aChainedMilestoneKeepsUpWithOneSearchedFresh() throws Exception {
         // both sets judged as the chain judges its own: against the last milestone's points and
         // pieces (the respec charge, the keep bonus). A fresh set that drops Defence the chain
@@ -160,6 +163,7 @@ class RoadmapMilestonesTest {
     }
 
     @Test
+    @Tag("slow")
     void aMilestoneSearchedAloneKeepsUpWithTheChain() throws Exception {
         // the build window's "now" searches your level alone: it has no milestones before it to
         // build on, yet must not land far below the map's set for the same level (raw scores:

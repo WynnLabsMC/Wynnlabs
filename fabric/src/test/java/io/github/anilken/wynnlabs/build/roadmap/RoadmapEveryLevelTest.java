@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * earned by then) and must not score below the previous milestone's build at the same level,
  * judged as the road map judges a set (with the health floor).
  */
+@Tag("slow")
 class RoadmapEveryLevelTest {
 
     @AfterEach

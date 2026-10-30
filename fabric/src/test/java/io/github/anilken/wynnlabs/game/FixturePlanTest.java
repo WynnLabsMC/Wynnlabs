@@ -3,12 +3,14 @@ package io.github.anilken.wynnlabs.game;
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.List;
 
 /** The build plan, the road map's steps and the shopping list on the recorded fixtures. */
+@Tag("heavy")
 class FixturePlanTest {
 
     @Test

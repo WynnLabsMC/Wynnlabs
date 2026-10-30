@@ -11,6 +11,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.model.Slot;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -32,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * tooltip advice works without one; and the last map is saved per character, read back at the
  * next session (out of date when its inputs changed), and a missing or broken file is none.
  */
+@Tag("heavy")
 class RoadmapOnDemandTest {
 
     @TempDir

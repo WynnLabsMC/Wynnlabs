@@ -12,6 +12,7 @@ import io.github.anilken.wynnlabs.model.Roll;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.model.StatRange;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * set whose bonus only pays off whole): worn, in the bank, or with pieces just taken off into
  * the bag, the panel names the same best build you own.
  */
+@Tag("heavy")
 class NowSetTest {
 
     @AfterEach

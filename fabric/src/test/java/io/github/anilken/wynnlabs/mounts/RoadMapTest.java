@@ -5,9 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /** Breeding estimates (ranges from one set of constants) and the road maps to a target potential. */
+@Tag("heavy")
 class RoadMapTest {
     private static final RoadMap.Options WYVERN = RoadMap.Options.defaults(MountType.WYVERN);
 

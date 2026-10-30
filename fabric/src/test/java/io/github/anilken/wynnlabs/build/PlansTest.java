@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.ui.BuildWindow;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * limit on how many, an overwrite that keeps the name; what you already wear of a plan; the
  * better-build hint's margin and once-a-level; the level row's Plan pill.
  */
+@Tag("heavy")
 class PlansTest {
 
     @TempDir

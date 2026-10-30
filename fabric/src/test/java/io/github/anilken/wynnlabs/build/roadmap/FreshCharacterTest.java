@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.model.Slot;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Its pills read sensibly too: its Lv 1 gear once made a Lv 120 relik "+64092 %". Both tests
  * read the same map, built once.
  */
+@Tag("heavy")
 class FreshCharacterTest {
 
     private static List<Roadmap.Step> fresh;

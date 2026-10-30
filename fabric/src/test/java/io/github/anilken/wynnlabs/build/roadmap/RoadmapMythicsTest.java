@@ -17,6 +17,7 @@ import io.github.anilken.wynnlabs.model.Slot;
 import io.github.anilken.wynnlabs.model.StatRange;
 import io.github.anilken.wynnlabs.model.Tier;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * only one no set can wear is skipped as impossible, Immolation's -650 % healing no longer makes
  * its score NaN, and the trace speaks the mod's language throughout (Turkish with -PwithTurkish).
  */
+@Tag("heavy")
 class RoadmapMythicsTest {
 
     @AfterEach

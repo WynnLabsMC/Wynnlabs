@@ -16,6 +16,7 @@ import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Roll;
 import io.github.anilken.wynnlabs.model.StatRange;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * have with its real rolls, and a badly rolled piece you wear against a fresh copy. On the
  * recorded Shaman at Lv 44, whose Heavensent (two slots) and Yume (one) carry no powders.
  */
+@Tag("heavy")
 class PowderRollTest {
 
     @AfterEach

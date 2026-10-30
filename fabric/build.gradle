@@ -120,7 +120,51 @@ loom.runs.matching { it.name == 'clientGameTest' }.configureEach {
 
 // -PupdateFixtures: the fixture tests write their expected files instead of comparing
 test {
-    useJUnitPlatform()
+    // Test tags, so a plain test run stays under a minute: "heavy" (the road map, crafting and
+    // mount searches) runs with -Pheavy, "slow" (sweeps and benchmark-like checks) with -Pslow
+    // (heavy too); a full `gradle build` runs everything, CI (-PquickTests, -PprTests) neither.
+    // A class named with --tests always runs, whatever its tags
+    def full = gradle.startParameter.taskNames.any { it == 'build' || it.endsWith(':build') }
+    def named = gradle.startParameter.taskRequests.any { it.args.contains('--tests') }
+    def quick = rootProject.hasProperty('quickTests') || rootProject.hasProperty('prTests')
+    def slow = !quick && (rootProject.hasProperty('slow') || full)
+    def heavy = !quick && (rootProject.hasProperty('heavy') || slow)
+    useJUnitPlatform {
+        if (!named && !slow) {
+            excludeTags 'slow'
+        }
+        if (!named && !heavy) {
+            excludeTags 'heavy'
+        }
+    }
+    // the road map's set searches kept for every test JVM and the next run (SharedBeams), in a
+    // folder named by what a search depends on: the scoring code (everything but the screens,
+    // mixins, local API, mounts and coach), its data, the test harness and the fixtures. A changed
+    // model searches anew; -PupdateFixtures and -PnoBeamCache search everything anew
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+    def beamRoot = layout.buildDirectory.dir('test-beams').get().asFile
+    def beamInputs = {
+        def src = project(':common').file('src/main')
+        def notSearch = ~/.*\/wynnlabs\/(ui|mixin|api|mounts|coach)\/.*|.*\/assets\/wynnlabs\/(lang|font|textures|quests|discoveries|mounts)\/.*/
+        def files = project(':common').fileTree(src).files.findAll { !(it.path.replace('\\', '/') ==~ notSearch) }
+        files += fileTree('src/test/java/io/github/anilken/wynnlabs/game').files
+        files += fileTree(systemProperties['wynnlabs.fixtures']).files
+        files.sort { rootProject.relativePath(it).replace('\\', '/') }
+    }
+    doFirst {
+        if (rootProject.hasProperty('updateFixtures') || rootProject.hasProperty('noBeamCache')) {
+            return
+        }
+        def md = java.security.MessageDigest.getInstance('SHA-256')
+        beamInputs().each { f ->
+            md.update(rootProject.relativePath(f).replace('\\', '/').getBytes('UTF-8'))
+            md.update(f.bytes)
+        }
+        def name = md.digest().encodeHex().toString().substring(0, 16)
+        beamRoot.mkdirs()
+        beamRoot.listFiles().findAll { it.name != name }.each { project.delete(it) }
+        systemProperty 'wynnlabs.beamCache', new File(beamRoot, name).absolutePath
+    }
     // the road map tests take most of the time: eight JVMs run the test classes side by side
     maxParallelForks = 8
     // test results are never reused from the build cache: some tests read files Gradle doesn't track
@@ -129,27 +173,6 @@ test {
     // garbage collector and a compiler thread pool sized for the whole machine, and side by side
     // they crowd out the tests (the road map tests took a fifth more CPU time)
     jvmArgs '-XX:ParallelGCThreads=3', '-XX:ConcGCThreads=1', '-XX:CICompilerCount=3'
-    // -PquickTests (CI): leaves out the test classes that take more than a few seconds (upgrade
-    // search, fixtures, the build thread, saving); a local gradle build still runs them all
-    if (rootProject.hasProperty('quickTests')) {
-        filter {
-            ['RoadmapGainTest', 'RoleGoalTest', 'BeamCacheTest', 'FixturePlanTest', 'RoadmapEveryLevelTest',
-             'BuildOffThreadTest', 'AllocatorTest', 'FreshCharacterTest', 'FixtureJsonTest',
-             'FixtureVerdictTest', 'CraftingStockTest', 'SaverTest', 'RoadmapMilestonesTest',
-             'RoadmapSearchTest', 'RoleGoalWarriorTest', 'PlayStyleGoalTest', 'LootXpGoalTest']
-                    .each { excludeTestsMatching "*.${it}" }
-        }
-    }
-    // -PprTests (CI on a pull request): also leaves out the classes that take over five seconds
-    // (road map, tuning and tree runs); a push to main runs them with the rest of -PquickTests
-    if (rootProject.hasProperty('prTests')) {
-        filter {
-            ['TuningTest', 'RoadmapLocksTest', 'RoadmapOnDemandTest', 'TreeModelTest', 'RoadmapMythicsTest',
-             'FightingGoalXpRoadmapTest', 'AroundTest', 'NowSetTest', 'PlansTest', 'BoxVerdictTest',
-             'ElementalDefenceTest', 'DefenceNotHoardedTest', 'PowderRollTest', 'FeedPlannerTest', 'RoadMapTest']
-                    .each { excludeTestsMatching "*.${it}" }
-        }
-    }
     // the root build/test-run, as before the split: tests find build/discoveries-wiki next to it
     workingDir = rootProject.layout.buildDirectory.dir('test-run').get().asFile
     // -PfixturesDir=<folder>: run on fixtures kept elsewhere (another class, a scratch copy)

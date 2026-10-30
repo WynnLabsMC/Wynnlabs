@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.build.RoleGoals.Far;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.model.Klass;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Boss hits harder per cast and Mobbing casts more or runs faster than the Damage goal. Loot
  * and XP are LootXpGoalTest, so the road maps build side by side.
  */
+@Tag("heavy")
 class PlayStyleGoalTest {
 
     @AfterEach

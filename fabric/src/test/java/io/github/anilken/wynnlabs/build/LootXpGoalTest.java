@@ -4,11 +4,13 @@ import io.github.anilken.wynnlabs.build.RoleGoals.Far;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.model.Klass;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** PlayStyleGoalTest's other two play styles on the Shaman: Loot finds more than the Damage goal, and XP gains more before the cap. */
+@Tag("heavy")
 class LootXpGoalTest {
 
     @AfterEach

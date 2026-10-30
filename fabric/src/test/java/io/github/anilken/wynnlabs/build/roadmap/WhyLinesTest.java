@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.model.Klass;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * above "Main Attack: 22 → 2295 (+10107 %)" (over the Lv 4 spear worn), and its panel, labelled
  * "Now", read −17 % against the set before the milestone's armour.
  */
+@Tag("heavy")
 class WhyLinesTest {
 
     /** "Main Attack: 22 → 2295 (+10107%)": from, to, the per cent. */

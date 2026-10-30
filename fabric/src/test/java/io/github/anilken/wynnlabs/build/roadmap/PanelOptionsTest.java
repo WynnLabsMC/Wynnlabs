@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.market.ShoppingSources;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * item comes from, in words for people. The panels are read on the shared plain map
  * ({@link SharedRoadmaps}).
  */
+@Tag("heavy")
 class PanelOptionsTest {
 
     @AfterEach

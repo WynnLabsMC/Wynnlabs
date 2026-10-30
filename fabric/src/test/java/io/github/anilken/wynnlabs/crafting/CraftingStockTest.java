@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.core.Saver;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.Professions;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** The crafting stock read from a recorded character's bag and bank, and the saved recipes file. */
+@Tag("heavy")
 class CraftingStockTest {
 
     @TempDir

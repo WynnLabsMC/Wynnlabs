@@ -1,5 +1,6 @@
 package io.github.anilken.wynnlabs.game;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.List;
  * names and types first (what tools reading the API rely on), then the values. The fixture's
  * clock is fixed, so no value depends on the time.
  */
+@Tag("heavy")
 class FixtureJsonTest {
 
     @Test

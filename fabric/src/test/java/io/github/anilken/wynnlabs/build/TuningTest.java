@@ -9,6 +9,7 @@ import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.GameState;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * as before, Damage and Tanky lean the sets their way, and a budget keeps a piece that costs more
  * out of every milestone.
  */
+@Tag("heavy")
 class TuningTest {
 
     @AfterEach
@@ -54,6 +56,7 @@ class TuningTest {
     }
 
     @Test
+    @Tag("slow")
     void damageAndTankyLeanTheSets() throws Exception {
         FixtureState.load(RoadmapLocksTest.shaman()).install("en");
         List<Roadmap.Step> dmg = run(Tuning.Choice.PLAIN.withFocus(Tuning.DAMAGE)).steps();
@@ -83,6 +86,7 @@ class TuningTest {
     }
 
     @Test
+    @Tag("slow")
     void aBudgetLeavesOutWhatCostsMore() throws Exception {
         List<Roadmap.Step> plain = plain().steps();
         GameState state = GameState.current();

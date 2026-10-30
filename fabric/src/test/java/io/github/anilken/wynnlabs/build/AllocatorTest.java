@@ -10,6 +10,7 @@ import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.model.Slot;
 import net.minecraft.world.item.ItemStack;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** Skill point allocation by Wynncraft's rules: equip order, item bonuses, the 100 cap, the earned total. */
+@Tag("heavy")
 class AllocatorTest {
 
     @AfterEach

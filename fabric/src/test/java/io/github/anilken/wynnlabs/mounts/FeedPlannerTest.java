@@ -7,9 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /** The feed planner against the reference planner's verified outputs, plus its memory/time budget. */
+@Tag("heavy")
 class FeedPlannerTest {
 
     @Test

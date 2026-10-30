@@ -13,6 +13,7 @@ import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.model.Slot;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * give a reason instead of a broken map. Each map is worked out once and read by every test
  * that needs it.
  */
+@Tag("heavy")
 public class RoadmapLocksTest {
 
     /** A Dexterity relik (Dex 25) the recorded character does not wear. */

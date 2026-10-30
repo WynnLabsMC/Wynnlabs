@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.model.AbilityNode;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * plan keeping to the tree's locks, the points and the split, the class profile's weights as the
  * split's blend, and the shaman-44 road map with a hybrid.
  */
+@Tag("heavy")
 class CombinedArchetypeTest {
 
     @AfterEach

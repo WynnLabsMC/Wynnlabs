@@ -11,6 +11,7 @@ import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.SyntheticTree;
 import io.github.anilken.wynnlabs.model.AbilityNode;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -34,6 +35,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * have by a level, applied per road map milestone; the class profile's archetype keys; and the
  * archetype a character leans to.
  */
+@Tag("heavy")
 class TreeModelTest {
 
     private record TreeFile(List<AbilityNode> nodes) {}

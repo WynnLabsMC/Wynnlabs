@@ -1,11 +1,13 @@
 package io.github.anilken.wynnlabs.game;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.util.List;
 
 /** Every item's verdict and note on the recorded fixtures, in English (Turkish with -PwithTurkish). */
+@Tag("heavy")
 class FixtureVerdictTest {
 
     private static void run(String language) throws Exception {

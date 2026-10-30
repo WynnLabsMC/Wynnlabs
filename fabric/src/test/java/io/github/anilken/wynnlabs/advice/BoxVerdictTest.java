@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.model.Slot;
 import io.github.anilken.wynnlabs.model.Tier;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * {@link BoxRoutes} gives for the {@link BoxRoutesTest} boxes, "Tanımla" for the Item Identifier
  * and the Trade Market's reveal, "Sat" for the Blacksmith, and the tooltip's line itself.
  */
+@Tag("heavy")
 class BoxVerdictTest {
 
     private static final ItemView.Box RARE_CHEST = new ItemView.Box(Slot.CHESTPLATE, Tier.RARE, 56, 60);
