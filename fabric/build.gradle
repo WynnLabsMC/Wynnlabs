@@ -158,6 +158,12 @@ test {
     if (rootProject.hasProperty('referenceBuilds')) {
         outputs.upToDateWhen { false }
     }
+    // -PlevelingLevels=10,50,90 / -PlevelingGoals=DAMAGE: narrow the leveling benchmark's run; -PfullBeam=true: the game's wide search
+    ['levelingLevels', 'levelingGoals', 'fullBeam'].each { p ->
+        if (rootProject.hasProperty(p)) {
+            systemProperty "wynnlabs.${p}", rootProject.property(p)
+        }
+    }
     // -PwithTurkish: also run the Turkish test cases (and their .tr fixtures); without it the tests are English only
     systemProperty 'wynnlabs.testTurkish', rootProject.hasProperty('withTurkish')
     // -PdumpQuests: write the shipped quest guides (en.json) from the pages tools/quests/fetch.py kept
