@@ -68,10 +68,14 @@ public final class Roadmap {
      * A piece keeps the number of the milestone that first picked it, so the same piece shows
      * the same number on every tab. {@code set}: the milestone's whole set ({@code build}) at its
      * level, with its skill points; null when it does not fit or there is no build plan.
+     * {@code alternatives}: at the endgame milestones ({@link Alternatives#wanted}), the cards of the
+     * "Build 1 / N" choice: the first is this milestone's own pick, the others whole builds the
+     * search also found that differ from it and from each other ({@link Alternatives}); empty when
+     * no other build qualifies, below the endgame, and in a map saved before them.
      */
     public record Step(int level, List<Gear> gear, List<String> abilities, List<String> places, int skillPoints,
             Map<String, Double> vsWorn, Map<String, List<String>> whyVsWorn, Map<String, Damage.Piece> build,
-            Build.Eval set) {
+            Build.Eval set, List<Alternative> alternatives) {
 
         Step(int level, List<Gear> gear, List<String> abilities, List<String> places, int skillPoints) {
             this(level, gear, abilities, places, skillPoints, Map.of(), Map.of(), Map.of(), null);
@@ -81,6 +85,64 @@ public final class Roadmap {
                 Map<String, Double> vsWorn) {
             this(level, gear, abilities, places, skillPoints, vsWorn, Map.of(), Map.of(), null);
         }
+
+        public Step(int level, List<Gear> gear, List<String> abilities, List<String> places, int skillPoints,
+                Map<String, Double> vsWorn, Map<String, List<String>> whyVsWorn, Map<String, Damage.Piece> build,
+                Build.Eval set) {
+            this(level, gear, abilities, places, skillPoints, vsWorn, whyVsWorn, build, set, List.of());
+        }
+
+        /**
+         * This milestone as if card {@code k} of {@link #alternatives} were its pick: that build's
+         * rows, numbers, reasons, set and skill points, with the same abilities, places and cards
+         * (so the choice stays open). {@code k} 0, or one out of range: this milestone as it is.
+         * Its rows go through the same calls as the pick's ({@link Roadmap#shownGain},
+         * {@link Roadmap#shownWhy}, BuildStats.candidate with {@link #build} and {@link #set}).
+         */
+        public Step as(int k) {
+            if (k <= 0 || alternatives == null || k >= alternatives.size() || alternatives.get(k).step() == null) {
+                return this;
+            }
+            Step a = alternatives.get(k).step();
+            return new Step(level, a.gear(), abilities, places, skillPoints, a.vsWorn(), a.whyVsWorn(), a.build(), a.set(),
+                    alternatives);
+        }
+    }
+
+    /**
+     * One card of a milestone's "Build 1 / N" choice ({@link Step#alternatives}). {@code label}:
+     * the weapon and the build's main element(s), "Halcyon · Water/Air" (with "· No tome needed" on
+     * {@code noTome}); {@code gapPct}: how far its score is below the pick's, the score the search
+     * ranks sets by (0 on the pick; per cent, ≤ 0 as a rule); {@code spellDps}, {@code ehp} (the
+     * elemental effective health) and {@code healPerSecond} (0 unless the goal heals) of its set;
+     * {@code owned} of its {@code pieces} you have (worn, carried, banked), and {@code price} what
+     * the rest costs on the Trade Market by the typical price, as the milestone's bar sums it (0:
+     * nothing to buy; NaN: nothing it lacks has a price), {@code unpriced} pieces to get without
+     * one; {@code tome}: the guild tome its points assume (null: none), {@code needsTome}: it only
+     * fits with it; {@code noTome}: the best build without the guild tome this milestone's pick
+     * needs; {@code step}: its rows and set ({@link Step#as}), null on the first card (the pick).
+     */
+    public record Alternative(String label, String weapon, double gapPct, double spellDps, double ehp, double healPerSecond,
+            int owned, int pieces, double price, int unpriced, io.github.anilken.wynnlabs.build.Tomes.Tome tome,
+            boolean needsTome, boolean noTome, Step step) {}
+
+    /**
+     * {@code steps} with milestone {@code index} shown as its card {@code k} ({@link Step#as}):
+     * what the J menu's rows and the Stats panel read when another build is chosen there. The
+     * other milestones stay as they are; {@code steps} itself is never changed.
+     */
+    public static List<Step> withAlternative(List<Step> steps, int index, int k) {
+        if (index < 0 || index >= steps.size() || k <= 0) {
+            return steps;
+        }
+        Step s = steps.get(index);
+        Step as = s.as(k);
+        if (as == s) {
+            return steps;
+        }
+        List<Step> out = new ArrayList<>(steps);
+        out.set(index, as);
+        return java.util.Collections.unmodifiableList(out);
     }
 
     /**
@@ -464,12 +526,13 @@ public final class Roadmap {
      * What the map's rows and panels are made of, part of its key: raised when a saved map lacks
      * something the menu now shows (2: a set's pick and its options judged in the set; 6: each
      * pick's step gain in the finished set, picks it is as good without gone; 7: event gear, kept
-     * pieces below the window and quest rewards as alternatives), so a map
+     * pieces below the window and quest rewards as alternatives; 12: the endgame milestones' other
+     * whole builds, Step.alternatives), so a map
      * from before is built again once on load; the beam cache's sets stay (BeamCache.modelVersion
      * is the scoring's). A method, not a field: a field added by a hot swap keeps no value.
      */
     public static int mapVersion() {
-        return 11;
+        return 12;
     }
 
     /** The map's last milestone: the last multiple of 10 at or below the level cap (Lv 120). */

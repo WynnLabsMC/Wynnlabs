@@ -244,6 +244,7 @@
   "wynnlabs.road.why_needs_set": "Lv %s setinin geri kalanı gerekir",
   "wynnlabs.road.why_needs_tome": "Guild tome'u gerekir: %s",
   "wynnlabs.road.why_without_tome": "Tome'suz: %s (%s)",
+  "wynnlabs.road.alt_no_tome": "Tome gerekmez",
   "wynnlabs.road.tome_skill": "+%s %s",
   "wynnlabs.road.tome_all": "tüm skill'lere +1",
   "wynnlabs.road.why_needs_set_gain": "Lv %s setinin parçası: tüm setle %s",

@@ -305,6 +305,7 @@ final class MilestonePlanner {
         }
         Perf.end("roadmap.pools", perfPools);
         List<Gear> gear = ms.gear;
+        List<Map<String, Damage.Piece>> others = List.of();     // the other whole sets the search ended on (Alternatives)
         // Slot by slot, an early pick never sees the later ones: whole sets are searched
         // (search), from the beam's and from many other starts, until no swap helps
         if (ms.allocM != null && baseline != null) {
@@ -312,7 +313,7 @@ final class MilestonePlanner {
             long perfSearch = Perf.start();
             java.util.Set<String> buyable = new java.util.HashSet<>();
             ms.setGear.forEach(i -> buyable.add(i.name()));
-            SetSearch.search(new Ctx(ms.startSet, ms.pools, ms.extra, ms.wide, SetSeeds.setPieces(cands, ms.setGear, owned, m, fixed),
+            others = SetSearch.search(new Ctx(ms.startSet, ms.pools, ms.extra, ms.wide, SetSeeds.setPieces(cands, ms.setGear, owned, m, fixed),
                     ownedCount, buyable, wornNow, fixed, m, earned, prevAlloc, ms.freshCopies),
                     baseline, placed, gear);
             Perf.end("roadmap.search", perfSearch);
@@ -377,12 +378,19 @@ final class MilestonePlanner {
         // the spread shown and carried on: the greedy one polished by moving points between
         // skills (once per milestone; the candidates above are ranked with the quick one)
         Build.Eval set = baseline == null ? null : Build.allocateBest(baseline, m, earned);
+        // the endgame's other whole builds, judged against the same milestone before as the pick
+        List<Roadmap.Alternative> alts = List.of();
+        if (set != null && !others.isEmpty() && Alternatives.wanted(m)) {
+            long perfAlts = Perf.start();
+            alts = Alternatives.cards(this, ms, others, set, m, earned, prevAlloc, gear);
+            Perf.end("roadmap.alternatives", perfAlts);
+        }
         if (set != null) {
             prevAlloc = SetJudge.carry(set, baseline, m);
         }
         steps.add(new Step(m, gear, abil, places, m == level ? 0 : sp, rows.gain(), why,
                 baseline == null ? Map.of() : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(baseline)),
-                set));
+                set, alts));
         Perf.end("roadmap.rows", perfRows);
         prev = m;
         if (job == null) {

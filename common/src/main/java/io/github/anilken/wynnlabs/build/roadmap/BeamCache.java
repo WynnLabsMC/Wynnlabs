@@ -15,15 +15,18 @@ import java.util.Map;
 
 /**
  * The road map's beam results per character, on disk (roadmap-cache.json in the character's
- * folder): input key → the set it chose, slot → piece key and name, or none. The beam is the
+ * folder): input key → the set it chose, slot → piece key and name, or none, and from the endgame
+ * on the other whole sets it ended on ({@link Alternatives}, "~n/slot"). The beam is the
  * slow part of a map (about 20 s); with its inputs unchanged a restart needs none of it.
  * At most {@link #MAX} entries, the oldest go first. In tests (no character folder) memory only.
  */
 public final class BeamCache {
 
-    private static final int MAX = 400;
+    private static final int MAX = 600;
     private static final Gson GSON = new Gson();
     private static final String NONE = "-";
+    /** The prefix of an alternative set's slots in an entry: "~0/WEAPON". */
+    private static final String ALT = "~";
 
     private BeamCache() {}
 
@@ -35,7 +38,7 @@ public final class BeamCache {
      * added by a hot swap keeps no value.
      */
     static int modelVersion() {
-        return 32;
+        return 33;
     }
 
     /** The loaded entries and whose they are; access-ordered, so the oldest drop first. */
@@ -130,20 +133,11 @@ public final class BeamCache {
         }
         Map<String, Damage.Piece> out = new LinkedHashMap<>();
         for (var se : e.entrySet()) {
-            String[] kn = se.getValue().split("\n", 2);
-            Damage.Piece p = null;
-            for (Map<String, Damage.Piece> s : sets) {
-                for (Damage.Piece q : s.values()) {         // any slot: a ring may change hands
-                    if (p == null && q != null && q.key().equals(kn[0])) {
-                        p = q;
-                    }
-                }
+            if (se.getKey().startsWith(ALT)) {
+                continue;
             }
-            if (p == null && kn.length == 2) {
-                var info = GameState.current().allGear().filter(i -> i.name().equals(kn[1])).findFirst().orElse(null);
-                p = info == null ? null : Roadmap.pieceOf(info);     // a copy you have, with its rolls
-            }
-            if (p == null || !p.key().equals(kn[0])) {
+            Damage.Piece p = resolve(se.getValue(), sets);
+            if (p == null) {
                 return null;
             }
             out.put(se.getKey(), p);
@@ -151,7 +145,70 @@ public final class BeamCache {
         return out;
     }
 
+    /** The piece kept as "key\nname": from {@code sets}, else the item data; null when gone or rolled otherwise. */
+    private static Damage.Piece resolve(String value, java.util.List<Map<String, Damage.Piece>> sets) {
+        String[] kn = value.split("\n", 2);
+        Damage.Piece p = null;
+        for (Map<String, Damage.Piece> s : sets) {
+            for (Damage.Piece q : s.values()) {         // any slot: a ring may change hands
+                if (p == null && q != null && q.key().equals(kn[0])) {
+                    p = q;
+                }
+            }
+        }
+        if (p == null && kn.length == 2) {
+            var info = GameState.current().allGear().filter(i -> i.name().equals(kn[1])).findFirst().orElse(null);
+            p = info == null ? null : Roadmap.pieceOf(info);     // a copy you have, with its rolls
+        }
+        return p == null || !p.key().equals(kn[0]) ? null : p;
+    }
+
+    /**
+     * The other whole sets kept with the key ({@link Alternatives#pool}), in their order; a set
+     * with a piece that is gone or rolls otherwise now is left out. Empty when none were kept.
+     */
+    static synchronized java.util.List<Map<String, Damage.Piece>> alternatives(String key,
+            java.util.List<Map<String, Damage.Piece>> sets) {
+        Map<String, String> e = entries().get(key);
+        if (e == null) {
+            return java.util.List.of();
+        }
+        Map<Integer, Map<String, Damage.Piece>> byIndex = new java.util.TreeMap<>();
+        java.util.Set<Integer> broken = new java.util.HashSet<>();
+        for (var se : e.entrySet()) {
+            String k = se.getKey();
+            int slash = k.indexOf('/');
+            if (!k.startsWith(ALT) || slash < 0) {
+                continue;
+            }
+            int i;
+            try {
+                i = Integer.parseInt(k.substring(ALT.length(), slash));
+            } catch (NumberFormatException x) {
+                continue;
+            }
+            Damage.Piece p = broken.contains(i) ? null : resolve(se.getValue(), sets);
+            if (p == null) {
+                broken.add(i);
+                continue;
+            }
+            byIndex.computeIfAbsent(i, n -> new LinkedHashMap<>()).put(k.substring(slash + 1), p);
+        }
+        java.util.List<Map<String, Damage.Piece>> out = new java.util.ArrayList<>();
+        byIndex.forEach((i, set) -> {
+            if (!broken.contains(i)) {
+                out.add(set);
+            }
+        });
+        return out;
+    }
+
     static synchronized void put(String key, Map<String, Damage.Piece> set) {
+        put(key, set, java.util.List.of());
+    }
+
+    /** {@link #put(String, Map)} with the other whole sets the search ended on ({@link Alternatives#pool}). */
+    static synchronized void put(String key, Map<String, Damage.Piece> set, java.util.List<Map<String, Damage.Piece>> alts) {
         Map<String, String> e = new LinkedHashMap<>();
         if (set == null) {
             e.put(NONE, "");
@@ -159,6 +216,14 @@ public final class BeamCache {
             set.forEach((slot, p) -> {
                 if (p != null) {
                     e.put(slot, p.key() + "\n" + p.name());
+                }
+            });
+        }
+        for (int i = 0; alts != null && i < alts.size(); i++) {
+            String at = ALT + i + "/";
+            alts.get(i).forEach((slot, p) -> {
+                if (p != null) {
+                    e.put(at + slot, p.key() + "\n" + p.name());
                 }
             });
         }

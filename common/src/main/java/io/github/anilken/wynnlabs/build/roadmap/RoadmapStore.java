@@ -91,6 +91,39 @@ final class RoadmapStore {
         if (s.set() != null) {
             o.add("set", eval(s.set()));
         }
+        if (s.alternatives() != null && !s.alternatives().isEmpty()) {
+            JsonArray alts = new JsonArray();
+            s.alternatives().forEach(a -> alts.add(alternative(a)));
+            o.add("alternatives", alts);
+        }
+        return o;
+    }
+
+    /** One card of a milestone's choice of builds; the first (the pick) has no step of its own. */
+    private static JsonObject alternative(Roadmap.Alternative a) {
+        JsonObject o = new JsonObject();
+        o.addProperty("label", a.label());
+        o.addProperty("weapon", a.weapon());
+        o.addProperty("gapPct", a.gapPct());
+        o.addProperty("spellDps", a.spellDps());
+        o.addProperty("ehp", a.ehp());
+        o.addProperty("healPerSecond", a.healPerSecond());
+        o.addProperty("owned", a.owned());
+        o.addProperty("pieces", a.pieces());
+        o.addProperty("price", Double.isFinite(a.price()) ? a.price() : -1);
+        o.addProperty("unpriced", a.unpriced());
+        if (a.tome() != null) {
+            JsonArray t = new JsonArray();
+            for (int v : a.tome().points()) {
+                t.add(v);
+            }
+            o.add("tome", t);
+        }
+        o.addProperty("needsTome", a.needsTome());
+        o.addProperty("noTome", a.noTome());
+        if (a.step() != null) {
+            o.add("step", step(a.step()));
+        }
         return o;
     }
 
@@ -243,8 +276,43 @@ final class RoadmapStore {
             build.put(e.getKey(), info == null ? null : Damage.piece(info));
         });
         Build.Eval set = o.has("set") ? eval(o.getAsJsonObject("set")) : null;
+        List<Roadmap.Alternative> alts = new ArrayList<>();
+        if (o.has("alternatives") && o.get("alternatives").isJsonArray()) {
+            for (JsonElement e : o.getAsJsonArray("alternatives")) {
+                Roadmap.Alternative a = alternative(e.getAsJsonObject(), byName);
+                if (a != null) {
+                    alts.add(a);
+                }
+            }
+        }
         return new Roadmap.Step(o.get("level").getAsInt(), List.copyOf(gear), strings(o.get("abilities")), strings(o.get("places")),
-                o.get("skillPoints").getAsInt(), vs, why, java.util.Collections.unmodifiableMap(build), set);
+                o.get("skillPoints").getAsInt(), vs, why, java.util.Collections.unmodifiableMap(build), set,
+                alts.size() > 1 ? List.copyOf(alts) : List.of());
+    }
+
+    /** A card read back; null when its set lost a piece the item database no longer has. */
+    private static Roadmap.Alternative alternative(JsonObject o, Map<String, ItemData> byName) {
+        Roadmap.Step st = null;
+        if (o.has("step") && o.get("step").isJsonObject()) {
+            st = step(o.getAsJsonObject("step"), byName);
+            if (st.set() == null || st.build().containsValue(null)) {
+                return null;
+            }
+        }
+        io.github.anilken.wynnlabs.build.Tomes.Tome tome = null;
+        if (o.has("tome") && o.get("tome").isJsonArray()) {
+            JsonArray t = o.getAsJsonArray("tome");
+            int[] pts = new int[t.size()];
+            for (int i = 0; i < pts.length; i++) {
+                pts[i] = t.get(i).getAsInt();
+            }
+            tome = new io.github.anilken.wynnlabs.build.Tomes.Tome(pts, true);
+        }
+        double price = o.get("price").getAsDouble();
+        return new Roadmap.Alternative(str(o.get("label")), str(o.get("weapon")), o.get("gapPct").getAsDouble(),
+                o.get("spellDps").getAsDouble(), o.get("ehp").getAsDouble(), o.get("healPerSecond").getAsDouble(),
+                o.get("owned").getAsInt(), o.get("pieces").getAsInt(), price < 0 ? Double.NaN : price,
+                o.get("unpriced").getAsInt(), tome, o.get("needsTome").getAsBoolean(), o.get("noTome").getAsBoolean(), st);
     }
 
     /** A pick read back; null when the database no longer has the piece. */

@@ -36,12 +36,15 @@ final class SetSearch {
      * changes, when it beats them by more than 0.2 %. Kept on disk by its inputs
      * ({@link BeamCache}): a map that nothing changed for skips all of it.
      */
-    static void search(Ctx c, Map<String, Damage.Piece> build, Map<String, String> placed, List<Gear> gear) {
+    static List<Map<String, Damage.Piece>> search(Ctx c, Map<String, Damage.Piece> build, Map<String, String> placed,
+            List<Gear> gear) {
         Build.Eval s0 = Build.allocate(c.start(), c.m(), c.earned());
         Build.Eval cur = Build.allocate(build, c.m(), c.earned());
         if (s0 == null || cur == null) {
-            return;
+            return List.of();
         }
+        boolean wantAlts = Alternatives.wanted(c.m());
+        List<Map<String, Damage.Piece>> alts = List.of();
         // the same inputs give the same set: kept on disk per character, so a map that
         // nothing changed for comes back in seconds after a restart
         String ck = searchKey(c, build);
@@ -54,6 +57,10 @@ final class SetSearch {
             }
             chosen = BeamCache.get(ck, from);
             hit = chosen != null || BeamCache.isNone(ck);
+            if (hit && wantAlts) {
+                from.add(c.pieces());
+                alts = BeamCache.alternatives(ck, from);
+            }
         }
         Roadmap.TriConsumer tc = Roadmap.trace;
         if (hit) {
@@ -62,27 +69,44 @@ final class SetSearch {
                         chosen == null ? L.t("wynnlabs.road.trace_cache_none") : SetJudge.setKey(chosen)));
             }
         } else {
-            Scored best = searchBest(c, build, cur, s0);
+            List<Scored> ends = wantAlts ? new ArrayList<>() : null;
+            Scored best = searchBest(c, build, cur, s0, ends);
             double from = SetJudge.judged(cur, c.prev(), c.m());
             if (best.j() > from * 1.002 && !SetJudge.setKey(best.set()).equals(SetJudge.setKey(build))) {
                 chosen = best.set();
                 RoadmapTrace.note(c.m(), L.t("wynnlabs.road.trace_search_set",
                         RoadmapTrace.signedPct((best.j() / from - 1) * 100)));
             }
-            BeamCache.put(ck, chosen);
+            if (wantAlts) {
+                alts = Alternatives.pool(ends);
+            }
+            BeamCache.put(ck, chosen, alts);
         }
         if (chosen != null) {
             RoadmapRows.applySet(chosen, c.start(), build, placed, c.pools(), gear, c.m(), c.earned(), c.prev());
         }
+        return alts;
     }
 
     /** The search itself: the best set it finds ({@code build} itself when nothing beats it). */
     static Scored searchBest(Ctx c, Map<String, Damage.Piece> build, Build.Eval cur, Build.Eval s0) {
+        return searchBest(c, build, cur, s0, null);
+    }
+
+    /**
+     * {@link #searchBest} that also hands every whole set it ended on to {@code ends} (null: none):
+     * the beam's, each start's end and the result, in a fixed order. The endgame milestones offer
+     * other full builds from these ({@link Alternatives}), without a search of their own.
+     */
+    static Scored searchBest(Ctx c, Map<String, Damage.Piece> build, Build.Eval cur, Build.Eval s0, List<Scored> ends) {
         int m = c.m();
         double from = SetJudge.judged(cur, c.prev(), m);
         long t = Perf.start();
         List<Scored> beam = BeamSearch.beamBest(c, build, s0);
         Perf.end("roadmap.beam", t);
+        if (ends != null) {
+            ends.addAll(beam);
+        }
         Scored inc = new Scored(new LinkedHashMap<>(build), cur, from);
         if (!beam.isEmpty() && SetJudge.improves(beam.get(0), inc)) {
             inc = beam.get(0);
@@ -94,6 +118,9 @@ final class SetSearch {
         t = Perf.start();
         Map<String, List<Damage.Piece>> main = LocalSearch.slotPools(c);
         Scored first = LocalSearch.localSearch(c, inc.set(), main);
+        if (ends != null && first != null) {
+            ends.add(first);
+        }
         if (first != null && SetJudge.better(first, inc)) {
             RoadmapTrace.note(m, L.t("wynnlabs.road.trace_local_search",
                     RoadmapTrace.signedPct((first.j() / inc.j() - 1) * 100)));
@@ -105,7 +132,7 @@ final class SetSearch {
         java.util.Set<String> seen = new java.util.HashSet<>();
         seen.add(SetJudge.setKey(build));
         seen.add(SetJudge.setKey(inc.set()));
-        inc = runStarts(c, starts(c, inc, beam, build, main, seen), inc, main);
+        inc = runStarts(c, starts(c, inc, beam, build, main, seen), inc, main, ends);
         Perf.end("roadmap.starts", t);
         // whole sets again from where that ended (an armour set, then one of accessories)
         t = Perf.start();
@@ -120,7 +147,7 @@ final class SetSearch {
                 break;
             }
             Scored was = inc;
-            inc = runStarts(c, more, inc, main);
+            inc = runStarts(c, more, inc, main, ends);
             if (was == inc) {
                 break;
             }
@@ -130,6 +157,9 @@ final class SetSearch {
         t = Perf.start();
         inc = LocalSearch.oneOpt(c, inc, main);
         Perf.end("roadmap.local", t);
+        if (ends != null) {
+            ends.add(inc);
+        }
         Roadmap.Searched hook = Roadmap.searched;
         if (hook != null) {
             hook.accept(m, c.earned(), c.prev(), main, inc);
@@ -439,7 +469,8 @@ final class SetSearch {
      * slot by slot in one pass, and the search often lifts it by more than 10 % (a Mythic that
      * wants its own skill, Transfiguration at Lv 120 started 10.2 % behind and was never searched).
      */
-    private static Scored runStarts(Ctx c, List<Start> starts, Scored inc, Map<String, List<Damage.Piece>> main) {
+    private static Scored runStarts(Ctx c, List<Start> starts, Scored inc, Map<String, List<Damage.Piece>> main,
+            List<Scored> collect) {
         if (starts.isEmpty()) {
             return inc;
         }
@@ -487,6 +518,13 @@ final class SetSearch {
             });
         }
         List<Scored> ends = inParallel(work);
+        if (collect != null) {
+            ends.forEach(e -> {
+                if (e != null) {
+                    collect.add(e);
+                }
+            });
+        }
         Scored best = inc;
         for (int i = 0; i < ends.size(); i++) {
             Scored e = ends.get(i);

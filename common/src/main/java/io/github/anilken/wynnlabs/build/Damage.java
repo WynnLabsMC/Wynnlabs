@@ -502,6 +502,21 @@ public final class Damage {
 
     public record Detail(Result result, Breakdown breakdown) {}
 
+    /**
+     * Where a whole set's DPS comes from, by element and by spells, main attack and summons
+     * ({@link Breakdown}), with {@code points} per skill (the tome's included) at {@code level},
+     * the tree in force (TreeModel). The road map names an endgame alternative by it.
+     */
+    public static Breakdown breakdown(Map<String, Piece> set, int[] points, int level) {
+        List<Piece> armour = new java.util.ArrayList<>();
+        set.forEach((slot, p) -> {
+            if (!"WEAPON".equals(slot) && p != null) {
+                armour.add(p);
+            }
+        });
+        return detail(armour, set.get("WEAPON"), points, level).breakdown();
+    }
+
     /** {@link #evaluate} with the breakdown of its DPS. */
     static Detail detail(List<Piece> pieces, Piece weapon, int[] assigned, int level) {
         Breakdown b = new Breakdown();

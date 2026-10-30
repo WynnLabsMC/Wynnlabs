@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Lv 110 and Lv 120 sets were the same damage set (Ascended Lament, Masterwork Lament in this item
  * data), carried at Lv 120 by its +126 % XP that the Healer goal counted in a straight line.
  */
-class HealerRespecTest {
+public class HealerRespecTest {
 
     /** A Lv 107 Arcanist's 36 nodes, as the game lists them. */
     static final List<String> ARCANIST = List.of("Meteor", "Wand Proficiency I", "Cheaper Meteor", "Shooting Star",
@@ -37,6 +37,11 @@ class HealerRespecTest {
     @AfterEach
     void reset() {
         FixtureState.uninstall();
+    }
+
+    /** This test's Lv 107 Light Bender healer installed, for the road map's tests in another package. */
+    public static void installHealer() throws Exception {
+        install();
     }
 
     private static void install() throws Exception {

@@ -141,13 +141,66 @@ final class RoadmapJson {
                 rows.add(r);
             }
             j.add("rows", rows);
+            if (s.alternatives() != null && !s.alternatives().isEmpty()) {
+                j.add("alternatives", alternatives(s));
+            }
             arr.add(j);
         }
         o.add("milestones", arr);
         return o;
     }
 
-    /** The local API's /roadmap/trace: the trace lines a build gave for {@code slot} at {@code level}. */
+    /**
+     * A milestone's choice of builds ({@link Step#alternatives}): the pick first, each with its
+     * label, score gap, numbers, what you have and what the rest costs, its set and skill points.
+     */
+    private static JsonArray alternatives(Step s) {
+        JsonArray out = new JsonArray();
+        for (int k = 0; k < s.alternatives().size(); k++) {
+            Roadmap.Alternative a = s.alternatives().get(k);
+            Step as = s.as(k);
+            JsonObject o = new JsonObject();
+            o.addProperty("index", k);
+            o.addProperty("label", a.label());
+            o.addProperty("gapPct", Math.round(a.gapPct() * 10) / 10.0);
+            o.addProperty("spellDps", Math.round(a.spellDps()));
+            o.addProperty("ehp", Math.round(a.ehp()));
+            if (a.healPerSecond() > 0) {
+                o.addProperty("healPerSecond", Math.round(a.healPerSecond()));
+            }
+            o.addProperty("owned", a.owned());
+            o.addProperty("pieces", a.pieces());
+            o.addProperty("price", Double.isNaN(a.price()) ? null : (double) Math.round(a.price()));
+            if (a.unpriced() > 0) {
+                o.addProperty("unpriced", a.unpriced());
+            }
+            if (a.tome() != null) {
+                o.addProperty("assumedTome", a.tome().text());
+            }
+            o.addProperty("needsTome", a.needsTome());
+            if (a.noTome()) {
+                o.addProperty("noTome", true);
+            }
+            JsonObject set = new JsonObject();
+            as.build().forEach((slot, p) -> set.addProperty(slot, p == null ? null : p.name()));
+            o.add("set", set);
+            if (as.set() != null) {
+                JsonObject pts = new JsonObject();
+                for (SkillKind sk : SkillKind.values()) {
+                    pts.addProperty(sk.name(), as.set().allocation()[sk.ordinal()]);
+                }
+                o.add("skillPoints", pts);
+                o.addProperty("build", Math.round(as.set().result().objective()));
+            }
+            JsonArray rows = new JsonArray();
+            as.gear().forEach(g -> rows.add(g.slot() + " " + g.info().name()));
+            o.add("rows", rows);
+            out.add(o);
+        }
+        return out;
+    }
+
+    /** The local API's /roadmap/trace:the trace lines a build gave for {@code slot} at {@code level}. */
     static JsonObject trace(int level, Slot slot, List<String> lines) {
         JsonObject o = new JsonObject();
         o.addProperty("level", level);

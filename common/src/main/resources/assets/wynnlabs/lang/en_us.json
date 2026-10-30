@@ -244,6 +244,7 @@
   "wynnlabs.road.why_needs_set": "Needs the rest of the Lv %s set",
   "wynnlabs.road.why_needs_tome": "Needs a guild tome: %s",
   "wynnlabs.road.why_without_tome": "No tome: %s (%s)",
+  "wynnlabs.road.alt_no_tome": "No tome needed",
   "wynnlabs.road.tome_skill": "+%s %s",
   "wynnlabs.road.tome_all": "+1 all skills",
   "wynnlabs.road.why_needs_set_gain": "Part of the Lv %s set: %s with the whole set",
