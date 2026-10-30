@@ -18,7 +18,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * The comparison panel's options on the recorded Shaman: the pick first, the rest best gain
  * first; at least {@link PanelOptions#count} shown where there are, with two the Trade Market
  * sells among them when there are; the Trade Market filter shows only those. And where an
- * item comes from, in words for people.
+ * item comes from, in words for people. The panels are read on the shared plain map
+ * ({@link SharedRoadmaps}).
  */
 class PanelOptionsTest {
 
@@ -35,8 +36,7 @@ class PanelOptionsTest {
 
     @Test
     void optionsAreSortedAndKeepTheMarket() throws Exception {
-        FixtureState.load(shaman()).install("en");
-        List<Roadmap.Step> steps = Roadmap.build();
+        List<Roadmap.Step> steps = SharedRoadmaps.shaman();
         int panels = 0;
         for (Roadmap.Step s : steps) {
             for (Roadmap.Gear g : s.gear()) {
@@ -71,10 +71,9 @@ class PanelOptionsTest {
      */
     @Test
     void everyPickHasItsPanel() throws Exception {
-        FixtureState.load(shaman()).install("en");
         List<String> without = new java.util.ArrayList<>();
         int rows = 0;
-        for (Roadmap.Step s : Roadmap.build()) {
+        for (Roadmap.Step s : SharedRoadmaps.shaman()) {
             for (Roadmap.Gear g : s.gear()) {
                 if (Roadmap.isPowder(g) || Roadmap.fromBag(g)) {
                     continue;
@@ -92,9 +91,8 @@ class PanelOptionsTest {
     /** A set's pick shows its row's gain in the panel, never a 0 % against a set it cannot be worn in alone. */
     @Test
     void aSetPickShowsItsRowsGain() throws Exception {
-        FixtureState.load(shaman()).install("en");
         int sets = 0;
-        for (Roadmap.Step s : Roadmap.build()) {
+        for (Roadmap.Step s : SharedRoadmaps.shaman()) {
             for (Roadmap.Gear g : s.gear()) {
                 if (g.options() == null || g.options().isEmpty() || !g.options().get(0).set()) {
                     continue;

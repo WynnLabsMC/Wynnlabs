@@ -32,7 +32,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * "Build around the items I choose" on the recorded Shaman (Lv 44, an Intelligence and Agility
  * relik worn): a chosen piece stays in its slot on every milestone, the rest of the set moves
  * to suit it, nothing chosen gives the map as before, and pieces that cannot be worn together
- * give a reason instead of a broken map.
+ * give a reason instead of a broken map. Each map is worked out once and read by every test
+ * that needs it.
  */
 public class RoadmapLocksTest {
 
@@ -54,9 +55,24 @@ public class RoadmapLocksTest {
         return dir;
     }
 
-    /** The whole road map around {@code names}, nothing else tuned. */
-    static Roadmap.Computed around(List<String> names) {
-        return Roadmap.compute(new Roadmap.Inputs(names, Tuning.Choice.PLAIN, false, 0), null);
+    /** The maps around the chosen items, by the items: two tests read the one around the Dexterity relik. */
+    private static final java.util.Map<List<String>, Roadmap.Computed> AROUND = new java.util.HashMap<>();
+
+    /**
+     * The whole road map of the recorded Shaman (installed as the tests here do) around
+     * {@code names}, nothing else tuned; worked out once per list, nothing chosen as the shared
+     * plain map ({@link SharedRoadmaps#shamanComputed}).
+     */
+    static synchronized Roadmap.Computed around(List<String> names) throws Exception {
+        if (names.isEmpty()) {
+            return SharedRoadmaps.shamanComputed();
+        }
+        Roadmap.Computed c = AROUND.get(names);
+        if (c == null) {
+            c = Roadmap.compute(new Roadmap.Inputs(names, Tuning.Choice.PLAIN, false, 0), null);
+            AROUND.put(List.copyOf(names), c);
+        }
+        return c;
     }
 
     /** Every milestone's set as "level slot=name", in order. */
@@ -139,14 +155,14 @@ public class RoadmapLocksTest {
 
     @Test
     void nothingChosenGivesTodaysMap() throws Exception {
+        // the J menu's map (Roadmap.build, as Roadmap.json serves it) and the engine's, each built once
         Path dir = shaman();
-        FixtureState.load(dir).install("en");
-        List<String> diff = Expected.check(dir, "roadmap.en.json", Roadmap.json(), Expected::json);
+        List<String> diff = Expected.check(dir, "roadmap.en.json", SharedRoadmaps.shamanJson(), Expected::json);
         assertTrue(diff.isEmpty(), String.join("\n", diff));
         Roadmap.Computed c = around(List.of());
         assertTrue(c.around().isEmpty());
         assertNull(c.problem());
-        assertEquals(picks(Roadmap.build()), picks(c.steps()), "the engine with nothing chosen is the J menu's map");
+        assertEquals(picks(SharedRoadmaps.shaman()), picks(c.steps()), "the engine with nothing chosen is the J menu's map");
     }
 
     @Test

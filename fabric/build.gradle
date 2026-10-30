@@ -125,6 +125,10 @@ test {
     maxParallelForks = 8
     // test results are never reused from the build cache: some tests read files Gradle doesn't track
     outputs.cacheIf { false }
+    // each test JVM's own helpers sized to its share of the cores: by default every one runs a
+    // garbage collector and a compiler thread pool sized for the whole machine, and side by side
+    // they crowd out the tests (the road map tests took a fifth more CPU time)
+    jvmArgs '-XX:ParallelGCThreads=3', '-XX:ConcGCThreads=1', '-XX:CICompilerCount=3'
     // -PquickTests (CI): leaves out the test classes that take more than a few seconds (upgrade
     // search, fixtures, the build thread, saving); a local gradle build still runs them all
     if (rootProject.hasProperty('quickTests')) {
@@ -132,7 +136,7 @@ test {
             ['RoadmapGainTest', 'RoleGoalTest', 'BeamCacheTest', 'FixturePlanTest', 'RoadmapEveryLevelTest',
              'BuildOffThreadTest', 'AllocatorTest', 'FreshCharacterTest', 'FixtureJsonTest',
              'FixtureVerdictTest', 'CraftingStockTest', 'SaverTest', 'RoadmapMilestonesTest',
-             'RoadmapSearchTest']
+             'RoadmapSearchTest', 'RoleGoalWarriorTest', 'PlayStyleGoalTest', 'LootXpGoalTest']
                     .each { excludeTestsMatching "*.${it}" }
         }
     }

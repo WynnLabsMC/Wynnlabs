@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.build;
 
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.build.roadmap.RoadmapLocksTest;
+import io.github.anilken.wynnlabs.build.roadmap.SharedRoadmaps;
 import io.github.anilken.wynnlabs.game.Expected;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
@@ -33,13 +34,19 @@ class TuningTest {
         return Roadmap.compute(new Roadmap.Inputs(List.of(), t, false, 0), null);
     }
 
+    /** {@code run(Tuning.Choice.PLAIN)} on the recorded Shaman, which it installs: worked out once (SharedRoadmaps). */
+    private static Roadmap.Computed plain() throws Exception {
+        return SharedRoadmaps.shamanComputed();
+    }
+
     @Test
     void balancedWithNoBudgetIsTodaysMap() throws Exception {
+        // the J menu's map (Roadmap.build, as Roadmap.json serves it) against the engine's with
+        // Balanced and no budget, each built once (SharedRoadmaps)
         java.nio.file.Path dir = RoadmapLocksTest.shaman();
-        FixtureState.load(dir).install("en");
-        List<String> diff = Expected.check(dir, "roadmap.en.json", Roadmap.json(), Expected::json);
+        List<String> diff = Expected.check(dir, "roadmap.en.json", SharedRoadmaps.shamanJson(), Expected::json);
         assertTrue(diff.isEmpty(), String.join("\n", diff));
-        assertEquals(RoadmapLocksTest.sets(Roadmap.build()), RoadmapLocksTest.sets(run(Tuning.Choice.PLAIN).steps()));
+        assertEquals(RoadmapLocksTest.sets(SharedRoadmaps.shaman()), RoadmapLocksTest.sets(plain().steps()));
         assertTrue(Tuning.Choice.PLAIN.plain() && Tuning.Choice.PLAIN.key().isEmpty());
         // outside a tuned run every weight is as the rules say
         assertEquals(1.0, Tuning.weight("survivalWeight"));
@@ -77,13 +84,13 @@ class TuningTest {
 
     @Test
     void aBudgetLeavesOutWhatCostsMore() throws Exception {
-        FixtureState.load(RoadmapLocksTest.shaman()).install("en");
+        List<Roadmap.Step> plain = plain().steps();
         GameState state = GameState.current();
         // the dearest priced pick of the plain map; a powder row is the weapon you have, and only
         // its powders are bought (its piece costs nothing under a budget)
         String dear = null;
         double price = 0;
-        for (Roadmap.Step s : run(Tuning.Choice.PLAIN).steps()) {
+        for (Roadmap.Step s : plain) {
             for (Roadmap.Gear g : s.gear()) {
                 if (g.slot().startsWith("POWDER:")) {
                     continue;

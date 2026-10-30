@@ -14,7 +14,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -24,12 +23,12 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * The road map on the recorded Shaman: a milestone's "worn → pick" gain (Step.vsWorn) and its
  * reasons against the step gain each pick carries (Gear.gain); later milestones filter tiers,
  * sources and off-skill points by their own level; today's listings do not move far milestones.
+ * The tests that only read the plain map share one build of it ({@link SharedRoadmaps}).
  */
 class RoadmapGainTest {
 
@@ -39,17 +38,12 @@ class RoadmapGainTest {
     }
 
     private static Path shaman() {
-        Path dir = Fixtures.root().resolve("shaman-44");
-        assumeTrue(Files.exists(dir.resolve("state.json")), "no shaman-44 fixture");
-        return dir;
+        return SharedRoadmaps.shamanDir();
     }
 
     @Test
     void wornToPickGainIsCumulative() throws Exception {
-        FixtureState.load(shaman()).install("en");
-        long t0 = System.nanoTime();
-        List<Roadmap.Step> steps = Roadmap.build();
-        Fixtures.note("road map built in " + (System.nanoTime() - t0) / 1_000_000 + " ms");
+        List<Roadmap.Step> steps = SharedRoadmaps.shaman();
         assertFalse(steps.isEmpty(), "steps");
         // the screen's upgrades(): the latest pick per slot up to the milestone
         Map<String, Roadmap.Gear> latest = new LinkedHashMap<>();
@@ -97,20 +91,24 @@ class RoadmapGainTest {
 
     @Test
     void sameInputsSamePicks() throws Exception {
-        FixtureState.load(shaman()).install("en");
-        List<String> first = picks(Roadmap.build(), 0);
-        assertEquals(first, picks(Roadmap.build(), 0));
-        assertEquals(Roadmap.json().toString(), Roadmap.json().toString());
+        // the shared map (built earlier in this JVM, or now) against one built anew here: the
+        // picks and the whole JSON the local API serves (RoadmapJson.steps, as Roadmap.json)
+        List<Roadmap.Step> first = SharedRoadmaps.shaman();
+        long t0 = System.nanoTime();
+        List<Roadmap.Step> again = Roadmap.build();
+        Fixtures.note("road map built in " + (System.nanoTime() - t0) / 1_000_000 + " ms");
+        assertEquals(picks(first, 0), picks(again, 0));
+        assertEquals(RoadmapJson.steps(first).toString(), RoadmapJson.steps(again).toString());
     }
 
     @Test
     void listingsOnlyMoveTheNearMilestones(@TempDir Path tmp) throws Exception {
         Path dir = shaman();
         FixtureState fx = FixtureState.load(dir);
-        fx.install("en");
+        List<Roadmap.Step> plain = SharedRoadmaps.shaman();
         int level = GameState.current().level();
         int ahead = (int) Rules.sub("shopping", "aheadLevels", 5);
-        List<String> before = picks(Roadmap.build(), level + ahead + 1);
+        List<String> before = picks(plain, level + ahead + 1);
         long now = GameState.current().now();
         FixtureState.uninstall();
         // every piece above Lv 60 "has no listing right now"
@@ -167,12 +165,13 @@ class RoadmapGainTest {
         // a pick shows what it gains against what you wear, alone or with its milestone's other
         // picks (the larger); a pick can beat an earlier one only together with its milestone
         // (Hardcore after Stormdrain), so the number may drop between milestones, never below 0
+        List<Roadmap.Step> steps;
         try {
-            FixtureState.load(shaman()).install("en");
+            steps = SharedRoadmaps.shaman();
         } catch (Exception e) {
             throw new AssertionError(e);
         }
-        for (Roadmap.Step s : Roadmap.build()) {
+        for (Roadmap.Step s : steps) {
             for (Roadmap.Gear g : s.gear()) {
                 Double v = s.vsWorn().get(g.slot());
                 if (v != null) {
@@ -189,9 +188,8 @@ class RoadmapGainTest {
     @Test
     void noMilestoneWearsTwoPiecesOfAnExclusiveGroup() throws Exception {
         // WynnBuilder refused the Lv 120 build: Ornate Shadow Cowl with Ornate Shadow Cover
-        FixtureState.load(shaman()).install("en");
         Map<String, Roadmap.Gear> latest = new LinkedHashMap<>();
-        for (Roadmap.Step s : Roadmap.build()) {
+        for (Roadmap.Step s : SharedRoadmaps.shaman()) {
             for (Roadmap.Gear g : s.gear()) {
                 latest.put(g.slot(), g);
             }
@@ -209,8 +207,7 @@ class RoadmapGainTest {
     @Test
     void theNowTabNeverOffersWhatYouWear() throws Exception {
         // "Yume → Yume": the beam kept the worn helmet over the slot pick and showed it as a pick
-        FixtureState.load(Fixtures.root().resolve("shaman-44")).install("en");
-        List<Roadmap.Step> steps = Roadmap.build();
+        List<Roadmap.Step> steps = SharedRoadmaps.shaman();
         for (Roadmap.Gear g : steps.get(0).gear()) {
             if (g.slot().startsWith("RING") || Roadmap.isPowder(g)) {
                 continue;                           // a second copy of a worn ring is a real buy; a powder row powders what you wear

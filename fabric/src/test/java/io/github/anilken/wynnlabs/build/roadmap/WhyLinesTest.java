@@ -44,8 +44,8 @@ class WhyLinesTest {
 
     @Test
     void shamanRowsTellOneNumber() throws Exception {
-        FixtureState.load(shaman()).install("en");
-        check(Roadmap.build());
+        // the shared plain map (SharedRoadmaps): other classes in this JVM read it too
+        check(SharedRoadmaps.shaman());
     }
 
     @Test

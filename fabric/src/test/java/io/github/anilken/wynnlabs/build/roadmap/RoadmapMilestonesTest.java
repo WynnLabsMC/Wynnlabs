@@ -13,7 +13,6 @@ import io.github.anilken.wynnlabs.model.ItemData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -27,8 +26,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 /**
  * The milestones of the road map as a chain: each one builds on the one before (the respec
  * charge, the keep bonus) yet must not fall behind the same milestone searched on its own; a
- * row's step is what its pick adds to the finished set; and the pills read sensibly for a
- * character that just started, whose Lv 1 gear once made a Lv 120 relik "+64092 %".
+ * row's step is what its pick adds to the finished set; and the pills show the whole number.
+ * The chained map is the shared plain one ({@link SharedRoadmaps}); a new character's pills are
+ * checked on FreshCharacterTest's map.
  */
 class RoadmapMilestonesTest {
 
@@ -38,9 +38,7 @@ class RoadmapMilestonesTest {
     }
 
     private static Path shaman() {
-        Path dir = Fixtures.root().resolve("shaman-44");
-        assumeTrue(Files.exists(dir.resolve("state.json")), "no shaman-44 fixture");
-        return dir;
+        return SharedRoadmaps.shamanDir();
     }
 
     private static int earned(int level) {
@@ -58,8 +56,7 @@ class RoadmapMilestonesTest {
         if (pairs != null) {
             return pairs;
         }
-        FixtureState.load(shaman()).install("en");
-        List<Roadmap.Step> steps = Roadmap.build();
+        List<Roadmap.Step> steps = SharedRoadmaps.shaman();
         int[] prev = Roadmap.assignedPoints(GameState.current());
         FixtureState.uninstall();
         assumeTrue(!steps.isEmpty(), "no road map");
@@ -156,8 +153,7 @@ class RoadmapMilestonesTest {
 
     @Test
     void aStepIsWhatThePickAddsToTheFinishedSet() throws Exception {
-        FixtureState.load(shaman()).install("en");
-        List<Roadmap.Step> steps = Roadmap.build();
+        List<Roadmap.Step> steps = SharedRoadmaps.shaman();
         assumeTrue(!steps.isEmpty() && !steps.get(0).build().isEmpty(), "no road map with a build plan");
         int[] prev = Roadmap.assignedPoints(GameState.current());
         // the first milestone starts from what you have, its empty powder slots filled
@@ -226,37 +222,6 @@ class RoadmapMilestonesTest {
             start = new LinkedHashMap<>(set);
         }
         assertTrue(checked > 10, "only " + checked + " rows checked");
-    }
-
-    @Test
-    void aNewCharactersPillsReadSensibly() throws Exception {
-        FixtureState.load(shaman()).fresh().install("en");
-        List<Roadmap.Step> steps = Roadmap.build();
-        assumeTrue(!steps.isEmpty(), "no road map");
-        List<String> bad = new ArrayList<>();
-        Map<String, Roadmap.Gear> latest = new LinkedHashMap<>();
-        for (int i = 0; i < steps.size(); i++) {
-            Roadmap.Step s = steps.get(i);
-            for (Roadmap.Gear g : s.gear()) {
-                latest.put(g.slot(), g);
-            }
-            Roadmap.keepWorn(latest, s);
-            for (Roadmap.Gear g : latest.values()) {
-                double shown = Roadmap.shownGain(steps, i, g);
-                String pill = Roadmap.pill(shown, g);
-                Fixtures.note("Lv " + s.level() + " " + g.slot() + " " + g.info().name() + ": " + pill);
-                // nothing is worn: a row reads against what you have (nothing), the whole per cent, from 100000 % in thousands
-                if (!pill.equals("New") && !pill.equals("Set") && !pill.matches("[+−]\\d{1,5}k?%")) {
-                    bad.add("Lv " + s.level() + " " + g.slot() + " " + g.info().name() + ": " + pill);
-                }
-            }
-        }
-        assertTrue(bad.isEmpty(), String.join("\n", bad));
-        // the first weapon of an empty build has nothing to compare with
-        Roadmap.Gear weapon = steps.get(0).gear().stream()
-                .filter(g -> g.info().slot().isWeapon()).findFirst().orElse(null);
-        assertTrue(weapon != null, "a weapon at the start");
-        assertEquals("New", Roadmap.pill(Roadmap.shownGain(steps, 0, weapon), weapon));
     }
 
     @Test

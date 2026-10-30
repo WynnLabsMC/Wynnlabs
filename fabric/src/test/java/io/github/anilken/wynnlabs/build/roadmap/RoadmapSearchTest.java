@@ -63,13 +63,34 @@ class RoadmapSearchTest {
 
     private record Seen(int m, int earned, int[] prev, Map<String, List<Damage.Piece>> pools, Roadmap.Scored result) {}
 
+    /** The map searched from scratch on four threads: its sets ({@link #sets}) and every milestone's search seen. */
+    private record FourThreads(String sets, List<Seen> seen) {}
+
+    private static FourThreads four;
+
+    /**
+     * The recorded Shaman's map built from scratch on four search threads, every milestone's
+     * search seen; built once for both tests (the threads change nothing, as the second test
+     * checks). Leaves the Shaman installed.
+     */
+    private static FourThreads fourThreads() throws Exception {
+        if (four == null) {
+            shaman();
+            List<Seen> seen = new ArrayList<>();
+            Roadmap.searched = (m, earned, prev, pools, result) -> seen.add(new Seen(m, earned, prev, pools, result));
+            try {
+                four = new FourThreads(withThreads(4), List.copyOf(seen));
+            } finally {
+                Roadmap.searched = null;
+            }
+        }
+        shaman();
+        return four;
+    }
+
     @Test
     void theSetItEndsOnHasNoSingleSwapLeft() throws Exception {
-        shaman();
-        List<Seen> seen = new ArrayList<>();
-        Roadmap.searched = (m, earned, prev, pools, result) -> seen.add(new Seen(m, earned, prev, pools, result));
-        Roadmap.build();
-        Roadmap.searched = null;
+        List<Seen> seen = fourThreads().seen();
         assertFalse(seen.isEmpty(), "no milestone was searched");
         List<String> bad = new ArrayList<>();
         int tried = 0;
@@ -121,10 +142,9 @@ class RoadmapSearchTest {
 
     @Test
     void theSameInputsGiveTheSamePicksOnAnyThreads() throws Exception {
-        shaman();
+        String four = fourThreads().sets();
         String one = withThreads(1);
         String again = withThreads(1);
-        String four = withThreads(4);
         assertEquals(one, again, "twice on one thread");
         assertEquals(one, four, "one thread against four");
     }
