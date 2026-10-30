@@ -90,10 +90,15 @@ final class BoxRoutes {
     /**
      * The way to go: the Item Identifier when you would wear an outcome; the Blacksmith when
      * nothing in it trades; else the Trade Market when revealing and listing leaves at least
-     * {@code minProfit} emeralds over the fee, the Blacksmith otherwise. Without any price,
+     * {@code minProfit} emeralds over the fee and its expected price reaches {@code minPrice} (the
+     * player's "sell on the Trade Market from"), the Blacksmith otherwise. Without any price,
      * {@code valuable} (a tier that sells well) picks the Trade Market, else the Blacksmith.
      */
     static Choice choose(List<Outcome> outcomes, double taxPercent, double minProfit, boolean valuable) {
+        return choose(outcomes, taxPercent, minProfit, 0, valuable);
+    }
+
+    static Choice choose(List<Outcome> outcomes, double taxPercent, double minProfit, double minPrice, boolean valuable) {
         Value v = value(outcomes, taxPercent);
         String wear = null;
         boolean anyTradable = outcomes.isEmpty();
@@ -112,7 +117,7 @@ final class BoxRoutes {
         if (v.net() == null) {
             return new Choice(valuable ? Route.REVEAL_MARKET : Route.BLACKSMITH, v, null);
         }
-        return new Choice(v.net() >= minProfit ? Route.REVEAL_MARKET : Route.BLACKSMITH, v, null);
+        return new Choice(v.net() >= minProfit && v.expected() >= minPrice ? Route.REVEAL_MARKET : Route.BLACKSMITH, v, null);
     }
 
     /** "76 E", or "76-79 E" when the fee depends on which level the item inside is. */

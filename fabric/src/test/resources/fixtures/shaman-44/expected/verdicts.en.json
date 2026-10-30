@@ -1641,7 +1641,7 @@
     "where": "bank char:char0003:Character Bank p. 3#2",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~41-43 E), then list it · Expected ~13 EB. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it brings ~13 EB on the Trade Market, under your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#3",
@@ -1653,7 +1653,7 @@
     "where": "bank char:char0003:Character Bank p. 3#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~31-33 E), then list it · Expected ~16 EB. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it brings ~16 EB on the Trade Market, under your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#5",
@@ -1665,7 +1665,7 @@
     "where": "bank char:char0003:Character Bank p. 3#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~34-36 E), then list it · Expected ~29 EB (2/6 have a price). Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it brings ~29 EB on the Trade Market, under your 30 EB minimum (2/6 have a price). Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#7",
@@ -1683,7 +1683,7 @@
     "where": "bank char:char0003:Character Bank p. 3#10",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~31-33 E), then list it · Expected ~16 EB. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it brings ~16 EB on the Trade Market, under your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#27",
@@ -1863,7 +1863,7 @@
     "where": "bank char:char0003:Character Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~31-33 E), then list it · Expected ~16 EB. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it brings ~16 EB on the Trade Market, under your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#1",

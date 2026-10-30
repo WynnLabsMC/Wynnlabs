@@ -123,7 +123,12 @@ final class SellAdvice {
         // Blacksmith takes it (The Scarecrow's Vest from Bovine Barn)
         String tier = box.tier().name();
         boolean valuable = Rules.list("trade", "valuableTiers").contains(tier) || tier.equals("LEGENDARY");
-        return BoxRoutes.choose(BoxAdvice.outcomes(box, null), marketFee(), revealMinProfit(), valuable);
+        return BoxRoutes.choose(BoxAdvice.outcomes(box, null), marketFee(), revealMinProfit(), minMarketPrice(), valuable);
+    }
+
+    /** The least a sale must fetch to go to the Trade Market (rules.trade.minTradeMarketPrice). */
+    static double minMarketPrice() {
+        return Rules.sub("trade", "minTradeMarketPrice", 1920);
     }
 
     /** The market fee the advice takes off a sale, in % (rules.trade.marketFeePercent). */

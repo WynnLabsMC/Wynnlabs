@@ -208,6 +208,7 @@
   "wynnlabs.auto.box_reveal_no_price": "Reveal it at the Trade Market (~%s), then list it · No prices yet",
   "wynnlabs.auto.box_blacksmith_fee": "Sell it to the Blacksmith: expected ~%s doesn't cover the reveal fee (~%s)",
   "wynnlabs.auto.box_blacksmith_small": "Sell it to the Blacksmith: the Trade Market nets ~%s, under your %s minimum",
+  "wynnlabs.auto.box_blacksmith_cheap": "Sell it to the Blacksmith: it brings ~%s on the Trade Market, under your %s minimum",
   "wynnlabs.auto.box_blacksmith_no_price": "Sell it to the Blacksmith: no outcome has a price yet",
   "wynnlabs.auto.box_unpriced_one": "(%s: no price)",
   "wynnlabs.auto.box_unpriced_some": "(%s/%s have a price)",

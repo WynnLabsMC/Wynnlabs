@@ -208,6 +208,7 @@
   "wynnlabs.auto.box_reveal_no_price": "Önce Trade Market'te aç (~%s), sonra listele · Fiyat yok",
   "wynnlabs.auto.box_blacksmith_fee": "Blacksmith'e sat: beklenen ~%s, açma ücretini (~%s) karşılamaz",
   "wynnlabs.auto.box_blacksmith_small": "Blacksmith'e sat: Trade Market'te ~%s kalır, alt sınırın (%s) altında",
+  "wynnlabs.auto.box_blacksmith_cheap": "Blacksmith'e sat: Trade Market'te ~%s eder, alt sınırın (%s) altında",
   "wynnlabs.auto.box_blacksmith_no_price": "Blacksmith'e sat: hiçbir drop'un fiyatı yok",
   "wynnlabs.auto.box_unpriced_one": "(%s: fiyat yok)",
   "wynnlabs.auto.box_unpriced_some": "(%s/%s drop'un fiyatı var)",

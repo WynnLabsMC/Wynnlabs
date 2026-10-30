@@ -61,7 +61,10 @@ final class BoxAdvice {
                     ? L.t("wynnlabs.auto.box_blacksmith_no_price") + tail
                     : v.net() < 0
                     ? L.t("wynnlabs.auto.box_blacksmith_fee", Prices.fmt(v.expected()), cost) + unpriced(v) + tail
-                    : L.t("wynnlabs.auto.box_blacksmith_small", Prices.fmt(v.net()), Prices.fmt(SellAdvice.revealMinProfit()))
+                    : v.net() < SellAdvice.revealMinProfit()
+                    ? L.t("wynnlabs.auto.box_blacksmith_small", Prices.fmt(v.net()), Prices.fmt(SellAdvice.revealMinProfit()))
+                            + unpriced(v) + tail
+                    : L.t("wynnlabs.auto.box_blacksmith_cheap", Prices.fmt(v.expected()), Prices.fmt(SellAdvice.minMarketPrice()))
                             + unpriced(v) + tail);
         };
     }
@@ -193,7 +196,8 @@ final class BoxAdvice {
         }
         String tier = box.tier().name();
         boolean valuable = Rules.list("trade", "valuableTiers").contains(tier) || tier.equals("LEGENDARY");
-        BoxRoutes.Choice c = BoxRoutes.choose(outcomes(box, wear), SellAdvice.marketFee(), SellAdvice.revealMinProfit(), valuable);
+        BoxRoutes.Choice c = BoxRoutes.choose(outcomes(box, wear), SellAdvice.marketFee(), SellAdvice.revealMinProfit(),
+                SellAdvice.minMarketPrice(), valuable);
         return new Decision(boxRoute(box, c, null, fits, all), c);
     }
 }

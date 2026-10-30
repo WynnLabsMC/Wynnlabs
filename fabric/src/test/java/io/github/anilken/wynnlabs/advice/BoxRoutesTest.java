@@ -83,6 +83,15 @@ class BoxRoutesTest {
     }
 
     @Test
+    void aBoxUnderTheTradeMarketMinimumGoesToTheBlacksmith() {
+        // a Lv. 51-55 bracelet worth ~16 EB revealed, with "sell on the Trade Market from" at 2 LE
+        List<BoxRoutes.Outcome> outs = List.of(o("Devilish", 71, 11.0 * 64), o("Bovine Cuff", 74, 17.0 * 64),
+                o("Czytash's Compass", 74, 19.0 * 64));
+        assertEquals(BoxRoutes.Route.REVEAL_MARKET, BoxRoutes.choose(outs, FEE, MIN_PROFIT, false).route());
+        assertEquals(BoxRoutes.Route.BLACKSMITH, BoxRoutes.choose(outs, FEE, MIN_PROFIT, 2 * 4096, false).route());
+    }
+
+    @Test
     void aWearableOutcomeGoesToTheItemIdentifier() {
         List<BoxRoutes.Outcome> outs = new java.util.ArrayList<>(rareChest());
         outs.set(3, new BoxRoutes.Outcome("Masochist", 77, 46.0 * 64, true, true));
