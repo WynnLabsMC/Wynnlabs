@@ -90,7 +90,7 @@ final class ReferenceBuilds {
      * The shaman-44 fixture played as {@code k} at {@code level}, no node read as unlocked (the
      * plan from the first node), {@code archetype} chosen the way the player chooses it ("" for
      * none) and the Damage goal. Choosing goes through TreePlanner.choose: Rules.update alone
-     * left the fixture's Summoner in place.
+     * left the fixture's Summoner in place; with no archetype the class profile is applied too.
      */
     static void install(Klass k, int level, String archetype) throws IOException {
         FixtureState s = AS.get(k);
@@ -100,6 +100,10 @@ final class ReferenceBuilds {
         }
         s.atLevel(level).install("en");
         TreePlanner.choose(archetype);
+        if (archetype.isEmpty()) {
+            // choose("") leaves the class profile alone, so the fixture's Shaman spells stayed for other classes
+            ClassProfiles.apply("", false);
+        }
         Setup.setGoal("DAMAGE");
     }
 
