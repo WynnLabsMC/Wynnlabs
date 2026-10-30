@@ -69,13 +69,13 @@
     "where": "bag 15",
     "name": "Unidentified Chestplate",
     "verdict": "SELL",
-    "note": "Hiçbir drop build'ine yaramıyor (en iyisi: Sundown Poncho %-4.0). Blacksmith'e sat (takas edilemez)"
+    "note": "İçinden çıkan hiçbir şey build'ine yaramıyor (en iyisi: Sundown Poncho %-4.0). Blacksmith'e sat (takas edilemez)"
   },
   {
     "where": "bag 16",
     "name": "Pink Wool",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bag 17",
@@ -123,25 +123,25 @@
     "where": "bank acct:Account Bank p. 1#0",
     "name": "Earth Powder I",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#1",
     "name": "Earth Powder II",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#2",
     "name": "Earth Powder III",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#3",
     "name": "Earth Powder IV",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Earth hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Earth hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#4",
@@ -153,25 +153,25 @@
     "where": "bank acct:Account Bank p. 1#5",
     "name": "Air Powder I",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#6",
     "name": "Air Powder II",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#7",
     "name": "Air Powder III",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#8",
     "name": "Air Powder IV",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#9",
@@ -261,7 +261,7 @@
     "where": "bank acct:Account Bank p. 1#23",
     "name": "Air Powder V",
     "verdict": "USE",
-    "note": "Silahına tak (üstüne sürükle), build'in Air hasar vurur"
+    "note": "Silahının üstüne sürükle: build'in Air hasar vurur"
   },
   {
     "where": "bank acct:Account Bank p. 1#24",
@@ -273,7 +273,7 @@
     "where": "bank acct:Account Bank p. 1#26",
     "name": "Unidentified Bracelet",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te aç (~640-656 E), sonra listele · Fiyat yok. Hiçbir drop build'ine yaramıyor (en iyisi: Provenance %+0.5)"
+    "note": "Önce Trade Market'te aç (~640-656 E), sonra listele · Fiyat yok. İçinden çıkan hiçbir şey build'ine yaramıyor (en iyisi: Provenance %+0.5)"
   },
   {
     "where": "bank acct:Account Bank p. 1#27",
@@ -309,7 +309,7 @@
     "where": "bank acct:Account Bank p. 1#33",
     "name": "Scrap Chausses",
     "verdict": "KEEP",
-    "note": "Lv. 111'te giyebilirsin"
+    "note": "Lv 111 olunca giyebilirsin"
   },
   {
     "where": "bank acct:Account Bank p. 1#34",
@@ -357,7 +357,7 @@
     "where": "bank acct:Account Bank p. 1#41",
     "name": "Charm of the Tempest",
     "verdict": "KEEP",
-    "note": "Lv. 88'te giyebilirsin"
+    "note": "Lv 88 olunca giyebilirsin"
   },
   {
     "where": "bank acct:Account Bank p. 1#42",
@@ -423,25 +423,25 @@
     "where": "bank acct:Account Bank p. 2#38",
     "name": "Champion Helmet",
     "verdict": "KEEP",
-    "note": "Lv. 75'e yaklaşınca tanımla"
+    "note": "Lv 75 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 2#39",
     "name": "Champion Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 75'e yaklaşınca tanımla"
+    "note": "Lv 75 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 2#40",
     "name": "Champion Leggings",
     "verdict": "KEEP",
-    "note": "Lv. 75'e yaklaşınca tanımla"
+    "note": "Lv 75 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 2#41",
     "name": "Champion Boots",
     "verdict": "KEEP",
-    "note": "Lv. 75'e yaklaşınca tanımla"
+    "note": "Lv 75 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 2#43",
@@ -549,25 +549,25 @@
     "where": "bank acct:Account Bank p. 4#0",
     "name": "Unidentified Leggings",
     "verdict": "KEEP",
-    "note": "Lv. 66'e yaklaşınca tanımla"
+    "note": "Lv 66 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 4#1",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 4#2",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Lv. 66'e yaklaşınca tanımla"
+    "note": "Lv 66 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 4#3",
     "name": "Unidentified Bow",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 5#0",
@@ -699,13 +699,13 @@
     "where": "bank acct:Account Bank p. 6#1",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#2",
     "name": "Unidentified Bow",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#3",
@@ -717,19 +717,19 @@
     "where": "bank acct:Account Bank p. 6#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#5",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#6",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#7",
@@ -741,37 +741,37 @@
     "where": "bank acct:Account Bank p. 6#8",
     "name": "Gleaming Titanium Boots",
     "verdict": "SELL",
-    "note": "Normal item, Lv. 118'te bile zayıf. Trade Market'te sat, ~21.0 LE"
+    "note": "Normal item, Lv 118 olsan bile zayıf. Trade Market'te sat, ~21.0 LE"
   },
   {
     "where": "bank acct:Account Bank p. 6#9",
     "name": "Diverted Loyalty",
     "verdict": "KEEP",
-    "note": "Lv. 106'e yaklaşınca tanımla"
+    "note": "Lv 106 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 6#10",
     "name": "Lotus Seedpod",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#0",
     "name": "Diamond Gem",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#1",
     "name": "Diamond Gem",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~12 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~12 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#2",
     "name": "Copper Ingot",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~13 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~13 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#3",
@@ -789,7 +789,7 @@
     "where": "bank acct:Account Bank p. 7#5",
     "name": "Copper Ingot",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~15 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~15 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 8#0",
@@ -879,37 +879,37 @@
     "where": "bank acct:Account Bank p. 9#1",
     "name": "Oat String",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#2",
     "name": "Oat Grains",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~18 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~18 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#3",
     "name": "Coagulated Clot",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~12 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~12 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#4",
     "name": "Sticky Fern",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~11 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~11 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#5",
     "name": "Putrid Gunk",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~18 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~18 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#6",
     "name": "Poison Sac",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~2 E), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~2 E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#7",
@@ -933,13 +933,13 @@
     "where": "bank acct:Account Bank p. 9#10",
     "name": "Viscous Slime",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~9 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~9 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#11",
     "name": "Pink Pelulite",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~9 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~9 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#12",
@@ -951,7 +951,7 @@
     "where": "bank acct:Account Bank p. 9#13",
     "name": "Death Whistle Leaf",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~11 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~11 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#14",
@@ -975,7 +975,7 @@
     "where": "bank acct:Account Bank p. 9#17",
     "name": "Mineral Cinder",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~20 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~20 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#18",
@@ -987,79 +987,79 @@
     "where": "bank acct:Account Bank p. 9#19",
     "name": "Crumbly Rock",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#20",
     "name": "Wolf Fang",
     "verdict": "PRICE",
-    "note": "Fiyat yok: Trade Market'te bir kez üstüne gel, sonra karar veririm"
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 9#21",
     "name": "Rotten Flesh",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~12 E), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~12 E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#22",
     "name": "Owl Feather",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~1 E), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~1 E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#23",
     "name": "Pykrete",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#24",
     "name": "Large Lapis",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~7 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#25",
     "name": "Chitin Plate",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#26",
     "name": "Mellow Mango",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~30 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~30 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#27",
     "name": "Gelatinous Slime Chunk",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~20 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~20 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#28",
     "name": "Broken Antic Bead",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~7 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#29",
     "name": "Adventurer's Diary",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~24 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~24 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#30",
     "name": "Consecrated Ivory",
     "verdict": "PRICE",
-    "note": "Fiyat yok: Trade Market'te bir kez üstüne gel, sonra karar veririm"
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 9#31",
     "name": "Egg",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~22 E), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~22 E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#32",
@@ -1071,7 +1071,7 @@
     "where": "bank acct:Account Bank p. 9#33",
     "name": "Zombie Eye",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~22 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~22 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#34",
@@ -1083,73 +1083,73 @@
     "where": "bank acct:Account Bank p. 9#35",
     "name": "Thick Vines",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#36",
     "name": "Rotten Log",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~3 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#37",
     "name": "Pillaged Fragment",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#38",
     "name": "Frozen Ghostly Essence",
     "verdict": "PRICE",
-    "note": "Fiyat yok: Trade Market'te bir kez üstüne gel, sonra karar veririm"
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 9#39",
     "name": "Penguin Egg",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~4 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#40",
     "name": "Yeti Fur",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~2 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~2 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 10#0",
     "name": "Unidentified Relik",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#1",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#2",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#3",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#4",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#5",
     "name": "Unidentified Helmet",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#6",
@@ -1161,49 +1161,49 @@
     "where": "bank acct:Account Bank p. 10#7",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#8",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#9",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#10",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#11",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te ~3 EB kalır, alt sınırın (10 EB) altında. Lv. 1-5, level'ının çok altında"
+    "note": "Blacksmith'e sat: Trade Market'te eline sadece ~3 EB geçer, alt sınırın (10 EB) altında. Lv 1-5, level'ının çok altında"
   },
   {
     "where": "bank acct:Account Bank p. 10#12",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Lv. 101'e yaklaşınca tanımla"
+    "note": "Lv 101 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#13",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Lv. 106'e yaklaşınca tanımla"
+    "note": "Lv 106 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank acct:Account Bank p. 10#14",
     "name": "Meliorism",
     "verdict": "KEEP",
-    "note": "Lv. 105'e yaklaşınca tanımla"
+    "note": "Lv 105 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#0",
@@ -1293,7 +1293,7 @@
     "where": "bank char:char0001:Character Bank p. 1#14",
     "name": "Soft Sand",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~7 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~7 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#15",
@@ -1317,7 +1317,7 @@
     "where": "bank char:char0001:Character Bank p. 1#18",
     "name": "Gold Bar",
     "verdict": "KEEP",
-    "note": "Değeri düşük (~5 EB), Trade Market'e değmez; yer lazımsa at"
+    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#19",
@@ -1395,7 +1395,7 @@
     "where": "bank char:char0003:Character Bank p. 1#1",
     "name": "Marius' Prison",
     "verdict": "KEEP",
-    "note": "Lv. 50'te giyebilirsin"
+    "note": "Lv 50 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#2",
@@ -1443,7 +1443,7 @@
     "where": "bank char:char0003:Character Bank p. 1#9",
     "name": "Quartron's Eye",
     "verdict": "KEEP",
-    "note": "Lv. 49'te giyebilirsin"
+    "note": "Lv 49 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#10",
@@ -1473,19 +1473,19 @@
     "where": "bank char:char0003:Character Bank p. 1#14",
     "name": "Morph-Ruby",
     "verdict": "KEEP",
-    "note": "Lv. 62'e yaklaşınca tanımla"
+    "note": "Lv 62 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#15",
     "name": "Druid's Ring",
     "verdict": "KEEP",
-    "note": "Lv. 65'te giyebilirsin"
+    "note": "Lv 65 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#16",
     "name": "Druid's Ring",
     "verdict": "KEEP",
-    "note": "Lv. 65'te giyebilirsin"
+    "note": "Lv 65 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#17",
@@ -1515,7 +1515,7 @@
     "where": "bank char:char0003:Character Bank p. 1#35",
     "name": "Shameful Greaves",
     "verdict": "KEEP",
-    "note": "Lv. 58'e yaklaşınca tanımla"
+    "note": "Lv 58 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#38",
@@ -1551,31 +1551,31 @@
     "where": "bank char:char0003:Character Bank p. 1#44",
     "name": "Gigabyte",
     "verdict": "KEEP",
-    "note": "Lv. 93'te giyebilirsin"
+    "note": "Lv 93 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#0",
     "name": "Ultramarine Boots",
     "verdict": "KEEP",
-    "note": "Lv. 61'te giyebilirsin"
+    "note": "Lv 61 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#1",
     "name": "Ultramarine Crown",
     "verdict": "KEEP",
-    "note": "Lv. 59'te giyebilirsin"
+    "note": "Lv 59 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#2",
     "name": "Ultramarine Cape",
     "verdict": "KEEP",
-    "note": "Lv. 65'te giyebilirsin"
+    "note": "Lv 65 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#3",
     "name": "Ultramarine Belt",
     "verdict": "KEEP",
-    "note": "Lv. 63'te giyebilirsin"
+    "note": "Lv 63 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#4",
@@ -1587,13 +1587,13 @@
     "where": "bank char:char0003:Character Bank p. 2#5",
     "name": "Multitool",
     "verdict": "KEEP",
-    "note": "Lv. 76'te giyebilirsin"
+    "note": "Lv 76 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#6",
     "name": "Dragon's Eye Bracelet",
     "verdict": "KEEP",
-    "note": "Lv. 60'te giyebilirsin"
+    "note": "Lv 60 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#36",
@@ -1629,13 +1629,13 @@
     "where": "bank char:char0003:Character Bank p. 3#0",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Lv. 71'e yaklaşınca tanımla"
+    "note": "Lv 71 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#1",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te ~5 EB kalır, alt sınırın (10 EB) altında. Lv. 11-15, level'ının çok altında"
+    "note": "Blacksmith'e sat: Trade Market'te eline sadece ~5 EB geçer, alt sınırın (10 EB) altında. Lv 11-15, level'ının çok altında"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#2",
@@ -1647,7 +1647,7 @@
     "where": "bank char:char0003:Character Bank p. 3#3",
     "name": "Unidentified Necklace",
     "verdict": "KEEP",
-    "note": "Lv. 61'e yaklaşınca tanımla"
+    "note": "Lv 61 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#4",
@@ -1659,7 +1659,7 @@
     "where": "bank char:char0003:Character Bank p. 3#5",
     "name": "Unidentified Bracelet",
     "verdict": "KEEP",
-    "note": "Lv. 66'e yaklaşınca tanımla"
+    "note": "Lv 66 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#6",
@@ -1671,13 +1671,13 @@
     "where": "bank char:char0003:Character Bank p. 3#7",
     "name": "Unidentified Necklace",
     "verdict": "KEEP",
-    "note": "Lv. 61'e yaklaşınca tanımla"
+    "note": "Lv 61 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#9",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 71'e yaklaşınca tanımla"
+    "note": "Lv 71 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#10",
@@ -1689,115 +1689,115 @@
     "where": "bank char:char0003:Character Bank p. 3#27",
     "name": "Fuse",
     "verdict": "KEEP",
-    "note": "Lv. 75'te giyebilirsin"
+    "note": "Lv 75 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#28",
     "name": "Fuse",
     "verdict": "KEEP",
-    "note": "Lv. 75'te giyebilirsin"
+    "note": "Lv 75 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#36",
     "name": "Power Cell",
     "verdict": "KEEP",
-    "note": "Lv. 86'te giyebilirsin"
+    "note": "Lv 86 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#9",
     "name": "Brainwash",
     "verdict": "KEEP",
-    "note": "Lv. 96'te giyebilirsin"
+    "note": "Lv 96 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#10",
     "name": "Sparkling Plate",
     "verdict": "KEEP",
-    "note": "Lv. 99'te giyebilirsin"
+    "note": "Lv 99 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#27",
     "name": "Photon",
     "verdict": "KEEP",
-    "note": "Lv. 61'te giyebilirsin"
+    "note": "Lv 61 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#28",
     "name": "Ozoth's Breath",
     "verdict": "KEEP",
-    "note": "Lv. 49'te giyebilirsin"
+    "note": "Lv 49 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#29",
     "name": "Euouae",
     "verdict": "KEEP",
-    "note": "Lv. 75'te giyebilirsin"
+    "note": "Lv 75 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#30",
     "name": "Royal Dusty Amulet",
     "verdict": "KEEP",
-    "note": "Lv. 75'te giyebilirsin"
+    "note": "Lv 75 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#37",
     "name": "Remikas' Sanctuary",
     "verdict": "KEEP",
-    "note": "Lv. 68'te giyebilirsin"
+    "note": "Lv 68 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#38",
     "name": "The Golem",
     "verdict": "KEEP",
-    "note": "Lv. 97'te giyebilirsin"
+    "note": "Lv 97 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#0",
     "name": "Hellion",
     "verdict": "KEEP",
-    "note": "Lv. 91'te giyebilirsin"
+    "note": "Lv 91 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#1",
     "name": "Hellion",
     "verdict": "KEEP",
-    "note": "Lv. 91'te giyebilirsin"
+    "note": "Lv 91 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#2",
     "name": "Rycar's Bravado",
     "verdict": "KEEP",
-    "note": "Lv. 58'te giyebilirsin"
+    "note": "Lv 58 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#3",
     "name": "Mech Core",
     "verdict": "KEEP",
-    "note": "Lv. 86'te giyebilirsin"
+    "note": "Lv 86 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#9",
     "name": "Purified Helmet of the Legends",
     "verdict": "KEEP",
-    "note": "Lv. 68'te giyebilirsin"
+    "note": "Lv 68 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#10",
     "name": "September",
     "verdict": "KEEP",
-    "note": "Lv. 88'te giyebilirsin"
+    "note": "Lv 88 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#11",
     "name": "Vacancy",
     "verdict": "KEEP",
-    "note": "Lv. 89'te giyebilirsin"
+    "note": "Lv 89 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#12",
     "name": "Flashing Boots",
     "verdict": "KEEP",
-    "note": "Lv. 87'te giyebilirsin"
+    "note": "Lv 87 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#13",
@@ -1809,25 +1809,25 @@
     "where": "bank char:char0003:Character Bank p. 5#28",
     "name": "Ring of Generosity",
     "verdict": "KEEP",
-    "note": "Lv. 69'te giyebilirsin"
+    "note": "Lv 69 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#29",
     "name": "Ring of Generosity",
     "verdict": "KEEP",
-    "note": "Lv. 69'te giyebilirsin"
+    "note": "Lv 69 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#30",
     "name": "Tarod's Search",
     "verdict": "KEEP",
-    "note": "Lv. 47'te giyebilirsin"
+    "note": "Lv 47 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#31",
     "name": "Fiery Torc",
     "verdict": "KEEP",
-    "note": "Lv. 69'te giyebilirsin"
+    "note": "Lv 69 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#36",
@@ -1839,25 +1839,25 @@
     "where": "bank char:char0003:Character Bank p. 5#37",
     "name": "Executioner Helmet",
     "verdict": "KEEP",
-    "note": "Lv. 75'te giyebilirsin"
+    "note": "Lv 75 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#38",
     "name": "Kizuato",
     "verdict": "KEEP",
-    "note": "Lv. 74'te giyebilirsin"
+    "note": "Lv 74 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#39",
     "name": "Refraction",
     "verdict": "KEEP",
-    "note": "Lv. 74'te giyebilirsin"
+    "note": "Lv 74 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#40",
     "name": "Cirrus",
     "verdict": "KEEP",
-    "note": "Lv. 69'te giyebilirsin"
+    "note": "Lv 69 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#0",
@@ -1869,25 +1869,25 @@
     "where": "bank char:char0003:Character Bank p. 6#1",
     "name": "Unidentified Spear",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: hiçbir drop'un fiyatı yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: içinden çıkanların hiçbirinin fiyatı yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#2",
     "name": "Unidentified Leggings",
     "verdict": "KEEP",
-    "note": "Lv. 51'e yaklaşınca tanımla"
+    "note": "Lv 51 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#3",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 56'e yaklaşınca tanımla"
+    "note": "Lv 56 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#4",
     "name": "Unidentified Bracelet",
     "verdict": "KEEP",
-    "note": "Lv. 66'e yaklaşınca tanımla"
+    "note": "Lv 66 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#5",
@@ -1899,7 +1899,7 @@
     "where": "bank char:char0003:Character Bank p. 6#6",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Lv. 56'e yaklaşınca tanımla"
+    "note": "Lv 56 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#7",
@@ -1911,37 +1911,37 @@
     "where": "bank char:char0003:Character Bank p. 6#8",
     "name": "Unidentified Bracelet",
     "verdict": "KEEP",
-    "note": "Lv. 51'e yaklaşınca tanımla"
+    "note": "Lv 51 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#9",
     "name": "Ogre Faceplate",
     "verdict": "KEEP",
-    "note": "Lv. 83'te giyebilirsin"
+    "note": "Lv 83 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#10",
     "name": "Ultramarine Crown",
     "verdict": "KEEP",
-    "note": "Lv. 59'e yaklaşınca tanımla"
+    "note": "Lv 59 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#11",
     "name": "Shaggy Boots",
     "verdict": "KEEP",
-    "note": "Lv. 97'te giyebilirsin"
+    "note": "Lv 97 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#12",
     "name": "Mech Core",
     "verdict": "KEEP",
-    "note": "Lv. 86'te giyebilirsin"
+    "note": "Lv 86 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#13",
     "name": "Exosphere",
     "verdict": "KEEP",
-    "note": "Lv. 81'e yaklaşınca tanımla"
+    "note": "Lv 81 seviyesine yaklaşınca tanımla"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#14",
@@ -1953,7 +1953,7 @@
     "where": "bank char:char0003:Character Bank p. 6#15",
     "name": "Tinderbox",
     "verdict": "KEEP",
-    "note": "Lv. 93'te giyebilirsin"
+    "note": "Lv 93 olunca giyebilirsin"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#44",

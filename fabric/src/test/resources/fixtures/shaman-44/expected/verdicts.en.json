@@ -309,7 +309,7 @@
     "where": "bank acct:Account Bank p. 1#33",
     "name": "Scrap Chausses",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 111"
+    "note": "Equippable at Lv 111"
   },
   {
     "where": "bank acct:Account Bank p. 1#34",
@@ -357,7 +357,7 @@
     "where": "bank acct:Account Bank p. 1#41",
     "name": "Charm of the Tempest",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 88"
+    "note": "Equippable at Lv 88"
   },
   {
     "where": "bank acct:Account Bank p. 1#42",
@@ -423,25 +423,25 @@
     "where": "bank acct:Account Bank p. 2#38",
     "name": "Champion Helmet",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 75"
+    "note": "Identify it once you're close to Lv 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#39",
     "name": "Champion Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 75"
+    "note": "Identify it once you're close to Lv 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#40",
     "name": "Champion Leggings",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 75"
+    "note": "Identify it once you're close to Lv 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#41",
     "name": "Champion Boots",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 75"
+    "note": "Identify it once you're close to Lv 75"
   },
   {
     "where": "bank acct:Account Bank p. 2#43",
@@ -549,7 +549,7 @@
     "where": "bank acct:Account Bank p. 4#0",
     "name": "Unidentified Leggings",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 66"
+    "note": "Identify it once you're close to Lv 66"
   },
   {
     "where": "bank acct:Account Bank p. 4#1",
@@ -561,7 +561,7 @@
     "where": "bank acct:Account Bank p. 4#2",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 66"
+    "note": "Identify it once you're close to Lv 66"
   },
   {
     "where": "bank acct:Account Bank p. 4#3",
@@ -741,13 +741,13 @@
     "where": "bank acct:Account Bank p. 6#8",
     "name": "Gleaming Titanium Boots",
     "verdict": "SELL",
-    "note": "Normal item, still weak at Lv. 118. Sell it on the Trade Market, ~21.0 LE"
+    "note": "Normal item, still weak at Lv 118. Sell it on the Trade Market, ~21.0 LE"
   },
   {
     "where": "bank acct:Account Bank p. 6#9",
     "name": "Diverted Loyalty",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 106"
+    "note": "Identify it once you're close to Lv 106"
   },
   {
     "where": "bank acct:Account Bank p. 6#10",
@@ -1119,25 +1119,25 @@
     "where": "bank acct:Account Bank p. 10#0",
     "name": "Unidentified Relik",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#1",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#2",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#3",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#4",
@@ -1149,7 +1149,7 @@
     "where": "bank acct:Account Bank p. 10#5",
     "name": "Unidentified Helmet",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#6",
@@ -1173,37 +1173,37 @@
     "where": "bank acct:Account Bank p. 10#9",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#10",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#11",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: only nets ~3 EB on the Trade Market, under your 10 EB min. Lv. 1-5, way below your level"
+    "note": "Sell it to the Blacksmith: it only nets ~3 EB on the Trade Market, under your 10 EB minimum. Lv 1-5, way below your level"
   },
   {
     "where": "bank acct:Account Bank p. 10#12",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 101"
+    "note": "Identify it once you're close to Lv 101"
   },
   {
     "where": "bank acct:Account Bank p. 10#13",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 106"
+    "note": "Identify it once you're close to Lv 106"
   },
   {
     "where": "bank acct:Account Bank p. 10#14",
     "name": "Meliorism",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 105"
+    "note": "Identify it once you're close to Lv 105"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#0",
@@ -1395,7 +1395,7 @@
     "where": "bank char:char0003:Character Bank p. 1#1",
     "name": "Marius' Prison",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 50"
+    "note": "Equippable at Lv 50"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#2",
@@ -1443,7 +1443,7 @@
     "where": "bank char:char0003:Character Bank p. 1#9",
     "name": "Quartron's Eye",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 49"
+    "note": "Equippable at Lv 49"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#10",
@@ -1473,19 +1473,19 @@
     "where": "bank char:char0003:Character Bank p. 1#14",
     "name": "Morph-Ruby",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 62"
+    "note": "Identify it once you're close to Lv 62"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#15",
     "name": "Druid's Ring",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 65"
+    "note": "Equippable at Lv 65"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#16",
     "name": "Druid's Ring",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 65"
+    "note": "Equippable at Lv 65"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#17",
@@ -1515,7 +1515,7 @@
     "where": "bank char:char0003:Character Bank p. 1#35",
     "name": "Shameful Greaves",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 58"
+    "note": "Identify it once you're close to Lv 58"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#38",
@@ -1551,31 +1551,31 @@
     "where": "bank char:char0003:Character Bank p. 1#44",
     "name": "Gigabyte",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 93"
+    "note": "Equippable at Lv 93"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#0",
     "name": "Ultramarine Boots",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 61"
+    "note": "Equippable at Lv 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#1",
     "name": "Ultramarine Crown",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 59"
+    "note": "Equippable at Lv 59"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#2",
     "name": "Ultramarine Cape",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 65"
+    "note": "Equippable at Lv 65"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#3",
     "name": "Ultramarine Belt",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 63"
+    "note": "Equippable at Lv 63"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#4",
@@ -1587,13 +1587,13 @@
     "where": "bank char:char0003:Character Bank p. 2#5",
     "name": "Multitool",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 76"
+    "note": "Equippable at Lv 76"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#6",
     "name": "Dragon's Eye Bracelet",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 60"
+    "note": "Equippable at Lv 60"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#36",
@@ -1629,175 +1629,175 @@
     "where": "bank char:char0003:Character Bank p. 3#0",
     "name": "Unidentified Boots",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 71"
+    "note": "Identify it once you're close to Lv 71"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#1",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: only nets ~5 EB on the Trade Market, under your 10 EB min. Lv. 11-15, way below your level"
+    "note": "Sell it to the Blacksmith: it only nets ~5 EB on the Trade Market, under your 10 EB minimum. Lv 11-15, way below your level"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#2",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: only worth ~13 EB on the Trade Market, below your 30 EB min. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~13 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#3",
     "name": "Unidentified Necklace",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 61"
+    "note": "Identify it once you're close to Lv 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: only worth ~16 EB on the Trade Market, below your 30 EB min. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~16 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#5",
     "name": "Unidentified Bracelet",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 66"
+    "note": "Identify it once you're close to Lv 66"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: only worth ~29 EB on the Trade Market, below your 30 EB min (2/6 have a price). Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~29 EB on the Trade Market, below your 30 EB minimum (2/6 have a price). Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#7",
     "name": "Unidentified Necklace",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 61"
+    "note": "Identify it once you're close to Lv 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#9",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 71"
+    "note": "Identify it once you're close to Lv 71"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#10",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: only worth ~16 EB on the Trade Market, below your 30 EB min. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~16 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#27",
     "name": "Fuse",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 75"
+    "note": "Equippable at Lv 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#28",
     "name": "Fuse",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 75"
+    "note": "Equippable at Lv 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#36",
     "name": "Power Cell",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 86"
+    "note": "Equippable at Lv 86"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#9",
     "name": "Brainwash",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 96"
+    "note": "Equippable at Lv 96"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#10",
     "name": "Sparkling Plate",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 99"
+    "note": "Equippable at Lv 99"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#27",
     "name": "Photon",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 61"
+    "note": "Equippable at Lv 61"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#28",
     "name": "Ozoth's Breath",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 49"
+    "note": "Equippable at Lv 49"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#29",
     "name": "Euouae",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 75"
+    "note": "Equippable at Lv 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#30",
     "name": "Royal Dusty Amulet",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 75"
+    "note": "Equippable at Lv 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#37",
     "name": "Remikas' Sanctuary",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 68"
+    "note": "Equippable at Lv 68"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#38",
     "name": "The Golem",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 97"
+    "note": "Equippable at Lv 97"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#0",
     "name": "Hellion",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 91"
+    "note": "Equippable at Lv 91"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#1",
     "name": "Hellion",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 91"
+    "note": "Equippable at Lv 91"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#2",
     "name": "Rycar's Bravado",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 58"
+    "note": "Equippable at Lv 58"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#3",
     "name": "Mech Core",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 86"
+    "note": "Equippable at Lv 86"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#9",
     "name": "Purified Helmet of the Legends",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 68"
+    "note": "Equippable at Lv 68"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#10",
     "name": "September",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 88"
+    "note": "Equippable at Lv 88"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#11",
     "name": "Vacancy",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 89"
+    "note": "Equippable at Lv 89"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#12",
     "name": "Flashing Boots",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 87"
+    "note": "Equippable at Lv 87"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#13",
@@ -1809,25 +1809,25 @@
     "where": "bank char:char0003:Character Bank p. 5#28",
     "name": "Ring of Generosity",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 69"
+    "note": "Equippable at Lv 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#29",
     "name": "Ring of Generosity",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 69"
+    "note": "Equippable at Lv 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#30",
     "name": "Tarod's Search",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 47"
+    "note": "Equippable at Lv 47"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#31",
     "name": "Fiery Torc",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 69"
+    "note": "Equippable at Lv 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#36",
@@ -1839,31 +1839,31 @@
     "where": "bank char:char0003:Character Bank p. 5#37",
     "name": "Executioner Helmet",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 75"
+    "note": "Equippable at Lv 75"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#38",
     "name": "Kizuato",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 74"
+    "note": "Equippable at Lv 74"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#39",
     "name": "Refraction",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 74"
+    "note": "Equippable at Lv 74"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#40",
     "name": "Cirrus",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 69"
+    "note": "Equippable at Lv 69"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: only worth ~16 EB on the Trade Market, below your 30 EB min. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~16 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#1",
@@ -1875,19 +1875,19 @@
     "where": "bank char:char0003:Character Bank p. 6#2",
     "name": "Unidentified Leggings",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 51"
+    "note": "Identify it once you're close to Lv 51"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#3",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 56"
+    "note": "Identify it once you're close to Lv 56"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#4",
     "name": "Unidentified Bracelet",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 66"
+    "note": "Identify it once you're close to Lv 66"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#5",
@@ -1899,7 +1899,7 @@
     "where": "bank char:char0003:Character Bank p. 6#6",
     "name": "Unidentified Chestplate",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 56"
+    "note": "Identify it once you're close to Lv 56"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#7",
@@ -1911,37 +1911,37 @@
     "where": "bank char:char0003:Character Bank p. 6#8",
     "name": "Unidentified Bracelet",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 51"
+    "note": "Identify it once you're close to Lv 51"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#9",
     "name": "Ogre Faceplate",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 83"
+    "note": "Equippable at Lv 83"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#10",
     "name": "Ultramarine Crown",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 59"
+    "note": "Identify it once you're close to Lv 59"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#11",
     "name": "Shaggy Boots",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 97"
+    "note": "Equippable at Lv 97"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#12",
     "name": "Mech Core",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 86"
+    "note": "Equippable at Lv 86"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#13",
     "name": "Exosphere",
     "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv. 81"
+    "note": "Identify it once you're close to Lv 81"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#14",
@@ -1953,7 +1953,7 @@
     "where": "bank char:char0003:Character Bank p. 6#15",
     "name": "Tinderbox",
     "verdict": "KEEP",
-    "note": "Equippable at Lv. 93"
+    "note": "Equippable at Lv 93"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#44",
