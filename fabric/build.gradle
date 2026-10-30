@@ -121,8 +121,10 @@ loom.runs.matching { it.name == 'clientGameTest' }.configureEach {
 // -PupdateFixtures: the fixture tests write their expected files instead of comparing
 test {
     useJUnitPlatform()
-    // the road map tests take most of the time: four JVMs run the test classes side by side
-    maxParallelForks = 4
+    // the road map tests take most of the time: eight JVMs run the test classes side by side
+    maxParallelForks = 8
+    // test results are never reused from the build cache: some tests read files Gradle doesn't track
+    outputs.cacheIf { false }
     // -PquickTests (CI): leaves out the test classes that take more than a few seconds (upgrade
     // search, fixtures, the build thread, saving); a local gradle build still runs them all
     if (rootProject.hasProperty('quickTests')) {
