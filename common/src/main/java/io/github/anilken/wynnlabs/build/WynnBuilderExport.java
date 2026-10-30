@@ -140,9 +140,16 @@ public final class WynnBuilderExport {
         List<Integer> skills = null;
         if (state.skillsKnown()) {
             skills = new ArrayList<>();
+            int[] own = new int[SkillKind.values().length];
             for (SkillKind s : SkillKind.values()) {
-                skills.add(state.assignedSeen(s));
+                own[s.ordinal()] = state.assignedSeen(s) + state.tomePoints(s);
             }
+            List<Damage.Piece> gear = new ArrayList<>();
+            for (int i = 0; i < stacks.size() - 1; i++) {
+                gear.add(stacks.get(i).isEmpty() ? null : Damage.piece(stacks.get(i)));
+            }
+            ItemStack weapon = stacks.get(stacks.size() - 1);
+            skills = totalSkills(own, gear, weapon.isEmpty() ? null : Damage.piece(weapon));
         }
         List<WynnBuilderTree.Aspect> aspects = new ArrayList<>();
         state.aspects().forEach((name, tier) -> aspects.add(new WynnBuilderTree.Aspect(name, tier)));
@@ -191,10 +198,15 @@ public final class WynnBuilderExport {
         }
         List<Integer> skills = null;
         if (eval != null && eval.allocation() != null) {
-            skills = new ArrayList<>();
-            for (int a : eval.allocation()) {
-                skills.add(a);
+            int[] own = eval.withTome();
+            for (SkillKind s : SkillKind.values()) {
+                own[s.ordinal()] += state.tomePoints(s);
             }
+            List<Damage.Piece> gear = new ArrayList<>();
+            for (int i = 0; i < Build.SLOTS.length - 1; i++) {
+                gear.add(set.get(Build.SLOTS[i]));
+            }
+            skills = totalSkills(own, gear, set.get("WEAPON"));
         }
         List<String> nodes = new ArrayList<>();
         state.abilityPlan().forEach((name, at) -> {
@@ -261,6 +273,28 @@ public final class WynnBuilderExport {
     }
 
     // ---- the pieces ----
+
+    /**
+     * The skill fields as WynnBuilder keeps them: totals, from which it takes every item's, set's
+     * and tome's points off again to show what you assigned. {@code own}: assigned plus tomes;
+     * the gear's raw skill points (sets included, the weapon too) go on top. With the assigned
+     * points alone the site showed 142 of 200 assigned, short by the gear's bonuses.
+     */
+    private static List<Integer> totalSkills(int[] own, List<Damage.Piece> gear, Damage.Piece weapon) {
+        List<Damage.Piece> worn = new ArrayList<>();
+        for (Damage.Piece p : gear) {
+            if (p != null) {
+                worn.add(p);
+            }
+        }
+        Map<String, Double> stats = Damage.totals(worn, weapon);
+        int[] none = new int[own.length];
+        List<Integer> out = new ArrayList<>();
+        for (SkillKind s : SkillKind.values()) {
+            out.add(own[s.ordinal()] + (int) Math.round(Damage.skillPoints(stats, none, s)));
+        }
+        return out;
+    }
 
     private static WynnBuilderLink.Build newest(List<WynnBuilderLink.Piece> pieces, List<String> tomes, List<Integer> skills, int level) {
         return new WynnBuilderLink.Build(null, false, List.copyOf(pieces), tomes == null ? List.of() : List.copyOf(tomes),

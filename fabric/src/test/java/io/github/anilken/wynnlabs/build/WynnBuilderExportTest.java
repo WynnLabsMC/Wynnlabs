@@ -135,7 +135,9 @@ class WynnBuilderExportTest {
         assertEquals(9, b.pieces().size(), "a weapon from the hotbar: " + names);
         assertEquals(WynnBuilderLink.WEAPON, b.pieces().get(8).slot());
         List<Integer> skills = Arrays.stream(SkillKind.values()).map(fixture::assignedSeen).toList();
-        assertEquals(skills, b.skills(), "the points the Character Info menu showed");
+        // WynnBuilder keeps totals and takes the gear's points off again: assigned 25/15/15/8/23
+        // plus what the pieces and the relik give (Def -4 from a penalty)
+        assertEquals(List.of(36, 21, 39, 4, 45), b.skills(), "assigned plus the gear's skill points");
         assertEquals(List.of(25, 15, 15, 8), skills.subList(0, 4));
         assertEquals(44, b.level());
         assertEquals(List.of("Abyssal Tome of Combat Mastery III", "Brute's Tome of Allegiance"), b.tomes(), "in the site's slot order");
@@ -162,7 +164,8 @@ class WynnBuilderExportTest {
                 new Build.Eval(new int[] {30, 10, 0, 5, 0}, null), 50));
         assertNotNull(b);
         assertEquals(List.of("0Yume", "4Warsong", "8" + relik.name()), b.pieces().stream().map(p -> p.slot() + p.name()).toList());
-        assertEquals(List.of(30, 10, 0, 5, 0), b.skills());
+        // totals: 30/10/0/5/0 assigned plus Yume's, Warsong's and the relik's points (Int -30 from a penalty)
+        assertEquals(List.of(32, 12, -30, 5, 5), b.skills());
         assertEquals(50, b.level());
         assertNull(WynnBuilderExport.milestone(null, null, 50));
     }
