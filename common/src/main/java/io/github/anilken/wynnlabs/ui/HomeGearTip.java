@@ -78,7 +78,10 @@ final class HomeGearTip {
         if (why != null && !why.isEmpty()) {
             tip.add(L.c("wynnlabs.home.tip_why").withStyle(ChatFormatting.GOLD).withStyle(UiFont::bold));
             for (String d : why) {
-                tip.add(Component.literal("  • " + d).withStyle(ChatFormatting.AQUA));
+                List<String> lines = Advice.wrap(d, 44);
+                for (int i = 0; i < lines.size(); i++) {
+                    tip.add(Component.literal((i == 0 ? "  • " : "    ") + lines.get(i)).withStyle(ChatFormatting.AQUA));
+                }
             }
         }
         // what it asks for: its level and skill points
