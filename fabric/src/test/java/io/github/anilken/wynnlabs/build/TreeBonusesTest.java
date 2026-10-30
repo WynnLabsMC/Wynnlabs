@@ -69,9 +69,17 @@ class TreeBonusesTest {
         // "+20% Thunder" on Shocking Bomb's +40%
         assertEquals(0.2, a.get("Shocking Bomb").conv()[2], 1e-9);
 
-        // left out: lowerings that come with more arrows, bonuses that hold now and then, parts
-        // that are not spells, more than one summon named, and a damage block without a "+"
-        for (String n : List.of("Double Shots", "Triple Shots", "Nimble String", "Windstorm", "Focus", "Initiator",
+        // a lowering on the spell it names, per arrow: the arrows it comes with are HitCounts'
+        TreeBonuses.Bonus windstorm = a.get("Windstorm");
+        assertEquals("Arrow Storm", windstorm.spell());
+        assertEquals(-0.09, windstorm.conv()[0], 1e-9);
+        assertEquals(0.02, windstorm.conv()[5], 1e-9);
+        assertEquals("Arrow Storm", a.get("Nimble String").spell());
+        assertEquals(-0.1, a.get("Nimble String").conv()[0], 1e-9);
+
+        // left out: the main attack's arrows (HitCounts), bonuses that hold now and then, parts
+        // that are not spells, more than one summon named, and a damage block without a sign
+        for (String n : List.of("Double Shots", "Triple Shots", "Focus", "Initiator",
                 "Scorched Earth", "Vigilant Sentinels", "Beast Lore", "Fimbulwinter", "Mael's Quiver", "Pyrotechnics",
                 "Arrow Wall", "Patient Hunter", "Call of the Hound", "Basaltic Trap")) {
             TreeBonuses.Bonus b = a.get(n);

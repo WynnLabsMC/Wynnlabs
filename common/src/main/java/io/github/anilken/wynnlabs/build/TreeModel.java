@@ -154,6 +154,12 @@ public final class TreeModel {
         final Map<String, double[]> spellMods;
         /** The share of each hit you take that the tree's base resistance leaves (1: none). */
         final double taken;
+        /** Spell → its hits as the nodes taken change them ({@link HitCounts#sum}). */
+        final Map<String, int[]> counts;
+        /** The main attack's factor from the nodes taken ({@link HitCounts#mainFactor}); 0: the tree says nothing of it. */
+        final double mainHits;
+        /** The tree sets the main attack's shots: the class profile's guess of them gives way. */
+        final boolean mainKnown;
         private final String key;
         /** {rules array, adjusted array}: the model asks for the spells on every evaluation. */
         private volatile Object[] cached;
@@ -162,6 +168,17 @@ public final class TreeModel {
                 double manaPer5, double mainAttack, TreeBonuses.Sum bonus, List<Sources.Passive> passives,
                 List<SourceText.Heal> heals, List<SourceText.Ultimate> ultimates, Map<String, double[]> spellMods,
                 double taken) {
+            this(level, cost, known, unlocked, passive, manaPer5, mainAttack, bonus, passives, heals, ultimates, spellMods,
+                    taken, Map.of(), 0, false);
+        }
+
+        Overlay(int level, Map<String, Double> cost, Set<String> known, Set<String> unlocked, double[] passive,
+                double manaPer5, double mainAttack, TreeBonuses.Sum bonus, List<Sources.Passive> passives,
+                List<SourceText.Heal> heals, List<SourceText.Ultimate> ultimates, Map<String, double[]> spellMods,
+                double taken, Map<String, int[]> counts, double mainHits, boolean mainKnown) {
+            this.counts = counts;
+            this.mainHits = mainHits;
+            this.mainKnown = mainKnown;
             this.taken = taken;
             this.spellMods = spellMods;
             this.passives = passives;
@@ -198,6 +215,10 @@ public final class TreeModel {
                     .append(',').append(Math.round(m[1])).append(',').append(Math.round(m[2])));
             if (taken != 1) {
                 k.append("|r").append(Math.round(taken * 1000));
+            }
+            counts.forEach((n, c) -> k.append("|c").append(n).append(':').append(java.util.Arrays.toString(c)));
+            if (mainHits != 0) {
+                k.append("|x").append(Math.round(mainHits * 1000)).append(mainKnown ? 'k' : 'g');
             }
             // the heals: the Healer goal scores them (Healing)
             for (SourceText.Heal h : heals == null ? List.<SourceText.Heal>of() : heals) {
@@ -238,6 +259,9 @@ public final class TreeModel {
                 case "summonAir" -> passive[5];
                 case "baseManaPer5s" -> v + manaPer5;
                 case "mainAttackWeight" -> v * mainAttack;
+                // the main attack's shots and beams as the tree has them; where the tree sets the
+                // shots (Double Slice, Double Shots), they stand in for the class profile's guess
+                case "mainAttackClassMult" -> mainHits == 0 ? v : (mainKnown ? 1 : v) * mainHits;
                 default -> v;
             };
         }
@@ -262,6 +286,7 @@ public final class TreeModel {
                 if (d != null && s.has("cost")) {
                     s.addProperty("cost", Math.max(1, s.get("cost").getAsDouble() + d));
                 }
+                HitCounts.apply(s, counts.get(name));      // "will hit a second time", "+2 bombs"
                 bonus.raise(name, s);                       // "Total Damage: +50%" nodes for this spell
                 SourceText.scale(s, spellMods.get(name));   // "50% less damage", one per Totem, two waves
                 out.add(s);

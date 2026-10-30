@@ -296,7 +296,10 @@ final class TreeReading {
                 hitTaken *= 1 - e.getValue();
             }
         }
+        HitCounts.Reading counts = text.counts() == null ? HitCounts.Reading.none() : text.counts();
         return new TreeModel.Overlay(level, cost, known, unlocked, passive, mana * 5, mainAttack, bonus, sources, heals,
-                ultimates, spellMods, hitTaken);
+                ultimates, spellMods, hitTaken, HitCounts.sum(counts, have),
+                counts.mainKnown() || HitCounts.mainFactor(counts, have) != 1 ? HitCounts.mainFactor(counts, have) : 0,
+                counts.mainKnown());
     }
 }

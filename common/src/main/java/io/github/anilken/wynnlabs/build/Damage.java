@@ -145,6 +145,11 @@ public final class Damage {
         return Pieces.piece(info);
     }
 
+    /** {@link #piece(ItemData)} with the powders a WynnBuilder link gives it ("T6T6E7") instead of assumed ones. */
+    public static Piece piece(ItemData info, String powders) {
+        return Pieces.piece(info, powders);
+    }
+
     static List<String> assumedPowders(ItemData info, Map<String, Double> shares) {
         return Pieces.assumedPowders(info, shares);
     }

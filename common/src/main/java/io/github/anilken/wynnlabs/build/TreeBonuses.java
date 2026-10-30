@@ -24,7 +24,10 @@ import java.util.regex.Pattern;
  *   <li>the same on a node that names one summon and no spell ("Your Puppet's knives become
  *       stronger"): that summon's hits.</li>
  * </ul>
- * Kept to what reads plainly: a lowering ("-10% per arrow" comes with more arrows), a bonus
+ * A lowering ("-30% (of your DPS, per bash)") counts on a spell the node names, as the hits it
+ * comes with ("Bash will hit a second time") are {@link HitCounts}'. A node naming no spell may
+ * name a node that does ("After being hit by Fireworks": Uppercut's), for a bonus only.
+ * Kept to what reads plainly: a bonus
  * that holds only now and then ("+15% (per Focus)", "Damage Bonus to Self" for a few seconds),
  * one for a part that is not a spell (Fire Creep, Guardian Angels), a node naming two spells,
  * or damage parts that do not add up to the total are left out, as before.
@@ -34,8 +37,8 @@ final class TreeBonuses {
     private static final Pattern MAIN = Pattern.compile("Main Attack Damage: \\+(\\d+)%(?! \\(per)");
     private static final Pattern MASTERY = Pattern.compile("(Earth|Thunder|Water|Fire|Air) Damage: \\+(\\d+)%(?! \\(per)");
     private static final Pattern TOTAL = Pattern.compile(
-            "Total Damage: \\+(\\d+)% \\(of your DPS(?:, for ([A-Za-z' ]+?))?(?:, per [a-z]+)?\\)");
-    private static final Pattern PART = Pattern.compile("\\(\\S*\\s*(Damage|Earth|Thunder|Water|Fire|Air): \\+(\\d+)%\\)");
+            "Total Damage: ([+-]\\d+)% \\(of your DPS(?:, for ([A-Za-z' ]+?))?(?:, per [a-z/]+)?\\)");
+    private static final Pattern PART = Pattern.compile("\\(\\S*\\s*(Damage|Earth|Thunder|Water|Fire|Air): ([+-]\\d+)%\\)");
     /** "Earth Damage: +2-4" (the masteries): flat damage on every hit in that element. */
     private static final Pattern FLAT = Pattern.compile("(Earth|Thunder|Water|Fire|Air) Damage: \\+(\\d+)-(\\d+)(?![\\d%])");
 
@@ -58,12 +61,26 @@ final class TreeBonuses {
             Collection<String> summons) {
         Map<String, Bonus> out = new LinkedHashMap<>();
         List<String> spells = new ArrayList<>(spellNames);
+        // the nodes that name one spell, by name: another node may name them instead of it
+        Map<String, String> via = new LinkedHashMap<>();
+        for (AbilityNode n : tree) {
+            if (TreeModel.spellNode(n, cls) || containsIgnoreCase(spells, n.name())) {
+                continue;
+            }
+            // only a node that adds to the spell's own hit (Fireworks' "+100%"), not one with a
+            // damage of its own (Fire Creep's trail, "Total Damage: 50%")
+            String t = TreeModel.text(n);
+            List<String> in = mentioned(t, spells);
+            if (in.size() == 1 && t.contains("Total Damage: +")) {
+                via.put(n.name(), in.get(0));
+            }
+        }
         for (AbilityNode n : tree) {
             boolean ultimate = n.type() != null && n.type().contains("ULTIMATE");
             if (ultimate || TreeModel.spellNode(n, cls) || containsIgnoreCase(spells, n.name())) {
                 continue;                               // a spell's own numbers are its rules entry's
             }
-            Bonus b = bonus(TreeModel.text(n), spells, summons);
+            Bonus b = bonus(TreeModel.text(n), spells, summons, via);
             if (b != null) {
                 out.put(n.name(), b);
             }
@@ -73,6 +90,11 @@ final class TreeBonuses {
 
     /** One node's text read for its bonuses; null when it has none the model can use. */
     static Bonus bonus(String t, List<String> spells, Collection<String> summons) {
+        return bonus(t, spells, summons, Map.of());
+    }
+
+    /** {@link #bonus} where {@code via} (node name: the one spell it names) stands in for a spell. */
+    static Bonus bonus(String t, List<String> spells, Collection<String> summons, Map<String, String> via) {
         double main = 0;
         Matcher mm = MAIN.matcher(t);
         while (mm.find()) {
@@ -104,7 +126,8 @@ final class TreeBonuses {
             for (double v : c) {
                 sum += v;
             }
-            if (Math.abs(sum * 100 - Integer.parseInt(tm.group(1))) < 1.5) {
+            int total = Integer.parseInt(tm.group(1).replace("+", ""));
+            if (Math.abs(sum * 100 - total) < 1.5) {
                 String target = tm.group(2);
                 if (target != null) {
                     spell = named(spells, target.trim());       // "for Guardian Angels" is not a spell
@@ -121,9 +144,14 @@ final class TreeBonuses {
                             }
                         }
                         summon = nouns.size() == 1 ? nouns.get(0) : null;
+                        if (summon == null && total > 0) {
+                            spell = viaNode(t, via);
+                        }
                     }
                 }
-                conv = spell != null || summon != null ? c : null;
+                // a lowering only on a spell it names: one on a summon comes with more of them
+                boolean named = target != null || !mentioned(t, spells).isEmpty();
+                conv = (spell != null || summon != null) && (total > 0 || spell != null && named) ? c : null;
             }
         }
         if (main <= 0 && !anyElement && conv == null) {
@@ -132,12 +160,26 @@ final class TreeBonuses {
         return new Bonus(spell, summon, conv, main, element, flat);
     }
 
+    /** The one spell the nodes named in {@code t} stand for ({@code via}); null for none or two. */
+    private static String viaNode(String t, Map<String, String> via) {
+        String found = null;
+        for (var e : via.entrySet()) {
+            if (Pattern.compile("\\b" + Pattern.quote(e.getKey()) + "\\b").matcher(t).find()) {
+                if (found != null && !found.equals(e.getValue())) {
+                    return null;
+                }
+                found = e.getValue();
+            }
+        }
+        return found;
+    }
+
     /** The "( Earth: +20%)" parts of a damage block as fractions, neutral first. */
     private static double[] parts(String block) {
         double[] c = new double[Damage.ELEMENTS.length];
         Matcher p = PART.matcher(block);
         while (p.find()) {
-            c[index(p.group(1))] += Integer.parseInt(p.group(2)) / 100.0;
+            c[index(p.group(1))] += Integer.parseInt(p.group(2).replace("+", "")) / 100.0;
         }
         return c;
     }

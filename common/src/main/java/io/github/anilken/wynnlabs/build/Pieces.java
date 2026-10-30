@@ -99,6 +99,15 @@ final class Pieces {
     }
 
     static Piece piece(ItemData info) {
+        return piece(info, null);
+    }
+
+    /**
+     * A piece from the item data with every roll at the middle of its range. {@code powders}: the
+     * ones in its slots as a WynnBuilder link writes them ("T6T6E7", each its own tier); null
+     * fills every slot the way players fill them ({@link #assumedPowders}).
+     */
+    static Piece piece(ItemData info, String powders) {
         Map<String, Double> stats = new HashMap<>();
         for (StatRange v : info.stats()) {
             stats.merge(v.key(), (v.min() + v.max()) / 2.0, Double::sum);
@@ -126,19 +135,56 @@ final class Pieces {
         double health = info.base().health();
         // a piece you would buy gets its slots filled, as the one you wear has them: weapons with
         // their own strongest element (players powder a weapon in its element), armour for health
-        List<String> powders = assumedPowders(info, sh);
-        if (!powders.isEmpty()) {
-            int ptier = powderTier(info.requirements().level());
+        List<Powder> ps = powders != null ? linkPowders(powders)
+                : tiered(assumedPowders(info, sh), powderTier(info.requirements().level()));
+        if (!ps.isEmpty()) {
             if (info.slot() != null && info.slot().isWeapon()) {
-                Powdered out = powdered(powders, ptier, dps, sh, stats);
+                Powdered out = powdered(ps, dps, sh, stats);
                 dps = out.dps();
                 sh = out.shares();
             } else {
-                health += powders.size() * POWDER_HP[ptier - 1];
+                health += powderHealth(ps);
             }
         }
-        return new Piece(null, "info:" + info.name(), info.name(), info.slot(), info.requirements().level(), stats,
+        String key = "info:" + info.name() + (powders == null ? "" : "|" + powders);
+        return new Piece(null, key, info.name(), info.slot(), info.requirements().level(), stats,
                 reqs, dps, sh, health);
+    }
+
+    /** One powder: its element (earth … air) and tier (1-7). */
+    record Powder(String element, int tier) {}
+
+    private static final String POWDER_LETTERS = "ETWFA";
+    private static final String[] POWDER_ELEMENTS = {"earth", "thunder", "water", "fire", "air"};
+
+    /** A link's powders ("T6T6E7"): each letter's element at the tier after it; what it cannot read is left out. */
+    static List<Powder> linkPowders(String s) {
+        List<Powder> out = new java.util.ArrayList<>();
+        for (int i = 0; i + 1 < s.length(); i += 2) {
+            int el = POWDER_LETTERS.indexOf(Character.toUpperCase(s.charAt(i)));
+            int tier = Character.digit(s.charAt(i + 1), 10);
+            if (el >= 0 && tier >= 1 && tier <= POWDER_LEVEL.length) {
+                out.add(new Powder(POWDER_ELEMENTS[el], tier));
+            }
+        }
+        return out;
+    }
+
+    private static List<Powder> tiered(List<String> elements, int tier) {
+        List<Powder> out = new java.util.ArrayList<>();
+        for (String e : elements) {
+            out.add(new Powder(e.toLowerCase(Locale.ROOT), tier));
+        }
+        return out;
+    }
+
+    /** Armour powders: health by tier, the same for every element. */
+    private static double powderHealth(List<Powder> ps) {
+        double h = 0;
+        for (Powder p : ps) {
+            h += POWDER_HP[p.tier() - 1];
+        }
+        return h;
     }
 
     /**
@@ -266,26 +312,24 @@ final class Pieces {
     /** A weapon's DPS and element shares with its powders in. */
     private record Powdered(double dps, Map<String, Double> shares) {}
 
-    /** Weapon powders: each converts part of the neutral damage to its element and adds flat damage. */
-    private static Powdered powdered(List<String> powders, int ptier, double dps, Map<String, Double> sh,
+    /**
+     * Weapon powders (WynnBuilder's applyPowders): each converts its share of the weapon's own
+     * neutral damage while neutral is left, and adds its flat damage. A second element's powders
+     * convert from the weapon's neutral too, not from what the first element left.
+     */
+    private static Powdered powdered(List<Powder> powders, double dps, Map<String, Double> sh,
             Map<String, Double> stats) {
         int t = (int) Math.round(stats.getOrDefault(TIER, 3.0));
         double perHit = dps / HITS[Math.max(0, Math.min(6, t))];
         Map<String, Double> parts = new HashMap<>();
         sh.forEach((k, v) -> parts.put(k, v * perHit));
-        Map<String, double[]> byEl = new java.util.LinkedHashMap<>();   // el -> {conv, flat}
-        for (String pw : powders) {
-            String el = pw.toLowerCase(Locale.ROOT);
-            double[] row = POWDER[elementIndex(el)][ptier - 1];
-            double[] acc = byEl.computeIfAbsent(el, k -> new double[2]);
-            acc[0] += row[2] / 100.0;
-            acc[1] += (row[0] + row[1]) / 2.0;
-        }
-        for (var e : byEl.entrySet()) {
+        double neutralBase = parts.getOrDefault("neutral", 0.0);
+        for (Powder pw : powders) {
+            double[] row = POWDER[elementIndex(pw.element())][pw.tier() - 1];
             double neutral = parts.getOrDefault("neutral", 0.0);
-            double moved = Math.min(neutral, e.getValue()[0] * neutral);
+            double moved = Math.min(neutral, row[2] / 100.0 * neutralBase);
             parts.put("neutral", neutral - moved);
-            parts.merge(e.getKey(), moved + e.getValue()[1], Double::sum);
+            parts.merge(pw.element(), moved + (row[0] + row[1]) / 2.0, Double::sum);
         }
         double sum = parts.values().stream().mapToDouble(Double::doubleValue).sum();
         return new Powdered(sum * HITS[Math.max(0, Math.min(6, t))], normalise(parts));
@@ -352,15 +396,15 @@ final class Pieces {
                 }
             }
             if (!powders.isEmpty()) {
-                int ptier = powderTier(info.level());
+                List<Powder> ps = tiered(powders, powderTier(info.level()));
                 if (info.slot() != null && info.slot().isWeapon()) {
                     // weapon powders: convert part of the neutral damage and add flat damage
-                    Powdered out = powdered(powders, ptier, dps, sh, stats);
+                    Powdered out = powdered(ps, dps, sh, stats);
                     dps = out.dps();
                     sh = out.shares();
                 } else {
                     // armour powders: health by tier (same for every element)
-                    health += powders.size() * POWDER_HP[ptier - 1];
+                    health += powderHealth(ps);
                 }
             }
             return new Piece(stack, key, info.name(), info.slot(), info.level(), stats, reqs,
