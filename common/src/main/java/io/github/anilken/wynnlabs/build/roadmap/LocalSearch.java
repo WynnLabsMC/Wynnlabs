@@ -17,18 +17,23 @@ import java.util.Map;
 
 /**
  * The search's local moves: from a set, the best single swap or pair of swaps out of each slot's
- * first few, until none helps by more than 0.2 %. Deterministic.
+ * first few, until none helps ({@link SetJudge#improves}: any gain at all; the 0.2 % bar is only
+ * for showing a change). Deterministic.
  */
 final class LocalSearch {
 
     private LocalSearch() {}
 
     /**
-     * Each free slot's first rules.roadmap.localPool (12) of its pool as pieces, the level's
-     * only, in BEAM_ORDER: the slots the local search tries (the two rings share one).
+     * Each free slot's pieces the local search tries, the level's only, in BEAM_ORDER (the two
+     * rings share one): the first rules.roadmap.localPool (12) of its pool and the first
+     * rules.roadmap.localExtra (6) of its extras ({@link PoolExtras}), ordered so the first
+     * {@link #pairReach} hold the pool's first rules.roadmap.localPairPool (8) and the extras'
+     * first rules.roadmap.localPairExtra (3): the pairs try pieces of a whole set's kind too.
      */
     static Map<String, List<Damage.Piece>> slotPools(Ctx c) {
         int n = (int) Rules.sub("roadmap", "localPool", 12);
+        int nx = (int) Rules.sub("roadmap", "localExtra", 6);
         Map<String, List<Damage.Piece>> out = new LinkedHashMap<>();
         for (String slot : Roadmap.BEAM_ORDER) {
             if (c.fixed().contains(slot)) {
@@ -36,15 +41,11 @@ final class LocalSearch {
             }
             Slot t = slot.startsWith("RING") ? Slot.RING : slot.equals("WEAPON") ? null : Slot.valueOf(slot);
             List<ItemData> pool = t == null ? SetJudge.weaponPool(c.pools()) : c.pools().get(t);
-            List<Damage.Piece> top = new ArrayList<>();
-            for (ItemData info : pool == null ? List.<ItemData>of() : pool) {
-                if (top.size() >= n) {
-                    break;
-                }
-                if (info.requirements().level() <= c.m()) {
-                    top.add(c.piece(info));
-                }
-            }
+            List<ItemData> more = c.extra() == null ? null : t == null ? SetJudge.weaponPool(c.extra()) : c.extra().get(t);
+            List<Damage.Piece> head = firstOf(c, pool, n, java.util.Set.of());
+            java.util.Set<String> in = new java.util.HashSet<>();
+            head.forEach(p -> in.add(p.name()));
+            List<Damage.Piece> top = mix(head, firstOf(c, more, nx, in));
             if (!top.isEmpty()) {
                 out.put(slot, top);
             }
@@ -52,13 +53,51 @@ final class LocalSearch {
         return out;
     }
 
+    /**
+     * A slot's pieces for the local search from its pool's first ({@code head}) and its extras
+     * ({@code tail}): the pool's first rules.roadmap.localPairPool (8), the extras' first
+     * rules.roadmap.localPairExtra (3), then the rest of each, so the pairs reach both.
+     */
+    static List<Damage.Piece> mix(List<Damage.Piece> head, List<Damage.Piece> tail) {
+        int two = (int) Rules.sub("roadmap", "localPairPool", 8);
+        int twoX = (int) Rules.sub("roadmap", "localPairExtra", 3);
+        List<Damage.Piece> top = new ArrayList<>(head.subList(0, Math.min(two, head.size())));
+        top.addAll(tail.subList(0, Math.min(twoX, tail.size())));
+        if (head.size() > two) {
+            top.addAll(head.subList(two, head.size()));
+        }
+        if (tail.size() > twoX) {
+            top.addAll(tail.subList(twoX, tail.size()));
+        }
+        return top;
+    }
+
+    /** The first {@code n} of {@code pool} the level allows, as pieces, none named in {@code skip}. */
+    private static List<Damage.Piece> firstOf(Ctx c, List<ItemData> pool, int n, java.util.Set<String> skip) {
+        List<Damage.Piece> top = new ArrayList<>();
+        for (ItemData info : pool == null ? List.<ItemData>of() : pool) {
+            if (top.size() >= n) {
+                break;
+            }
+            if (info.requirements().level() <= c.m() && !skip.contains(info.name())) {
+                top.add(c.piece(info));
+            }
+        }
+        return top;
+    }
+
+    /** How many of each slot pool's first pieces the pairs try: rules.roadmap.localPairPool (8) and localPairExtra (3). */
+    static int pairReach() {
+        return (int) Rules.sub("roadmap", "localPairPool", 8) + (int) Rules.sub("roadmap", "localPairExtra", 3);
+    }
+
     /** A move the local search weighs: the set after it, its quick score, its spread, and whether that spread is the full one. */
     private record Move(Map<String, Damage.Piece> set, double quick, Build.Eval eval, boolean exact) {}
 
     /**
-     * From {@code start}, the best move until none helps by more than 0.2 %: any one slot to one
-     * of its first rules.roadmap.localPool (12), and once no single swap helps, any two slots at
-     * once to their first rules.roadmap.localPairPool (8) each (a weapon of another element with
+     * From {@code start}, the best move until none helps ({@link SetJudge#improves}): any one slot to
+     * any piece of its pool ({@link #slotPools}), and once no single swap helps, any two slots at
+     * once to their first {@link #pairReach} each (a weapon of another element with
      * the armour it needs, or two pieces that only meet their skill points together). Moves are
      * scored quickly (only the points a piece needs move, from the spread of the swap before it),
      * the best rules.roadmap.localJudge (50) and every weapon change judged with the points
@@ -71,8 +110,8 @@ final class LocalSearch {
             return null;
         }
         Scored cur = new Scored(b, ev, SetJudge.judged(ev, c.prev(), c.m()));
-        int one = (int) Rules.sub("roadmap", "localPool", 12);
-        int two = (int) Rules.sub("roadmap", "localPairPool", 8);
+        int one = Integer.MAX_VALUE;                         // the slot pools are cut already
+        int two = (int) Rules.sub("roadmap", "localPairPool", 8) > 0 ? pairReach() : 0;
         int rounds = (int) Rules.sub("roadmap", "localRounds", 40);
         for (int round = 0; round < rounds; round++) {
             Scored next = bestMove(c, cur, pools, one, 0);
@@ -87,7 +126,7 @@ final class LocalSearch {
         return cur;
     }
 
-    /** The best move from {@code cur} that helps by more than 0.2 %, or null: single swaps, and pairs when {@code two} > 0. */
+    /** The best move from {@code cur} that helps at all ({@link SetJudge#improves}), or null: single swaps, and pairs when {@code two} > 0. */
     private static Scored bestMove(Ctx c, Scored cur, Map<String, List<Damage.Piece>> pools, int one, int two) {
         int m = c.m();
         int earned = c.earned();
@@ -177,7 +216,7 @@ final class LocalSearch {
                 continue;
             }
             Scored sc = new Scored(mv.set(), e, SetJudge.judged(e, c.prev(), m));
-            if (sc.j() > cur.j() * 1.002 && (best == null || SetJudge.better(sc, best))) {
+            if (SetJudge.improves(sc, cur) && (best == null || SetJudge.better(sc, best))) {
                 best = sc;
             }
         }
@@ -185,20 +224,18 @@ final class LocalSearch {
     }
 
     /**
-     * Every single swap of the slot pools judged in full until none helps by more than 0.2 %,
+     * Every single swap of the slot pools judged in full until none helps ({@link SetJudge#improves}),
      * each one found searched on ({@link #localSearch}): the quick scores rank a piece by the
      * points it needs, and a piece that pays only with the points spread anew can sit below the
      * ones judged.
      */
     static Scored oneOpt(Ctx c, Scored inc, Map<String, List<Damage.Piece>> pools) {
-        int one = (int) Rules.sub("roadmap", "localPool", 12);
         for (int pass = 0; pass < 8; pass++) {
             Scored best = null;
             for (var e : pools.entrySet()) {
                 String slot = e.getKey();
                 List<Damage.Piece> pool = e.getValue();
-                for (int i = 0; i < pool.size() && i < one; i++) {
-                    Damage.Piece p = pool.get(i);
+                for (Damage.Piece p : pool) {
                     if (SetJudge.same(inc.set().get(slot), p)) {
                         continue;
                     }
@@ -212,7 +249,7 @@ final class LocalSearch {
                         continue;
                     }
                     Scored sc = new Scored(s, ev, SetJudge.judged(ev, c.prev(), c.m()));
-                    if (sc.j() > inc.j() * 1.002 && (best == null || SetJudge.better(sc, best))) {
+                    if (SetJudge.improves(sc, inc) && (best == null || SetJudge.better(sc, best))) {
                         best = sc;
                     }
                 }

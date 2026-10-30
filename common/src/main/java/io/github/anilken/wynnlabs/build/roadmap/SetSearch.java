@@ -84,7 +84,7 @@ final class SetSearch {
         List<Scored> beam = BeamSearch.beamBest(c, build, s0);
         Perf.end("roadmap.beam", t);
         Scored inc = new Scored(new LinkedHashMap<>(build), cur, from);
-        if (!beam.isEmpty() && beam.get(0).j() > from * 1.002) {
+        if (!beam.isEmpty() && SetJudge.improves(beam.get(0), inc)) {
             inc = beam.get(0);
             RoadmapTrace.note(m, L.t("wynnlabs.road.trace_beam_set", RoadmapTrace.signedPct((inc.j() / from - 1) * 100)));
         }
@@ -192,7 +192,7 @@ final class SetSearch {
      * The weapons a set is built around: the first rules.roadmap.weaponStarts of the weapon pool
      * (6 from the endgame level on, 3 before), every weapon you have that the milestone allows,
      * each element's strongest weapon alone ({@link #elementBests}) when not among those nor held,
-     * then every Mythic, at most rules.roadmap.weaponStartsMax (16) in
+     * then every Mythic, then the weapon pool's first extras ({@link PoolExtras}), at most rules.roadmap.weaponStartsMax (16) in
      * all. A weapon judged as a swap into armour made for another element mostly loses, Mythics
      * most of all.
      */
@@ -251,6 +251,17 @@ final class SetSearch {
                 out.add(info);
             }
         }
+        // then each element's best on its own beside no armour (the weapon pool's extras,
+        // PoolExtras: the first of each element come first), at most rules.roadmap.weaponStartsExtra (5)
+        List<ItemData> more = c.extra() == null ? null : SetJudge.weaponPool(c.extra());
+        int extraN = (int) Rules.sub("roadmap", "weaponStartsExtra", 5);
+        for (int i = 0; more != null && i < more.size() && i < extraN; i++) {
+            ItemData info = more.get(i);
+            if (out.size() < max && info.requirements().level() <= c.m()
+                    && names.add(info.name().toLowerCase(java.util.Locale.ROOT))) {
+                out.add(info);
+            }
+        }
         return out;
     }
 
@@ -303,7 +314,7 @@ final class SetSearch {
     }
 
     /** A weapon's element: its strongest elemental damage ({@link Damage#ELEMENTS}' index), 0 with none. */
-    private static int element(ItemData info) {
+    static int element(ItemData info) {
         int at = 0;
         int most = 0;
         for (var d : info.base().damages()) {
@@ -456,7 +467,19 @@ final class SetSearch {
                             RoadmapTrace.signedPct((at.j() / bar - 1) * 100)));
                     return at;
                 }
-                Scored end = LocalSearch.localSearch(c, at.set(), pools);
+                Scored from = at;
+                if (s.weapon() != null) {
+                    // the armour chosen with this weapon in, a whole set at a time: a beam of its own
+                    pools = withExtras(c, s.weapon(), pools);
+                    Scored beamed = BeamSearch.weaponBeam(c, at, pools);
+                    if (beamed != null && SetJudge.better(beamed, at)) {
+                        from = beamed;
+                    }
+                }
+                Scored end = LocalSearch.localSearch(c, from.set(), pools);
+                if (end != null && SetJudge.better(from, end)) {
+                    end = from;
+                }
                 RoadmapTrace.note(c.m(), L.t("wynnlabs.road.trace_start_searched", s.why(),
                         RoadmapTrace.signedPct((at.j() / bar - 1) * 100),
                         RoadmapTrace.signedPct(end == null ? Double.NaN : (end.j() / bar - 1) * 100)));
@@ -467,13 +490,55 @@ final class SetSearch {
         Scored best = inc;
         for (int i = 0; i < ends.size(); i++) {
             Scored e = ends.get(i);
-            if (e != null && e.j() > best.j() * 1.002 && SetJudge.better(e, best)) {
+            if (e != null && SetJudge.improves(e, best) && SetJudge.better(e, best)) {
                 RoadmapTrace.note(c.m(), L.t("wynnlabs.road.trace_start_wins", starts.get(i).why(),
                         RoadmapTrace.signedPct((e.j() / best.j() - 1) * 100)));
                 best = e;
             }
         }
         return best;
+    }
+
+    /**
+     * A weapon start's slot pools with each slot's extras ranked for that weapon
+     * ({@link PoolExtras}: judged on their own beside it, not beside the last milestone's), at
+     * most rules.roadmap.localExtra (6) a slot: the pieces of another element's set that a swap
+     * into the set built around it ranks low. Only for a start worth searching.
+     */
+    private static Map<String, List<Damage.Piece>> withExtras(Ctx c, ItemData weapon, Map<String, List<Damage.Piece>> pools) {
+        int nx = (int) Rules.sub("roadmap", "localExtra", 6);
+        Damage.Piece w = c.piece(weapon);
+        Map<String, ItemData> byName = new java.util.HashMap<>();
+        c.wide().values().forEach(l -> l.forEach(i -> byName.put(i.name(), i)));
+        Map<String, List<Damage.Piece>> out = new LinkedHashMap<>();
+        Map<Slot, List<ItemData>> done = new java.util.EnumMap<>(Slot.class);
+        for (var e : pools.entrySet()) {
+            String slot = e.getKey();
+            if (slot.equals("WEAPON")) {
+                out.put(slot, e.getValue());
+                continue;
+            }
+            Slot t = slot.startsWith("RING") ? Slot.RING : Slot.valueOf(slot);
+            java.util.Set<String> in = new java.util.HashSet<>();
+            java.util.Set<String> sets = new java.util.HashSet<>();
+            for (Damage.Piece p : e.getValue()) {
+                in.add(p.name());
+                ItemData info = byName.get(p.name());
+                if (info != null) {
+                    info.set().ifPresent(sd -> sets.add(sd.name()));
+                }
+            }
+            List<ItemData> more = done.computeIfAbsent(t, k -> PoolExtras.of(k, in, sets, c.wide().get(k), c.owned().keySet(),
+                    w, c::piece, c.m(), c.earned()));
+            List<Damage.Piece> tail = new ArrayList<>();
+            for (ItemData info : more) {
+                if (tail.size() < nx && !in.contains(info.name())) {
+                    tail.add(c.piece(info));
+                }
+            }
+            out.put(slot, LocalSearch.mix(e.getValue(), tail));
+        }
+        return out;
     }
 
     /**

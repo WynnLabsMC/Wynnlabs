@@ -31,8 +31,10 @@ final class SetJudge {
      * charges a tenth of it), half that once no new points come (past Lv 101) or against the points
      * you placed yourself ("now"), and never more than rules.roadmap.respecFloor leaves (0.85): a
      * set that is clearly better may change course. Points added are free: you earn them.
-     * The bonus: rules.roadmap.keepBonusPercent (1 %) for each piece the set keeps from the last
-     * milestone's, so of two sets about as good the one you mostly have already wins.
+     * The bonus, a tie-breaker: rules.roadmap.keepBonusPercent (1 %) for a set that keeps all nine
+     * pieces of the last milestone's, a ninth of it per piece kept, so of two sets within about
+     * 1 % the one you mostly have already wins, and a set clearly better wins whatever it keeps
+     * (at 1 % a piece, nine kept pieces outweighed a fresh set 8 % better).
      * And the effort charge ({@link #effort}): an untradable piece paid in fragments, tokens or
      * runs costs what earning it takes, with or without {@code prev}.
      * {@code prev}: as {@link #carry} makes it, only skill points (the ones you placed), or null.
@@ -74,11 +76,10 @@ final class SetJudge {
         int kept = prev.length > n + 1 ? kept(prev, n + 1, pieces, weapon) : 0;
         if (from > 101) {
             // past the last skill point the gear is the whole upgrade: a set you keep counts for
-            // at most rules.roadmap.keepBonusEndPieces (1) pieces, or Lv 120 stayed on the Lv 100
-            // set 5 % behind a fresh one for its nine old pieces
+            // at most rules.roadmap.keepBonusEndPieces (1) pieces
             kept = Math.min(kept, (int) Rules.sub("roadmap", "keepBonusEndPieces", 1));
         }
-        return o * charge * (1 + Rules.sub("roadmap", "keepBonusPercent", 1) / 100.0 * kept);
+        return o * charge * (1 + Rules.sub("roadmap", "keepBonusPercent", 1) / 100.0 * kept / KEEP_PIECES);
     }
 
     /**
@@ -171,6 +172,18 @@ final class SetJudge {
             out[n + 1 + i] = names.get(i);
         }
         return out;
+    }
+
+    /** The pieces of a whole set (a weapon, four armour pieces, four accessories): the keep bonus is shared out over them. */
+    private static final double KEEP_PIECES = 9;
+
+    /**
+     * {@code a} is a step up from {@code b} for the search: any higher score at all (a part in a
+     * billion, so rounding is no step). The 0.2 % bar is for showing a change, never inside the
+     * search, where it stopped a climb two small steps from a better set.
+     */
+    static boolean improves(Roadmap.Scored a, Roadmap.Scored b) {
+        return a.j() > b.j() * (1 + 1e-9);
     }
 
     /** {@code a} beats {@code b}: a higher score, or the same and the first set key (so any order of work ends the same). */

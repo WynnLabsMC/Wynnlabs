@@ -300,7 +300,7 @@ final class MilestonePlanner {
             long perfSearch = Perf.start();
             java.util.Set<String> buyable = new java.util.HashSet<>();
             ms.setGear.forEach(i -> buyable.add(i.name()));
-            SetSearch.search(new Ctx(ms.startSet, ms.pools, ms.wide, SetSeeds.setPieces(cands, ms.setGear, owned, m, fixed),
+            SetSearch.search(new Ctx(ms.startSet, ms.pools, ms.extra, ms.wide, SetSeeds.setPieces(cands, ms.setGear, owned, m, fixed),
                     ownedCount, buyable, wornNow, fixed, m, earned, prevAlloc, ms.freshCopies),
                     baseline, placed, gear);
             Perf.end("roadmap.search", perfSearch);
@@ -319,6 +319,10 @@ final class MilestonePlanner {
         if (ms.allocM != null && baseline != null && !ringFixed) {         // a chosen ring holds the other hand
             Gear second = ms.otherRing();
             if (second != null) {
+                // it takes that hand from the search's pick there, whose row goes with it (the
+                // search put Prime in both hands at Lv 120, and its second row stayed beside
+                // Diamond Fusion Ring)
+                gear.removeIf(g -> g.slot().equals(second.slot()));
                 gear.add(second);
                 Build.Eval be = Build.allocate(baseline, m, earned);
                 if (be != null) {

@@ -174,7 +174,7 @@ class RoadmapMythicsTest {
         int[] reach = Build.reach(wide.values().stream().flatMap(List::stream).map(Damage::piece).toList());
         assertNull(Build.impossible(Damage.piece(quake), earned, reach), "it is not impossible");
         assertTrue(Build.whyNot(alone, earned, reach).contains("5 Strength"), "it needs 5 Strength from gear");
-        Roadmap.Ctx c = new Roadmap.Ctx(new LinkedHashMap<>(build), pools, wide, Map.of(), Map.of(), java.util.Set.of(),
+        Roadmap.Ctx c = new Roadmap.Ctx(new LinkedHashMap<>(build), pools, Map.of(), wide, Map.of(), Map.of(), java.util.Set.of(),
                 new LinkedHashMap<>(build), java.util.Set.of(), m, earned, null, new java.util.concurrent.ConcurrentHashMap<>());
         Build.Eval cur = Build.allocate(build, m, earned);
         assertNotNull(cur);

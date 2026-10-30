@@ -20,6 +20,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** A Lv 72 Shaman on the Damage goal who leans to XP is not told to wear two Precious rings. */
@@ -57,7 +58,11 @@ class FightingGoalXpRoadmapTest {
 
     /**
      * The same lean on the whole map: the fixture carries one Precious, so its XP pull shows at
-     * Lv 80, where two Ring of Wisdom (XP bonus, little damage) took both ring slots.
+     * Lv 80, where two Ring of Wisdom (XP bonus, little damage) took both ring slots. Two XP rings
+     * stand only when they give up little damage: no ring pair the map wears elsewhere deals over
+     * 5 % more in that set. xpWeight 1.5 asks for XP: at Lv 80 two Ring of Wisdom give a fifth more
+     * XP for 3 % less damage than the Desert Winds kept from Lv 44 (a whole 2 % keep bonus held
+     * those before; it is a tie-breaker now).
      */
     @Test
     void noTwoXpRingsOnTheDamageMap() throws Exception {
@@ -79,8 +84,41 @@ class FightingGoalXpRoadmapTest {
             Fixtures.note(String.format(java.util.Locale.ROOT, "Lv %d xpWeight 1.5: rings %s + %s, xp %.0f",
                     s.level(), r1, r2, s.set() == null ? 0 : s.set().result().xp()));
             for (String xpRing : new String[] {"Precious", "Ring of Wisdom"}) {
-                assertFalse(r1.equals(xpRing) && r2.equals(xpRing), "Lv " + s.level() + ": two " + xpRing);
+                if (r1.equals(xpRing) && r2.equals(xpRing)) {
+                    double dps = s.set().result().spellDps() + s.set().result().mainDps();
+                    String better = moreDamage(steps, s, dps, xpRing);
+                    assertNull(better, "Lv " + s.level() + ": two " + xpRing + ", though " + better + " deal more");
+                }
             }
         }
+    }
+
+    /** A pair of the map's other rings that deals over 5 % more than {@code dps} in {@code s}'s set, with its numbers, or null. */
+    private static String moreDamage(List<Roadmap.Step> steps, Roadmap.Step s, double dps, String xpRing) {
+        java.util.Set<String> rings = new java.util.TreeSet<>();
+        for (Roadmap.Step o : steps) {
+            for (String slot : new String[] {"RING1", "RING2"}) {
+                Damage.Piece p = o.build().get(slot);
+                if (p != null && !p.name().equals(xpRing) && p.level() <= s.level()) {
+                    rings.add(p.name());
+                }
+            }
+        }
+        List<String> names = List.copyOf(rings);
+        int earned = (Math.min(s.level(), 101) - 1) * 2;
+        for (int i = 0; i < names.size(); i++) {
+            for (int k = i; k < names.size(); k++) {
+                Map<String, Damage.Piece> b = new java.util.LinkedHashMap<>(s.build());
+                b.put("RING1", OwnedGear.pieceOf(Roadmap.findGear(names.get(i))));
+                b.put("RING2", OwnedGear.pieceOf(Roadmap.findGear(names.get(k))));
+                Build.Eval e = Build.allocate(b, s.level(), earned);
+                double alt = e == null ? 0 : e.result().spellDps() + e.result().mainDps();
+                if (alt > dps * 1.05) {
+                    return names.get(i) + " + " + names.get(k) + String.format(java.util.Locale.ROOT,
+                            " (damage %.0f vs %.0f, xp %.0f vs %.0f)", alt, dps, e.result().xp(), s.set().result().xp());
+                }
+            }
+        }
+        return null;
     }
 }

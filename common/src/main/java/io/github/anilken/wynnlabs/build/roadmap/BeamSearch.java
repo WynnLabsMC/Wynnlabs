@@ -32,7 +32,8 @@ final class BeamSearch {
     /**
      * A wide search over whole sets, after build-solver's beam (RawFish69/build-solver, written
      * anew): from the milestone's starting set, slot by slot in BEAM_ORDER, every kept partial
-     * set tries each of the slot's best rules.roadmap.jointPool (40) or keeps what it has; the
+     * set tries each of the slot's best rules.roadmap.jointPool (40) and its extras ({@link PoolExtras})
+     * or keeps what it has; the
      * rules.roadmap.beamWidth (200) best by a quick score go on (the weapon spreads the points
      * anew, the rest move only what the piece needs), no weapon holding more than a quarter of
      * them, so a weapon of another element keeps its sets to the end. The best few at the end
@@ -48,8 +49,8 @@ final class BeamSearch {
                 SetJudge.judged(s0, prev, m))));
         for (String slot : Roadmap.BEAM_ORDER) {
             Slot t = slot.startsWith("RING") ? Slot.RING : slot.equals("WEAPON") ? null : Slot.valueOf(slot);
-            List<ItemData> pool = t == null ? SetJudge.weaponPool(c.pools()) : c.pools().get(t);
-            if (pool == null || pool.isEmpty() || c.fixed().contains(slot)) {
+            List<ItemData> pool = c.joint(t);
+            if (pool.isEmpty() || c.fixed().contains(slot)) {
                 continue;                                           // a chosen item stays
             }
             List<BeamState> next = new ArrayList<>(beam);          // keeping the slot as it is
@@ -75,10 +76,12 @@ final class BeamSearch {
                     next.add(new BeamState(b, ev.allocation(), SetJudge.judged(ev, prev, m)));
                 }
             }
-            // the quick score moves only the points a piece needs: the best few by it are scored
-            // again with the points spread anew, so a set that needs a new spread is not cut early
+            // the quick score moves only the points a piece needs: the best quarter of the width
+            // by it (rules.roadmap.beamExactShare) is scored again with the points spread anew, so
+            // a set that needs a new spread (pieces that only meet their skills together) is not
+            // cut early
             next.sort((x, y) -> Double.compare(y.score(), x.score()));
-            int exact = (int) Rules.sub("roadmap", "beamExact", 20);
+            int exact = (int) Math.round(width * Rules.sub("roadmap", "beamExactShare", 0.25));
             for (int i = 0; i < next.size() && i < exact; i++) {
                 BeamState st = next.get(i);
                 Build.Eval ev = Build.allocate(st.build(), m, earned);
@@ -128,6 +131,80 @@ final class BeamSearch {
         }
         out.sort((x, y) -> SetJudge.better(x, y) ? -1 : SetJudge.better(y, x) ? 1 : 0);
         return out;
+    }
+
+    /**
+     * A small beam around a weapon start ({@code at}, its weapon held): slot by slot in
+     * BEAM_ORDER every kept set tries each piece of that slot's pool ({@code pools}, ranked with
+     * this weapon in) or keeps what it has, the rules.roadmap.weaponBeamWidth (16) best by the
+     * quick score going on, the best quarter of them scored with the points spread anew. The
+     * main beam picks the weapon first against the last milestone's armour, so a weapon that
+     * wants a whole other set lost its armour there; the greedy set around it fills one slot at a
+     * time. The best set it ends on, judged in full, or null.
+     */
+    static Scored weaponBeam(Ctx c, Scored at, Map<String, List<Damage.Piece>> pools) {
+        int m = c.m();
+        int earned = c.earned();
+        int[] prev = c.prev();
+        int width = (int) Rules.sub("roadmap", "weaponBeamWidth", 16);
+        if (width <= 0) {
+            return null;
+        }
+        int exact = (int) Math.round(width * Rules.sub("roadmap", "beamExactShare", 0.25));
+        List<BeamState> beam = new ArrayList<>(List.of(new BeamState(new LinkedHashMap<>(at.set()),
+                at.eval().allocation(), at.j())));
+        for (String slot : Roadmap.BEAM_ORDER) {
+            List<Damage.Piece> pool = pools.get(slot);
+            if (slot.equals("WEAPON") || pool == null || c.fixed().contains(slot)) {
+                continue;
+            }
+            List<BeamState> next = new ArrayList<>(beam);
+            for (BeamState st : beam) {
+                for (Damage.Piece cand : pool) {
+                    if (SetJudge.same(st.build().get(slot), cand)
+                            || Exclusive.clash(st.build(), slot, Exclusive.group(cand)) != null) {
+                        continue;
+                    }
+                    Roadmap.tick();
+                    Build.Eval ev = Build.tryEval(st.build(), st.alloc(), slot, cand, m, earned);
+                    if (ev != null) {
+                        next.add(new BeamState(SetJudge.with(st.build(), slot, cand), ev.allocation(),
+                                SetJudge.judged(ev, prev, m)));
+                    }
+                }
+            }
+            next.sort((x, y) -> Double.compare(y.score(), x.score()));
+            for (int i = 0; i < next.size() && i < exact; i++) {
+                BeamState st = next.get(i);
+                Build.Eval ev = Build.allocate(st.build(), m, earned);
+                if (ev != null) {
+                    next.set(i, new BeamState(st.build(), ev.allocation(), SetJudge.judged(ev, prev, m)));
+                }
+            }
+            next.sort((x, y) -> {
+                int by = Double.compare(y.score(), x.score());
+                return by != 0 ? by : SetJudge.setKey(x.build()).compareTo(SetJudge.setKey(y.build()));
+            });
+            Map<String, BeamState> seen = new LinkedHashMap<>();
+            for (BeamState st : next) {
+                if (seen.size() >= width) {
+                    break;
+                }
+                seen.putIfAbsent(SetJudge.setKey(st.build()), st);
+            }
+            beam = new ArrayList<>(seen.values());
+        }
+        Scored best = null;
+        for (int i = 0; i < beam.size() && i < Math.max(1, exact); i++) {
+            Build.Eval ev = Build.allocate(beam.get(i).build(), m, earned);
+            if (ev != null) {
+                Scored sc = new Scored(beam.get(i).build(), ev, SetJudge.judged(ev, prev, m));
+                if (best == null || SetJudge.better(sc, best)) {
+                    best = sc;
+                }
+            }
+        }
+        return best;
     }
 
     /**

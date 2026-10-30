@@ -120,11 +120,13 @@ public final class Roadmap {
     /**
      * What one milestone's search works from: the set it started with (what you wear, or the last
      * milestone's), each slot type's best few ({@code pools}, ranked against the slot-by-slot
-     * build) and everything the milestone allows there ({@code wide}), the sets it can put
+     * build), what a whole set could want that this ranking left out ({@code extra},
+     * {@link PoolExtras}) and everything the milestone allows there ({@code wide}), the sets it can put
      * together with what you have and could buy of them, what you wear now, the chosen items'
      * slots, the level, the points earned, the last milestone's spread, and the pieces made so far.
      */
-    record Ctx(Map<String, Damage.Piece> start, Map<Slot, List<ItemData>> pools, Map<Slot, List<ItemData>> wide,
+    record Ctx(Map<String, Damage.Piece> start, Map<Slot, List<ItemData>> pools, Map<Slot, List<ItemData>> extra,
+            Map<Slot, List<ItemData>> wide,
             Map<String, List<ItemData>> sets, Map<String, Integer> owned, java.util.Set<String> buyable,
             Map<String, Damage.Piece> worn, java.util.Set<String> fixed, int m, int earned, int[] prev,
             Map<String, Damage.Piece> pieces) {
@@ -136,6 +138,24 @@ public final class Roadmap {
          */
         Damage.Piece piece(ItemData info) {
             return pieces.computeIfAbsent(info.name(), n -> OwnedGear.pieceOf(info));
+        }
+
+        /** Slot type {@code t}'s pool, then its extras not in it (null: the weapon's); empty with none. */
+        List<ItemData> joint(Slot t) {
+            List<ItemData> head = t == null ? SetJudge.weaponPool(pools) : pools.get(t);
+            List<ItemData> more = extra == null ? null : t == null ? SetJudge.weaponPool(extra) : extra.get(t);
+            if (more == null || more.isEmpty()) {
+                return head == null ? List.of() : head;
+            }
+            List<ItemData> out = new java.util.ArrayList<>(head == null ? List.of() : head);
+            java.util.Set<String> in = new java.util.HashSet<>();
+            out.forEach(i -> in.add(i.name()));
+            for (ItemData i : more) {
+                if (in.add(i.name())) {
+                    out.add(i);
+                }
+            }
+            return out;
         }
     }
 
@@ -449,7 +469,7 @@ public final class Roadmap {
      * is the scoring's). A method, not a field: a field added by a hot swap keeps no value.
      */
     public static int mapVersion() {
-        return 10;
+        return 11;
     }
 
     /** Tests: the saved map is looked for again, and nothing is kept in memory. */

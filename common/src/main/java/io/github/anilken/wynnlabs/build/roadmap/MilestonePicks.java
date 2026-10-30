@@ -54,6 +54,8 @@ final class MilestonePicks {
     int[] allocM;
     /** The best few per slot type. */
     final Map<Slot, List<ItemData>> pools = new java.util.EnumMap<>(Slot.class);
+    /** Per slot type, what a whole set could want that the pool's one-swap ranking left out ({@link PoolExtras}). */
+    final Map<Slot, List<ItemData>> extra = new java.util.EnumMap<>(Slot.class);
     /** Name → a fresh copy to buy of a piece you have, where the slot ranking chose one over yours. */
     final Map<String, Damage.Piece> freshCopies = new java.util.concurrent.ConcurrentHashMap<>();
     /** The set and the placed slots as the milestone started. */
@@ -620,6 +622,10 @@ final class MilestonePicks {
             }
             pools.put(t, ranked.stream().limit((long) Rules.sub("roadmap", "jointPool", 40))
                     .map(r -> (ItemData) r[0]).toList());
+            long perfX = io.github.anilken.wynnlabs.core.Perf.start();
+            extra.put(t, PoolExtras.of(t, pools.get(t), wide.get(t), run.owned, run.baseline.get("WEAPON"),
+                    i -> freshCopies.getOrDefault(i.name(), OwnedGear.pieceOf(i)), m, earned));
+            io.github.anilken.wynnlabs.core.Perf.end("roadmap.extras", perfX);
             int market = 0;
             int other = 0;
             List<Object[]> cleared = new ArrayList<>();     // {info, eff, gain, slot}: market picks over the bar

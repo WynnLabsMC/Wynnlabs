@@ -116,7 +116,9 @@ public final class FixtureState implements GameState {
             rm.addProperty("jointPool", 6);
             rm.addProperty("beamWidth", 12);
             rm.addProperty("beamFinal", 4);
-            rm.addProperty("beamExact", 0);
+            rm.addProperty("localExtra", 3);
+            rm.addProperty("localPairExtra", 2);
+            rm.addProperty("poolShortlist", 2);
             rm.addProperty("exactPool", 0);         // RoadmapEveryLevelTest turns it on
             rules.add("roadmap", rm);
         }
