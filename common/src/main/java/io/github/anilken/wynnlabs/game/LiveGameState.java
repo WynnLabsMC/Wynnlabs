@@ -180,6 +180,11 @@ final class LiveGameState implements GameState {
     }
 
     @Override
+    public boolean tomesKnown() {
+        return !Wyn.equippedTomes().isEmpty();
+    }
+
+    @Override
     public Map<String, Integer> aspects() {
         Map<String, Integer> out = new java.util.LinkedHashMap<>();
         for (String a : Wyn.equippedAspects()) {

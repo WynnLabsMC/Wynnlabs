@@ -128,7 +128,7 @@ final class UiExport {
         if (state.inGame() && !state.skillsKnown()) {
             tip.add(L.c("wynnlabs.wb.skills_unread").withStyle(ChatFormatting.GOLD));
         }
-        if (state.inGame() && state.tomes().isEmpty()) {
+        if (state.inGame() && !state.tomesKnown()) {
             tip.add(L.c("wynnlabs.wb.tomes_unread").withStyle(ChatFormatting.GOLD));
         }
         return tip;

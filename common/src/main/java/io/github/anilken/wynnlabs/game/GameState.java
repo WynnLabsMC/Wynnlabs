@@ -115,6 +115,14 @@ public interface GameState {
         return List.of();
     }
 
+    /**
+     * True once the equipped tomes are known: Wynntils read them, or the Mastery Tomes menu was
+     * open once for this character. False in a recorded game.
+     */
+    default boolean tomesKnown() {
+        return false;
+    }
+
     /** The aspects the character has equipped: name → tier (1-4); empty when none are known. */
     default Map<String, Integer> aspects() {
         return Map.of();

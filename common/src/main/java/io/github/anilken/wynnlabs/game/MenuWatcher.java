@@ -115,6 +115,7 @@ public final class MenuWatcher {
             BUTTON_KEYS.clear();
         }
         unspent = -1;
+        TomeMemory.reset();
         ANNOUNCED.clear();
         announcedFor = null;
     }
@@ -227,6 +228,11 @@ public final class MenuWatcher {
         }
         try {
             TreeConnectors.capture(screen);     // the ability tree's pieces, when its menu is open
+        } catch (Throwable ignored) {
+            // reading a menu must never break the game
+        }
+        try {
+            TomeMemory.capture();               // the equipped tomes, when the Mastery Tomes menu is open
         } catch (Throwable ignored) {
             // reading a menu must never break the game
         }

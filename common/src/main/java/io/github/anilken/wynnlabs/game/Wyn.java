@@ -22,11 +22,13 @@ import com.wynntils.models.containers.containers.personal.CharacterBankContainer
 import com.wynntils.models.containers.containers.personal.PersonalStorageContainer;
 import com.wynntils.models.containers.containers.trademarket.TradeMarketSellContainer;
 import com.wynntils.models.elements.type.Skill;
+import com.wynntils.models.containers.containers.MasteryTomesContainer;
 import com.wynntils.models.containers.containers.RaidRewardPreviewContainer;
 import com.wynntils.models.gear.type.GearInfo;
 import com.wynntils.models.items.WynnItem;
 import com.wynntils.models.items.items.game.AspectItem;
 import com.wynntils.models.items.items.game.GearBoxItem;
+import com.wynntils.models.items.items.game.TomeItem;
 import com.wynntils.models.lootrun.type.LootrunningState;
 import com.wynntils.models.lootrun.type.MissionType;
 import com.wynntils.models.marker.MarkerModel;
@@ -34,6 +36,7 @@ import com.wynntils.models.marker.UserWaypointMarkerProvider;
 import com.wynntils.models.objectives.WynnObjective;
 import com.wynntils.models.players.type.PlayerRank;
 import com.wynntils.models.profession.type.ProfessionType;
+import com.wynntils.models.stats.type.SkillStatType;
 import com.wynntils.models.raid.RaidModel;
 import com.wynntils.models.territories.profile.TerritoryProfile;
 import com.wynntils.models.wynnitem.type.ItemObtainInfo;
@@ -490,7 +493,23 @@ public final class Wyn {
         return guard(Feature.SKILLS, () -> Models.SkillPoint.getGearSkillPoints(skill(s)), 0);
     }
 
+    /**
+     * Tome skill points of a skill: Wynntils' number when it read any (only its own menu query
+     * fills them), else the tomes remembered from the Mastery Tomes menu the player opened.
+     */
     public static int tomePoints(SkillKind s) {
+        int own = wynntilsTomePoints(s);
+        if (own != 0 || !GameState.current().running()) {
+            return own;
+        }
+        boolean any = false;
+        for (SkillKind k : SkillKind.values()) {
+            any |= wynntilsTomePoints(k) != 0;
+        }
+        return TomeMemory.points(s, own, any);
+    }
+
+    private static int wynntilsTomePoints(SkillKind s) {
         return guard(Feature.SKILLS, () -> Models.SkillPoint.getTomeSkillPoints(skill(s)), 0);
     }
 
@@ -1364,11 +1383,12 @@ public final class Wyn {
     }
 
     /**
-     * The tomes this character has equipped, by name, as Wynntils last read them from the
-     * Mastery Tomes menu; empty when none is known or unavailable.
+     * The tomes this character has equipped, by name: as Wynntils last read them with its own
+     * menu query, else as the Mastery Tomes menu showed them when the player opened it; empty
+     * when none is known or unavailable.
      */
     public static List<String> equippedTomes() {
-        return guard(Feature.CHARACTER, () -> {
+        List<String> own = guard(Feature.CHARACTER, () -> {
             List<String> out = new ArrayList<>();
             var set = Models.Character.getCurrentTomeSet();
             if (set != null) {
@@ -1376,6 +1396,42 @@ public final class Wyn {
             }
             return List.copyOf(out);
         }, List.of());
+        return GameState.current().running() ? TomeMemory.names(own) : own;
+    }
+
+    /**
+     * The tomes in the Mastery Tomes menu with their skill points, while the player has it
+     * open; null when another screen is open. Only reads the open menu.
+     */
+    static List<TomeMemory.Seen> masteryTomes() {
+        return guard(Feature.CHARACTER, () -> {
+            if (!(Models.Container.getCurrentContainer() instanceof MasteryTomesContainer)
+                    || !(net.minecraft.client.Minecraft.getInstance().screen
+                            instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
+                return null;
+            }
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            List<TomeMemory.Seen> out = new ArrayList<>();
+            for (var slot : screen.getMenu().slots) {
+                ItemStack stack = slot.getItem();
+                if ((player != null && slot.container == player.getInventory()) || stack.isEmpty()) {
+                    continue;
+                }
+                Models.Item.asWynnItem(stack, TomeItem.class).ifPresent(t -> {
+                    if (t.getItemInfo() == null || t.getItemInfo().type() == null) {
+                        return;                 // not an equipped tome (Wynntils skips these too)
+                    }
+                    Map<SkillKind, Integer> skills = new EnumMap<>(SkillKind.class);
+                    for (var id : t.getIdentifications()) {
+                        if (id.statType() instanceof SkillStatType st) {
+                            skills.merge(SkillKind.valueOf(st.getSkill().name()), id.value(), Integer::sum);
+                        }
+                    }
+                    out.add(new TomeMemory.Seen(plain(t.getName()), skills));
+                });
+            }
+            return out;
+        }, null);
     }
 
     /**
