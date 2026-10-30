@@ -4,7 +4,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.anilken.wynnlabs.build.roadmap.BeamCache;
-import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.GameState;
@@ -19,7 +18,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -51,7 +49,7 @@ class DiscordBuildsBenchmark {
     record Row(int index, String time, String klass, String archetype, String treeFrom, int level, String version,
             boolean newer, boolean crafted, boolean custom, int tomes, String status, String dropped, double refObj,
             double refPlanObj, double pickObj, double refDps, double pickDps, double refEhp, double pickEhp, String url,
-            String role, String roleWhy, double he, int heals, double ehpX, double refHealth) {
+            String role, String roleWhy, double he, int heals, double ehpX, double refHealth, RankAgreement.SameTree same) {
 
         double ratio() {
             return refObj > 0 && pickObj > 0 ? refObj / pickObj : Double.NaN;
@@ -72,7 +70,7 @@ class DiscordBuildsBenchmark {
         }
     }
 
-    private record Pick(Build.Eval eval, long millis) {}
+    private record Pick(Build.Eval eval, long millis, RankAgreement.Candidates cands) {}
 
     private final Map<String, Pick> picks = new HashMap<>();
     private long pickMillis;
@@ -96,9 +94,18 @@ class DiscordBuildsBenchmark {
         long t0 = System.nanoTime();
         JsonObject doc = JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
         List<Row> rows = new ArrayList<>();
+        // a link's note against the same poster's link just before it ("more dps", "better ehp"); the
+        // poster is only compared here, never written anywhere
+        List<RankAgreement.Claim> claims = new ArrayList<>();
+        String lastAuthor = null;
         int i = 0;
         for (JsonElement el : doc.getAsJsonArray("builds")) {
             JsonObject e = el.getAsJsonObject();
+            String author = text(e, "author");
+            if (i > 0 && author != null && author.equals(lastAuthor)) {
+                claims.addAll(RankAgreement.claims(i, i - 1, text(e, "note")));
+            }
+            lastAuthor = author;
             String url = text(e, "url");
             try {
                 rows.add(run(i, text(e, "time"), url, text(e, "note")));
@@ -109,8 +116,10 @@ class DiscordBuildsBenchmark {
             }
             i++;
         }
-        write(rows, (System.nanoTime() - t0) / 1_000_000);
+        List<String> regressions = write(rows, claims, (System.nanoTime() - t0) / 1_000_000);
         assertTrue(rows.stream().anyMatch(Row::scored), "no build scored");
+        assertTrue(regressions.isEmpty(), "below the baseline (an intended change? approve it with -PupdateFixtures):\n"
+                + String.join("\n", regressions));
     }
 
     private static String text(JsonObject e, String k) {
@@ -119,7 +128,7 @@ class DiscordBuildsBenchmark {
 
     private static Row junk(int index, String time, String url, String why) {
         return new Row(index, time, "", "", "", 0, "", false, false, false, 0, why, "", Double.NaN, Double.NaN, Double.NaN, Double.NaN,
-                Double.NaN, Double.NaN, Double.NaN, url, "", "", Double.NaN, -1, Double.NaN, Double.NaN);
+                Double.NaN, Double.NaN, Double.NaN, url, "", "", Double.NaN, -1, Double.NaN, Double.NaN, RankAgreement.SameTree.NONE);
     }
 
     private static boolean empty(WynnBuilderLink.Piece p) {
@@ -144,7 +153,7 @@ class DiscordBuildsBenchmark {
         if (k == null) {
             return new Row(index, time, "", "", "", b.level(), b.version(), b.newer(), crafted, custom, b.tomes().size(),
                     "no class (crafted, custom or unknown weapon)", "", Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN,
-                    Double.NaN, Double.NaN, url, "", "", Double.NaN, -1, Double.NaN, Double.NaN);
+                    Double.NaN, Double.NaN, url, "", "", Double.NaN, -1, Double.NaN, Double.NaN, RankAgreement.SameTree.NONE);
         }
         WynnBuilderTree.Tree tree = WynnBuilderTree.of(b, k);
         String arch = "";
@@ -194,7 +203,8 @@ class DiscordBuildsBenchmark {
                 rr == null ? Double.NaN : rr.objective(), refPlan == null ? Double.NaN : refPlan.result().objective(), pr == null ? Double.NaN : pr.objective(),
                 rr == null ? Double.NaN : rr.spellDps() + rr.mainDps(), pr == null ? Double.NaN : pr.spellDps() + pr.mainDps(),
                 rr == null ? Double.NaN : rr.ehpElemental(), pr == null ? Double.NaN : pr.ehpElemental(), url, role.goal(), role.why(),
-                BuildRoles.healingEfficiency(ls.set().values()), BuildRoles.heals(own), ehpX, rr == null ? Double.NaN : rr.health());
+                BuildRoles.healingEfficiency(ls.set().values()), BuildRoles.heals(own), ehpX, rr == null ? Double.NaN : rr.health(),
+                ls.hasWeapon() ? RankAgreement.rank(ls.set(), own, pick.cands(), level) : RankAgreement.SameTree.NONE);
         Fixtures.note(String.format(Locale.ROOT, "discord %d %s %s Lv %d: %s ref %.4g pick %.4g", index, k, arch, level,
                 status, row.refObj(), row.pickObj()));
         return row;
@@ -209,24 +219,13 @@ class DiscordBuildsBenchmark {
         }
         long t0 = System.nanoTime();
         BeamCache.clear();
-        Roadmap.Computed c = Roadmap.compute(new Roadmap.Inputs(List.of(), Tuning.Choice.PLAIN, true, 0), null);
-        Map<String, Damage.Piece> set = null;
-        if (c != null) {
-            for (Roadmap.Step s : c.steps()) {
-                if (s.level() == level && !s.build().isEmpty()) {
-                    set = new LinkedHashMap<>();
-                    for (Map.Entry<String, Damage.Piece> en : s.build().entrySet()) {
-                        if (en.getValue() != null) {
-                            set.put(en.getKey(), en.getValue());
-                        }
-                    }
-                }
-            }
-        }
+        // the milestone's set and the build window's top K whole builds there (RankAgreement)
+        RankAgreement.Candidates cands = RankAgreement.compute(level);
+        Map<String, Damage.Piece> set = cands.pick();
         Build.Eval eval = set == null ? null : ReferenceBuilds.score(set, level, ReferenceBuilds.earned(level));
         long ms = (System.nanoTime() - t0) / 1_000_000;
         pickMillis += ms;
-        p = new Pick(eval, ms);
+        p = new Pick(eval, ms, cands);
         picks.put(key, p);
         Fixtures.note("pick " + key + " in " + ms + " ms");
         return p;
@@ -237,14 +236,17 @@ class DiscordBuildsBenchmark {
     private static final String[] COLUMNS = {"index", "time", "class", "archetype", "tree", "level", "version", "newer",
         "crafted", "custom", "tomes", "status", "dropped", "ref_objective", "ref_plan_objective", "pick_objective", "ratio", "plan_ratio", "ref_dps", "pick_dps",
         "ref_ehp_elemental", "pick_ehp_elemental", "url", "role", "role_why", "healing_efficiency", "heal_nodes", "ehp_x_floor_damage",
-        "ref_health"};
+        "ref_health", "same_ref_objective", "same_pick_objective", "same_tree_ratio", "candidates", "rank", "percentile",
+        "in_top_k", "beats_pick"};
 
-    private void write(List<Row> rows, long ms) throws Exception {
+    private List<String> write(List<Row> rows, List<RankAgreement.Claim> claims, long ms) throws Exception {
         StringBuilder csv = new StringBuilder(String.join(",", COLUMNS)).append('\n');
         for (Row r : rows) {
             Object[] v = {r.index(), r.time(), r.klass(), r.archetype(), r.treeFrom(), r.level(), r.version(), r.newer(),
                 r.crafted(), r.custom(), r.tomes(), r.status(), r.dropped(), r.refObj(), r.refPlanObj(), r.pickObj(), r.ratio(), r.planRatio(), r.refDps(),
-                r.pickDps(), r.refEhp(), r.pickEhp(), r.url(), r.role(), r.roleWhy(), r.he(), r.heals(), r.ehpX(), r.refHealth()};
+                r.pickDps(), r.refEhp(), r.pickEhp(), r.url(), r.role(), r.roleWhy(), r.he(), r.heals(), r.ehpX(), r.refHealth(),
+                r.same().refObj(), r.same().pickObj(), r.same().ratio(), r.same().k(), r.same().rank(), r.same().pct(),
+                r.same().inTopK(), r.same().beatsPick()};
             List<String> cells = new ArrayList<>();
             for (Object o : v) {
                 cells.add(ReferenceBuilds.csv(o));
@@ -262,6 +264,10 @@ class DiscordBuildsBenchmark {
                 .append(" (the archetype's plan), both at the link's level with the goal of the link's role (Healer, Tank or Damage: see")
                 .append(" Roles), the pick made with that goal too. Class from the link's weapon,")
                 .append(" archetype from the most nodes its tree takes.\n\n");
+        md.append(RankAgreement.explain());
+        md.append("Links with tomes: ").append(rows.stream().filter(r -> r.tomes() > 0).count())
+                .append("; scored links over the level's points (no same-tree numbers): ")
+                .append(scored.stream().filter(r -> !r.same().fits()).count()).append(".\n\n");
         Map<String, Integer> status = new TreeMap<>();
         rows.forEach(r -> status.merge(r.status(), 1, Integer::sum));
         md.append("## Links\n\n| status | links |\n|---|---|\n");
@@ -281,8 +287,28 @@ class DiscordBuildsBenchmark {
         table(md, scored, r -> r.plain() ? "no crafted/custom" : "crafted or custom");
         md.append("\n## By level\n\n");
         table(md, scored, r -> r.level() >= 106 ? "106" : r.level() >= 100 ? "100-105" : "below 100");
+
+        // the baseline holds aggregate numbers only: no links, notes or names
+        BenchmarkBaseline.Metrics m = new BenchmarkBaseline.Metrics();
+        RankAgreement.pairs(md, m, claims, rows.stream().map(Row::same).toList(), rows.stream().map(Row::klass).toList(),
+                rows.stream().map(r -> "#" + r.index()).toList());
+        List<Row> plain = scored.stream().filter(Row::plain).toList();
+        RankAgreement.metrics(m, "overall", plain.stream().map(Row::ratio).toList(), plain.stream().map(Row::same).toList());
+        RankAgreement.metrics(m, "all_scored", scored.stream().map(Row::ratio).toList(), scored.stream().map(Row::same).toList());
+        group(m, "archetype", plain, r -> r.klass() + " " + (r.archetype().isEmpty() ? "(none)" : r.archetype()));
+        group(m, "role", plain, Row::role);
+        List<String> regressions = BenchmarkBaseline.check("discord", ReferenceBuilds.modelVersion(), m, md,
+                Files.exists(ReferenceBuilds.out("model-override.json")) ? "a model override is in force" : null);
         Files.writeString(ReferenceBuilds.out("report-discord.md"), md, StandardCharsets.UTF_8);
         Fixtures.note("discord builds: " + ReferenceBuilds.out("report-discord.md"));
+        return regressions;
+    }
+
+    private static void group(BenchmarkBaseline.Metrics m, String prefix, List<Row> rows, java.util.function.Function<Row, String> key) {
+        Map<String, List<Row>> by = new TreeMap<>();
+        rows.forEach(r -> by.computeIfAbsent(key.apply(r), x -> new ArrayList<>()).add(r));
+        by.forEach((k, l) -> RankAgreement.metrics(m, prefix + "." + k, l.stream().map(Row::ratio).toList(),
+                l.stream().map(Row::same).toList()));
     }
 
     /** The role split (how each role was decided) and, per role, the archetype table; links with no crafted or custom piece. */
@@ -306,8 +332,9 @@ class DiscordBuildsBenchmark {
     private static void table(StringBuilder md, List<Row> rows, java.util.function.Function<Row, String> by) {
         Map<String, List<Row>> groups = new TreeMap<>();
         rows.forEach(r -> groups.computeIfAbsent(by.apply(r), x -> new ArrayList<>()).add(r));
-        md.append("| group | n | median ratio | within 10 % or above | median ratio, archetype plan | median ref/pick DPS | median ref/pick eEHP |\n");
-        md.append("|---|---|---|---|---|---|---|\n");
+        md.append("| group | n | median ratio | within 10 % or above | median ratio, archetype plan | median ref/pick DPS | median ref/pick eEHP |")
+                .append(RankAgreement.HEAD).append('\n');
+        md.append("|---|---|---|---|---|---|---|").append(RankAgreement.SEP).append('\n');
         groups.forEach((g, list) -> line(md, g, list));
         line(md, "**overall**", rows);
     }
@@ -316,10 +343,10 @@ class DiscordBuildsBenchmark {
         Predicate<Row> ok = r -> r.ratio() >= 0.9;
         List<Double> dps = list.stream().filter(r -> r.pickDps() > 0).map(r -> r.refDps() / r.pickDps()).toList();
         List<Double> ehp = list.stream().filter(r -> r.pickEhp() > 0).map(r -> r.refEhp() / r.pickEhp()).toList();
-        md.append(String.format(Locale.ROOT, "| %s | %d | %.3f | %.0f %% | %.3f | %.2f | %.2f |%n", name, list.size(),
+        md.append(String.format(Locale.ROOT, "| %s | %d | %.3f | %.0f %% | %.3f | %.2f | %.2f |", name, list.size(),
                 ReferenceBuilds.median(list.stream().map(Row::ratio).toList()),
                 list.isEmpty() ? 0 : 100.0 * list.stream().filter(ok).count() / list.size(),
                 ReferenceBuilds.median(list.stream().map(Row::planRatio).filter(v -> !Double.isNaN(v)).toList()), ReferenceBuilds.median(dps),
-                ReferenceBuilds.median(ehp)));
+                ReferenceBuilds.median(ehp))).append(RankAgreement.cells(list.stream().map(Row::same).toList())).append('\n');
     }
 }

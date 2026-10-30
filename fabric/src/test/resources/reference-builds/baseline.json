@@ -1,0 +1,1663 @@
+{
+  "note": "Reference benchmark baseline (-PreferenceBuilds): aggregate numbers only, rewritten with -PupdateFixtures. A run fails when a metric drops below its value by more than 0.03 (ratio kind) or 3 points (rate kind, per cent).",
+  "discord": {
+    "modelVersion": "27",
+    "metrics": {
+      "all_scored.beats_pick": {
+        "kind": "rate",
+        "value": 1.7628,
+        "n": 624
+      },
+      "all_scored.fits_budget": {
+        "kind": "rate",
+        "value": 82.5397,
+        "n": 756
+      },
+      "all_scored.in_top_k": {
+        "kind": "rate",
+        "value": 2.8846,
+        "n": 624
+      },
+      "all_scored.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4654,
+        "n": 756
+      },
+      "all_scored.percentile": {
+        "kind": "ratio",
+        "value": 0.0221,
+        "n": 624
+      },
+      "all_scored.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4692,
+        "n": 624
+      },
+      "all_scored.within_10pct": {
+        "kind": "rate",
+        "value": 7.2751,
+        "n": 756
+      },
+      "archetype.ARCHER (none).beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.ARCHER (none).fits_budget": {
+        "kind": "rate",
+        "value": 100.0,
+        "n": 5
+      },
+      "archetype.ARCHER (none).in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.ARCHER (none).median_ratio": {
+        "kind": "ratio",
+        "value": 0.0601,
+        "n": 5
+      },
+      "archetype.ARCHER (none).percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.ARCHER (none).same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.1279,
+        "n": 5
+      },
+      "archetype.ARCHER (none).within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.ARCHER Boltslinger.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 47
+      },
+      "archetype.ARCHER Boltslinger.fits_budget": {
+        "kind": "rate",
+        "value": 79.661,
+        "n": 59
+      },
+      "archetype.ARCHER Boltslinger.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 47
+      },
+      "archetype.ARCHER Boltslinger.median_ratio": {
+        "kind": "ratio",
+        "value": 0.3832,
+        "n": 59
+      },
+      "archetype.ARCHER Boltslinger.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 47
+      },
+      "archetype.ARCHER Boltslinger.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.386,
+        "n": 47
+      },
+      "archetype.ARCHER Boltslinger.within_10pct": {
+        "kind": "rate",
+        "value": 5.0847,
+        "n": 59
+      },
+      "archetype.ARCHER Sharpshooter.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 43
+      },
+      "archetype.ARCHER Sharpshooter.fits_budget": {
+        "kind": "rate",
+        "value": 86.0,
+        "n": 50
+      },
+      "archetype.ARCHER Sharpshooter.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 43
+      },
+      "archetype.ARCHER Sharpshooter.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4392,
+        "n": 50
+      },
+      "archetype.ARCHER Sharpshooter.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 43
+      },
+      "archetype.ARCHER Sharpshooter.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5011,
+        "n": 43
+      },
+      "archetype.ARCHER Sharpshooter.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 50
+      },
+      "archetype.ARCHER Trapper.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 17
+      },
+      "archetype.ARCHER Trapper.fits_budget": {
+        "kind": "rate",
+        "value": 77.2727,
+        "n": 22
+      },
+      "archetype.ARCHER Trapper.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 17
+      },
+      "archetype.ARCHER Trapper.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4165,
+        "n": 22
+      },
+      "archetype.ARCHER Trapper.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 17
+      },
+      "archetype.ARCHER Trapper.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4163,
+        "n": 17
+      },
+      "archetype.ARCHER Trapper.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 22
+      },
+      "archetype.ASSASSIN (none).fits_budget": {
+        "kind": "rate",
+        "value": 80.0,
+        "n": 5
+      },
+      "archetype.ASSASSIN (none).median_ratio": {
+        "kind": "ratio",
+        "value": 0.0543,
+        "n": 5
+      },
+      "archetype.ASSASSIN (none).within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.ASSASSIN Acrobat.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 34
+      },
+      "archetype.ASSASSIN Acrobat.fits_budget": {
+        "kind": "rate",
+        "value": 85.0,
+        "n": 40
+      },
+      "archetype.ASSASSIN Acrobat.in_top_k": {
+        "kind": "rate",
+        "value": 2.9412,
+        "n": 34
+      },
+      "archetype.ASSASSIN Acrobat.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5553,
+        "n": 40
+      },
+      "archetype.ASSASSIN Acrobat.percentile": {
+        "kind": "ratio",
+        "value": 0.0053,
+        "n": 34
+      },
+      "archetype.ASSASSIN Acrobat.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5231,
+        "n": 34
+      },
+      "archetype.ASSASSIN Acrobat.within_10pct": {
+        "kind": "rate",
+        "value": 2.5,
+        "n": 40
+      },
+      "archetype.ASSASSIN Shadestepper.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 30
+      },
+      "archetype.ASSASSIN Shadestepper.fits_budget": {
+        "kind": "rate",
+        "value": 81.0811,
+        "n": 37
+      },
+      "archetype.ASSASSIN Shadestepper.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 30
+      },
+      "archetype.ASSASSIN Shadestepper.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5337,
+        "n": 37
+      },
+      "archetype.ASSASSIN Shadestepper.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 30
+      },
+      "archetype.ASSASSIN Shadestepper.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4463,
+        "n": 30
+      },
+      "archetype.ASSASSIN Shadestepper.within_10pct": {
+        "kind": "rate",
+        "value": 5.4054,
+        "n": 37
+      },
+      "archetype.ASSASSIN Trickster.beats_pick": {
+        "kind": "rate",
+        "value": 14.7059,
+        "n": 34
+      },
+      "archetype.ASSASSIN Trickster.fits_budget": {
+        "kind": "rate",
+        "value": 72.3404,
+        "n": 47
+      },
+      "archetype.ASSASSIN Trickster.in_top_k": {
+        "kind": "rate",
+        "value": 17.6471,
+        "n": 34
+      },
+      "archetype.ASSASSIN Trickster.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5801,
+        "n": 47
+      },
+      "archetype.ASSASSIN Trickster.percentile": {
+        "kind": "ratio",
+        "value": 0.15,
+        "n": 34
+      },
+      "archetype.ASSASSIN Trickster.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.61,
+        "n": 34
+      },
+      "archetype.ASSASSIN Trickster.within_10pct": {
+        "kind": "rate",
+        "value": 34.0426,
+        "n": 47
+      },
+      "archetype.MAGE (none).beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 11
+      },
+      "archetype.MAGE (none).fits_budget": {
+        "kind": "rate",
+        "value": 91.6667,
+        "n": 12
+      },
+      "archetype.MAGE (none).in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 11
+      },
+      "archetype.MAGE (none).median_ratio": {
+        "kind": "ratio",
+        "value": 0.0658,
+        "n": 12
+      },
+      "archetype.MAGE (none).percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 11
+      },
+      "archetype.MAGE (none).same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.3568,
+        "n": 11
+      },
+      "archetype.MAGE (none).within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 12
+      },
+      "archetype.MAGE Arcanist.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 25
+      },
+      "archetype.MAGE Arcanist.fits_budget": {
+        "kind": "rate",
+        "value": 65.7895,
+        "n": 38
+      },
+      "archetype.MAGE Arcanist.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 25
+      },
+      "archetype.MAGE Arcanist.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5323,
+        "n": 38
+      },
+      "archetype.MAGE Arcanist.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 25
+      },
+      "archetype.MAGE Arcanist.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4501,
+        "n": 25
+      },
+      "archetype.MAGE Arcanist.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 38
+      },
+      "archetype.MAGE Light Bender.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 39
+      },
+      "archetype.MAGE Light Bender.fits_budget": {
+        "kind": "rate",
+        "value": 86.6667,
+        "n": 45
+      },
+      "archetype.MAGE Light Bender.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 39
+      },
+      "archetype.MAGE Light Bender.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5081,
+        "n": 45
+      },
+      "archetype.MAGE Light Bender.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 39
+      },
+      "archetype.MAGE Light Bender.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5193,
+        "n": 39
+      },
+      "archetype.MAGE Light Bender.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 45
+      },
+      "archetype.MAGE Riftwalker.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 65
+      },
+      "archetype.MAGE Riftwalker.fits_budget": {
+        "kind": "rate",
+        "value": 84.4156,
+        "n": 77
+      },
+      "archetype.MAGE Riftwalker.in_top_k": {
+        "kind": "rate",
+        "value": 1.5385,
+        "n": 65
+      },
+      "archetype.MAGE Riftwalker.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4367,
+        "n": 77
+      },
+      "archetype.MAGE Riftwalker.percentile": {
+        "kind": "ratio",
+        "value": 0.0092,
+        "n": 65
+      },
+      "archetype.MAGE Riftwalker.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5005,
+        "n": 65
+      },
+      "archetype.MAGE Riftwalker.within_10pct": {
+        "kind": "rate",
+        "value": 2.5974,
+        "n": 77
+      },
+      "archetype.SHAMAN Acolyte.beats_pick": {
+        "kind": "rate",
+        "value": 20.0,
+        "n": 15
+      },
+      "archetype.SHAMAN Acolyte.fits_budget": {
+        "kind": "rate",
+        "value": 88.2353,
+        "n": 17
+      },
+      "archetype.SHAMAN Acolyte.in_top_k": {
+        "kind": "rate",
+        "value": 20.0,
+        "n": 15
+      },
+      "archetype.SHAMAN Acolyte.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4156,
+        "n": 17
+      },
+      "archetype.SHAMAN Acolyte.percentile": {
+        "kind": "ratio",
+        "value": 0.2,
+        "n": 15
+      },
+      "archetype.SHAMAN Acolyte.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4379,
+        "n": 15
+      },
+      "archetype.SHAMAN Acolyte.within_10pct": {
+        "kind": "rate",
+        "value": 23.5294,
+        "n": 17
+      },
+      "archetype.SHAMAN Ritualist.beats_pick": {
+        "kind": "rate",
+        "value": 3.125,
+        "n": 32
+      },
+      "archetype.SHAMAN Ritualist.fits_budget": {
+        "kind": "rate",
+        "value": 72.7273,
+        "n": 44
+      },
+      "archetype.SHAMAN Ritualist.in_top_k": {
+        "kind": "rate",
+        "value": 3.125,
+        "n": 32
+      },
+      "archetype.SHAMAN Ritualist.median_ratio": {
+        "kind": "ratio",
+        "value": 0.3227,
+        "n": 44
+      },
+      "archetype.SHAMAN Ritualist.percentile": {
+        "kind": "ratio",
+        "value": 0.0313,
+        "n": 32
+      },
+      "archetype.SHAMAN Ritualist.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.3646,
+        "n": 32
+      },
+      "archetype.SHAMAN Ritualist.within_10pct": {
+        "kind": "rate",
+        "value": 4.5455,
+        "n": 44
+      },
+      "archetype.SHAMAN Summoner.beats_pick": {
+        "kind": "rate",
+        "value": 5.8824,
+        "n": 17
+      },
+      "archetype.SHAMAN Summoner.fits_budget": {
+        "kind": "rate",
+        "value": 85.0,
+        "n": 20
+      },
+      "archetype.SHAMAN Summoner.in_top_k": {
+        "kind": "rate",
+        "value": 23.5294,
+        "n": 17
+      },
+      "archetype.SHAMAN Summoner.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5178,
+        "n": 20
+      },
+      "archetype.SHAMAN Summoner.percentile": {
+        "kind": "ratio",
+        "value": 0.1176,
+        "n": 17
+      },
+      "archetype.SHAMAN Summoner.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5137,
+        "n": 17
+      },
+      "archetype.SHAMAN Summoner.within_10pct": {
+        "kind": "rate",
+        "value": 5.0,
+        "n": 20
+      },
+      "archetype.WARRIOR (none).fits_budget": {
+        "kind": "rate",
+        "value": 60.0,
+        "n": 5
+      },
+      "archetype.WARRIOR (none).median_ratio": {
+        "kind": "ratio",
+        "value": 0.1033,
+        "n": 5
+      },
+      "archetype.WARRIOR (none).within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.WARRIOR Battle Monk.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 58
+      },
+      "archetype.WARRIOR Battle Monk.fits_budget": {
+        "kind": "rate",
+        "value": 93.5484,
+        "n": 62
+      },
+      "archetype.WARRIOR Battle Monk.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 58
+      },
+      "archetype.WARRIOR Battle Monk.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4946,
+        "n": 62
+      },
+      "archetype.WARRIOR Battle Monk.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 58
+      },
+      "archetype.WARRIOR Battle Monk.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4651,
+        "n": 58
+      },
+      "archetype.WARRIOR Battle Monk.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 62
+      },
+      "archetype.WARRIOR Fallen.beats_pick": {
+        "kind": "rate",
+        "value": 2.9412,
+        "n": 34
+      },
+      "archetype.WARRIOR Fallen.fits_budget": {
+        "kind": "rate",
+        "value": 89.4737,
+        "n": 38
+      },
+      "archetype.WARRIOR Fallen.in_top_k": {
+        "kind": "rate",
+        "value": 5.8824,
+        "n": 34
+      },
+      "archetype.WARRIOR Fallen.median_ratio": {
+        "kind": "ratio",
+        "value": 0.6781,
+        "n": 38
+      },
+      "archetype.WARRIOR Fallen.percentile": {
+        "kind": "ratio",
+        "value": 0.0559,
+        "n": 34
+      },
+      "archetype.WARRIOR Fallen.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5398,
+        "n": 34
+      },
+      "archetype.WARRIOR Fallen.within_10pct": {
+        "kind": "rate",
+        "value": 26.3158,
+        "n": 38
+      },
+      "archetype.WARRIOR Paladin.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 47
+      },
+      "archetype.WARRIOR Paladin.fits_budget": {
+        "kind": "rate",
+        "value": 81.0345,
+        "n": 58
+      },
+      "archetype.WARRIOR Paladin.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 47
+      },
+      "archetype.WARRIOR Paladin.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4327,
+        "n": 58
+      },
+      "archetype.WARRIOR Paladin.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 47
+      },
+      "archetype.WARRIOR Paladin.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4111,
+        "n": 47
+      },
+      "archetype.WARRIOR Paladin.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 58
+      },
+      "overall.beats_pick": {
+        "kind": "rate",
+        "value": 1.9573,
+        "n": 562
+      },
+      "overall.fits_budget": {
+        "kind": "rate",
+        "value": 82.284,
+        "n": 683
+      },
+      "overall.in_top_k": {
+        "kind": "rate",
+        "value": 3.2028,
+        "n": 562
+      },
+      "overall.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4652,
+        "n": 683
+      },
+      "overall.percentile": {
+        "kind": "ratio",
+        "value": 0.0245,
+        "n": 562
+      },
+      "overall.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4753,
+        "n": 562
+      },
+      "overall.within_10pct": {
+        "kind": "rate",
+        "value": 6.0029,
+        "n": 683
+      },
+      "pairs.agreement": {
+        "kind": "rate",
+        "value": 80.0,
+        "n": 5
+      },
+      "role.DAMAGE.beats_pick": {
+        "kind": "rate",
+        "value": 1.5355,
+        "n": 521
+      },
+      "role.DAMAGE.fits_budget": {
+        "kind": "rate",
+        "value": 82.9618,
+        "n": 628
+      },
+      "role.DAMAGE.in_top_k": {
+        "kind": "rate",
+        "value": 2.8791,
+        "n": 521
+      },
+      "role.DAMAGE.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4635,
+        "n": 628
+      },
+      "role.DAMAGE.percentile": {
+        "kind": "ratio",
+        "value": 0.0207,
+        "n": 521
+      },
+      "role.DAMAGE.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4692,
+        "n": 521
+      },
+      "role.DAMAGE.within_10pct": {
+        "kind": "rate",
+        "value": 6.051,
+        "n": 628
+      },
+      "role.HEALER.beats_pick": {
+        "kind": "rate",
+        "value": 10.7143,
+        "n": 28
+      },
+      "role.HEALER.fits_budget": {
+        "kind": "rate",
+        "value": 80.0,
+        "n": 35
+      },
+      "role.HEALER.in_top_k": {
+        "kind": "rate",
+        "value": 10.7143,
+        "n": 28
+      },
+      "role.HEALER.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4896,
+        "n": 35
+      },
+      "role.HEALER.percentile": {
+        "kind": "ratio",
+        "value": 0.1071,
+        "n": 28
+      },
+      "role.HEALER.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.6425,
+        "n": 28
+      },
+      "role.HEALER.within_10pct": {
+        "kind": "rate",
+        "value": 8.5714,
+        "n": 35
+      },
+      "role.TANK.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 13
+      },
+      "role.TANK.fits_budget": {
+        "kind": "rate",
+        "value": 65.0,
+        "n": 20
+      },
+      "role.TANK.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 13
+      },
+      "role.TANK.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4948,
+        "n": 20
+      },
+      "role.TANK.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 13
+      },
+      "role.TANK.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4077,
+        "n": 13
+      },
+      "role.TANK.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 20
+      }
+    }
+  },
+  "guide": {
+    "modelVersion": "27",
+    "metrics": {
+      "all_scored.beats_pick": {
+        "kind": "rate",
+        "value": 1.8349,
+        "n": 109
+      },
+      "all_scored.fits_budget": {
+        "kind": "rate",
+        "value": 75.1724,
+        "n": 145
+      },
+      "all_scored.in_top_k": {
+        "kind": "rate",
+        "value": 5.5046,
+        "n": 109
+      },
+      "all_scored.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4806,
+        "n": 145
+      },
+      "all_scored.percentile": {
+        "kind": "ratio",
+        "value": 0.0301,
+        "n": 109
+      },
+      "all_scored.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5243,
+        "n": 109
+      },
+      "all_scored.within_10pct": {
+        "kind": "rate",
+        "value": 5.5172,
+        "n": 145
+      },
+      "archetype.ARCHER Boltslinger.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 6
+      },
+      "archetype.ARCHER Boltslinger.fits_budget": {
+        "kind": "rate",
+        "value": 75.0,
+        "n": 8
+      },
+      "archetype.ARCHER Boltslinger.in_top_k": {
+        "kind": "rate",
+        "value": 16.6667,
+        "n": 6
+      },
+      "archetype.ARCHER Boltslinger.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5504,
+        "n": 8
+      },
+      "archetype.ARCHER Boltslinger.percentile": {
+        "kind": "ratio",
+        "value": 0.1,
+        "n": 6
+      },
+      "archetype.ARCHER Boltslinger.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5683,
+        "n": 6
+      },
+      "archetype.ARCHER Boltslinger.within_10pct": {
+        "kind": "rate",
+        "value": 12.5,
+        "n": 8
+      },
+      "archetype.ARCHER Sharpshooter.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 6
+      },
+      "archetype.ARCHER Sharpshooter.fits_budget": {
+        "kind": "rate",
+        "value": 85.7143,
+        "n": 7
+      },
+      "archetype.ARCHER Sharpshooter.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 6
+      },
+      "archetype.ARCHER Sharpshooter.median_ratio": {
+        "kind": "ratio",
+        "value": 0.6522,
+        "n": 7
+      },
+      "archetype.ARCHER Sharpshooter.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 6
+      },
+      "archetype.ARCHER Sharpshooter.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.6148,
+        "n": 6
+      },
+      "archetype.ARCHER Sharpshooter.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 7
+      },
+      "archetype.ASSASSIN Acrobat.fits_budget": {
+        "kind": "rate",
+        "value": 66.6667,
+        "n": 6
+      },
+      "archetype.ASSASSIN Acrobat.median_ratio": {
+        "kind": "ratio",
+        "value": 0.6571,
+        "n": 6
+      },
+      "archetype.ASSASSIN Acrobat.within_10pct": {
+        "kind": "rate",
+        "value": 16.6667,
+        "n": 6
+      },
+      "archetype.ASSASSIN Shadestepper.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 7
+      },
+      "archetype.ASSASSIN Shadestepper.fits_budget": {
+        "kind": "rate",
+        "value": 87.5,
+        "n": 8
+      },
+      "archetype.ASSASSIN Shadestepper.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 7
+      },
+      "archetype.ASSASSIN Shadestepper.median_ratio": {
+        "kind": "ratio",
+        "value": 0.423,
+        "n": 8
+      },
+      "archetype.ASSASSIN Shadestepper.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 7
+      },
+      "archetype.ASSASSIN Shadestepper.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.3528,
+        "n": 7
+      },
+      "archetype.ASSASSIN Shadestepper.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 8
+      },
+      "archetype.MAGE Arcanist.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 6
+      },
+      "archetype.MAGE Arcanist.fits_budget": {
+        "kind": "rate",
+        "value": 75.0,
+        "n": 8
+      },
+      "archetype.MAGE Arcanist.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 6
+      },
+      "archetype.MAGE Arcanist.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4017,
+        "n": 8
+      },
+      "archetype.MAGE Arcanist.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 6
+      },
+      "archetype.MAGE Arcanist.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.4704,
+        "n": 6
+      },
+      "archetype.MAGE Arcanist.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 8
+      },
+      "archetype.MAGE Light Bender.beats_pick": {
+        "kind": "rate",
+        "value": 20.0,
+        "n": 5
+      },
+      "archetype.MAGE Light Bender.fits_budget": {
+        "kind": "rate",
+        "value": 100.0,
+        "n": 5
+      },
+      "archetype.MAGE Light Bender.in_top_k": {
+        "kind": "rate",
+        "value": 40.0,
+        "n": 5
+      },
+      "archetype.MAGE Light Bender.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4917,
+        "n": 5
+      },
+      "archetype.MAGE Light Bender.percentile": {
+        "kind": "ratio",
+        "value": 0.28,
+        "n": 5
+      },
+      "archetype.MAGE Light Bender.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.6105,
+        "n": 5
+      },
+      "archetype.MAGE Light Bender.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.MAGE Riftwalker.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.MAGE Riftwalker.fits_budget": {
+        "kind": "rate",
+        "value": 55.5556,
+        "n": 9
+      },
+      "archetype.MAGE Riftwalker.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.MAGE Riftwalker.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5145,
+        "n": 9
+      },
+      "archetype.MAGE Riftwalker.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.MAGE Riftwalker.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.6128,
+        "n": 5
+      },
+      "archetype.MAGE Riftwalker.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 9
+      },
+      "archetype.SHAMAN Acolyte.fits_budget": {
+        "kind": "rate",
+        "value": 60.0,
+        "n": 5
+      },
+      "archetype.SHAMAN Acolyte.median_ratio": {
+        "kind": "ratio",
+        "value": 0.3736,
+        "n": 5
+      },
+      "archetype.SHAMAN Acolyte.within_10pct": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 5
+      },
+      "archetype.WARRIOR Fallen.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 10
+      },
+      "archetype.WARRIOR Fallen.fits_budget": {
+        "kind": "rate",
+        "value": 100.0,
+        "n": 10
+      },
+      "archetype.WARRIOR Fallen.in_top_k": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 10
+      },
+      "archetype.WARRIOR Fallen.median_ratio": {
+        "kind": "ratio",
+        "value": 0.688,
+        "n": 10
+      },
+      "archetype.WARRIOR Fallen.percentile": {
+        "kind": "ratio",
+        "value": 0.0,
+        "n": 10
+      },
+      "archetype.WARRIOR Fallen.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5522,
+        "n": 10
+      },
+      "archetype.WARRIOR Fallen.within_10pct": {
+        "kind": "rate",
+        "value": 30.0,
+        "n": 10
+      },
+      "overall.beats_pick": {
+        "kind": "rate",
+        "value": 1.5152,
+        "n": 66
+      },
+      "overall.fits_budget": {
+        "kind": "rate",
+        "value": 76.7442,
+        "n": 86
+      },
+      "overall.in_top_k": {
+        "kind": "rate",
+        "value": 6.0606,
+        "n": 66
+      },
+      "overall.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4988,
+        "n": 86
+      },
+      "overall.percentile": {
+        "kind": "ratio",
+        "value": 0.0331,
+        "n": 66
+      },
+      "overall.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5449,
+        "n": 66
+      },
+      "overall.within_10pct": {
+        "kind": "rate",
+        "value": 6.9767,
+        "n": 86
+      },
+      "role.DAMAGE.beats_pick": {
+        "kind": "rate",
+        "value": 0.0,
+        "n": 63
+      },
+      "role.DAMAGE.fits_budget": {
+        "kind": "rate",
+        "value": 77.7778,
+        "n": 81
+      },
+      "role.DAMAGE.in_top_k": {
+        "kind": "rate",
+        "value": 3.1746,
+        "n": 63
+      },
+      "role.DAMAGE.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4917,
+        "n": 81
+      },
+      "role.DAMAGE.percentile": {
+        "kind": "ratio",
+        "value": 0.0124,
+        "n": 63
+      },
+      "role.DAMAGE.same_tree_ratio": {
+        "kind": "ratio",
+        "value": 0.5243,
+        "n": 63
+      },
+      "role.DAMAGE.within_10pct": {
+        "kind": "rate",
+        "value": 7.4074,
+        "n": 81
+      }
+    }
+  },
+  "leveling": {
+    "modelVersion": "27",
+    "metrics": {
+      "DAMAGE.class.ARCHER.hit": {
+        "kind": "rate",
+        "value": 19.3548,
+        "n": 155
+      },
+      "DAMAGE.class.ARCHER.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4589,
+        "n": 155
+      },
+      "DAMAGE.class.ARCHER.top3": {
+        "kind": "rate",
+        "value": 32.2581,
+        "n": 155
+      },
+      "DAMAGE.class.ASSASSIN.hit": {
+        "kind": "rate",
+        "value": 18.0645,
+        "n": 155
+      },
+      "DAMAGE.class.ASSASSIN.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4335,
+        "n": 155
+      },
+      "DAMAGE.class.ASSASSIN.top3": {
+        "kind": "rate",
+        "value": 29.6774,
+        "n": 155
+      },
+      "DAMAGE.class.MAGE.hit": {
+        "kind": "rate",
+        "value": 16.2338,
+        "n": 154
+      },
+      "DAMAGE.class.MAGE.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4085,
+        "n": 154
+      },
+      "DAMAGE.class.MAGE.top3": {
+        "kind": "rate",
+        "value": 28.5714,
+        "n": 154
+      },
+      "DAMAGE.class.SHAMAN.hit": {
+        "kind": "rate",
+        "value": 16.7742,
+        "n": 155
+      },
+      "DAMAGE.class.SHAMAN.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4532,
+        "n": 155
+      },
+      "DAMAGE.class.SHAMAN.top3": {
+        "kind": "rate",
+        "value": 32.9032,
+        "n": 155
+      },
+      "DAMAGE.class.WARRIOR.hit": {
+        "kind": "rate",
+        "value": 15.4839,
+        "n": 155
+      },
+      "DAMAGE.class.WARRIOR.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4163,
+        "n": 155
+      },
+      "DAMAGE.class.WARRIOR.top3": {
+        "kind": "rate",
+        "value": 35.4839,
+        "n": 155
+      },
+      "DAMAGE.overall.hit": {
+        "kind": "rate",
+        "value": 17.1835,
+        "n": 774
+      },
+      "DAMAGE.overall.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4341,
+        "n": 774
+      },
+      "DAMAGE.overall.top3": {
+        "kind": "rate",
+        "value": 31.7829,
+        "n": 774
+      },
+      "DAMAGE.slot.boots.hit": {
+        "kind": "rate",
+        "value": 13.6842,
+        "n": 95
+      },
+      "DAMAGE.slot.boots.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.3532,
+        "n": 95
+      },
+      "DAMAGE.slot.boots.top3": {
+        "kind": "rate",
+        "value": 29.4737,
+        "n": 95
+      },
+      "DAMAGE.slot.bracelet.hit": {
+        "kind": "rate",
+        "value": 1.0,
+        "n": 100
+      },
+      "DAMAGE.slot.bracelet.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.3012,
+        "n": 100
+      },
+      "DAMAGE.slot.bracelet.top3": {
+        "kind": "rate",
+        "value": 21.0,
+        "n": 100
+      },
+      "DAMAGE.slot.chestplate.hit": {
+        "kind": "rate",
+        "value": 21.0526,
+        "n": 95
+      },
+      "DAMAGE.slot.chestplate.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4234,
+        "n": 95
+      },
+      "DAMAGE.slot.chestplate.top3": {
+        "kind": "rate",
+        "value": 30.5263,
+        "n": 95
+      },
+      "DAMAGE.slot.helmet.hit": {
+        "kind": "rate",
+        "value": 12.6316,
+        "n": 95
+      },
+      "DAMAGE.slot.helmet.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4001,
+        "n": 95
+      },
+      "DAMAGE.slot.helmet.top3": {
+        "kind": "rate",
+        "value": 28.4211,
+        "n": 95
+      },
+      "DAMAGE.slot.leggings.hit": {
+        "kind": "rate",
+        "value": 22.1053,
+        "n": 95
+      },
+      "DAMAGE.slot.leggings.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4403,
+        "n": 95
+      },
+      "DAMAGE.slot.leggings.top3": {
+        "kind": "rate",
+        "value": 34.7368,
+        "n": 95
+      },
+      "DAMAGE.slot.necklace.hit": {
+        "kind": "rate",
+        "value": 6.3158,
+        "n": 95
+      },
+      "DAMAGE.slot.necklace.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.3993,
+        "n": 95
+      },
+      "DAMAGE.slot.necklace.top3": {
+        "kind": "rate",
+        "value": 22.1053,
+        "n": 95
+      },
+      "DAMAGE.slot.ring.hit": {
+        "kind": "rate",
+        "value": 9.0,
+        "n": 100
+      },
+      "DAMAGE.slot.ring.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.3675,
+        "n": 100
+      },
+      "DAMAGE.slot.ring.top3": {
+        "kind": "rate",
+        "value": 24.0,
+        "n": 100
+      },
+      "DAMAGE.slot.weapon.hit": {
+        "kind": "rate",
+        "value": 51.5152,
+        "n": 99
+      },
+      "DAMAGE.slot.weapon.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.7836,
+        "n": 99
+      },
+      "DAMAGE.slot.weapon.top3": {
+        "kind": "rate",
+        "value": 63.6364,
+        "n": 99
+      },
+      "DAMAGE.whole_set.melee_builds.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4917,
+        "n": 88
+      },
+      "DAMAGE.whole_set.morph.median_ratio": {
+        "kind": "ratio",
+        "value": 0.6048,
+        "n": 87
+      },
+      "DAMAGE.whole_set.non-morph.median_ratio": {
+        "kind": "ratio",
+        "value": 0.6494,
+        "n": 97
+      },
+      "DAMAGE.whole_set.xp_power_leveling.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4752,
+        "n": 114
+      },
+      "XP.class.ARCHER.hit": {
+        "kind": "rate",
+        "value": 42.5806,
+        "n": 155
+      },
+      "XP.class.ARCHER.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.6221,
+        "n": 155
+      },
+      "XP.class.ARCHER.top3": {
+        "kind": "rate",
+        "value": 57.4194,
+        "n": 155
+      },
+      "XP.class.ASSASSIN.hit": {
+        "kind": "rate",
+        "value": 43.2258,
+        "n": 155
+      },
+      "XP.class.ASSASSIN.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.6317,
+        "n": 155
+      },
+      "XP.class.ASSASSIN.top3": {
+        "kind": "rate",
+        "value": 60.0,
+        "n": 155
+      },
+      "XP.class.MAGE.hit": {
+        "kind": "rate",
+        "value": 37.6623,
+        "n": 154
+      },
+      "XP.class.MAGE.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.6011,
+        "n": 154
+      },
+      "XP.class.MAGE.top3": {
+        "kind": "rate",
+        "value": 58.4416,
+        "n": 154
+      },
+      "XP.class.SHAMAN.hit": {
+        "kind": "rate",
+        "value": 33.5484,
+        "n": 155
+      },
+      "XP.class.SHAMAN.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.591,
+        "n": 155
+      },
+      "XP.class.SHAMAN.top3": {
+        "kind": "rate",
+        "value": 57.4194,
+        "n": 155
+      },
+      "XP.class.WARRIOR.hit": {
+        "kind": "rate",
+        "value": 32.9032,
+        "n": 155
+      },
+      "XP.class.WARRIOR.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.5847,
+        "n": 155
+      },
+      "XP.class.WARRIOR.top3": {
+        "kind": "rate",
+        "value": 61.2903,
+        "n": 155
+      },
+      "XP.overall.hit": {
+        "kind": "rate",
+        "value": 37.9845,
+        "n": 774
+      },
+      "XP.overall.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.6061,
+        "n": 774
+      },
+      "XP.overall.top3": {
+        "kind": "rate",
+        "value": 58.9147,
+        "n": 774
+      },
+      "XP.slot.boots.hit": {
+        "kind": "rate",
+        "value": 54.7368,
+        "n": 95
+      },
+      "XP.slot.boots.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.6812,
+        "n": 95
+      },
+      "XP.slot.boots.top3": {
+        "kind": "rate",
+        "value": 66.3158,
+        "n": 95
+      },
+      "XP.slot.bracelet.hit": {
+        "kind": "rate",
+        "value": 14.0,
+        "n": 100
+      },
+      "XP.slot.bracelet.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.5462,
+        "n": 100
+      },
+      "XP.slot.bracelet.top3": {
+        "kind": "rate",
+        "value": 56.0,
+        "n": 100
+      },
+      "XP.slot.chestplate.hit": {
+        "kind": "rate",
+        "value": 34.7368,
+        "n": 95
+      },
+      "XP.slot.chestplate.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.5248,
+        "n": 95
+      },
+      "XP.slot.chestplate.top3": {
+        "kind": "rate",
+        "value": 53.6842,
+        "n": 95
+      },
+      "XP.slot.helmet.hit": {
+        "kind": "rate",
+        "value": 57.8947,
+        "n": 95
+      },
+      "XP.slot.helmet.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.731,
+        "n": 95
+      },
+      "XP.slot.helmet.top3": {
+        "kind": "rate",
+        "value": 74.7368,
+        "n": 95
+      },
+      "XP.slot.leggings.hit": {
+        "kind": "rate",
+        "value": 76.8421,
+        "n": 95
+      },
+      "XP.slot.leggings.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.8303,
+        "n": 95
+      },
+      "XP.slot.leggings.top3": {
+        "kind": "rate",
+        "value": 88.4211,
+        "n": 95
+      },
+      "XP.slot.necklace.hit": {
+        "kind": "rate",
+        "value": 16.8421,
+        "n": 95
+      },
+      "XP.slot.necklace.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.4733,
+        "n": 95
+      },
+      "XP.slot.necklace.top3": {
+        "kind": "rate",
+        "value": 46.3158,
+        "n": 95
+      },
+      "XP.slot.ring.hit": {
+        "kind": "rate",
+        "value": 7.0,
+        "n": 100
+      },
+      "XP.slot.ring.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.3193,
+        "n": 100
+      },
+      "XP.slot.ring.top3": {
+        "kind": "rate",
+        "value": 23.0,
+        "n": 100
+      },
+      "XP.slot.weapon.hit": {
+        "kind": "rate",
+        "value": 44.4444,
+        "n": 99
+      },
+      "XP.slot.weapon.reciprocal_rank": {
+        "kind": "ratio",
+        "value": 0.7551,
+        "n": 99
+      },
+      "XP.slot.weapon.top3": {
+        "kind": "rate",
+        "value": 64.6465,
+        "n": 99
+      },
+      "XP.whole_set.melee_builds.median_ratio": {
+        "kind": "ratio",
+        "value": 0.3343,
+        "n": 89
+      },
+      "XP.whole_set.morph.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5791,
+        "n": 89
+      },
+      "XP.whole_set.non-morph.median_ratio": {
+        "kind": "ratio",
+        "value": 0.4894,
+        "n": 99
+      },
+      "XP.whole_set.xp_power_leveling.median_ratio": {
+        "kind": "ratio",
+        "value": 0.5745,
+        "n": 117
+      }
+    }
+  }
+}

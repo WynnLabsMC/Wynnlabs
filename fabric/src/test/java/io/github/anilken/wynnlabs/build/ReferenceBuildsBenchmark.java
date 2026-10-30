@@ -3,7 +3,6 @@ package io.github.anilken.wynnlabs.build;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.build.roadmap.BeamCache;
-import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.model.ItemData;
@@ -17,7 +16,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,7 +46,8 @@ class ReferenceBuildsBenchmark {
             double refDps, double pickDps, double refEhp, double pickEhp, double refRegen, double refRegenF,
             double pickRegen, double pickRegenF, double refLife, double pickLife, String refMajor, String pickMajor,
             String pickSet, String url, double refPlanObj, String refTree, String refParts,
-            String pickParts, String role, String roleWhy, double he, int heals, double ehpX, double refHealth) {
+            String pickParts, String role, String roleWhy, double he, int heals, double ehpX, double refHealth,
+            RankAgreement.SameTree same) {
 
         double ratio() {
             return refObj > 0 && pickObj > 0 ? refObj / pickObj : Double.NaN;
@@ -70,7 +69,7 @@ class ReferenceBuildsBenchmark {
     }
 
     /** A road map pick, kept for the run per class, archetype and level. */
-    record Pick(Map<String, Damage.Piece> set, Build.Eval eval, List<ItemData> items, long millis) {}
+    record Pick(Map<String, Damage.Piece> set, Build.Eval eval, List<ItemData> items, long millis, RankAgreement.Candidates cands) {}
 
     private final Map<String, Pick> picks = new HashMap<>();
     /** Per entry: whether its class came from the link's weapon ("link") or the guide's text ("text"). */
@@ -94,8 +93,31 @@ class ReferenceBuildsBenchmark {
             }
         }
         long ms = (System.nanoTime() - t0) / 1_000_000;
-        write(doc, rows, ms);
+        List<String> regressions = write(doc, rows, ms);
         assertTrue(rows.stream().anyMatch(Row::scored), "no build scored");
+        assertTrue(regressions.isEmpty(), "below the baseline (an intended change? approve it with -PupdateFixtures):\n"
+                + String.join("\n", regressions));
+    }
+
+    /**
+     * The guide's own comparisons: a link whose text (after the previous link's label, the part in
+     * brackets) says it has more damage, more EHP or is better than the same poster's link just before it.
+     */
+    private static List<RankAgreement.Claim> claims(JsonObject doc) {
+        List<RankAgreement.Claim> out = new ArrayList<>();
+        JsonObject prev = null;
+        int i = 0;
+        for (JsonElement el : doc.getAsJsonArray("builds")) {
+            JsonObject e = el.getAsJsonObject();
+            if (prev != null && String.valueOf(text(e, "poster")).equals(String.valueOf(text(prev, "poster")))
+                    && String.valueOf(text(e, "post")).equals(String.valueOf(text(prev, "post")))) {
+                String c = text(e, "context") == null ? "" : text(e, "context");
+                out.addAll(RankAgreement.claims(i, i - 1, c.substring(c.lastIndexOf(']') + 1)));
+            }
+            prev = e;
+            i++;
+        }
+        return out;
     }
 
     private static String text(JsonObject e, String k) {
@@ -107,7 +129,7 @@ class ReferenceBuildsBenchmark {
                 e.get("crafted").isJsonNull() ? null : e.get("crafted").getAsBoolean(), tags(e), 0, why, "", 0, 0,
                 Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN,
                 Double.NaN, Double.NaN, Double.NaN, "", "", "", text(e, "url"), Double.NaN, "", "", "", "", "", Double.NaN, -1,
-                Double.NaN, Double.NaN);
+                Double.NaN, Double.NaN, RankAgreement.SameTree.NONE);
     }
 
     /** Why a link did not decode: not a build page at all, text pasted after the link, or a link the decoder cannot read. */
@@ -199,7 +221,8 @@ class ReferenceBuildsBenchmark {
                 ReferenceBuilds.majorIds(ls.items()), ReferenceBuilds.majorIds(pick.items()), String.join(" / ", names), url,
                 refPlan == null ? Double.NaN : refPlan.result().objective(), ls.tree() != null ? "own" : "plan", parts(rr),
                 parts(pr), role.goal(), role.why(), BuildRoles.healingEfficiency(ls.set().values()), BuildRoles.heals(ls.tree()),
-                ehpX, rr == null ? Double.NaN : rr.health());
+                ehpX, rr == null ? Double.NaN : rr.health(),
+                ls.hasWeapon() ? RankAgreement.rank(ls.set(), ls.tree(), pick.cands(), level) : RankAgreement.SameTree.NONE);
         Fixtures.note(String.format(Locale.ROOT, "ref %d %s %s Lv %d: %s ref %.4g pick %.4g", row.id(), k, arch, level, status,
                 row.refObj(), row.pickObj()));
         return row;
@@ -225,20 +248,9 @@ class ReferenceBuildsBenchmark {
         }
         long t0 = System.nanoTime();
         BeamCache.clear();
-        Roadmap.Computed c = Roadmap.compute(new Roadmap.Inputs(List.of(), Tuning.Choice.PLAIN, true, 0), null);
-        Map<String, Damage.Piece> set = null;
-        if (c != null) {
-            for (Roadmap.Step s : c.steps()) {
-                if (s.level() == level && !s.build().isEmpty()) {
-                    set = new LinkedHashMap<>();
-                    for (Map.Entry<String, Damage.Piece> en : s.build().entrySet()) {
-                        if (en.getValue() != null) {
-                            set.put(en.getKey(), en.getValue());
-                        }
-                    }
-                }
-            }
-        }
+        // the milestone's set and the build window's top K whole builds there (RankAgreement)
+        RankAgreement.Candidates cands = RankAgreement.compute(level);
+        Map<String, Damage.Piece> set = cands.pick();
         Build.Eval eval = set == null ? null : ReferenceBuilds.score(set, level, ReferenceBuilds.earned(level));
         List<ItemData> items = new ArrayList<>();
         if (set != null) {
@@ -251,7 +263,7 @@ class ReferenceBuildsBenchmark {
         }
         long ms = (System.nanoTime() - t0) / 1_000_000;
         pickMillis += ms;
-        p = new Pick(set, eval, items, ms);
+        p = new Pick(set, eval, items, ms, cands);
         picks.put(key, p);
         Fixtures.note("pick " + key + " in " + ms + " ms");
         return p;
@@ -275,9 +287,10 @@ class ReferenceBuildsBenchmark {
         "pick_dps", "ref_ehp_elemental", "pick_ehp_elemental", "ref_regen", "ref_regen_factor", "pick_regen",
         "pick_regen_factor", "ref_life_factor", "pick_life_factor", "ref_major_ids", "pick_major_ids", "pick_set", "url",
         "ref_tree", "ref_plan_objective", "ratio_plan_tree", "ref_parts", "pick_parts", "role", "role_why", "healing_efficiency",
-        "heal_nodes", "ehp_x_floor_damage", "ref_health"};
+        "heal_nodes", "ehp_x_floor_damage", "ref_health", "same_ref_objective", "same_pick_objective", "same_tree_ratio",
+        "candidates", "rank", "percentile", "in_top_k", "beats_pick"};
 
-    private void write(JsonObject doc, List<Row> rows, long ms) throws Exception {
+    private List<String> write(JsonObject doc, List<Row> rows, long ms) throws Exception {
         StringBuilder csv = new StringBuilder(String.join(",", COLUMNS)).append('\n');
         for (Row r : rows) {
             Object[] v = {r.id(), r.post(), r.klass(), classFrom.getOrDefault(r.id(), ""), r.archetype(), r.archFrom(), r.mythic(), r.crafted(), r.tags(), r.level(),
@@ -285,7 +298,8 @@ class ReferenceBuildsBenchmark {
                 r.pickObj(), r.ratio(), r.refDps(), r.pickDps(), r.refEhp(), r.pickEhp(), r.refRegen(), r.refRegenF(),
                 r.pickRegen(), r.pickRegenF(), r.refLife(), r.pickLife(), r.refMajor(), r.pickMajor(), r.pickSet(), r.url(),
                 r.refTree(), r.refPlanObj(), r.planRatio(), r.refParts(), r.pickParts(), r.role(), r.roleWhy(), r.he(), r.heals(),
-                r.ehpX(), r.refHealth()};
+                r.ehpX(), r.refHealth(), r.same().refObj(), r.same().pickObj(), r.same().ratio(), r.same().k(), r.same().rank(),
+                r.same().pct(), r.same().inTopK(), r.same().beatsPick()};
             List<String> cells = new ArrayList<>();
             for (Object o : v) {
                 cells.add(ReferenceBuilds.csv(o));
@@ -305,6 +319,10 @@ class ReferenceBuildsBenchmark {
                 .append(" rows), else the archetype's plan; the pick with the archetype's plan. The plan-tree ratio scores the guide")
                 .append(" build with the plan too. Calibration rows: guide entries (not replies) that decode")
                 .append(" whole (no crafted, custom or unknown piece) and score.\n\n");
+        md.append(RankAgreement.explain());
+        md.append("Links with tomes: ").append(rows.stream().filter(r -> r.tomes() > 0).count())
+                .append("; scored links over the level's points (no same-tree numbers): ")
+                .append(rows.stream().filter(r -> r.scored() && !r.same().fits()).count()).append(".\n\n");
         Map<String, Integer> status = new TreeMap<>();
         rows.forEach(r -> status.merge(r.status().replaceAll(" \\(scored with \\d+\\)", ""), 1, Integer::sum));
         md.append("## Decoding and fitting\n\n| status | links |\n|---|---|\n");
@@ -329,8 +347,9 @@ class ReferenceBuildsBenchmark {
         md.append("\n## Aggregate (every scored row, partial and reply builds included)\n\n");
         table(md, rows.stream().filter(Row::scored).toList());
         md.append("\n## Splits (calibration rows)\n\n");
-        md.append("| rows | n | median ratio | plan-tree ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |\n");
-        md.append("|---|---|---|---|---|---|---|---|\n");
+        md.append("| rows | n | median ratio | plan-tree ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |")
+                .append(RankAgreement.HEAD).append('\n');
+        md.append("|---|---|---|---|---|---|---|---|").append(RankAgreement.SEP).append('\n');
         line(md, "guide build has a major ID", calib.stream().filter(r -> !r.refMajor().isEmpty()).toList());
         line(md, "no major ID", calib.stream().filter(r -> r.refMajor().isEmpty()).toList());
         line(md, "guide build's regen below 0 (regen factor < 1)", calib.stream().filter(r -> r.refRegenF() < 1).toList());
@@ -345,8 +364,27 @@ class ReferenceBuildsBenchmark {
         md.append("\n## Best 5 (calibration rows, highest ratio)\n\n| id | class | archetype | mythic | Lv | ratio |\n|---|---|---|---|---|---|\n");
         calib.stream().sorted(Comparator.comparingDouble(Row::ratio).reversed()).limit(5).forEach(r -> md.append(String.format(
                 Locale.ROOT, "| %d | %s | %s | %s | %d | %.3f |%n", r.id(), r.klass(), r.archetype(), r.mythic(), r.level(), r.ratio())));
+
+        BenchmarkBaseline.Metrics m = new BenchmarkBaseline.Metrics();
+        RankAgreement.pairs(md, m, claims(doc), rows.stream().map(Row::same).toList(), rows.stream().map(Row::klass).toList(),
+                rows.stream().map(r -> "#" + r.id()).toList());
+        RankAgreement.metrics(m, "overall", calib.stream().map(Row::ratio).toList(), calib.stream().map(Row::same).toList());
+        List<Row> all = rows.stream().filter(Row::scored).toList();
+        RankAgreement.metrics(m, "all_scored", all.stream().map(Row::ratio).toList(), all.stream().map(Row::same).toList());
+        group(m, "archetype", calib, r -> r.klass() + " " + (r.archetype().isEmpty() ? "(none)" : r.archetype()));
+        group(m, "role", calib, Row::role);
+        List<String> regressions = BenchmarkBaseline.check("guide", modelVersion(), m, md,
+                Files.exists(ReferenceBuilds.out("model-override.json")) ? "a model override is in force" : null);
         Files.writeString(ReferenceBuilds.out("report.md"), md, StandardCharsets.UTF_8);
         Fixtures.note("reference builds: " + ReferenceBuilds.out("report.md"));
+        return regressions;
+    }
+
+    private static void group(BenchmarkBaseline.Metrics m, String prefix, List<Row> rows, java.util.function.Function<Row, String> key) {
+        Map<String, List<Row>> by = new TreeMap<>();
+        rows.forEach(r -> by.computeIfAbsent(key.apply(r), x -> new ArrayList<>()).add(r));
+        by.forEach((k, l) -> RankAgreement.metrics(m, prefix + "." + k, l.stream().map(Row::ratio).toList(),
+                l.stream().map(Row::same).toList()));
     }
 
     /** The role split (how each role was decided) and, per role, the archetype table. */
@@ -369,8 +407,9 @@ class ReferenceBuildsBenchmark {
         Map<String, List<Row>> by = new TreeMap<>();
         rows.forEach(r -> by.computeIfAbsent(r.klass() + " " + (r.archetype().isEmpty() ? "(none)" : r.archetype()),
                 x -> new ArrayList<>()).add(r));
-        md.append("| archetype | n | median ratio | plan-tree ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |\n");
-        md.append("|---|---|---|---|---|---|---|---|\n");
+        md.append("| archetype | n | median ratio | plan-tree ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |")
+                .append(RankAgreement.HEAD).append('\n');
+        md.append("|---|---|---|---|---|---|---|---|").append(RankAgreement.SEP).append('\n');
         by.forEach((a, list) -> line(md, a, list));
         line(md, "**overall**", rows);
     }
@@ -382,9 +421,10 @@ class ReferenceBuildsBenchmark {
         List<Double> ehp = list.stream().filter(r -> r.pickEhp() > 0).map(r -> r.refEhp() / r.pickEhp()).toList();
         Row worst = list.stream().min(Comparator.comparingDouble(Row::ratio)).orElse(null);
         List<Double> plan = list.stream().map(Row::planRatio).filter(v -> !Double.isNaN(v)).toList();
-        md.append(String.format(Locale.ROOT, "| %s | %d | %.3f | %.3f | %.0f %% | %.2f | %.2f | %s |%n", name, list.size(),
+        md.append(String.format(Locale.ROOT, "| %s | %d | %.3f | %.3f | %.0f %% | %.2f | %.2f | %s |", name, list.size(),
                 ReferenceBuilds.median(ratios), ReferenceBuilds.median(plan), list.isEmpty() ? 0 : 100.0 * ok / list.size(), ReferenceBuilds.median(dps),
                 ReferenceBuilds.median(ehp), worst == null ? "" : "#" + worst.id() + " " + worst.mythic() + " " + String.format(
-                        Locale.ROOT, "%.3f", worst.ratio())));
+                        Locale.ROOT, "%.3f", worst.ratio())))
+                .append(RankAgreement.cells(list.stream().map(Row::same).toList())).append('\n');
     }
 }

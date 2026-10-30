@@ -64,12 +64,20 @@ class LevelingMetaBenchmark {
     /** One class/goal/level/slot comparison. */
     record Row(String klass, String arch, String goal, int level, String slot, String metas, String pick, String top3,
             boolean hit, boolean inTop3, String bestMeta, double metaObj, double pickObj, double metaXp, double pickXp,
-            String causes) {
+            String causes, int rank, int cands) {
 
         double ratio() {
             return metaObj > 0 && pickObj > 0 ? metaObj / pickObj : Double.NaN;
         }
+
+        /** 1 / the listed item's rank among the slot's candidates (0 when not ranked). */
+        double reciprocal() {
+            return rank > 0 ? 1.0 / rank : 0;
+        }
     }
+
+    /** How many of a slot's other options (best gain first) the listed item is ranked against, besides the pick. */
+    private static final int OPTIONS = 5;
 
     /** A whole listed build against the pick. */
     record SetRow(String klass, String goal, int level, String track, String build, double refObj, double pickObj,
@@ -113,7 +121,7 @@ class LevelingMetaBenchmark {
                         Fixtures.note("leveling " + k + " " + goal + " Lv " + level + ": " + t);
                         rows.add(new Row(k.name(), archetypeOf.get(k.name()), goal, level, "-", "", "", "", false, false, "",
                                 Double.NaN, Double.NaN, Double.NaN, Double.NaN, "error: " + t.getClass().getSimpleName()
-                                + " " + t.getMessage()));
+                                + " " + t.getMessage(), 0, 0));
                     } finally {
                         RoadmapTap.trace(null);
                         FixtureState.uninstall();
@@ -122,8 +130,10 @@ class LevelingMetaBenchmark {
             }
         }
         long ms = (System.nanoTime() - t0) / 1_000_000;
-        write(doc, levels, goals, ms);
+        List<String> regressions = write(doc, levels, goals, ms);
         assertTrue(rows.stream().anyMatch(r -> !Double.isNaN(r.pickObj())), "no road map scored");
+        assertTrue(regressions.isEmpty(), "below the baseline (an intended change? approve it with -PupdateFixtures):\n"
+                + String.join("\n", regressions));
     }
 
     static List<Integer> ints(String s) {
@@ -364,15 +374,20 @@ class LevelingMetaBenchmark {
             }
         }
         Set<String> top = new LinkedHashSet<>(picked);
+        // the slot's candidates the listed item is ranked among: the pick and the slot's best other options
+        Set<String> cands = new LinkedHashSet<>(picked);
         if (step != null) {
             for (Roadmap.Gear g : step.gear()) {
                 if (!gearRows(slot, k).contains(g.slot())) {
                     continue;
                 }
                 top.add(g.info().name());
+                cands.add(g.info().name());
                 if (g.options() != null) {
-                    g.options().stream().sorted(Comparator.comparingDouble((Roadmap.Option o) -> -o.gain()))
-                            .map(o -> o.info().name()).filter(n -> !picked.contains(n)).limit(2).forEach(top::add);
+                    List<String> ranked = g.options().stream().sorted(Comparator.comparingDouble((Roadmap.Option o) -> -o.gain()))
+                            .map(o -> o.info().name()).filter(n -> !picked.contains(n)).toList();
+                    ranked.stream().limit(2).forEach(top::add);
+                    ranked.stream().limit(OPTIONS).forEach(cands::add);
                 }
             }
         }
@@ -386,16 +401,7 @@ class LevelingMetaBenchmark {
         Map<String, String> fit = new LinkedHashMap<>();
         if (!hit && !Double.isNaN(pickObj)) {
             for (String n : names) {
-                ItemData info = db.get(n);
-                double o = Double.NaN;
-                for (String bs : buildSlots(slot)) {
-                    Map<String, Damage.Piece> trial = new LinkedHashMap<>(set);
-                    trial.put(bs, Damage.piece(info));
-                    Build.Eval ev = ReferenceBuilds.score(trial, level, earned);
-                    if (ev != null && (Double.isNaN(o) || ev.result().objective() > o)) {
-                        o = ev.result().objective();
-                    }
-                }
+                double o = swap(set, slot, db.get(n), level, earned);
                 fit.put(n, Double.isNaN(o) ? "no fit" : "ok");
                 if (!Double.isNaN(o) && (Double.isNaN(bestObj) || o > bestObj)) {
                     bestObj = o;
@@ -422,8 +428,46 @@ class LevelingMetaBenchmark {
             }
             return 0;
         }).max().orElse(0);
+        // the listed item's rank among the slot's candidates, each swapped into the pick's set and scored the same way
+        int rank = 0;
+        int scored = 0;
+        if (!Double.isNaN(pickObj)) {
+            int above = 0;
+            for (String c : cands) {
+                if (names.contains(c) || db.get(c) == null) {
+                    continue;
+                }
+                double o = picked.contains(c) ? pickObj : swap(set, slot, db.get(c), level, earned);
+                if (Double.isNaN(o)) {
+                    continue;
+                }
+                scored++;
+                if (Double.isNaN(bestObj) || o > bestObj * (1 + 1e-9)) {
+                    above++;
+                }
+            }
+            rank = 1 + above;
+        }
         return new Row(k.name(), arch, goal, level, slot, String.join(" | ", names), String.join(" | ", picked),
-                String.join(" | ", top), hit, inTop, best, bestObj, pickObj, bestXp, pickXp, String.join("; ", causes));
+                String.join(" | ", top), hit, inTop, best, bestObj, pickObj, bestXp, pickXp, String.join("; ", causes), rank,
+                scored + 1);
+    }
+
+    /** The pick's set with {@code info} in the slot (each ring slot tried), scored at the level: the best objective, NaN when it never fits. */
+    private static double swap(Map<String, Damage.Piece> set, String slot, ItemData info, int level, int earned) {
+        double o = Double.NaN;
+        if (info == null) {
+            return o;
+        }
+        for (String bs : buildSlots(slot)) {
+            Map<String, Damage.Piece> trial = new LinkedHashMap<>(set);
+            trial.put(bs, Damage.piece(info));
+            Build.Eval ev = ReferenceBuilds.score(trial, level, earned);
+            if (ev != null && (Double.isNaN(o) || ev.result().objective() > o)) {
+                o = ev.result().objective();
+            }
+        }
+        return o;
     }
 
     private static double xp(Damage.Piece p) {
@@ -617,13 +661,13 @@ class LevelingMetaBenchmark {
 
     // ---- the report ----
 
-    private void write(JsonObject doc, List<Integer> levels, List<String> goals, long ms) throws Exception {
+    private List<String> write(JsonObject doc, List<Integer> levels, List<String> goals, long ms) throws Exception {
         String[] cols = {"class", "archetype", "goal", "level", "slot", "listed", "pick", "top3", "hit", "in_top3", "best_listed",
-            "listed_objective", "pick_objective", "ratio", "listed_xp", "pick_xp", "causes"};
+            "listed_objective", "pick_objective", "ratio", "listed_xp", "pick_xp", "causes", "rank", "candidates"};
         StringBuilder csv = new StringBuilder(String.join(",", cols)).append('\n');
         for (Row r : rows) {
             Object[] v = {r.klass(), r.arch(), r.goal(), r.level(), r.slot(), r.metas(), r.pick(), r.top3(), r.hit(), r.inTop3(),
-                r.bestMeta(), r.metaObj(), r.pickObj(), r.ratio(), r.metaXp(), r.pickXp(), r.causes()};
+                r.bestMeta(), r.metaObj(), r.pickObj(), r.ratio(), r.metaXp(), r.pickXp(), r.causes(), r.rank(), r.cands()};
             line(csv, v);
         }
         Files.writeString(ReferenceBuilds.out("leveling.csv"), csv, StandardCharsets.UTF_8);
@@ -649,6 +693,14 @@ class LevelingMetaBenchmark {
         md.append("hit = a listed item is the road map's pick for the slot; top 3 = the pick or one of the slot's two best other")
                 .append(" options. ratio = the best listed item swapped into the pick's set / the pick's set (misses only;")
                 .append(" `Build.allocateBest` at the level with the archetype's tree plan).\n\n");
+        md.append("How to read the measures:\n\n")
+                .append("- **hit**: how often the road map picks one of the thread's items for the slot.\n")
+                .append("- **top 3**: how often a listed item is the pick or one of the slot's two best other options.\n")
+                .append("- **rank**: the listed item's place among the slot's candidates (the pick and the slot's ").append(OPTIONS)
+                .append(" best other options), each swapped into the pick's set and scored the same way; 1 means the model")
+                .append(" rates the listed item at least as high as all of them. **1/rank** averages 1 / that place (1.0: always")
+                .append(" first, 0.5: second on average); a listed item that does not fit counts as last.\n")
+                .append("- **ratio**: the best listed item swapped into the pick's set / the pick's set, misses only.\n\n");
         for (String goal : goals) {
             List<Row> g = rows.stream().filter(r -> r.goal().equals(goal) && !r.slot().equals("-")).toList();
             md.append("## Goal ").append(goal).append("\n\n### By class\n\n");
@@ -707,8 +759,30 @@ class LevelingMetaBenchmark {
         md.append("| item | for | Lv | thread | data | remark |\n|---|---|---|---|---|---|\n");
         sources.stream().filter(s -> !s[8].isEmpty()).forEach(s -> md.append("| ").append(s[0]).append(" | ").append(s[1])
                 .append(" | ").append(s[2]).append(" | ").append(s[3]).append(" | ").append(s[6]).append(" | ").append(s[8]).append(" |\n"));
+        BenchmarkBaseline.Metrics m = new BenchmarkBaseline.Metrics();
+        for (String goal : goals) {
+            List<Row> g = rows.stream().filter(r -> r.goal().equals(goal) && !r.slot().equals("-")).toList();
+            metrics(m, goal + ".overall", g);
+            for (Klass k : CLASSES) {
+                metrics(m, goal + ".class." + k.name(), g.stream().filter(r -> r.klass().equals(k.name())).toList());
+            }
+            Map<String, List<Row>> bySlot = new TreeMap<>();
+            g.forEach(r -> bySlot.computeIfAbsent(r.slot(), x -> new ArrayList<>()).add(r));
+            bySlot.forEach((s, l) -> metrics(m, goal + ".slot." + s, l));
+            Map<String, List<Double>> byTrack = new TreeMap<>();
+            setRows.stream().filter(s -> s.goal().equals(goal) && !Double.isNaN(s.ratio()))
+                    .forEach(s -> byTrack.computeIfAbsent(s.track(), x -> new ArrayList<>()).add(s.ratio()));
+            byTrack.forEach((t, l) -> m.put(goal + ".whole_set." + t.replace(' ', '_') + ".median_ratio", BenchmarkBaseline.Kind.RATIO,
+                    ReferenceBuilds.median(l), l.size()));
+        }
+        boolean narrowed = System.getProperty("wynnlabs.levelingLevels") != null || System.getProperty("wynnlabs.levelingGoals") != null
+                || Boolean.getBoolean("wynnlabs.fullBeam");
+        List<String> regressions = BenchmarkBaseline.check("leveling", modelVersion(), m, md,
+                narrowed ? "a narrowed run (levels, goals or the wide search)"
+                        : Files.exists(ReferenceBuilds.out("model-override.json")) ? "a model override is in force" : null);
         Files.writeString(ReferenceBuilds.out("leveling-report.md"), md, StandardCharsets.UTF_8);
         Fixtures.note("leveling: " + ReferenceBuilds.out("leveling-report.md"));
+        return regressions;
     }
 
     private static void line(StringBuilder sb, Object[] v) {
@@ -722,9 +796,13 @@ class LevelingMetaBenchmark {
     private static void table(StringBuilder md, List<Row> rows, java.util.function.Function<Row, String> key) {
         Map<String, List<Row>> by = new TreeMap<>();
         rows.forEach(r -> by.computeIfAbsent(key.apply(r), x -> new ArrayList<>()).add(r));
-        md.append("| group | n | hit | top 3 | median ratio (misses) | worst miss |\n|---|---|---|---|---|---|\n");
+        md.append("| group | n | hit | top 3 | 1/rank | median rank | median ratio (misses) | worst miss |\n|---|---|---|---|---|---|---|---|\n");
         by.forEach((k, l) -> stats(md, k, l));
         stats(md, "**all**", rows);
+    }
+
+    private static List<Row> ranked(List<Row> l) {
+        return l.stream().filter(r -> r.rank() > 0).toList();
     }
 
     private static void stats(StringBuilder md, String name, List<Row> l) {
@@ -732,10 +810,23 @@ class LevelingMetaBenchmark {
         long top = l.stream().filter(Row::inTop3).count();
         List<Double> ratios = l.stream().filter(r -> !r.inTop3() && !Double.isNaN(r.ratio())).map(Row::ratio).toList();
         Row worst = l.stream().filter(r -> !r.inTop3() && !Double.isNaN(r.ratio())).min(Comparator.comparingDouble(Row::ratio)).orElse(null);
-        md.append(String.format(Locale.ROOT, "| %s | %d | %.0f %% | %.0f %% | %.3f | %s |%n", name, l.size(),
-                l.isEmpty() ? 0 : 100.0 * hit / l.size(), l.isEmpty() ? 0 : 100.0 * top / l.size(), ReferenceBuilds.median(ratios),
+        List<Row> ranked = ranked(l);
+        md.append(String.format(Locale.ROOT, "| %s | %d | %.0f %% | %.0f %% | %.2f | %.1f | %.3f | %s |%n", name, l.size(),
+                l.isEmpty() ? 0 : 100.0 * hit / l.size(), l.isEmpty() ? 0 : 100.0 * top / l.size(),
+                BenchmarkBaseline.mean(ranked.stream().map(Row::reciprocal).toList()),
+                ReferenceBuilds.median(ranked.stream().map(r -> (double) r.rank()).toList()), ReferenceBuilds.median(ratios),
                 worst == null ? "" : worst.klass() + " Lv " + worst.level() + " " + worst.slot() + " " + worst.bestMeta()
                         + String.format(Locale.ROOT, " %.3f", worst.ratio())));
+    }
+
+    /** A group's baseline metrics: hit and top-3 rates and the mean 1/rank. */
+    private static void metrics(BenchmarkBaseline.Metrics m, String prefix, List<Row> l) {
+        m.put(prefix + ".hit", BenchmarkBaseline.Kind.RATE, BenchmarkBaseline.pct(l.stream().filter(Row::hit).count(), l.size()), l.size());
+        m.put(prefix + ".top3", BenchmarkBaseline.Kind.RATE, BenchmarkBaseline.pct(l.stream().filter(Row::inTop3).count(), l.size()),
+                l.size());
+        List<Row> ranked = ranked(l);
+        m.put(prefix + ".reciprocal_rank", BenchmarkBaseline.Kind.RATIO,
+                BenchmarkBaseline.mean(ranked.stream().map(Row::reciprocal).toList()), ranked.size());
     }
 
     private static String modelVersion() {

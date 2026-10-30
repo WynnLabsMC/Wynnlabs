@@ -254,6 +254,17 @@ final class ReferenceBuilds {
         return String.join(" ", out);
     }
 
+    /** BeamCache.modelVersion (package-private there): which scoring model the numbers are from. */
+    static String modelVersion() {
+        try {
+            java.lang.reflect.Method m = io.github.anilken.wynnlabs.build.roadmap.BeamCache.class.getDeclaredMethod("modelVersion");
+            m.setAccessible(true);
+            return String.valueOf(m.invoke(null));
+        } catch (ReflectiveOperationException e) {
+            return "?";
+        }
+    }
+
     static String csv(Object v) {
         String s = v == null ? "" : v instanceof Double d ? fmt(d) : String.valueOf(v);
         return s.contains(",") || s.contains("\"") ? "\"" + s.replace("\"", "\"\"") + "\"" : s;
