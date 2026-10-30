@@ -168,6 +168,13 @@ class WynnBuilderExportTest {
         assertEquals(List.of(32, 12, -30, 5, 5), b.skills());
         assertEquals(50, b.level());
         assertNull(WynnBuilderExport.milestone(null, null, 50));
+        // a set the road map judged with an assumed guild tome carries that tome, so WynnBuilder
+        // takes its +1s off the totals instead of counting them as assigned
+        Tomes.Tome rainbow = new Tomes.Tome(new int[] {1, 1, 1, 1, 1}, true);
+        WynnBuilderLink.Build t = WynnBuilderLink.decode(WynnBuilderExport.milestone(set,
+                new Build.Eval(new int[] {30, 10, 0, 5, 0}, null, rainbow), 50));
+        assertTrue(t.tomes().contains(rainbow.name()), t.tomes().toString());
+        assertEquals(List.of(33, 13, -29, 6, 6), t.skills());
     }
 
     // ---- helpers ----

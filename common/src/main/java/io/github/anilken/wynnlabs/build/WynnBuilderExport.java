@@ -218,7 +218,14 @@ public final class WynnBuilderExport {
             nodes.addAll(state.unlockedAbilities());
         }
         WynnBuilderTree.Tree tree = new WynnBuilderTree.Tree(state.classType(), nodes, List.of(), Map.of());
-        return link(newest(pieces, state.tomes(), skills, level), tree);
+        // the guild tome the road map counted on goes in the link too: without it WynnBuilder read
+        // its +1s as assigned points (205 of 200) and asked for a Rainbow Tome
+        List<String> tomes = new ArrayList<>(state.tomes());
+        String assumed = eval == null || eval.tome() == null ? null : eval.tome().name();
+        if (assumed != null && !tomes.contains(assumed)) {
+            tomes.add(assumed);
+        }
+        return link(newest(pieces, tomes, skills, level), tree);
     }
 
     /**

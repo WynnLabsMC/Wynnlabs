@@ -154,7 +154,7 @@ final class HomeAlts {
             int bw = UiExport.width(font, GEAR, false);
             x -= bw;
             UiExport.draw(g, font, GEAR, x, y, false, true, mx, my);
-            host.area(x, y, bw, Ui.CHIP_H, null, exportTip(L.t("wynnlabs.alt.export_level", shownStep.level()), GEAR), "#qgearwb:");
+            host.area(x, y, bw, Ui.CHIP_H, null, exportTip(L.t("wynnlabs.alt.export_level", shownStep.level()), GEAR, shownStep), "#qgearwb:");
             x -= Theme.SP_2;
         }
         List<Roadmap.Alternative> cards = cards(menu.steps, i);
@@ -175,9 +175,14 @@ final class HomeAlts {
     }
 
     /** An export button's tooltip: what it copies, then how the last copy went. */
-    private static List<Component> exportTip(String title, String where) {
+    private static List<Component> exportTip(String title, String where, Roadmap.Step step) {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(title).withStyle(ChatFormatting.WHITE));
+        // a set counted with a guild tome you don't have: the link carries it, say so before you copy
+        var tome = step == null || step.set() == null ? null : step.set().tome();
+        if (tome != null && tome.assumed()) {
+            tip.add(L.c("wynnlabs.stats.assumes_tome", tome.text()).withStyle(ChatFormatting.GOLD));
+        }
         int s = UiExport.state(where, System.currentTimeMillis());
         if (s != 0) {
             tip.add(L.c(s > 0 ? "wynnlabs.wb.copied" : "wynnlabs.wb.copy_failed").withStyle(s > 0 ? ChatFormatting.GREEN : ChatFormatting.RED));
@@ -301,7 +306,7 @@ final class HomeAlts {
         UiExport.draw(g, font, CARD + k, bx, by, false, true, inView ? mx : -1, inView ? my : -1);
         int[] btn = clip(bx, by, bw, Ui.CHIP_H, clipTop, clipBottom);
         if (btn != null) {
-            host.area(btn[0], btn[1], btn[2], btn[3], null, exportTip(L.t("wynnlabs.wb.export_tip_this"), CARD + k), "#qaltwb:" + k);
+            host.area(btn[0], btn[1], btn[2], btn[3], null, exportTip(L.t("wynnlabs.wb.export_tip_this"), CARD + k, menu.steps.get(menu.selected).as(k)), "#qaltwb:" + k);
         }
         String gap = k == 0 || a.gapPct() > -0.5 ? L.t("wynnlabs.alt.best") : L.t("wynnlabs.alt.gap", Math.round(-a.gapPct()));
         int gw = Type.META.width(font, gap) + 2 * Theme.SP_2;
