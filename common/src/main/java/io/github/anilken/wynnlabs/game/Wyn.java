@@ -1304,8 +1304,20 @@ public final class Wyn {
     /** Wynntils' own lootrun pulls without a mythic (whole account); -1 when unavailable. */
     public static int lootrunDryPulls() {
         return guard(Feature.LOOTRUNS, () -> {
-            Integer v = Models.Lootrun.dryPulls.get();
-            return v == null ? -1 : v;
+            // Wynntils 4.2.16 moved the count to Models.LootrunReward; older ones keep it on Models.Lootrun
+            try {
+                Object owner;
+                try {
+                    owner = Models.class.getField("LootrunReward").get(null);
+                } catch (NoSuchFieldException e) {
+                    owner = Models.Lootrun;
+                }
+                Object storage = owner.getClass().getField("dryPulls").get(owner);
+                Object v = storage.getClass().getMethod("get").invoke(storage);
+                return v instanceof Integer i ? i : -1;
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
         }, -1);
     }
 
