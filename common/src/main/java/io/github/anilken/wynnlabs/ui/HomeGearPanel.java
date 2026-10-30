@@ -74,7 +74,8 @@ final class HomeGearPanel extends HomePart {
         // an out-of-date road map: a strip over the stand where the stand keeps its room, else
         // (compact, or a short panel) an amber badge on the refresh button, its tooltip saying why
         Road early = in.road();
-        boolean staleNow = early != null && early.stale() != null && !early.none() && in.plan() == null;
+        // while the map recalculates its progress bar says so: no "out of date" strip beside it
+        boolean staleNow = early != null && early.stale() != null && !early.none() && !early.building() && in.plan() == null;
         int slotNeed = 4 * (large ? 36 : 22) + 9;
         boolean stripRoom = !compact && (y + h - PAD - 20 - 4) - (ty + 15 + STRIP_H) >= slotNeed;
         String staleTip = null;
