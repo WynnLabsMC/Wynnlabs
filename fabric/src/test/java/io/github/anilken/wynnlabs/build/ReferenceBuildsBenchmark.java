@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The community guide's builds (reference-builds/guide.json, from the forum thread "The Ultimate
  * Build Guide") against the mod's own pick: each link decoded, scored with the model at its level
- * for its class and archetype (the archetype's tree plan, the Damage goal), and the road map's set
+ * for its class and archetype (the archetype's tree plan, the goal of its role: Healer, Tank or Damage, see BuildRoles), and the road map's set
  * for the same class, archetype and level scored the same way. A ratio near or above 1 means the
  * model rates the community's build as well as its own pick. Opt-in (-PreferenceBuilds): it runs
  * the road map once per class, archetype and level. Writes build/reference-builds/report.md and
@@ -48,7 +48,7 @@ class ReferenceBuildsBenchmark {
             double refDps, double pickDps, double refEhp, double pickEhp, double refRegen, double refRegenF,
             double pickRegen, double pickRegenF, double refLife, double pickLife, String refMajor, String pickMajor,
             String pickSet, String url, double refPlanObj, String refTree, String refParts,
-            String pickParts) {
+            String pickParts, String role, String roleWhy, double he, int heals, double ehpX, double refHealth) {
 
         double ratio() {
             return refObj > 0 && pickObj > 0 ? refObj / pickObj : Double.NaN;
@@ -60,7 +60,7 @@ class ReferenceBuildsBenchmark {
         }
 
         boolean scored() {
-            return !Double.isNaN(ratio());
+            return !Double.isNaN(ratio()) && !status.startsWith("partial");
         }
 
         /** Every piece of the link in the model: no crafted, custom or unknown piece left out. */
@@ -106,7 +106,8 @@ class ReferenceBuildsBenchmark {
         return new Row(e.get("id").getAsInt(), text(e, "post"), text(e, "class"), text(e, "archetype"), "", text(e, "mythic"),
                 e.get("crafted").isJsonNull() ? null : e.get("crafted").getAsBoolean(), tags(e), 0, why, "", 0, 0,
                 Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN,
-                Double.NaN, Double.NaN, Double.NaN, "", "", "", text(e, "url"), Double.NaN, "", "", "");
+                Double.NaN, Double.NaN, Double.NaN, "", "", "", text(e, "url"), Double.NaN, "", "", "", "", "", Double.NaN, -1,
+                Double.NaN, Double.NaN);
     }
 
     /** Why a link did not decode: not a build page at all, text pasted after the link, or a link the decoder cannot read. */
@@ -158,13 +159,25 @@ class ReferenceBuildsBenchmark {
             dropped = (dropped + " newer-data-version:" + b.version()).trim();
         }
         int need = ReferenceBuilds.need(ls.set().values());
-        Pick pick = pick(k, arch, level);
         int earned = ReferenceBuilds.earned(level);
         // the guide build with its own tree where the link has one the model reads, else the archetype's plan
         Build.Eval refPlan = ls.hasWeapon() ? ReferenceBuilds.score(ls.set(), level, Math.max(earned, need)) : null;
         Build.Eval ref = ls.hasWeapon() && ls.tree() != null
                 ? ReferenceBuilds.score(ls.set(), level, Math.max(earned, need), ls.tree()) : refPlan;
-        String status = !ls.hasWeapon() ? "no weapon" : ref == null ? "does not fit: a skill needs over 100 assigned" : need > earned ? "over cap (scored with " + need + ")" : "ok";
+        // its role (healer, tank, damage) from its text, stats and tree; a healer or tank is judged,
+        // and its pick made, with that goal instead of Damage
+        double ehpX = BuildRoles.ehpX(ref == null ? null : ref.result(), level);
+        BuildRoles.Call role = BuildRoles.of(arch, text(e, "context"), ls.set().values(), BuildRoles.heals(ls.tree()), ehpX);
+        if (!role.goal().equals("DAMAGE")) {
+            ReferenceBuilds.install(k, level, arch, role.goal());
+            refPlan = ls.hasWeapon() ? ReferenceBuilds.score(ls.set(), level, Math.max(earned, need)) : null;
+            ref = ls.hasWeapon() && ls.tree() != null
+                    ? ReferenceBuilds.score(ls.set(), level, Math.max(earned, need), ls.tree()) : refPlan;
+        }
+        Pick pick = pick(k, arch, level, role.goal());
+        String status = !ls.hasWeapon() ? "no weapon" : ref == null ? "does not fit: a skill needs over 100 assigned"
+                : ls.armourLeftOut() ? "partial: crafted or custom armour left out"
+                : need > earned ? "over cap (scored with " + need + ")" : "ok";
         Damage.Result rr = ref == null ? null : ref.result();
         Damage.Result pr = pick.eval() == null ? null : pick.eval().result();
         double refRegen = ReferenceBuilds.regen(ls.set().values());
@@ -185,7 +198,8 @@ class ReferenceBuildsBenchmark {
                 pr == null || pr.factors().length < 2 ? Double.NaN : pr.factors()[1],
                 ReferenceBuilds.majorIds(ls.items()), ReferenceBuilds.majorIds(pick.items()), String.join(" / ", names), url,
                 refPlan == null ? Double.NaN : refPlan.result().objective(), ls.tree() != null ? "own" : "plan", parts(rr),
-                parts(pr));
+                parts(pr), role.goal(), role.why(), BuildRoles.healingEfficiency(ls.set().values()), BuildRoles.heals(ls.tree()),
+                ehpX, rr == null ? Double.NaN : rr.health());
         Fixtures.note(String.format(Locale.ROOT, "ref %d %s %s Lv %d: %s ref %.4g pick %.4g", row.id(), k, arch, level, status,
                 row.refObj(), row.pickObj()));
         return row;
@@ -203,8 +217,8 @@ class ReferenceBuildsBenchmark {
     }
 
     /** The road map's set for the class, archetype and level (its own milestone at your level), once per run. */
-    private Pick pick(Klass k, String arch, int level) {
-        String key = k + "|" + arch + "|" + level;
+    private Pick pick(Klass k, String arch, int level, String goal) {
+        String key = k + "|" + arch + "|" + level + "|" + goal;
         Pick p = picks.get(key);
         if (p != null) {
             return p;
@@ -260,7 +274,8 @@ class ReferenceBuildsBenchmark {
         "level", "status", "dropped", "tomes", "min_points", "fits_200", "ref_objective", "pick_objective", "ratio", "ref_dps",
         "pick_dps", "ref_ehp_elemental", "pick_ehp_elemental", "ref_regen", "ref_regen_factor", "pick_regen",
         "pick_regen_factor", "ref_life_factor", "pick_life_factor", "ref_major_ids", "pick_major_ids", "pick_set", "url",
-        "ref_tree", "ref_plan_objective", "ratio_plan_tree", "ref_parts", "pick_parts"};
+        "ref_tree", "ref_plan_objective", "ratio_plan_tree", "ref_parts", "pick_parts", "role", "role_why", "healing_efficiency",
+        "heal_nodes", "ehp_x_floor_damage", "ref_health"};
 
     private void write(JsonObject doc, List<Row> rows, long ms) throws Exception {
         StringBuilder csv = new StringBuilder(String.join(",", COLUMNS)).append('\n');
@@ -269,7 +284,8 @@ class ReferenceBuildsBenchmark {
                 r.status(), r.dropped(), r.tomes(), r.need(), r.level() == 0 ? "" : r.need() <= ReferenceBuilds.CAP, r.refObj(),
                 r.pickObj(), r.ratio(), r.refDps(), r.pickDps(), r.refEhp(), r.pickEhp(), r.refRegen(), r.refRegenF(),
                 r.pickRegen(), r.pickRegenF(), r.refLife(), r.pickLife(), r.refMajor(), r.pickMajor(), r.pickSet(), r.url(),
-                r.refTree(), r.refPlanObj(), r.planRatio(), r.refParts(), r.pickParts()};
+                r.refTree(), r.refPlanObj(), r.planRatio(), r.refParts(), r.pickParts(), r.role(), r.roleWhy(), r.he(), r.heals(),
+                r.ehpX(), r.refHealth()};
             List<String> cells = new ArrayList<>();
             for (Object o : v) {
                 cells.add(ReferenceBuilds.csv(o));
@@ -284,7 +300,7 @@ class ReferenceBuildsBenchmark {
                 .append(" s, of which road map picks ").append(pickMillis / 1000).append(" s for ").append(picks.size())
                 .append(" class/archetype/level combinations (the tests' narrow search: jointPool 6, beamWidth 12, beamFinal 4).\n\n");
         md.append("ratio = the guide build's objective / the pick's objective, both scored by `Build.allocateBest` at the link's level with")
-                .append(" the Damage goal; the guide build with its link's own ability tree where the link has one (")
+                .append(" the goal of the build's role (Healer, Tank or Damage: see Roles), the pick made with that goal too; the guide build with its link's own ability tree where the link has one (")
                 .append(rows.stream().filter(r -> "own".equals(r.refTree())).count())
                 .append(" rows), else the archetype's plan; the pick with the archetype's plan. The plan-tree ratio scores the guide")
                 .append(" build with the plan too. Calibration rows: guide entries (not replies) that decode")
@@ -309,6 +325,7 @@ class ReferenceBuildsBenchmark {
         List<Row> calib = rows.stream().filter(r -> r.scored() && r.complete() && "guide".equals(r.post())).toList();
         md.append("## Aggregate (calibration rows)\n\n");
         table(md, calib);
+        roles(md, calib);
         md.append("\n## Aggregate (every scored row, partial and reply builds included)\n\n");
         table(md, rows.stream().filter(Row::scored).toList());
         md.append("\n## Splits (calibration rows)\n\n");
@@ -330,6 +347,22 @@ class ReferenceBuildsBenchmark {
                 Locale.ROOT, "| %d | %s | %s | %s | %d | %.3f |%n", r.id(), r.klass(), r.archetype(), r.mythic(), r.level(), r.ratio())));
         Files.writeString(ReferenceBuilds.out("report.md"), md, StandardCharsets.UTF_8);
         Fixtures.note("reference builds: " + ReferenceBuilds.out("report.md"));
+    }
+
+    /** The role split (how each role was decided) and, per role, the archetype table. */
+    private static void roles(StringBuilder md, List<Row> rows) {
+        md.append("\n## Roles (calibration rows)\n\nEach build's role from its text (healer/support, tank), its Healing Efficiency,")
+                .append(" its tree's heal nodes with a heal archetype, or its health against the level's floor when scored for damage.")
+                .append(" A role's rows are judged, and the pick made, with that goal.\n\n| role | why | n |\n|---|---|---|\n");
+        Map<String, Integer> split = new TreeMap<>();
+        rows.forEach(r -> split.merge(r.role() + " | " + (r.roleWhy().isEmpty() ? "-" : r.roleWhy()), 1, Integer::sum));
+        split.forEach((k, n) -> md.append("| ").append(k).append(" | ").append(n).append(" |\n"));
+        Map<String, List<Row>> by = new TreeMap<>();
+        rows.forEach(r -> by.computeIfAbsent(r.role(), x -> new ArrayList<>()).add(r));
+        by.forEach((role, list) -> {
+            md.append("\n### ").append(role).append("\n\n");
+            table(md, list);
+        });
     }
 
     private static void table(StringBuilder md, List<Row> rows) {

@@ -93,6 +93,11 @@ final class ReferenceBuilds {
      * left the fixture's Summoner in place.
      */
     static void install(Klass k, int level, String archetype) throws IOException {
+        install(k, level, archetype, "DAMAGE");
+    }
+
+    /** {@link #install(Klass, int, String)} with the goal {@code goal} (a {@link Setup#GOALS} preset) instead of Damage. */
+    static void install(Klass k, int level, String archetype, String goal) throws IOException {
         FixtureState s = AS.get(k);
         if (s == null) {
             s = FixtureState.load(Fixtures.root().resolve("shaman-44")).as(k).withTree(tree(k), List.of());
@@ -104,7 +109,7 @@ final class ReferenceBuilds {
             // choosing none leaves the last class's profile (the fixture's Shaman spells): the class's own
             ClassProfiles.apply("", false);
         }
-        Setup.setGoal("DAMAGE");
+        Setup.setGoal(goal);
         // model weights to try without a rebuild: build/reference-builds/model-override.json ({"model": {...}})
         Path o = out("model-override.json");
         if (Files.exists(o)) {
@@ -142,6 +147,15 @@ final class ReferenceBuilds {
     record LinkSet(Map<String, Damage.Piece> set, List<ItemData> items, List<String> dropped, TreeModel.Overlay tree) {
         boolean hasWeapon() {
             return set.containsKey("WEAPON");
+        }
+
+        /**
+         * A crafted, custom or unknown piece in an armour slot: the model cannot read it, so the
+         * set misses the health that piece carries (with a Cataclysm's −6000 it sits at 1 health).
+         * Such a link is not judged as a whole build.
+         */
+        boolean armourLeftOut() {
+            return dropped.stream().anyMatch(d -> d.matches("(helmet|chestplate|leggings|boots):.*"));
         }
     }
 

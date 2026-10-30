@@ -77,7 +77,7 @@ class MarketSlotsTest {
         tr.addProperty("langOverride", 2);
         Settings.use(tr);
         try {
-            assertEquals("Blacksmith'e sat, Trade Market dolu: 15 ilan hakkı, bu 18.",
+            assertEquals("Blacksmith'e sat, Trade Market dolu: 15 slot, bu 18.",
                     MarketSlots.note(15, 18));
             assertEquals("Blacksmith", Advice.sellPlace(new Advice.Entry(Verdict.SELL, MarketSlots.note(15, 18))));
         } finally {
