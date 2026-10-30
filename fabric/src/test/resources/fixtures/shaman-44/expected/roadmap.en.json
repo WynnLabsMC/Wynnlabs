@@ -3459,163 +3459,55 @@
       "level": 120,
       "gear": [
         {
-          "slot": "CHESTPLATE",
-          "name": "Drenched Igneous",
-          "level": 115,
-          "tier": "LEGENDARY",
-          "gain": 15.8,
+          "slot": "LEGGINGS",
+          "name": "Omniverse",
+          "level": 112,
+          "tier": "UNIQUE",
+          "gain": 3.1,
           "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
             {
-              "name": "Drenched Igneous",
-              "level": 115,
-              "gain": 235.6,
+              "name": "Omniverse",
+              "level": 112,
+              "gain": 152.9,
               "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Mothwing Cloak",
-              "level": 115,
-              "gain": 205.9,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Tautology",
-              "level": 107,
-              "gain": 194.5,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Heart of the Forest",
-              "level": 107,
-              "gain": 166.9,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Dondasch",
+              "name": "Neutrino",
               "level": 100,
-              "gain": 153.5,
-              "from": "Aerie of the Recluse altar · 3× altar run",
-              "tradable": false
-            },
-            {
-              "name": "Far Cosmos",
-              "level": 100,
-              "gain": 136.0,
+              "gain": 169.6,
               "from": "mob drop",
               "tradable": true
-            }
-          ]
-        },
-        {
-          "slot": "RING",
-          "name": "Prime",
-          "level": 109,
-          "tier": "UNIQUE",
-          "gain": 0.8,
-          "from": "cave chest",
-          "price": null,
-          "tradable": true,
-          "options": [
+            },
             {
-              "name": "Prime",
-              "level": 109,
-              "gain": 12.6,
-              "from": "cave chest",
+              "name": "Vaward",
+              "level": 99,
+              "gain": 100.7,
+              "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Diamond Fusion Ring",
+              "name": "Haze Striders",
+              "level": 113,
+              "gain": 89.8,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Turquoise",
               "level": 95,
-              "gain": 27.3,
-              "from": "Legendary Island (challenge) · 1× Diamond Token + Gold Fusion Ring",
-              "tradable": false
-            },
-            {
-              "name": "Greenrock Ring",
-              "level": 115,
-              "gain": 24.7,
-              "from": "cave chest",
+              "gain": 84.3,
+              "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Spiritstone Signet",
-              "level": 103,
-              "gain": 17.6,
-              "from": "cave chest",
-              "tradable": true
-            },
-            {
-              "name": "Different Times",
+              "name": "Aleph Null",
               "level": 105,
-              "gain": 6.1,
-              "from": "cave chest",
-              "tradable": true
-            },
-            {
-              "name": "Recalibration",
-              "level": 111,
-              "gain": 2.9,
-              "from": "cave chest",
-              "tradable": true
-            }
-          ]
-        },
-        {
-          "slot": "NECKLACE",
-          "name": "Compromise",
-          "level": 119,
-          "tier": "RARE",
-          "gain": 0.8,
-          "from": "cave chest",
-          "price": null,
-          "tradable": true,
-          "options": [
-            {
-              "name": "Compromise",
-              "level": 119,
-              "gain": 8.0,
-              "from": "cave chest",
-              "tradable": true
-            },
-            {
-              "name": "Valediction",
-              "level": 120,
-              "gain": 28.6,
-              "from": "cave chest",
-              "tradable": true
-            },
-            {
-              "name": "Golemlus Core",
-              "level": 90,
-              "gain": 27.8,
-              "from": "The Qira Hive quest · 1× Hive voucher (after The Qira Hive)",
-              "tradable": false
-            },
-            {
-              "name": "Contrast",
-              "level": 100,
-              "gain": 27.8,
-              "from": "The Qira Hive quest · 1× Master Voucher (after The Qira Hive)",
-              "tradable": false
-            },
-            {
-              "name": "Oaken Pendant",
-              "level": 105,
-              "gain": 10.7,
-              "from": "cave chest",
-              "tradable": true
-            },
-            {
-              "name": "Umami",
-              "level": 104,
-              "gain": 2.5,
-              "from": "cave chest",
+              "gain": 83.7,
+              "from": "The Nameless Anomaly raid",
               "tradable": true
             }
           ]
@@ -3625,7 +3517,7 @@
           "name": "Polyglot",
           "level": 113,
           "tier": "RARE",
-          "gain": 6.5,
+          "gain": 9.2,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -3633,63 +3525,51 @@
             {
               "name": "Polyglot",
               "level": 113,
-              "gain": 221.9,
+              "gain": 215.3,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Firemoss Veil",
               "level": 113,
-              "gain": 186.9,
+              "gain": 181.0,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Rosebush",
               "level": 118,
-              "gain": 186.4,
+              "gain": 180.5,
               "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Phoenix Prince's Crown",
-              "level": 90,
-              "gain": 160.2,
-              "from": "Lost Avos City (discovery)",
-              "tradable": false
+              "name": "Nutrient",
+              "level": 120,
+              "gain": 169.0,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Dreamscape",
+              "level": 112,
+              "gain": 132.7,
+              "from": "mob drop",
+              "tradable": true
             },
             {
               "name": "Pisces",
               "level": 100,
-              "gain": 131.2,
+              "gain": 126.4,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Myopia",
               "level": 103,
-              "gain": 123.3,
+              "gain": 118.8,
               "from": "cave chest",
               "tradable": true
-            }
-          ]
-        },
-        {
-          "slot": "RING2",
-          "name": "Diamond Fusion Ring",
-          "level": 95,
-          "tier": "LEGENDARY",
-          "gain": 0.7,
-          "from": "Legendary Island (challenge) · 1× Diamond Token + Gold Fusion Ring",
-          "price": null,
-          "tradable": false,
-          "options": [
-            {
-              "name": "Diamond Fusion Ring",
-              "level": 95,
-              "gain": 22.6,
-              "from": "Legendary Island (challenge) · 1× Diamond Token + Gold Fusion Ring",
-              "tradable": false
             }
           ]
         }

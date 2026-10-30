@@ -48,6 +48,11 @@ final class MilestonePlanner {
     /** Milestones after "now": every multiple of 10 up to the level cap (Lv 50, 60 … 120). */
     private static final int STEP = 10;
 
+    /** The last milestone: the last multiple of {@link #STEP} at or below the level cap (Lv 120 for Lv 121). */
+    static int lastMilestone() {
+        return Damage.MAX_LEVEL / STEP * STEP;
+    }
+
     private final Roadmap.Inputs in;
     private final Roadmap.Job job;
     final GameState state;
@@ -226,10 +231,10 @@ final class MilestonePlanner {
         prevAlloc = OwnedGear.assignedPoints(state);
     }
 
-    /** The levels the road map looks at: yours, then every 10 levels up to 120. */
+    /** The levels the road map looks at: yours, then every 10 levels up to {@link #lastMilestone}. */
     private static List<Integer> milestones(int level) {
         List<Integer> out = new ArrayList<>(List.of(level));
-        for (int m = (level / STEP + 1) * STEP; m <= 120; m += STEP) {
+        for (int m = (level / STEP + 1) * STEP; m <= lastMilestone(); m += STEP) {
             out.add(m);
         }
         return out;

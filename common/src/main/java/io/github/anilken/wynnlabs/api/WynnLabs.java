@@ -660,8 +660,9 @@ public final class WynnLabs {
                 case "/roadmap" -> send(ex, 200, Roadmap.jsonLive());
                 case "/roadmap/trace" -> {
                     // ?level=120&slot=RING: why each candidate for that slot was kept or dropped
+                    // (the last milestone when no level is given)
                     java.util.Map<String, String> q = query(ex);
-                    int lv = Integer.parseInt(q.getOrDefault("level", "120"));
+                    int lv = Integer.parseInt(q.getOrDefault("level", String.valueOf(Roadmap.lastMilestone())));
                     io.github.anilken.wynnlabs.model.Slot sl = io.github.anilken.wynnlabs.model.Slot.valueOf(
                             q.getOrDefault("slot", "RING").toUpperCase(java.util.Locale.ROOT));
                     send(ex, 200, Roadmap.traceJson(lv, sl));

@@ -248,7 +248,7 @@ final class RoadmapGains {
             lines.add(new Object[] {Math.abs(y.speed() - x.speed()) / 100.0 * Rules.sub("model", "speedWeight", 0.3),
                     L.t("wynnlabs.road.walk_speed", L.pct(signed(x.speed())), L.pct(signed(y.speed())))});
         }
-        if (Math.round(y.xp()) != Math.round(x.xp()) && level < Rules.sub("model", "maxLevel", 120)) {
+        if (Math.round(y.xp()) != Math.round(x.xp()) && level < Damage.maxLevel()) {
             lines.add(new Object[] {Math.abs(y.xp() - x.xp()) / 100.0 * Rules.sub("model", "xpWeight", 1.0),
                     L.t("wynnlabs.road.xp_bonus", L.pct(Math.round(x.xp())), L.pct(Math.round(y.xp())))});
         }

@@ -411,7 +411,7 @@ public final class TreePlanner {
         if (points <= 0) {
             return 1;
         }
-        return points <= POINT_LEVELS.length ? POINT_LEVELS[points - 1] : 121;
+        return points <= POINT_LEVELS.length ? POINT_LEVELS[points - 1] : Damage.MAX_LEVEL;
     }
 
     /**

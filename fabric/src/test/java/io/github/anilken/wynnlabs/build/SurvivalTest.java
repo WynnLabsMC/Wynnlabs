@@ -152,6 +152,23 @@ class SurvivalTest {
     }
 
     @Test
+    void xpCountsUntilTheLevelCap() {
+        int[] points = new int[SkillKind.values().length];
+        Damage.Piece weapon = new Damage.Piece(null, "w", "w", Slot.RELIK, 80, Map.of(), Map.of(), 500,
+                Map.of("neutral", 1.0), 0);
+        Damage.Piece xp = new Damage.Piece(null, "x", "x", Slot.RING, 80, Map.of("xpBonus", 300.0), Map.of(), 0,
+                Map.of(), 0);
+        Rules.use(rules("{\"goalPreset\": \"BALANCED\"}"));
+        assertEquals(121, Damage.MAX_LEVEL);
+        // Lv 120 still has a level to go; from the cap on XP is worth nothing
+        assertEquals(4, Damage.evaluate(List.of(xp), weapon, points, 120).factors()[4], 1e-6);
+        assertEquals(1, Damage.evaluate(List.of(xp), weapon, points, 121).factors()[4], 1e-6);
+        // rules.model.maxLevel still moves the cap
+        Rules.use(rules("{\"goalPreset\": \"BALANCED\", \"model\": {\"maxLevel\": 100}}"));
+        assertEquals(1, Damage.evaluate(List.of(xp), weapon, points, 100).factors()[4], 1e-6);
+    }
+
+    @Test
     void aNaNInTheRulesFallsBackToTheDefault() {
         // Math.min and Math.max hand a NaN on, so it passed every clamp after the read
         JsonObject model = new JsonObject();

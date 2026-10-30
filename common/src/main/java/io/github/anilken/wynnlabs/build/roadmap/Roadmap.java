@@ -472,6 +472,11 @@ public final class Roadmap {
         return 11;
     }
 
+    /** The map's last milestone: the last multiple of 10 at or below the level cap (Lv 120). */
+    public static int lastMilestone() {
+        return MilestonePlanner.lastMilestone();
+    }
+
     /** Tests: the saved map is looked for again, and nothing is kept in memory. */
     static synchronized void forget() {
         lastSteps = List.of();

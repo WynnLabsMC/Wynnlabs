@@ -36,6 +36,17 @@ public final class Damage {
 
     public static final String[] ELEMENTS = {"neutral", "earth", "thunder", "water", "fire", "air"};
 
+    /**
+     * The combat level cap: Lv 121 (WynnBuilder's item data lists it for every 2.2 version). A
+     * compile-time constant, so a hot-swapped class that reads it still sees the value.
+     */
+    public static final int MAX_LEVEL = 121;
+
+    /** The level cap the score uses: rules.model.maxLevel, {@link #MAX_LEVEL} by default. XP is worth nothing from there on. */
+    public static int maxLevel() {
+        return (int) Rules.sub("model", "maxLevel", MAX_LEVEL);
+    }
+
     /** One wearable piece, reduced to what the model needs. */
     /**
      * {@code key} is the item's advice key (name and rolls): Wynncraft swaps the ItemStack objects
@@ -715,7 +726,7 @@ public final class Damage {
         double xp = stat(s, "combatExperience") + stat(s, "xpBonus");
         double speed = stat(s, "walkSpeed");
         // XP is worth nothing once you are at the level cap
-        double xpWeight = level >= model("maxLevel", 120) ? 0 : model("xpWeight", 1.0) * model("goalXp", 1.0);
+        double xpWeight = level >= maxLevel() ? 0 : model("xpWeight", 1.0) * model("goalXp", 1.0);
         // the fighting goals (rules.model.xpLog 1: Damage, Safe, Boss) count XP with diminishing
         // returns, so +300 % XP does not outweigh staying alive; the levelling goals keep it linear
         double fXp = model("xpLog", 0) > 0

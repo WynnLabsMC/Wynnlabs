@@ -75,7 +75,7 @@ final class CandidateRules {
         if (!Shopping.tradable(info)) {
             return true;
         }
-        if (Rules.sub("model", "goalXp", 0) <= 0 || m >= Rules.sub("model", "maxLevel", 120)) {
+        if (Rules.sub("model", "goalXp", 0) <= 0 || m >= Damage.maxLevel()) {
             return false;
         }
         for (var st : info.stats()) {
