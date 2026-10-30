@@ -110,6 +110,16 @@ public interface GameState {
     /** The names of the nodes the character has unlocked. */
     List<String> unlockedAbilities();
 
+    /** The tomes the character has equipped, by name; empty when none are known (a recorded game). */
+    default List<String> tomes() {
+        return List.of();
+    }
+
+    /** The aspects the character has equipped: name → tier (1-4); empty when none are known. */
+    default Map<String, Integer> aspects() {
+        return Map.of();
+    }
+
     // ---- items ----
 
     Optional<ItemView> view(ItemStack stack);

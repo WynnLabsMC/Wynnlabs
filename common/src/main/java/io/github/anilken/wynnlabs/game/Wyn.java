@@ -1364,6 +1364,21 @@ public final class Wyn {
     }
 
     /**
+     * The tomes this character has equipped, by name, as Wynntils last read them from the
+     * Mastery Tomes menu; empty when none is known or unavailable.
+     */
+    public static List<String> equippedTomes() {
+        return guard(Feature.CHARACTER, () -> {
+            List<String> out = new ArrayList<>();
+            var set = Models.Character.getCurrentTomeSet();
+            if (set != null) {
+                set.getAllTomes().stream().map(t -> plain(t.itemName())).filter(n -> !n.isEmpty()).forEach(out::add);
+            }
+            return List.copyOf(out);
+        }, List.of());
+    }
+
+    /**
      * The aspects this character has equipped (up to five), without formatting, as Wynntils
      * stores them: a name may carry a prefix, so match it with {@code endsWith}. Empty when
      * none is known or unavailable.

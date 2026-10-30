@@ -175,6 +175,20 @@ final class LiveGameState implements GameState {
     }
 
     @Override
+    public List<String> tomes() {
+        return Wyn.equippedTomes();
+    }
+
+    @Override
+    public Map<String, Integer> aspects() {
+        Map<String, Integer> out = new java.util.LinkedHashMap<>();
+        for (String a : Wyn.equippedAspects()) {
+            out.put(a, Math.max(1, Wyn.aspectTier(a)));
+        }
+        return out;
+    }
+
+    @Override
     public Optional<ItemView> view(ItemStack stack) {
         return WynntilsItems.view(stack);
     }

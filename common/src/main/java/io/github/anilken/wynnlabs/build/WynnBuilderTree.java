@@ -18,7 +18,8 @@ import java.util.Map;
 
 /**
  * The aspects and the ability tree at the end of a WynnBuilder build link ({@link
- * WynnBuilderLink.Build#rest}), read by the mod's own code from the published format alone.
+ * WynnBuilderLink.Build#rest}), read and written by the mod's own code from the published format
+ * alone.
  *
  * <p>The aspects: a flag, then per aspect slot a used flag, the aspect's id and its tier − 1.
  * The tree: one bit per node, in the order a walk from the tree's first node (the one with no
@@ -114,6 +115,99 @@ public final class WynnBuilderTree {
                 taken.add(c);
                 walk(c, children, met, bits, taken);
             }
+        }
+    }
+
+    /**
+     * What {@link #of} reads back, as '0'/'1': the aspects (a flag, then per slot a used flag, the
+     * id and tier − 1; only those the class's list names, by name or a name ending in it), then
+     * the walk with the nodes in {@code nodes} taken, up to its last 1 as the site writes it. A node
+     * no taken parent reaches is left out.
+     * Null when data version {@code version} has no tree for the class.
+     */
+    static String bits(String version, Klass klass, java.util.Collection<String> nodes, List<Aspect> aspects) {
+        Version v = klass == null ? null : table().get(version);
+        List<Node> tree = v == null ? null : v.trees().get(klass);
+        if (tree == null || tree.isEmpty()) {
+            return null;
+        }
+        StringBuilder out = new StringBuilder();
+        List<int[]> found = new ArrayList<>();
+        String[] names = v.aspects().getOrDefault(klass, new String[0]);
+        for (Aspect a : aspects == null ? List.<Aspect>of() : aspects) {
+            int id = aspectId(names, a.name());
+            if (id >= 0 && found.size() < v.slots()) {
+                found.add(new int[] {id, Math.max(1, a.tier())});
+            }
+        }
+        put(out, found.isEmpty() ? 0 : 1, 1);
+        if (!found.isEmpty()) {
+            for (int i = 0; i < v.slots(); i++) {
+                put(out, i < found.size() ? 1 : 0, 1);
+                if (i < found.size()) {
+                    put(out, found.get(i)[0], v.aspectBits());
+                    put(out, found.get(i)[1] - 1, v.tierBits());
+                }
+            }
+        }
+        List<List<Integer>> children = new ArrayList<>();
+        int root = -1;
+        for (int i = 0; i < tree.size(); i++) {
+            children.add(new ArrayList<>());
+        }
+        for (int i = 0; i < tree.size(); i++) {
+            if (tree.get(i).parents().length == 0 && root < 0) {
+                root = i;
+            }
+            for (int p : tree.get(i).parents()) {
+                children.get(p).add(i);
+            }
+        }
+        java.util.Set<String> taken = new java.util.HashSet<>(nodes == null ? List.of() : nodes);
+        int walk = out.length();
+        write(root, tree, children, new boolean[tree.size()], taken, out);
+        int end = out.length();
+        while (end > walk && out.charAt(end - 1) == '0') {
+            end--;                              // the site ends the walk on its last 1: the reader takes the rest as 0
+        }
+        return out.substring(0, end);
+    }
+
+    private static void write(int head, List<Node> tree, List<List<Integer>> children, boolean[] met, java.util.Set<String> taken,
+                              StringBuilder out) {
+        for (int c : children.get(head)) {
+            if (met[c]) {
+                continue;
+            }
+            met[c] = true;
+            boolean in = taken.contains(tree.get(c).name());
+            out.append(in ? '1' : '0');
+            if (in) {
+                write(c, tree, children, met, taken, out);
+            }
+        }
+    }
+
+    private static int aspectId(String[] names, String name) {
+        if (name == null) {
+            return -1;
+        }
+        for (int i = 0; i < names.length; i++) {
+            if (name.equals(names[i])) {
+                return i;
+            }
+        }
+        for (int i = 0; i < names.length; i++) {
+            if (names[i] != null && name.endsWith(names[i])) {
+                return i;                       // Wynntils may keep a prefix on the name
+            }
+        }
+        return -1;
+    }
+
+    private static void put(StringBuilder out, int value, int n) {
+        for (int i = 0; i < n; i++) {
+            out.append((value >> i & 1) == 1 ? '1' : '0');
         }
     }
 
