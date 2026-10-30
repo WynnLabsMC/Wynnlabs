@@ -308,6 +308,10 @@ final class HomeStats extends HomePart {
         } else if (build != null && build.level() > 0 && plan != null && build.level() != plan.level()) {
             warns.add(0, L.t("wynnlabs.stats.at_level", build.level()));
         }
+        if (build != null && build.tome() != null) {
+            // its points count a guild tome you do not have yet
+            warns.add(Math.min(1, warns.size()), L.t("wynnlabs.stats.assumes_tome", build.tome().text()));
+        }
         if (build != null) {
             warn(warns, build, otherName);
         }

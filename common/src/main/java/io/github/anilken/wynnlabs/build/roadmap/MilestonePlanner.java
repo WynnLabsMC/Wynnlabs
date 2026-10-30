@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.advice.AutoAdvice;
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Locks;
+import io.github.anilken.wynnlabs.build.Tomes;
 import io.github.anilken.wynnlabs.build.TreeModel;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Candidate;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Computed;
@@ -77,6 +78,8 @@ final class MilestonePlanner {
     final Map<Slot, List<ItemData>> cands;
     private final Map<String, Integer> abilities;
     private final TreeModel.Run treeRun;
+    /** Your real tome points per skill, read once for the run ({@link Tomes}). */
+    private final int[] tomesReal;
     private final java.util.Set<String> placesShown = new java.util.HashSet<>();
     private final List<Step> steps = new ArrayList<>();
     /** The last milestone's level (before the first: one below yours). */
@@ -219,6 +222,9 @@ final class MilestonePlanner {
         // the chosen items below with the ones you have now
         treeRun = TreeModel.run();
         TreeModel.use(treeRun == null ? null : treeRun.at(state.level()));
+        // your tomes count now; a guild tome is assumed only for milestones ahead (forMilestone)
+        tomesReal = Tomes.real(state);
+        Tomes.use(Tomes.forMilestone(tomesReal, state.level(), state.level()));
         prev = level - 1;
         plan = Build.plan();
         // what you have gets its empty powder slots filled as a piece you would buy has them, or
@@ -283,6 +289,7 @@ final class MilestonePlanner {
         Roadmap.phase(1);
         // the ability tree you will have by then: your nodes now, the plan's up to this level
         TreeModel.use(treeRun == null ? null : treeRun.at(m));
+        Tomes.use(Tomes.forMilestone(tomesReal, m, level));
         long perfPools = Perf.start();
         Build.Memo memo = Build.memo();
         if (memo != null) {
@@ -364,13 +371,16 @@ final class MilestonePlanner {
         List<String> places = places(m);
         int sp = Math.max(0, (Math.min(m, 101) - Math.min(Math.max(prev, level), 101)) * 2);
         Versus rows = vsWorn(m, earned, gear);
+        // a set that fits only with the guild tome it assumes: its picks say so, with the slot's best without it
+        Map<String, List<String>> why = baseline == null || !Tomes.guild() ? rows.why()
+                : TomeRows.apply(baseline, placed, gear, ms.pools, ms.startSet, m, earned, rows.why(), this::againstFirst);
         // the spread shown and carried on: the greedy one polished by moving points between
         // skills (once per milestone; the candidates above are ranked with the quick one)
         Build.Eval set = baseline == null ? null : Build.allocateBest(baseline, m, earned);
         if (set != null) {
             prevAlloc = SetJudge.carry(set, baseline, m);
         }
-        steps.add(new Step(m, gear, abil, places, m == level ? 0 : sp, rows.gain(), rows.why(),
+        steps.add(new Step(m, gear, abil, places, m == level ? 0 : sp, rows.gain(), why,
                 baseline == null ? Map.of() : java.util.Collections.unmodifiableMap(new LinkedHashMap<>(baseline)),
                 set));
         Perf.end("roadmap.rows", perfRows);
@@ -451,6 +461,19 @@ final class MilestonePlanner {
      * {@code gear} get their comparison panels judged against the same builds, so the pill, the
      * hover and the panel tell one number.
      */
+    /** {@code o} judged against what the row's pick was first judged against, as its panel's others were. */
+    private Roadmap.Option againstFirst(Gear g, Roadmap.Option o) {
+        String slot = placed.get(g.slot());
+        Damage.Piece pick = slot == null || baseline == null ? null : baseline.get(slot);
+        Object[] a = pick == null || firstAgainst == null ? null : firstAgainst.get(pick.key());
+        if (a == null) {
+            return o;
+        }
+        List<Roadmap.Option> r = RoadmapGains.againstWorn(List.of(o), g.info().name(), pick, (Roadmap.Against) a[0],
+                Double.NaN, (Integer) a[1], (Integer) a[2]);
+        return r.isEmpty() ? o : r.get(0);
+    }
+
     private Versus vsWorn(int m, int earned, List<Gear> gear) {
         if (firstAgainst == null) {
             firstAgainst = new HashMap<>();

@@ -135,7 +135,7 @@ public final class Build {
         }
         Map<String, Damage.Piece> trial = new LinkedHashMap<>(build);
         trial.put(slot, cand);
-        int[] min = minPoints(trial.values());
+        int[] min = Tomes.less(minPoints(trial.values()), Tomes.base());
         int deficit = 0;
         int used = 0;
         for (int i = 0; i < min.length; i++) {
@@ -526,7 +526,21 @@ public final class Build {
         return out;
     }
 
-    public record Eval(int[] allocation, Damage.Result result) {}
+    /**
+     * A spread: the points you assign per skill ({@code allocation}, never the tome's), what the
+     * set scores with them, and the tome its points were spread with ({@link Tomes}; null: none).
+     */
+    public record Eval(int[] allocation, Damage.Result result, Tomes.Tome tome) {
+
+        public Eval(int[] allocation, Damage.Result result) {
+            this(allocation, result, null);
+        }
+
+        /** The points each skill has from assigning and the tome, the model's skill points. */
+        public int[] withTome() {
+            return Tomes.plus(allocation, tome);
+        }
+    }
 
     /**
      * The fewest points you must assign per skill to wear all these pieces, the way Wynncraft
@@ -825,7 +839,8 @@ public final class Build {
         Map<String, Damage.Piece> trial = new LinkedHashMap<>(build);
         trial.put(slot, cand);
         int n = SkillKind.values().length;
-        int[] min = minPoints(trial.values());
+        Tomes.Tome tome = Tomes.base();
+        int[] min = Tomes.less(minPoints(trial.values()), tome);
         int[] a = alloc.clone();
         int deficit = 0;
         for (int i = 0; i < n; i++) {
@@ -850,7 +865,7 @@ public final class Build {
                 }
                 int take = Math.min(deficit, a[i] - min[i]);
                 a[i] -= take;
-                Damage.Result r = Damage.evaluate(armour, weapon, a, level);
+                Damage.Result r = Damage.evaluate(armour, weapon, Tomes.plus(a, tome), level);
                 a[i] += take;
                 if (fromRes == null || r.objective() > fromRes.objective()) {
                     from = i;
@@ -872,7 +887,7 @@ public final class Build {
         if (used > earned) {
             return null;
         }
-        return new Eval(a, last != null ? last : Damage.evaluate(armour, weapon, a, level));
+        return new Eval(a, last != null ? last : Damage.evaluate(armour, weapon, Tomes.plus(a, tome), level), tome);
     }
 
     /** {@link #whyNot(Map, int, int[])} without knowing what other gear could give. */
@@ -890,7 +905,7 @@ public final class Build {
      * armour, not "impossible"). Null when it fits.
      */
     public static String whyNot(Map<String, Damage.Piece> build, int earned, int[] reach) {
-        int[] min = minPoints(build.values());
+        int[] min = Tomes.less(minPoints(build.values()), Tomes.base());
         StringBuilder over = new StringBuilder();
         StringBuilder fromGear = new StringBuilder();
         int used = 0;
@@ -994,7 +1009,7 @@ public final class Build {
      * beyond those earned; 0 when {@link #allocate} can spread them.
      */
     public static int shortfall(Map<String, Damage.Piece> build, int earned) {
-        int[] min = minPoints(build.values());
+        int[] min = Tomes.less(minPoints(build.values()), Tomes.base());
         int over = 0;
         int used = 0;
         for (int v : min) {
@@ -1054,8 +1069,33 @@ public final class Build {
     }
 
     private static Eval allocateFresh(Map<String, Damage.Piece> build, int level, int earned) {
-        int n = SkillKind.values().length;
         int[] min = minPoints(build.values());
+        Tomes.Tome base = Tomes.base();
+        Eval all = greedy(build, min, base, level, earned);
+        if (!Tomes.guild()) {
+            return all;
+        }
+        Eval best = all;
+        // An assumed guild tome: +1 to every skill reaches every spread +4 to one skill does (one
+        // point to spare), but where that skill would want past 101: so +4 to a skill is tried only
+        // where the +1 spread holds it at the 100 you may assign, or when +1 cannot fit the set
+        for (Tomes.Tome four : Tomes.fours()) {
+            int i = four.single();
+            if (all != null && all.allocation()[i] < 100) {
+                continue;
+            }
+            Eval e = greedy(build, min, four, level, earned);
+            if (e != null && (best == null || e.result().objective() > best.result().objective())) {
+                best = e;
+            }
+        }
+        return best;
+    }
+
+    /** The greedy spread of {@link #allocate} with {@code tome}'s points on top ({@code min}: the set's requirements). */
+    private static Eval greedy(Map<String, Damage.Piece> build, int[] reqs, Tomes.Tome tome, int level, int earned) {
+        int n = SkillKind.values().length;
+        int[] min = Tomes.less(reqs, tome);
         int[] alloc = new int[n];
         int used = 0;
         for (int i = 0; i < n; i++) {
@@ -1085,7 +1125,7 @@ public final class Build {
                     continue;
                 }
                 alloc[i] += give;
-                double sc = Damage.evaluate(armour, weapon, alloc, level).objective();
+                double sc = Damage.evaluate(armour, weapon, Tomes.plus(alloc, tome), level).objective();
                 alloc[i] -= give;
                 boolean tie = Math.abs(sc - bestScore) <= 1e-9 * Math.max(1, Math.abs(sc));
                 if (sc > bestScore && !tie || tie && bestSkill >= 0 && prio.contains(SkillKind.values()[i].name())
@@ -1100,7 +1140,7 @@ public final class Build {
             alloc[bestSkill] += give;
             left -= give;
         }
-        return new Eval(alloc, Damage.evaluate(armour, weapon, alloc, level));
+        return new Eval(alloc, Damage.evaluate(armour, weapon, Tomes.plus(alloc, tome), level), tome);
     }
 
     /**
@@ -1205,7 +1245,7 @@ public final class Build {
     private static String memoKey(Map<String, Damage.Piece> build, int level, int earned) {
         StringBuilder k = new StringBuilder(256);
         k.append(level).append('/').append(earned).append('/').append(TreeModel.key().hashCode())
-                .append('/').append(Rules.version);
+                .append('/').append(Rules.version).append('/').append(Tomes.key());
         for (var e : build.entrySet()) {
             k.append(';').append(e.getKey()).append('=').append(e.getValue() == null ? "-" : e.getValue().key());
         }
@@ -1215,7 +1255,8 @@ public final class Build {
     /** The local search of {@link #allocateBest} from {@code start}'s spread; deterministic. */
     static Eval improve(Map<String, Damage.Piece> build, Eval start, int level) {
         int n = SkillKind.values().length;
-        int[] min = minPoints(build.values());
+        Tomes.Tome tome = start.tome();
+        int[] min = Tomes.less(minPoints(build.values()), tome);
         List<Damage.Piece> armour = armour(build);
         Damage.Piece weapon = build.get("WEAPON");
         int[] a = start.allocation().clone();
@@ -1238,7 +1279,7 @@ public final class Build {
                         }
                         a[from] -= k;
                         a[to] += k;
-                        Damage.Result r = Damage.evaluate(armour, weapon, a, level);
+                        Damage.Result r = Damage.evaluate(armour, weapon, Tomes.plus(a, tome), level);
                         a[from] += k;
                         a[to] -= k;
                         if (r.objective() > bar && (bestRes == null || r.objective() > bestRes.objective())) {
@@ -1257,7 +1298,7 @@ public final class Build {
             a[bestTo] += bestK;
             cur = bestRes;
         }
-        return new Eval(a, cur);
+        return new Eval(a, cur, tome);
     }
 
     public static JsonObject json() {

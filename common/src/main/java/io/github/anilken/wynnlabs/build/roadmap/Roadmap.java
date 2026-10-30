@@ -756,8 +756,8 @@ public final class Roadmap {
         try {
             // one memo of skill point spreads for the run (Build.Memo), emptied each milestone; the
             // tree each milestone sets (TreeModel) is gone after the run
-            return Tuning.with(in.tuning(), () -> TreeModel.with(null,
-                    () -> Build.withMemo(new Build.Memo(), () -> MilestonePlanner.compute(in, job))));
+            return Tuning.with(in.tuning(), () -> TreeModel.with(null, () -> io.github.anilken.wynnlabs.build.Tomes.with(null,
+                    () -> Build.withMemo(new Build.Memo(), () -> MilestonePlanner.compute(in, job)))));
         } finally {
             if (before == null) {
                 JOB.remove();

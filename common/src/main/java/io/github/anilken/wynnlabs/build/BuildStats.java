@@ -23,18 +23,24 @@ public final class BuildStats {
      * One build's numbers: its result, every stat total by its id key ("manaRegen"), the mana
      * pool and the effective health with Agility left out; the level it was worked out at (0: yours)
      * and why you cannot wear it yet (null: you can); {@code parts} where its DPS comes from, spell
-     * by spell (null when no level was given).
+     * by spell (null when no level was given); {@code tome} the guild tome its points assume
+     * ({@link Tomes}, null: none).
      */
     public record Side(Damage.Result result, Map<String, Double> stats, double mana, double ehpNoAgility, int level,
-            String notWearable, Damage.Breakdown parts) {
+            String notWearable, Damage.Breakdown parts, Tomes.Tome tome) {
 
         Side(Damage.Result result, Map<String, Double> stats, double mana, double ehpNoAgility) {
-            this(result, stats, mana, ehpNoAgility, 0, null, null);
+            this(result, stats, mana, ehpNoAgility, 0, null, null, null);
         }
 
         /** This side worked out at {@code lv}, with why it cannot be worn yet (null: it can). */
         public Side at(int lv, String why) {
-            return new Side(result, stats, mana, ehpNoAgility, lv, why, parts);
+            return new Side(result, stats, mana, ehpNoAgility, lv, why, parts, tome);
+        }
+
+        /** This side's points spread with {@code t} assumed (a guild tome not had yet). */
+        Side assuming(Tomes.Tome t) {
+            return new Side(result, stats, mana, ehpNoAgility, level, notWearable, parts, t);
         }
 
         /** The main attack's speed tier with the Attack Speed IDs: 0 super slow … 6 super fast. */
@@ -140,7 +146,8 @@ public final class BuildStats {
     /** A build the window found, with its points, at the level it was found for. */
     public static Side candidate(Map<String, Damage.Piece> set, Build.Eval eval, int level) {
         TreeModel.Run run = TreeModel.run();
-        return of(set, eval.allocation(), eval.result(), run == null ? null : run.at(level), level);
+        Side s = of(set, eval.withTome(), eval.result(), run == null ? null : run.at(level), level);
+        return eval.tome() != null && eval.tome().assumed() ? s.assuming(eval.tome()) : s;
     }
 
     /**
@@ -256,7 +263,7 @@ public final class BuildStats {
             // Result.ehp with Agility's dodge at 0: health over what Defence lets through, the class's share
             double ehpNoAgility = r.health() / (1 - def) / Damage.damageTaken();
             Damage.Breakdown parts = level > 0 ? Damage.detail(armour, set.get("WEAPON"), pts, level).breakdown() : null;
-            return new Side(r, Map.copyOf(s), Damage.manaPool(s, intel), ehpNoAgility, 0, null, parts);
+            return new Side(r, Map.copyOf(s), Damage.manaPool(s, intel), ehpNoAgility, 0, null, parts, null);
         });
     }
 }

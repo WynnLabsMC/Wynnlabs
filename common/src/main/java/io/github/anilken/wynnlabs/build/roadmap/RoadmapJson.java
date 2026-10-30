@@ -102,6 +102,9 @@ final class RoadmapJson {
                     pts.addProperty(k.name(), s.set().allocation()[k.ordinal()]);
                 }
                 set.add("skillPoints", pts);
+                if (s.set().tome() != null && s.set().tome().assumed()) {
+                    set.addProperty("assumedTome", s.set().tome().text());   // a guild tome not had yet
+                }
                 set.addProperty("spell", Math.round(s.set().result().spellDps()));
                 set.addProperty("ehp", Math.round(s.set().result().ehp()));
                 set.addProperty("build", Math.round(s.set().result().objective()));

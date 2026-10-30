@@ -199,8 +199,12 @@ class RoadmapMilestonesTest {
         // the first milestone starts from what you have, its empty powder slots filled
         Map<String, Damage.Piece> start = Roadmap.powdered(Build.plan().pieces());
         int checked = 0;
+        int[] tomes = io.github.anilken.wynnlabs.build.Tomes.real(GameState.current());
         for (Roadmap.Step s : steps) {
             int m = s.level();
+            // judged with the tome points the milestone was (a guild tome assumed ahead from Lv 100)
+            io.github.anilken.wynnlabs.build.Tomes.use(io.github.anilken.wynnlabs.build.Tomes.forMilestone(tomes, m,
+                    GameState.current().level()));
             Map<String, Damage.Piece> set = s.build();
             Build.Eval full = Build.allocate(set, m, earned(m));
             assertTrue(full != null, "Lv " + m + ": the set fits");
@@ -269,6 +273,7 @@ class RoadmapMilestonesTest {
             prev = Roadmap.carry(s.set(), set, m);
             start = new LinkedHashMap<>(set);
         }
+        io.github.anilken.wynnlabs.build.Tomes.use(null);
         assertTrue(checked > 10, "only " + checked + " rows checked");
     }
 

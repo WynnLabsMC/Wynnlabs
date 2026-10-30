@@ -305,7 +305,9 @@ final class BeamSearch {
         try {
             Tuning.Choice tuned = Tuning.active();             // the workers score with the same tuning
             TreeModel.Overlay tree = TreeModel.active();       // and the milestone's tree
-            fj.submit(() -> all.parallelStream().forEach(b -> Tuning.with(tuned, () -> TreeModel.with(tree, () -> {
+            io.github.anilken.wynnlabs.build.Tomes.Scope tomes = io.github.anilken.wynnlabs.build.Tomes.active();
+            fj.submit(() -> all.parallelStream().forEach(b -> Tuning.with(tuned, () -> TreeModel.with(tree,
+                    () -> io.github.anilken.wynnlabs.build.Tomes.with(tomes, () -> {
                 for (Damage.Piece[] rp : rings) {
                     Map<String, Damage.Piece> c = new LinkedHashMap<>(b);
                     c.put("RING1", rp[0]);
@@ -326,7 +328,7 @@ final class BeamSearch {
                     }
                 }
                 return null;
-            })))).get();
+            }))))).get();
         } catch (Exception e) {
             if (tr != null) {
                 tr.accept(m, Slot.RING, L.t("wynnlabs.road.trace_exact_failed", e));

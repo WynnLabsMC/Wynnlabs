@@ -128,24 +128,40 @@ class HealerRespecTest {
         assertTrue(h.objective() > d.objective(), "healer " + h.objective() + " vs damage " + d.objective());
     }
 
-    /** Debug only (-PdebugDump): the road map's sets for this healer. */
+    /** Debug only (-PdebugDump): the road map's sets for this healer, without and with the assumed guild tome. */
     @Test
     void dumpTheRoadMapsPicks() throws Exception {
         assumeTrue(Boolean.getBoolean("wynnlabs.debugDump"), "debug dump off");
         install();
-        for (io.github.anilken.wynnlabs.build.roadmap.Roadmap.Step st : io.github.anilken.wynnlabs.build.roadmap.Roadmap.build()) {
-            if (st.set() == null) {
-                continue;
-            }
-            Map<String, Damage.Piece> set = new LinkedHashMap<>();
-            st.build().forEach((slot, p) -> {
-                if (p != null) {
-                    set.put(slot, p);
+        for (int tome : new int[] {1, 0}) {
+            com.google.gson.JsonObject change = new com.google.gson.JsonObject();
+            com.google.gson.JsonObject model = new com.google.gson.JsonObject();
+            model.addProperty("futureGuildTome", tome);
+            change.add("model", model);
+            io.github.anilken.wynnlabs.core.Rules.update(change);
+            long t0 = System.nanoTime();
+            List<io.github.anilken.wynnlabs.build.roadmap.Roadmap.Step> steps = io.github.anilken.wynnlabs.build.roadmap.Roadmap.build();
+            Fixtures.note("futureGuildTome " + tome + ": road map in " + (System.nanoTime() - t0) / 1_000_000 + " ms");
+            for (io.github.anilken.wynnlabs.build.roadmap.Roadmap.Step st : steps) {
+                if (st.set() == null) {
+                    continue;
                 }
-            });
-            StringBuilder names = new StringBuilder();
-            set.forEach((slot, p) -> names.append(' ').append(slot).append('=').append(p.name()));
-            score("road map" + names, set, st.level(), Math.max(200, java.util.Arrays.stream(Build.minPoints(set.values())).sum()));
+                StringBuilder names = new StringBuilder();
+                st.build().forEach((slot, p) -> names.append(' ').append(slot).append('=').append(p == null ? "-" : p.name()));
+                Damage.Result r = st.set().result();
+                Fixtures.note(String.format(java.util.Locale.ROOT,
+                        "tome %d Lv %d:%s | objective %.4g, heal %.0f/s, DPS %.0f, ehp %.0f, points %s, tome %s", tome,
+                        st.level(), names, r.objective(), r.healPerSecond(), r.spellDps() + r.mainDps(), r.ehpElemental(),
+                        java.util.Arrays.toString(st.set().allocation()), st.set().tome() == null ? "-" : st.set().tome().text()));
+                st.whyVsWorn().forEach((row, lines) -> lines.stream().filter(l -> l.toLowerCase(java.util.Locale.ROOT).contains("tome"))
+                        .forEach(l -> Fixtures.note("  " + row + ": " + l)));
+                st.gear().forEach(g -> {
+                    if (g.options() != null && g.options().size() > 1) {
+                        Fixtures.note("  " + g.slot() + " panel: " + g.options().stream().limit(3)
+                                .map(o -> o.info().name()).toList());
+                    }
+                });
+            }
         }
     }
 

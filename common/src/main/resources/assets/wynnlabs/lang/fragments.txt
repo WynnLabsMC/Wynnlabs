@@ -76,6 +76,7 @@ wynnlabs.road.why_from_gear             after "skip: " in the road map trace
 wynnlabs.road.why_over                  after "skip: " in the road map trace
 wynnlabs.road.why_points                after "skip: " in the road map trace
 wynnlabs.road.why_alone                 after "skip: " in the road map trace
+wynnlabs.road.tome_all                  inside the parentheses after a guild tome's name
 wynnlabs.road.trace_skip                after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_no_weapon           after "skip: " in the road map trace
 wynnlabs.road.trace_no_fit              after "skip: " in the road map trace

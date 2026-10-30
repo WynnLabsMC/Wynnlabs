@@ -147,7 +147,7 @@ final class MilestonePicks {
             if (nowJ <= 0) {
                 return;
             }
-            double[] cover = Build.cover(run.baseline, now.allocation());
+            double[] cover = Build.cover(run.baseline, now.withTome());
             ItemData best = null;
             String bestSlot = null;
             double bestGain = Double.NEGATIVE_INFINITY;

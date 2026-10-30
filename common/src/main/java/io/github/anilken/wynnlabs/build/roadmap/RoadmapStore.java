@@ -135,6 +135,14 @@ final class RoadmapStore {
         }
         o.add("allocation", a);
         o.add("result", result(e.result()));
+        if (e.tome() != null) {
+            JsonArray t = new JsonArray();
+            for (int v : e.tome().points()) {
+                t.add(v);
+            }
+            o.add("tome", t);
+            o.addProperty("tomeAssumed", e.tome().assumed());
+        }
         return o;
     }
 
@@ -267,7 +275,16 @@ final class RoadmapStore {
         for (int i = 0; i < alloc.length; i++) {
             alloc[i] = a.get(i).getAsInt();
         }
-        return new Build.Eval(alloc, result(o.get("result")));
+        io.github.anilken.wynnlabs.build.Tomes.Tome tome = null;
+        if (o.has("tome") && o.get("tome").isJsonArray()) {
+            JsonArray t = o.getAsJsonArray("tome");
+            int[] pts = new int[t.size()];
+            for (int i = 0; i < pts.length; i++) {
+                pts[i] = t.get(i).getAsInt();
+            }
+            tome = new io.github.anilken.wynnlabs.build.Tomes.Tome(pts, o.has("tomeAssumed") && o.get("tomeAssumed").getAsBoolean());
+        }
+        return new Build.Eval(alloc, result(o.get("result")), tome);
     }
 
     private static Damage.Result result(JsonElement e) {

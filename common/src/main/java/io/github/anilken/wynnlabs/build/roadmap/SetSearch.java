@@ -558,6 +558,7 @@ final class SetSearch {
         Build.Memo memo = Build.memo();
         Tuning.Choice tuned = Tuning.active();
         TreeModel.Overlay tree = TreeModel.active();
+        io.github.anilken.wynnlabs.build.Tomes.Scope tomes = io.github.anilken.wynnlabs.build.Tomes.active();
         java.util.concurrent.ForkJoinPool fj = lowPriority(threads, "wynnlabs-search");
         try {
             List<java.util.concurrent.Future<T>> running = new ArrayList<>();
@@ -565,7 +566,8 @@ final class SetSearch {
                 running.add(fj.submit(() -> {
                     Roadmap.JOB.set(job);
                     try {
-                        return Tuning.with(tuned, () -> TreeModel.with(tree, () -> Build.withMemo(memo, w)));
+                        return Tuning.with(tuned, () -> TreeModel.with(tree, () -> io.github.anilken.wynnlabs.build.Tomes.with(tomes,
+                                () -> Build.withMemo(memo, w))));
                     } finally {
                         Roadmap.JOB.remove();
                     }
@@ -637,6 +639,10 @@ final class SetSearch {
         Tuning.Choice tuned = Tuning.active();
         if (tuned != null) {
             k.append("|tuned:").append(tuned.key());   // the strip's weights score the sets otherwise
+        }
+        String tomes = io.github.anilken.wynnlabs.build.Tomes.key();
+        if (!tomes.isEmpty()) {
+            k.append("|tomes:").append(tomes);          // a guild tome assumed, or your own: other spreads
         }
         String tree = TreeModel.key();
         if (!tree.isEmpty()) {
