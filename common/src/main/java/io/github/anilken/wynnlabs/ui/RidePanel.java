@@ -74,7 +74,12 @@ public final class RidePanel {
         String note = v.note() == null ? null : L.t(v.note());
         int inner;
         int body;
-        if (v.stats().isEmpty()) {
+        boolean compact = v.stats().isEmpty() && note == null;
+        if (compact) {
+            // the game's free mount: only the header and the energy
+            inner = Math.max(MIN_INNER, Type.LABEL.width(font, v.title()) + Theme.SP_3 + Type.META.width(font, v.kind()));
+            body = 0;
+        } else if (v.stats().isEmpty()) {
             // no stats read: the header, the energy and one dim line, about as wide as the full panel
             inner = Math.max(MIN_INNER, Math.max(Type.META.width(font, note),
                     Type.LABEL.width(font, v.title()) + Theme.SP_3 + Type.META.width(font, v.kind())));
@@ -85,7 +90,7 @@ public final class RidePanel {
             body = rows * Type.META.lineHeight + Math.max(0, rows - 1) * pitchGap(small);
         }
         int w = STRIPE + 2 * PAD + inner;
-        int h = PAD + Type.LABEL.lineHeight + Theme.SP_1 + Type.META.lineHeight + Theme.SP_2 + 1 + Theme.SP_2 + body + PAD;
+        int h = PAD + Type.LABEL.lineHeight + Theme.SP_1 + Type.META.lineHeight + (compact ? 0 : Theme.SP_2 + 1 + Theme.SP_2 + body) + PAD;
         c = new Layout(v, small, note, names, numbers, nameW, deltaW, numW, barW, inner, w, h, scale);
         cached = c;
         return c;
@@ -163,6 +168,9 @@ public final class RidePanel {
             g.fill(bx, by, bx + fill, by + 4, TEAL);
         }
         Type.META.draw(g, font, v.energy(), right - ew, ty, Hud.CREAM);
+        if (v.stats().isEmpty() && l.note() == null) {
+            return;                                 // the free mount: no stats to show
+        }
         ty += Type.META.lineHeight + Theme.SP_2;
         Kit.hair(g, tx, ty, l.inner(), 1, RULE);
         ty += 1 + Theme.SP_2;

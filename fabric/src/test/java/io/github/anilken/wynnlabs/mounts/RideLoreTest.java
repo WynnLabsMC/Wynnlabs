@@ -110,6 +110,30 @@ class RideLoreTest {
         assertEquals("Bantisu Quarters", RideLore.home(lore));
     }
 
+    /** The game's free mount (ride.txt): every stat 1/1, no home, a note that it cannot be traded. */
+    @Test
+    void theFreeMountReadsWithItsRealOneOverOneStatsAndNoHome() {
+        String g = "";
+        List<String> lore = List.of("Wyvern Flute", "", "", "8 Potential", "Azure-Cinder", "Energy 200/200", "",
+                "Speed" + g + "1/1", "Acceleration" + g + "1/1", "Altitude" + g + "1/1", "Energy" + g + "1/1",
+                "Handling" + g + "1/1", "Toughness" + g + "1/1", "Boost" + g + "1/1", "Training" + g + "1/1", "",
+                "Right-Click to Summon", "", "This mount cannot be traded,", "bred, or upgraded");
+        MountRead m = RideLore.parse("Wyvern Flute", lore);
+        assertEquals(200, m.energy());
+        assertEquals(200, m.energyMax());
+        assertEquals(8, m.stats().size());
+        assertEquals(new MountRead.Stat("SPEED", "Speed", 1, 1, 1), m.stats().get(0));
+        assertTrue(m.free());
+        assertNull(RideLore.home(lore));
+    }
+
+    @Test
+    void aFreshMountWithLevelOneStatsIsNotTheFreeOne() {
+        MountRead m = RideLore.parse("Wyvern Flute", List.of("Energy 196/204", "Speed1/10", "Acceleration1/10",
+                "Altitude1/18", "Energy1/1", "Handling1/10"));
+        assertFalse(m.free(), "one stat at 1/1 is not enough");
+    }
+
     @Test
     void glyphsAreTakenOutByCodePointInEveryPlane() {
         String s = "Speed" + new String(Character.toChars(0xFFFE7)) + new String(Character.toChars(0x10045))

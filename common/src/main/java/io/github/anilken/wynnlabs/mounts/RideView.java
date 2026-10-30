@@ -10,7 +10,7 @@ import java.util.Locale;
  * something even when the mount's item did not read: the header (the mount's skin or name, and
  * its type from the read, Wynntils or the vehicle), the energy row (the item's points, an estimate
  * between reads, else Wynntils' bar as a percentage) and the stats, or {@link #NOT_READ} instead
- * of them. Pure.
+ * of them; the game's free mount ({@link MountRead#free}) has neither. Pure.
  */
 public record RideView(MountRead mount, String title, String kind, String energy, float fill, List<MountRead.Stat> stats,
                        boolean maxKnown, String note) {
@@ -48,6 +48,10 @@ public record RideView(MountRead mount, String title, String kind, String energy
         } else {
             energy = "–";
             fill = 0;
+        }
+        if (m != null && m.free()) {
+            // the game's free mount: every stat is 1/1 for good, so only its name and energy show
+            return new RideView(m, title, kind, energy, fill, List.of(), false, null);
         }
         List<MountRead.Stat> stats = m == null ? List.of() : m.stats();
         return new RideView(m, title, kind, energy, fill, stats, m != null && !m.estimated(), stats.isEmpty() ? NOT_READ : null);

@@ -44,6 +44,20 @@ class RideViewTest {
     }
 
     @Test
+    void theFreeMountShowsItsNameAndEnergyWithoutStatRowsOrANote() {
+        List<MountRead.Stat> ones = List.of(new MountRead.Stat("SPEED", "Speed", 1, 1, 1),
+                new MountRead.Stat("ACCELERATION", "Acceleration", 1, 1, 1), new MountRead.Stat("ALTITUDE", "Altitude", 1, 1, 1),
+                new MountRead.Stat("ENERGY", "Energy", 1, 1, 1));
+        MountRead m = new MountRead("WYVERN", "Wyvern Flute", 8, 200, 200, ones, true, "", "", "Azure-Cinder", null);
+        RideView v = RideView.of(m, "WYVERN", "entity.minecraft.llama", null, -1);
+        assertEquals("Azure-Cinder", v.title());
+        assertEquals("Wyvern", v.kind());
+        assertEquals("200/200", v.energy());
+        assertTrue(v.stats().isEmpty());
+        assertNull(v.note(), "not \"stats not read yet\": they were read");
+    }
+
+    @Test
     void theSameInputsGiveAnEqualView() {
         assertEquals(RideView.of(null, "WYVERN", null, new int[] {10, 48}, -1), RideView.of(null, "WYVERN", null, new int[] {10, 48}, -1));
     }

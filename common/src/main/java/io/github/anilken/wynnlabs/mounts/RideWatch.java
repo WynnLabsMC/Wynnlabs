@@ -203,7 +203,9 @@ public final class RideWatch {
             view = v;
         }
         boolean busy = mc.options.keyUse.isDown() || mc.options.keyAttack.isDown();
-        REFRESH.tick(tick, new RideRefresh.Ctx(true, panelOn(), Settings.on("rideRefresh") && Wyn.hasCharacter(), current != null,
+        // the game's free mount never changes: nothing to refresh
+        REFRESH.tick(tick, new RideRefresh.Ctx(true, panelOn(), Settings.on("rideRefresh") && Wyn.hasCharacter(),
+                current != null && !current.free(),
                 mc.screen != null, busy, selected, mountSlot == selected, Powerups.on()));
     }
 

@@ -39,7 +39,9 @@ public final class RideLore {
             String t = FeederRead.text(raw);
             if (t.contains("to Summon")) {
                 summon = true;
-            } else if (summon && !t.isEmpty() && !t.contains("to Destroy")) {
+            } else if (summon && !t.isEmpty() && !t.contains("to Destroy") && !t.contains("cannot be")
+                    && !Character.isLowerCase(t.charAt(0))) {
+                // the free mount's "This mount cannot be traded, / bred, or upgraded" is no place
                 last = t;
             }
         }

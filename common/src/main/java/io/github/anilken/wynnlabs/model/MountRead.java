@@ -52,6 +52,14 @@ public record MountRead(String type, String name, int potential, int energy, int
         return skin != null && !skin.isBlank() ? name + " · " + skin : name;
     }
 
+    /**
+     * Whether this is the free mount the game hands out (it "cannot be traded, bred, or upgraded"):
+     * every stat at a limit and max of 1, so there is nothing to train.
+     */
+    public boolean free() {
+        return !stats.isEmpty() && stats.stream().allMatch(s -> s.limit() <= 1 && s.max() <= 1);
+    }
+
     /** The average of the stats' limits (breeding asks for a high one). */
     public double averageLimit() {
         return stats.isEmpty() ? 0 : stats.stream().mapToInt(Stat::limit).average().orElse(0);
