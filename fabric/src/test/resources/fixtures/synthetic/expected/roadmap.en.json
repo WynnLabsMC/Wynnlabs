@@ -9,7 +9,7 @@
           "level": 17,
           "tier": "RARE",
           "gain": 11.0,
-          "from": "Add 2 tier III powders (any element, same HP), about 2 EB",
+          "from": "Add 2 tier III powders (any element, same HP), ~2 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -20,7 +20,7 @@
           "level": 19,
           "tier": "RARE",
           "gain": 5.5,
-          "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
+          "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -31,7 +31,7 @@
           "level": 17,
           "tier": "UNIQUE",
           "gain": 5.5,
-          "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
+          "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -42,7 +42,7 @@
           "level": 20,
           "tier": "RARE",
           "gain": 5.5,
-          "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
+          "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -53,7 +53,7 @@
           "level": 17,
           "tier": "UNIQUE",
           "gain": 26.7,
-          "from": "Add 1× Water III powder, about 1 EB",
+          "from": "Add 1× Water III powder, ~1 EB",
           "price": null,
           "tradable": true,
           "options": []

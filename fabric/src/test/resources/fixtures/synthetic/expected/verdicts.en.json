@@ -15,7 +15,7 @@
     "where": "hotbar 2",
     "name": "Water Powder II",
     "verdict": "USE",
-    "note": "Apply it to your weapon (drag it on): your build does Water damage"
+    "note": "Drag it onto your weapon: your build deals Water damage"
   },
   {
     "where": "bag 9",
@@ -63,7 +63,7 @@
     "where": "bag 17",
     "name": "Unidentified Hourglass",
     "verdict": "SELL",
-    "note": "Even identified, your equipped Keen Measure is better. Sell it to the Blacksmith (untradable)"
+    "note": "Your equipped Keen Measure beats it even after ID. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bag 18",
@@ -81,7 +81,7 @@
     "where": "bag 20",
     "name": "Spider Silk",
     "verdict": "KEEP",
-    "note": "Low value (~13 EB), not worth listing; trash it if you need space"
+    "note": "Only ~13 EB, not worth listing: trash it if you need space"
   },
   {
     "where": "bag 21",
@@ -135,13 +135,13 @@
     "where": "bank acct:Account Bank p. 1#1",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: the Trade Market nets ~5 EB, under your 10 EB minimum (2/4 have a price). Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: only nets ~5 EB on the Trade Market, under your 10 EB min (2/4 have a price). Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 2#4",
     "name": "Fire Powder III",
     "verdict": "KEEP",
-    "note": "Fire isn't in any build yet. A Powder Master merges 4 into the next tier; the Powder Exchange swaps the element"
+    "note": "No build uses Fire yet. A Powder Master fuses 4 into the next tier; the Powder Exchange swaps elements"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#0",

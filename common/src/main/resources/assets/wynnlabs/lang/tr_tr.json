@@ -428,7 +428,7 @@
   "wynnlabs.death.area_level": "Bölge Lv. %s, sen %s",
   "wynnlabs.death.burst": "Burst yedin: %s sn'de düştün, EHP'n de düşük (%s)",
   "wynnlabs.death.add_defence": "Savunmaya birkaç puan ver (şu an %s)",
-  "wynnlabs.death.no_potions": "Can iksirin bitmişti: stok yap",
+  "wynnlabs.death.no_potions": "Can iksirin kalmamıştı, yanına iksir al",
   "wynnlabs.death.one_off": "Tek seferlik gibi: canın azalınca geri çekil",
   "wynnlabs.death.heal_sooner": "Canın azalmadan heal at",
   "wynnlabs.death.heal_sooner_combo": "Daha erken heal at: canın azalmadan Heal'i (%s) kullan",

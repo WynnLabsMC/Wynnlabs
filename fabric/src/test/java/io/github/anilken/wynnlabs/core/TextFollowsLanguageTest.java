@@ -98,9 +98,9 @@ class TextFollowsLanguageTest {
         DeathCoach.Death back = DeathCoach.read(file).get(0);
         assertEquals("near Nivla Woods", back.place());
         assertEquals(List.of("Area Lv. 48, you're Lv. 44",
-                "Your health ran out in 2.5 s: burst damage, and your effective HP is low (2900)",
+                "Burst: you went down in 2.5 s and your EHP is low (2900)",
                 "Put a few points into Defence (now 3)",
-                "You had no healing potions left; bring some"), back.adviceText());
+                "Out of healing potions: stock up"), back.adviceText());
 
         turkishFromHere();
         language(TR);
@@ -138,7 +138,7 @@ class TextFollowsLanguageTest {
         DeathCoach.Death d = DeathCoach.read(file.toString()).get(0);
         assertEquals("near Nivla Woods", d.place());
         assertEquals(List.of("Death #3 here: leave this area for now",
-                "You had no healing potions left; bring some", "a line no key knows"), d.adviceText());
+                "Out of healing potions: stock up", "a line no key knows"), d.adviceText());
         // saved again, it is keys from now on
         DeathCoach.Death again = DeathCoach.read(DeathCoach.write(List.of(d))).get(0);
         language(TR);
