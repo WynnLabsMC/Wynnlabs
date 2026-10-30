@@ -123,6 +123,18 @@ public final class TreeModel {
         return o == null ? 1 : o.taken;
     }
 
+    /** The nodes' own damage and the archetypes' mechanics (overlay in force; none: nothing). */
+    static AbilityMechanics.Sum abilities() {
+        Overlay o = active();
+        return o == null || o.abilities == null ? AbilityMechanics.Sum.NONE : o.abilities;
+    }
+
+    /** The nodes taken that a major ID's effect needs (overlay in force; none: null). */
+    static Set<String> nodes() {
+        Overlay o = active();
+        return o == null ? null : o.nodes;
+    }
+
     /** The overlay in force for cache keys: "" when none. */
     public static String key() {
         Overlay o = active();
@@ -154,6 +166,10 @@ public final class TreeModel {
         final Map<String, double[]> spellMods;
         /** The share of each hit you take that the tree's base resistance leaves (1: none). */
         final double taken;
+        /** The nodes taken that a major ID's effect needs ({@link MajorIds#requiredNodes}). */
+        final Set<String> nodes;
+        /** The nodes' own damage and the archetypes' mechanics ({@link AbilityMechanics}). */
+        final AbilityMechanics.Sum abilities;
         /** Spell → its hits as the nodes taken change them ({@link HitCounts#sum}). */
         final Map<String, int[]> counts;
         /** The main attack's factor from the nodes taken ({@link HitCounts#mainFactor}); 0: the tree says nothing of it. */
@@ -169,17 +185,36 @@ public final class TreeModel {
                 List<SourceText.Heal> heals, List<SourceText.Ultimate> ultimates, Map<String, double[]> spellMods,
                 double taken) {
             this(level, cost, known, unlocked, passive, manaPer5, mainAttack, bonus, passives, heals, ultimates, spellMods,
-                    taken, Map.of(), 0, false);
+                    taken, Set.of(), Map.of(), 0, false, AbilityMechanics.Sum.NONE);
+        }
+
+        Overlay(int level, Map<String, Double> cost, Set<String> known, Set<String> unlocked, double[] passive,
+                double manaPer5, double mainAttack, TreeBonuses.Sum bonus, List<Sources.Passive> passives,
+                List<SourceText.Heal> heals, List<SourceText.Ultimate> ultimates, Map<String, double[]> spellMods,
+                double taken, Set<String> nodes) {
+            this(level, cost, known, unlocked, passive, manaPer5, mainAttack, bonus, passives, heals, ultimates, spellMods,
+                    taken, nodes, Map.of(), 0, false, AbilityMechanics.Sum.NONE);
         }
 
         Overlay(int level, Map<String, Double> cost, Set<String> known, Set<String> unlocked, double[] passive,
                 double manaPer5, double mainAttack, TreeBonuses.Sum bonus, List<Sources.Passive> passives,
                 List<SourceText.Heal> heals, List<SourceText.Ultimate> ultimates, Map<String, double[]> spellMods,
                 double taken, Map<String, int[]> counts, double mainHits, boolean mainKnown) {
+            this(level, cost, known, unlocked, passive, manaPer5, mainAttack, bonus, passives, heals, ultimates, spellMods,
+                    taken, Set.of(), counts, mainHits, mainKnown, AbilityMechanics.Sum.NONE);
+        }
+
+        Overlay(int level, Map<String, Double> cost, Set<String> known, Set<String> unlocked, double[] passive,
+                double manaPer5, double mainAttack, TreeBonuses.Sum bonus, List<Sources.Passive> passives,
+                List<SourceText.Heal> heals, List<SourceText.Ultimate> ultimates, Map<String, double[]> spellMods,
+                double taken, Set<String> nodes, Map<String, int[]> counts, double mainHits, boolean mainKnown,
+                AbilityMechanics.Sum abilities) {
+            this.abilities = abilities == null ? AbilityMechanics.Sum.NONE : abilities;
             this.counts = counts;
             this.mainHits = mainHits;
             this.mainKnown = mainKnown;
             this.taken = taken;
+            this.nodes = nodes;
             this.spellMods = spellMods;
             this.passives = passives;
             this.heals = heals;
@@ -215,6 +250,12 @@ public final class TreeModel {
                     .append(',').append(Math.round(m[1])).append(',').append(Math.round(m[2])));
             if (taken != 1) {
                 k.append("|r").append(Math.round(taken * 1000));
+            }
+            if (!nodes.isEmpty()) {
+                k.append("|n").append(new TreeSet<>(nodes));    // a major ID's effect hangs on these
+            }
+            if (!this.abilities.isEmpty()) {
+                k.append("|a").append(this.abilities.key());
             }
             counts.forEach((n, c) -> k.append("|c").append(n).append(':').append(java.util.Arrays.toString(c)));
             if (mainHits != 0) {
@@ -272,6 +313,18 @@ public final class TreeModel {
                 return (JsonArray) c[1];
             }
             JsonArray out = new JsonArray();
+            // a spell the tree's own hits come with counts as a damage spell (Charge with Flying
+            // Kick), cast as often as the damage spells are on average
+            double avg = 0;
+            int dmg = 0;
+            for (JsonElement e : rules) {
+                if (e.isJsonObject() && e.getAsJsonObject().has("share") && e.getAsJsonObject().get("share").getAsDouble() > 0
+                        && !ClassProfiles.lasting(e.getAsJsonObject())) {
+                    avg += e.getAsJsonObject().get("share").getAsDouble();
+                    dmg++;
+                }
+            }
+            avg = dmg > 0 ? avg / dmg : 1;
             for (JsonElement e : rules) {
                 if (!e.isJsonObject()) {
                     out.add(e);
@@ -279,8 +332,19 @@ public final class TreeModel {
                 }
                 JsonObject s = e.getAsJsonObject().deepCopy();
                 String name = s.has("name") ? s.get("name").getAsString() : "";
-                if (known.contains(name) && !unlocked.contains(name)) {
+                boolean bought = !known.contains(name) || unlocked.contains(name);
+                if (!bought) {
                     s.addProperty("share", 0.0);            // not bought yet at this level
+                } else if (!abilities.of(name).isEmpty() && (!s.has("share") || s.get("share").getAsDouble() <= 0)) {
+                    s.addProperty("share", Math.round(avg * 1000) / 1000.0);
+                }
+                if (abilities.replaced().contains(name) && s.has("conv") && s.get("conv").isJsonObject()) {
+                    s.add("conv", new JsonObject());        // its own damage goes (Backstab, Ophanim)
+                    s.addProperty("hits", 0.0);
+                }
+                Double cd = abilities.cooldown().get(name);
+                if (cd != null) {
+                    s.addProperty("cooldown", cd);
                 }
                 Double d = cost.get(name);
                 if (d != null && s.has("cost")) {
@@ -298,6 +362,9 @@ public final class TreeModel {
         /** The main attack and element % bonuses into a build's stats ({@code s}, as Damage sums them). */
         void addStats(Map<String, Double> s) {
             bonus.addStats(s);
+            if (abilities.raw() != 0) {
+                s.merge("rawDamage", abilities.raw(), Double::sum);    // Corrupted, Distortion: on every hit
+            }
         }
 
         @Override

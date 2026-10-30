@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -296,10 +297,17 @@ final class TreeReading {
                 hitTaken *= 1 - e.getValue();
             }
         }
+        // the nodes a major ID's effect needs ("with Fireworks"), when taken
+        Set<String> nodes = new TreeSet<>(MajorIds.requiredNodes());
+        nodes.retainAll(have);
+        // the nodes' own damage and the archetypes' mechanics (AbilityMechanics): their summons and
+        // triggers hit alongside the tree's, their mana comes back with the tree's
+        AbilityMechanics.Sum abilities = AbilityMechanics.of(text.extras(), have);
+        sources.addAll(abilities.passives());
         HitCounts.Reading counts = text.counts() == null ? HitCounts.Reading.none() : text.counts();
-        return new TreeModel.Overlay(level, cost, known, unlocked, passive, mana * 5, mainAttack, bonus, sources, heals,
-                ultimates, spellMods, hitTaken, HitCounts.sum(counts, have),
+        return new TreeModel.Overlay(level, cost, known, unlocked, passive, mana * 5 + abilities.manaPer5(), mainAttack,
+                bonus, sources, heals, ultimates, spellMods, hitTaken, Set.copyOf(nodes), HitCounts.sum(counts, have),
                 counts.mainKnown() || HitCounts.mainFactor(counts, have) != 1 ? HitCounts.mainFactor(counts, have) : 0,
-                counts.mainKnown());
+                counts.mainKnown(), abilities);
     }
 }

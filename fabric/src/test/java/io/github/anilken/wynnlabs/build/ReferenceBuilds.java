@@ -90,7 +90,7 @@ final class ReferenceBuilds {
      * The shaman-44 fixture played as {@code k} at {@code level}, no node read as unlocked (the
      * plan from the first node), {@code archetype} chosen the way the player chooses it ("" for
      * none) and the Damage goal. Choosing goes through TreePlanner.choose: Rules.update alone
-     * left the fixture's Summoner in place; with no archetype the class profile is applied too.
+     * left the fixture's Summoner in place.
      */
     static void install(Klass k, int level, String archetype) throws IOException {
         FixtureState s = AS.get(k);
@@ -101,10 +101,16 @@ final class ReferenceBuilds {
         s.atLevel(level).install("en");
         TreePlanner.choose(archetype);
         if (archetype.isEmpty()) {
-            // choose("") leaves the class profile alone, so the fixture's Shaman spells stayed for other classes
+            // choosing none leaves the last class's profile (the fixture's Shaman spells): the class's own
             ClassProfiles.apply("", false);
         }
         Setup.setGoal("DAMAGE");
+        // model weights to try without a rebuild: build/reference-builds/model-override.json ({"model": {...}})
+        Path o = out("model-override.json");
+        if (Files.exists(o)) {
+            io.github.anilken.wynnlabs.core.Rules.update(JsonParser.parseString(Files.readString(o, StandardCharsets.UTF_8))
+                    .getAsJsonObject());
+        }
     }
 
     /** The class a link's weapon is for; null when the weapon is not in the database. */
@@ -133,7 +139,7 @@ final class ReferenceBuilds {
     }
 
     /** A link turned into the model's set: the pieces kept by build slot, the items, and what was left out ("slot:why"). */
-    record LinkSet(Map<String, Damage.Piece> set, List<ItemData> items, List<String> dropped) {
+    record LinkSet(Map<String, Damage.Piece> set, List<ItemData> items, List<String> dropped, TreeModel.Overlay tree) {
         boolean hasWeapon() {
             return set.containsKey("WEAPON");
         }
@@ -156,10 +162,18 @@ final class ReferenceBuilds {
             }
             Slot k = Locks.kind(row.info());
             String slot = k.isWeapon() ? "WEAPON" : Build.slotOf(k, k == Slot.RING ? rings++ : 0);
-            set.put(slot, Damage.piece(row.info()));
+            // with the powders the link gives it (none when it has none), not assumed ones
+            set.put(slot, Damage.piece(row.info(), row.piece().powders() == null ? "" : row.piece().powders()));
             items.add(row.info());
         }
-        return new LinkSet(set, items, dropped);
+        // the link's own ability tree at its level, when it has one the model can read
+        TreeModel.Overlay own = null;
+        try {
+            own = LinkImport.overlay(r);
+        } catch (RuntimeException e) {
+            own = null;
+        }
+        return new LinkSet(set, items, dropped, own);
     }
 
     static int need(Collection<Damage.Piece> pieces) {
@@ -174,6 +188,11 @@ final class ReferenceBuilds {
     static Build.Eval score(Map<String, Damage.Piece> set, int level, int earned) {
         TreeModel.Run run = TreeModel.run();
         TreeModel.Overlay o = run == null ? null : run.at(level);
+        return TreeModel.with(o, () -> Build.allocateBest(set, level, earned));
+    }
+
+    /** {@link #score} with the tree overlay {@code o} in force (the link's own tree) instead of the archetype's plan. */
+    static Build.Eval score(Map<String, Damage.Piece> set, int level, int earned, TreeModel.Overlay o) {
         return TreeModel.with(o, () -> Build.allocateBest(set, level, earned));
     }
 

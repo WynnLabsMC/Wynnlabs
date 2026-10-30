@@ -19,8 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The mana part of the score comes from the build's own stats: mana back every 5 s (Mana Regen,
  * Mana Steal) and the spells' cost cut (Intelligence, the raw and % cost IDs) by each spell's
- * share. No fight is simulated: spells are cast at the fixed rate whatever the mana, so mana
- * moves the mana part and never the spell damage.
+ * share. Spells are cast at the fixed rate whatever the mana, so mana moves the mana part and
+ * never the spell damage; with rules.model.castModel 1 the casts follow the mana (SpellCasts).
  */
 class ManaStatsTest {
 
@@ -54,6 +54,23 @@ class ManaStatsTest {
 
     private static double mana(Damage.Result r) {
         return r.factors()[2];
+    }
+
+    @Test
+    void castsFollowTheManaWhenAskedTo() {
+        // rules.model.castModel 1: the casts follow the mana, and the mana part keeps half its weight
+        JsonObject paced = new JsonObject();
+        paced.addProperty("castModel", 1);
+        JsonObject withPaced = new JsonObject();
+        withPaced.add("model", paced);
+        Rules.use(withPaced);
+        Damage.Result base = score(0, Map.of());
+        Damage.Result more = score(0, Map.of("manaRegen", 30.0));
+        assertTrue(base.casts() < Rules.sub("model", "maxCastsPer5s", 4), "the base mana pays for fewer: " + base.casts());
+        assertTrue(more.casts() > base.casts());
+        assertTrue(more.spellDps() > base.spellDps(), "more mana, more casts, more spell damage");
+        assertTrue(score(0, Map.of("manaRegen", -40.0)).spellDps() <= base.spellDps());
+        assertEquals(1 + 0.3 * 0.5 * Math.log(2), mana(score(0, Map.of("manaRegen", 25.0))), 1e-9);
     }
 
     @Test
@@ -136,7 +153,13 @@ class ManaStatsTest {
     }
 
     @Test
-    void noFightIsSimulated() {
+    void noFightIsSimulatedWithTheFixedRate() {
+        // rules.model.castModel 0: the old fixed rate, spell damage whatever the mana
+        JsonObject fixed = new JsonObject();
+        fixed.addProperty("castModel", 0);
+        JsonObject withFixed = new JsonObject();
+        withFixed.add("model", fixed);
+        Rules.use(withFixed);
         Damage.Result base = score(0, Map.of());
         double rate = Rules.sub("model", "maxCastsPer5s", 4);
         assertEquals(rate, base.casts(), 1e-12, "the fixed cast rate");
@@ -152,6 +175,7 @@ class ManaStatsTest {
         model.addProperty("fightSeconds", 5);
         model.addProperty("baseMana", 400);
         JsonObject rules = new JsonObject();
+        model.addProperty("castModel", 0);
         rules.add("model", model);
         Rules.use(rules);
         assertEquals(base.objective(), score(0, Map.of()).objective(), 1e-9 * base.objective());

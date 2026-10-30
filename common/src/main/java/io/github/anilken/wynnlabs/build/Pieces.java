@@ -130,6 +130,7 @@ final class Pieces {
             SETS.put(si.name(), si);
             stats.put(SET + si.name(), 1.0);
         });
+        info.base().majorId().ifPresent(m -> stats.put(MajorIds.KEY + m, 1.0));
         double dps = info.base().averageDps();
         Map<String, Double> sh = normalise(shares);
         double health = info.base().health();
@@ -382,6 +383,7 @@ final class Pieces {
                 SETS.put(si.name(), si);
                 stats.put(SET + si.name(), 1.0);
             });
+            fixed.majorId().ifPresent(m -> stats.put(MajorIds.KEY + m, 1.0));
             double dps = fixed.averageDps();
             Map<String, Double> sh = normalise(shares);
             double health = fixed.health();

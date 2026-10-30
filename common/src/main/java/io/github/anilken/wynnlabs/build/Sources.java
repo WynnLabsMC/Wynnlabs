@@ -78,6 +78,41 @@ public final class Sources {
      */
     static Summons summons(TreeModel.Overlay o, Map<String, Double> s, Map<String, Double> shares, double baseDps,
             double[] skillBonus, double multiplier, double[] byElement, List<Source> out) {
+        return summons(o, s, shares, baseDps, skillBonus, multiplier, byElement, out, MajorIds.Active.NONE);
+    }
+
+    /**
+     * {@link #summons} with the build's major IDs ({@code major}): their changes to a summon or
+     * area by name, and the summons they add (Flain Remnants), out the same share of a fight.
+     */
+    static Summons summons(TreeModel.Overlay o, Map<String, Double> s, Map<String, Double> shares, double baseDps,
+            double[] skillBonus, double multiplier, double[] byElement, List<Source> out, MajorIds.Active major) {
+        Summons extra = majorSummons(major, s, shares, baseDps, skillBonus, multiplier, byElement, out);
+        Summons own = ownSummons(o, s, shares, baseDps, skillBonus, multiplier, byElement, out, major);
+        return new Summons(own.shown() + extra.shown(), own.scored() + extra.scored());
+    }
+
+    private static Summons majorSummons(MajorIds.Active major, Map<String, Double> s, Map<String, Double> shares,
+            double baseDps, double[] skillBonus, double multiplier, double[] byElement, List<Source> out) {
+        double shown = 0;
+        double[] el = byElement == null ? null : new double[Damage.ELEMENTS.length];
+        for (MajorIds.Summon m : major.summons()) {
+            if (el != null) {
+                java.util.Arrays.fill(el, 0);
+            }
+            double hit = Damage.hit(s, Damage.split(m.conv(), shares), baseDps, skillBonus, true, el) * multiplier;
+            double times = m.rate() * m.count();
+            shown += hit * times;
+            add(byElement, el, multiplier * times);
+            if (out != null) {
+                out.add(new Source(m.name(), "summon", null, hit * times, hit, m.rate(), m.count(), 0, 0, 0, 0, List.of()));
+            }
+        }
+        return new Summons(shown, shown * fightShare(true));
+    }
+
+    private static Summons ownSummons(TreeModel.Overlay o, Map<String, Double> s, Map<String, Double> shares, double baseDps,
+            double[] skillBonus, double multiplier, double[] byElement, List<Source> out, MajorIds.Active major) {
         double shown = 0;
         double scored = 0;
         double[] el = byElement == null ? null : new double[Damage.ELEMENTS.length];
@@ -86,7 +121,14 @@ public final class Sources {
                 if (el != null) {
                     java.util.Arrays.fill(el, 0);
                 }
-                double hit = Damage.hit(s, Damage.split(p.conv(), shares), baseDps, skillBonus, true, el)
+                // a major ID's change to this summon or area (Meteor Crash on Burning Sigil)
+                List<MajorIds.Target> fx = major.of(p.name());
+                double[] conv = p.conv();
+                if (fx != null) {
+                    conv = conv.clone();
+                    MajorIds.apply(fx, conv, 1);
+                }
+                double hit = Damage.hit(s, Damage.split(conv, shares), baseDps, skillBonus, true, el)
                         * multiplier * p.mult();
                 double times = p.rate() * p.count();
                 double dps = hit * times;

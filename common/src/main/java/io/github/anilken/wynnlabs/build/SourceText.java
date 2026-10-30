@@ -82,16 +82,17 @@ final class SourceText {
      * node → the base resistance it gives (0.05) and the hits the nodes change ({@link HitCounts}).
      */
     record Reading(Map<String, String> spellOf, List<Heal> heals, List<Ultimate> ultimates, List<Scale> scales,
-            Map<String, Each> each, Map<String, String> perNoun, Map<String, Double> resist, HitCounts.Reading counts) {
+            Map<String, Each> each, Map<String, String> perNoun, Map<String, Double> resist, HitCounts.Reading counts,
+            Map<String, AbilityText.Extra> extras) {
 
         Reading(Map<String, String> spellOf, List<Heal> heals, List<Ultimate> ultimates, List<Scale> scales,
                 Map<String, Each> each, Map<String, String> perNoun, Map<String, Double> resist) {
-            this(spellOf, heals, ultimates, scales, each, perNoun, resist, HitCounts.Reading.none());
+            this(spellOf, heals, ultimates, scales, each, perNoun, resist, HitCounts.Reading.none(), Map.of());
         }
 
         static Reading none() {
             return new Reading(Map.of(), List.of(), List.of(), List.of(), Map.of(), Map.of(), Map.of(),
-                    HitCounts.Reading.none());
+                    HitCounts.Reading.none(), Map.of());
         }
     }
 
@@ -174,7 +175,9 @@ final class SourceText {
                 }
             }
         }
-        return new Reading(spellOf, heals, ultimates, scales, each, perNoun, resist, HitCounts.read(tree, cls, spellNames));
+        // the hits the nodes change (HitCounts) and the nodes' own damage beyond spells, summons and bonuses (AbilityText)
+        return new Reading(spellOf, heals, ultimates, scales, each, perNoun, resist, HitCounts.read(tree, cls, spellNames),
+                AbilityText.read(tree, cls, spellNames));
     }
 
     /** The scaling lines of one node's text into {@code out}. */

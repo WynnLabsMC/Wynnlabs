@@ -47,10 +47,16 @@ class ReferenceBuildsBenchmark {
             String tags, int level, String status, String dropped, int tomes, int need, double refObj, double pickObj,
             double refDps, double pickDps, double refEhp, double pickEhp, double refRegen, double refRegenF,
             double pickRegen, double pickRegenF, double refLife, double pickLife, String refMajor, String pickMajor,
-            String pickSet, String url) {
+            String pickSet, String url, double refPlanObj, String refTree, String refParts,
+            String pickParts) {
 
         double ratio() {
             return refObj > 0 && pickObj > 0 ? refObj / pickObj : Double.NaN;
+        }
+
+        /** The guide build scored with the archetype's plan tree (as the pick is), not its own. */
+        double planRatio() {
+            return refPlanObj > 0 && pickObj > 0 ? refPlanObj / pickObj : Double.NaN;
         }
 
         boolean scored() {
@@ -100,7 +106,7 @@ class ReferenceBuildsBenchmark {
         return new Row(e.get("id").getAsInt(), text(e, "post"), text(e, "class"), text(e, "archetype"), "", text(e, "mythic"),
                 e.get("crafted").isJsonNull() ? null : e.get("crafted").getAsBoolean(), tags(e), 0, why, "", 0, 0,
                 Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN,
-                Double.NaN, Double.NaN, Double.NaN, "", "", "", text(e, "url"));
+                Double.NaN, Double.NaN, Double.NaN, "", "", "", text(e, "url"), Double.NaN, "", "", "");
     }
 
     /** Why a link did not decode: not a build page at all, text pasted after the link, or a link the decoder cannot read. */
@@ -154,7 +160,10 @@ class ReferenceBuildsBenchmark {
         int need = ReferenceBuilds.need(ls.set().values());
         Pick pick = pick(k, arch, level);
         int earned = ReferenceBuilds.earned(level);
-        Build.Eval ref = ls.hasWeapon() ? ReferenceBuilds.score(ls.set(), level, Math.max(earned, need)) : null;
+        // the guide build with its own tree where the link has one the model reads, else the archetype's plan
+        Build.Eval refPlan = ls.hasWeapon() ? ReferenceBuilds.score(ls.set(), level, Math.max(earned, need)) : null;
+        Build.Eval ref = ls.hasWeapon() && ls.tree() != null
+                ? ReferenceBuilds.score(ls.set(), level, Math.max(earned, need), ls.tree()) : refPlan;
         String status = !ls.hasWeapon() ? "no weapon" : ref == null ? "does not fit: a skill needs over 100 assigned" : need > earned ? "over cap (scored with " + need + ")" : "ok";
         Damage.Result rr = ref == null ? null : ref.result();
         Damage.Result pr = pick.eval() == null ? null : pick.eval().result();
@@ -174,10 +183,23 @@ class ReferenceBuildsBenchmark {
                 Double.isNaN(pickRegen) ? Double.NaN : ReferenceBuilds.regenFactor(pickRegen, level),
                 rr == null || rr.factors().length < 2 ? Double.NaN : rr.factors()[1],
                 pr == null || pr.factors().length < 2 ? Double.NaN : pr.factors()[1],
-                ReferenceBuilds.majorIds(ls.items()), ReferenceBuilds.majorIds(pick.items()), String.join(" / ", names), url);
+                ReferenceBuilds.majorIds(ls.items()), ReferenceBuilds.majorIds(pick.items()), String.join(" / ", names), url,
+                refPlan == null ? Double.NaN : refPlan.result().objective(), ls.tree() != null ? "own" : "plan", parts(rr),
+                parts(pr));
         Fixtures.note(String.format(Locale.ROOT, "ref %d %s %s Lv %d: %s ref %.4g pick %.4g", row.id(), k, arch, level, status,
                 row.refObj(), row.pickObj()));
         return row;
+    }
+
+    /** Where a result's damage comes from: spells, main attack, casts every 5 s, damage factor, life, mana. */
+    private static String parts(Damage.Result r) {
+        if (r == null) {
+            return "";
+        }
+        double[] f = r.factors();
+        return String.format(Locale.ROOT, "spell %.0f main %.0f casts %.2f dmg %.0f life %.3f mana %.3f mp5 %.0f", r.spellDps(),
+                r.mainDps(), r.casts(), f.length > 0 ? f[0] : 0, f.length > 1 ? f[1] : 0, f.length > 2 ? f[2] : 0,
+                r.manaPer5());
     }
 
     /** The road map's set for the class, archetype and level (its own milestone at your level), once per run. */
@@ -237,7 +259,8 @@ class ReferenceBuildsBenchmark {
     private static final String[] COLUMNS = {"id", "post", "class", "class_from", "archetype", "archetype_note", "mythic", "crafted", "tags",
         "level", "status", "dropped", "tomes", "min_points", "fits_200", "ref_objective", "pick_objective", "ratio", "ref_dps",
         "pick_dps", "ref_ehp_elemental", "pick_ehp_elemental", "ref_regen", "ref_regen_factor", "pick_regen",
-        "pick_regen_factor", "ref_life_factor", "pick_life_factor", "ref_major_ids", "pick_major_ids", "pick_set", "url"};
+        "pick_regen_factor", "ref_life_factor", "pick_life_factor", "ref_major_ids", "pick_major_ids", "pick_set", "url",
+        "ref_tree", "ref_plan_objective", "ratio_plan_tree", "ref_parts", "pick_parts"};
 
     private void write(JsonObject doc, List<Row> rows, long ms) throws Exception {
         StringBuilder csv = new StringBuilder(String.join(",", COLUMNS)).append('\n');
@@ -245,7 +268,8 @@ class ReferenceBuildsBenchmark {
             Object[] v = {r.id(), r.post(), r.klass(), classFrom.getOrDefault(r.id(), ""), r.archetype(), r.archFrom(), r.mythic(), r.crafted(), r.tags(), r.level(),
                 r.status(), r.dropped(), r.tomes(), r.need(), r.level() == 0 ? "" : r.need() <= ReferenceBuilds.CAP, r.refObj(),
                 r.pickObj(), r.ratio(), r.refDps(), r.pickDps(), r.refEhp(), r.pickEhp(), r.refRegen(), r.refRegenF(),
-                r.pickRegen(), r.pickRegenF(), r.refLife(), r.pickLife(), r.refMajor(), r.pickMajor(), r.pickSet(), r.url()};
+                r.pickRegen(), r.pickRegenF(), r.refLife(), r.pickLife(), r.refMajor(), r.pickMajor(), r.pickSet(), r.url(),
+                r.refTree(), r.refPlanObj(), r.planRatio(), r.refParts(), r.pickParts()};
             List<String> cells = new ArrayList<>();
             for (Object o : v) {
                 cells.add(ReferenceBuilds.csv(o));
@@ -260,7 +284,10 @@ class ReferenceBuildsBenchmark {
                 .append(" s, of which road map picks ").append(pickMillis / 1000).append(" s for ").append(picks.size())
                 .append(" class/archetype/level combinations (the tests' narrow search: jointPool 6, beamWidth 12, beamFinal 4).\n\n");
         md.append("ratio = the guide build's objective / the pick's objective, both scored by `Build.allocateBest` at the link's level with")
-                .append(" the archetype's tree plan and the Damage goal. Calibration rows: guide entries (not replies) that decode")
+                .append(" the Damage goal; the guide build with its link's own ability tree where the link has one (")
+                .append(rows.stream().filter(r -> "own".equals(r.refTree())).count())
+                .append(" rows), else the archetype's plan; the pick with the archetype's plan. The plan-tree ratio scores the guide")
+                .append(" build with the plan too. Calibration rows: guide entries (not replies) that decode")
                 .append(" whole (no crafted, custom or unknown piece) and score.\n\n");
         Map<String, Integer> status = new TreeMap<>();
         rows.forEach(r -> status.merge(r.status().replaceAll(" \\(scored with \\d+\\)", ""), 1, Integer::sum));
@@ -285,8 +312,8 @@ class ReferenceBuildsBenchmark {
         md.append("\n## Aggregate (every scored row, partial and reply builds included)\n\n");
         table(md, rows.stream().filter(Row::scored).toList());
         md.append("\n## Splits (calibration rows)\n\n");
-        md.append("| rows | n | median ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |\n");
-        md.append("|---|---|---|---|---|---|---|\n");
+        md.append("| rows | n | median ratio | plan-tree ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |\n");
+        md.append("|---|---|---|---|---|---|---|---|\n");
         line(md, "guide build has a major ID", calib.stream().filter(r -> !r.refMajor().isEmpty()).toList());
         line(md, "no major ID", calib.stream().filter(r -> r.refMajor().isEmpty()).toList());
         line(md, "guide build's regen below 0 (regen factor < 1)", calib.stream().filter(r -> r.refRegenF() < 1).toList());
@@ -309,8 +336,8 @@ class ReferenceBuildsBenchmark {
         Map<String, List<Row>> by = new TreeMap<>();
         rows.forEach(r -> by.computeIfAbsent(r.klass() + " " + (r.archetype().isEmpty() ? "(none)" : r.archetype()),
                 x -> new ArrayList<>()).add(r));
-        md.append("| archetype | n | median ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |\n");
-        md.append("|---|---|---|---|---|---|---|\n");
+        md.append("| archetype | n | median ratio | plan-tree ratio | within 10 % or above | median ref/pick DPS | median ref/pick eEHP | worst |\n");
+        md.append("|---|---|---|---|---|---|---|---|\n");
         by.forEach((a, list) -> line(md, a, list));
         line(md, "**overall**", rows);
     }
@@ -321,8 +348,9 @@ class ReferenceBuildsBenchmark {
         List<Double> dps = list.stream().filter(r -> r.pickDps() > 0).map(r -> r.refDps() / r.pickDps()).toList();
         List<Double> ehp = list.stream().filter(r -> r.pickEhp() > 0).map(r -> r.refEhp() / r.pickEhp()).toList();
         Row worst = list.stream().min(Comparator.comparingDouble(Row::ratio)).orElse(null);
-        md.append(String.format(Locale.ROOT, "| %s | %d | %.3f | %.0f %% | %.2f | %.2f | %s |%n", name, list.size(),
-                ReferenceBuilds.median(ratios), list.isEmpty() ? 0 : 100.0 * ok / list.size(), ReferenceBuilds.median(dps),
+        List<Double> plan = list.stream().map(Row::planRatio).filter(v -> !Double.isNaN(v)).toList();
+        md.append(String.format(Locale.ROOT, "| %s | %d | %.3f | %.3f | %.0f %% | %.2f | %.2f | %s |%n", name, list.size(),
+                ReferenceBuilds.median(ratios), ReferenceBuilds.median(plan), list.isEmpty() ? 0 : 100.0 * ok / list.size(), ReferenceBuilds.median(dps),
                 ReferenceBuilds.median(ehp), worst == null ? "" : "#" + worst.id() + " " + worst.mythic() + " " + String.format(
                         Locale.ROOT, "%.3f", worst.ratio())));
     }

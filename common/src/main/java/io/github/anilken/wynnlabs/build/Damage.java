@@ -543,8 +543,10 @@ public final class Damage {
         // manaRegenLean; both 1 without it, the same score as one log of their ratio)
         double regen = Math.log(Math.max(0.05, manaPer5 / BASE_MANA_PER_5));
         double cut = -Math.log(Math.max(0.05, 1 - costCut));
-        return Math.max(0.3, 1 + model("manaWeight", 0.3)
-                * (Tuning.weight("manaRegenLean") * regen + Tuning.weight("costCutLean") * cut));
+        // with the casts paced by the mana (SpellCasts) the spells' damage already follows it: the
+        // mana part keeps only a share of its weight (rules.model.castManaWeight, half)
+        double w = model("manaWeight", 0.3) * (model("castModel", 0) > 0 ? model("castManaWeight", 0.5) : 1);
+        return Math.max(0.3, 1 + w * (Tuning.weight("manaRegenLean") * regen + Tuning.weight("costCutLean") * cut));
     }
 
     /** A spell slot's name in the cost IDs ("1st" … "4th"). */
@@ -572,6 +574,14 @@ public final class Damage {
         double[] mainEl = parts == null ? null : new double[ELEMENTS.length];
         double[] summonEl = parts == null ? null : new double[ELEMENTS.length];
         Map<String, Double> s = totals(pieces, weapon);
+        // the major IDs worn, one each however many pieces carry it (MajorIds), with what they need of the tree
+        MajorIds.Active major = MajorIds.of(s, TreeModel.nodes());
+        if (!major.isEmpty()) {
+            for (MajorIds.Summon m : major.summons()) {
+                // a summon's main attack bonus each (Flain Remnants), out the share of a fight summons are
+                s.merge("mainAttackDamage", m.mainAttack() * m.count() * Sources.fightShare(true), Double::sum);
+            }
+        }
         double health = 0;
         for (Piece p : pieces) {
             if (p != null) {
@@ -599,85 +609,32 @@ public final class Damage {
         double multiplier = 1 + str / 100.0 + dex / 100.0 * (1 + stat(s, "criticalDamageBonus") / 100.0);
         double intReduction = 0.5 * intel / curve(150);      // half off at 150 points
 
-        // Spells: the cast's conversion through the damage pipeline (the tree's cuts, waves and
-        // one cast per Totem are in the conversion, TreeModel); nothing measured in game scales it
-        double dmgSum = 0;
-        double shareSum = 0;
-        // lasting spells (Totem: a hit every 0.4 s for 30 s) deal alongside the casts, as summons do
-        double lastingDps = 0;
-        // the mana part: how much of each spell's cost the stats take off, by the spell's share
-        double cutSum = 0;
-        double cutShare = 0;
-        double[] lastingEl = parts == null ? null : new double[ELEMENTS.length];
-        JsonElement spellsEl = Rules.get().has("model") ? Rules.get().getAsJsonObject("model").get("spells") : null;
-        // with the tree's cost changes and the spells not bought yet at this level (TreeModel)
-        JsonArray spells = TreeModel.spells(spellsEl != null && spellsEl.isJsonArray() ? spellsEl.getAsJsonArray() : new JsonArray());
-        for (JsonElement e : spells) {
-            JsonObject sp = e.getAsJsonObject();
-            double share = sp.has("share") ? sp.get("share").getAsDouble() : 1;
-            if (share <= 0) {
-                continue;
-            }
-            JsonObject conv = sp.getAsJsonObject("conv");
-            double[] c = new double[ELEMENTS.length];
-            for (int i = 0; i < ELEMENTS.length; i++) {
-                c[i] = conv.has(ELEMENTS[i]) ? conv.get(ELEMENTS[i]).getAsDouble() : 0;
-            }
-            double[] el = spellEl == null ? null : new double[ELEMENTS.length];
-            double dmg = hit(s, split(c, shares), baseDps, skillBonus, true, el,
-                    sp.has("hits") ? sp.get("hits").getAsDouble() : 1);
-            int idx = sp.has("index") ? sp.get("index").getAsInt() : 0;
-            String nth = nth(idx);
-            double baseCost = sp.has("cost") ? sp.get("cost").getAsDouble() : 30;
-            double cost = spellCost(s, baseCost, idx, intReduction);
-            // what the build takes off this spell's cost (below 0 when an ID raises it), counted
-            // by its share: a cut on a spell you do not cast counts nothing
-            cutSum += share * (1 - cost / Math.max(1, baseCost));
-            cutShare += share;
-            double duration = sp.has("duration") ? sp.get("duration").getAsDouble() : 0;
-            boolean lasting = ClassProfiles.lasting(sp) && duration > 0;
-            if (parts != null) {
-                // shown as the game takes it, whole mana rounded down: a Totem at 15 with 39
-                // Intelligence comes to 11.97 and costs 11. The mana math keeps the decimals, as
-                // WynnBuilder's does (a score in steps would stall the road map's search)
-                parts.spells().add(new SpellPart(sp.has("name") ? sp.get("name").getAsString() : nth, idx, share,
-                        dmg * multiplier, lasting, duration, Math.max(1, Math.floor(cost + 1e-9))));
-            }
-            if (lasting) {
-                lastingDps += dmg * multiplier / duration;
-                if (el != null) {
-                    for (int i = 0; i < el.length; i++) {
-                        lastingEl[i] += el[i] * multiplier / duration;
-                    }
-                }
-                continue;
-            }
-            if (el != null) {
-                for (int i = 0; i < el.length; i++) {
-                    spellEl[i] += share * el[i] * multiplier;
-                }
-            }
-            dmgSum += share * dmg * multiplier;
-            shareSum += share;
-        }
-        double dmgPerCast = shareSum > 0 ? dmgSum / shareSum : 0;
-        // Spells are cast at a fixed rate (rules.model.maxCastsPer5s): no mana is simulated, so
-        // the spell damage does not hang on a guess of how a fight goes. Mana is its own part of
-        // the score below, from the build's stats alone
-        double casts = Math.max(0, model("maxCastsPer5s", 4));
         // mana back every 5 s: the base and the tree's nodes, Mana Regen (per 5 s) and Mana Steal
         // counted whole, as WynnBuilder does (its value comes back every 3 s)
         double manaPer5 = baseManaPer5() + stat(s, "manaRegen") + stat(s, "manaSteal") * 5.0 / 3.0;
-        double costCut = cutShare > 0 ? cutSum / cutShare : 0;
-        double spellDps = dmgPerCast * casts / 5.0;
+        // Spells (SpellCasts): each cast's conversion through the damage pipeline (the tree's cuts,
+        // waves, extras and one cast per Totem in it), cast as the mana pays for (Casting)
+        double[] lastingEl = parts == null ? null : new double[ELEMENTS.length];
+        SpellCasts.Out sc = SpellCasts.of(s, shares, baseDps, skillBonus, multiplier, intReduction, major, manaPer5,
+                manaPool(s, intel), spellEl, lastingEl, parts == null ? null : parts.spells());
+        JsonArray spells = sc.spells();
+        double dmgPerCast = sc.dmgPerCast();
+        double casts = sc.casts();
+        double costCut = sc.costCut();
+        double spellDps = sc.spellDps();
+        double lastingDps = sc.lastingDps();
+        AbilityMechanics.Sum ab = TreeModel.abilities();
 
         // Main attack: per hit times hits per second from the weapon's tier plus Attack Speed IDs
         int tier = weapon == null ? 3 : (int) Math.round(weapon.stats().getOrDefault(TIER, 3.0));
         int tierNow = Math.max(0, Math.min(6, tier + (int) Math.round(stat(s, "rawAttackSpeed"))));
         double perHitBase = baseDps / HITS[tier];
         double[] mc = split(new double[] {1, 0, 0, 0, 0, 0}, shares);
+        // the tree's own hits with each main attack (Pyrokinesis, Ophanim's orbs)
+        AbilityMechanics.addMain(ab, mc, shares, major);
         double mainHit = hit(s, mc, perHitBase, skillBonus, false, mainEl) * model("mainAttackClassMult", 1.0);
-        double mainDps = mainHit * HITS[tierNow] * multiplier;
+        double abMain = ab.mainFactor() * ab.damage();
+        double mainDps = mainHit * HITS[tierNow] * multiplier * major.main() * abMain;
 
         // Summons and areas (Puppet Master, Crimson Effigy, a trap): spell hits on their own clock,
         // no mana, each from its own conversion times its hits a second and how many (Sources);
@@ -685,15 +642,15 @@ public final class Damage {
         // numbers shown and the totals have them whole
         List<Sources.Source> summonList = parts == null ? null : new java.util.ArrayList<>();
         Sources.Summons summons = Sources.summons(TreeModel.active(), s, shares, baseDps, skillBonus, multiplier,
-                summonEl, summonList);
-        double passive = summons.scored() + lastingDps;
+                summonEl, summonList, major);
+        double passive = (summons.scored() + lastingDps) * major.passive() * ab.damage();
         if (parts != null) {
-            double perSpell = shareSum > 0 ? 1 / shareSum * casts / 5.0 : 0;
-            double perMain = model("mainAttackClassMult", 1.0) * HITS[tierNow] * multiplier;
+            // the major IDs' build-wide factors and Madness's spells, spread over the elements as the spells have them
+            double perMain = model("mainAttackClassMult", 1.0) * HITS[tierNow] * multiplier * major.main() * abMain;
             for (int i = 0; i < ELEMENTS.length; i++) {
-                parts.spell()[i] = spellEl[i] * perSpell;
+                parts.spell()[i] = spellEl[i] * sc.elScale();
                 parts.main()[i] = mainEl[i] * perMain;
-                parts.summon()[i] = summonEl[i] + lastingEl[i];
+                parts.summon()[i] = (summonEl[i] + lastingEl[i]) * major.passive() * ab.damage();
             }
         }
         // Slow weapons feel sluggish on the main attack only: spells and summons do not care
@@ -706,6 +663,7 @@ public final class Damage {
         // Staying alive: real HP (5 × level + 5), Defence and Agility as Wynncraft applies them,
         // and how much more damage the class takes
         health += model("hpBase", 5) + model("hpPerLevel", 5) * level + stat(s, "rawHealth");
+        health *= major.health();                           // Divine Right: a quarter of it
         double d = def / 100.0;
         double a = agi / 100.0;
         double ehp = Math.max(1, health) / (0.1 * a + (1 - a) * (1 - d)) / damageTaken();
