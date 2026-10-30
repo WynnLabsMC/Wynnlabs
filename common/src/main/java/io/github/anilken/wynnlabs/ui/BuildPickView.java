@@ -37,6 +37,7 @@ final class BuildPickView {
     private List<ItemData> catalogue = List.of();
     private List<ItemData> shown = List.of();
     private String shownFor = "\u0000";
+    /** The level and class the catalogue was built for (level * 64 + class). */
     private int catalogueLevel = -1;
     final ScrollBar listBar = new ScrollBar();
 
@@ -84,12 +85,14 @@ final class BuildPickView {
     private List<ItemData> catalogue() {
         GameState state = GameState.current();
         int level = state.level();
-        if (level != catalogueLevel || catalogue.isEmpty()) {
-            Klass cls = state.classType();
+        Klass cls = state.classType();
+        // the class too: a Shaman and a Mage of the same level must not share the list
+        int built = level * 64 + (cls == null ? 63 : cls.ordinal());
+        if (built != catalogueLevel || catalogue.isEmpty()) {
             List<ItemData> all = new ArrayList<>(state.allGear().filter(i -> Locks.usable(i, cls)).toList());
             all.sort((a, b) -> a.level() != b.level() ? Integer.compare(b.level(), a.level()) : a.name().compareTo(b.name()));
             catalogue = all;
-            catalogueLevel = level;
+            catalogueLevel = built;
             shownFor = "\u0000";
         }
         String key = type + "|" + range + "|" + win.search.getValue().toLowerCase(Locale.ROOT).strip();
