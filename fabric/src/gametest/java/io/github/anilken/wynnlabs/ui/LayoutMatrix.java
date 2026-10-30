@@ -86,7 +86,8 @@ public class LayoutMatrix implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !only.equals("layout") && !only.equals("fill") && !only.equals("build") && !only.equals("wbexport")) {
+        if (only != null && !only.equals("layout") && !only.equals("fill") && !only.equals("build") && !only.equals("wbexport")
+                && !only.equals("egalts")) {
             return;
         }
         Path out = Path.of(System.getProperty("wynnlabs.preview", "preview"));
@@ -178,6 +179,12 @@ public class LayoutMatrix implements FabricClientGameTest {
                 ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
                 ctx.waitTicks(5);
                 homeStates(ctx, PreviewSize.WIDTH + "x" + PreviewSize.HEIGHT + "@3", gui(ctx), report, out.resolve("build"));
+                return;
+            }
+            if ("egalts".equals(only)) {
+                // -PpreviewOnly=egalts: an endgame milestone's other builds on Home, large and small
+                ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
+                altShots(ctx, out.resolve("egalts"));
                 return;
             }
             if ("wbexport".equals(only)) {
@@ -879,6 +886,71 @@ public class LayoutMatrix implements FabricClientGameTest {
             Plans.clearAll();
             Locks.use(null);
             Locks.useTuning(null);
+        });
+    }
+
+    /**
+     * The "Build 1/N" chip on the last milestone that has other builds: closed, open, the second
+     * card picked (open and closed) and that card's ↗ copied, at 3440x1440 and 1380x960.
+     */
+    private static void altShots(ClientGameTestContext ctx, Path dir) throws Exception {
+        Files.createDirectories(dir);
+        int at = ctx.computeOnClient(mc -> {
+            RoadmapScreen rs = (RoadmapScreen) mc.screen;
+            Plans.clearAll();
+            int found = -1;
+            for (int i : rs.home.shownSteps()) {
+                if (rs.steps.get(i).alternatives().size() >= 2) {
+                    found = i;
+                }
+            }
+            for (int i = 0; i < rs.steps.size(); i++) {
+                Roadmap.Step s = rs.steps.get(i);
+                for (Roadmap.Alternative a : s.alternatives()) {
+                    System.out.println("[WynnLabs] preview egalts Lv " + s.level() + ": " + a.label() + " gap " + a.gapPct()
+                            + " own " + a.owned() + "/" + a.pieces() + " price " + a.price() + " tome " + (a.tome() == null ? "-" : a.tome().text())
+                            + (a.needsTome() ? " needsTome" : "") + (a.noTome() ? " noTome" : ""));
+                }
+            }
+            return found;
+        });
+        System.out.println("[WynnLabs] preview egalts milestone " + at);
+        if (at < 0) {
+            return;
+        }
+        for (int[] size : new int[][] {{3440, 1440}, {1380, 960}}) {
+            ctx.getInput().resizeWindow(size[0], size[1]);
+            ctx.runOnClient(mc -> {
+                mc.options.guiScale().set(3);
+                mc.resizeDisplay();
+            });
+            ctx.waitTicks(5);
+            String n = size[0] + "x" + size[1];
+            ctx.runOnClient(mc -> {
+                RoadmapScreen rs = (RoadmapScreen) mc.screen;
+                BuildWindow.INSTANCE.close();
+                HomeLevels.planPills.pickLevel();
+                rs.selected = at;
+                rs.home.alts().close();
+                rs.home.alts().pick(0);
+                UiExport.preview(null, true);
+            });
+            wbShot(ctx, dir, n + "-closed");
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).home.alts().openMenu());
+            wbShot(ctx, dir, n + "-open");
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).home.alts().pick(1));
+            wbShot(ctx, dir, n + "-open-picked");
+            ctx.runOnClient(mc -> UiExport.preview(HomeAlts.CARD + 1, true));
+            wbShot(ctx, dir, n + "-open-copied");
+            ctx.runOnClient(mc -> {
+                UiExport.preview(null, true);
+                ((RoadmapScreen) mc.screen).home.alts().close();
+            });
+            wbShot(ctx, dir, n + "-picked");
+        }
+        ctx.runOnClient(mc -> {
+            UiExport.preview(null, true);
+            ((RoadmapScreen) mc.screen).home.alts().pick(0);
         });
     }
 

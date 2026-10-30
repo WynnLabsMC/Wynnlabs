@@ -88,7 +88,7 @@ final class UiExport {
         int[] box = {x, y, w, Ui.CHIP_H};
         if (HOME.equals(where)) {
             homeBox = box;
-        } else {
+        } else if (WINDOW.equals(where)) {
             windowBox = box;
         }
         boolean hover = enabled && mx >= x && mx < x + w && my >= y && my < y + Ui.CHIP_H;

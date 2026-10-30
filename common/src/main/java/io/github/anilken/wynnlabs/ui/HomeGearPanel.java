@@ -92,7 +92,9 @@ final class HomeGearPanel extends HomePart {
         // "My builds" and "Choose items" as icons with their counts, left of the level buttons
         int pickW = countW(in.chosen());
         int savedW = countW(in.saved());
-        int pills = host.levelPills(g, y + 3, right, titleRoom - pickW - savedW - 8);
+        // the milestone's other builds and the ↗ for the set shown, right of the level pills
+        int alts = in.plan() == null ? host.alternatives(g, y, right, compact, mx, my) : 0;
+        int pills = host.levelPills(g, y + 3, right - alts, titleRoom - alts - pickW - savedW - 8);
         int bx = pills - Theme.SP_3 - pickW;
         if (bx >= tx) {
             pickButton(g, host, bx, y, pickW, in, mx, my);

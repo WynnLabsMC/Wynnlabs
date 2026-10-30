@@ -141,6 +141,11 @@ final class HomeHosts {
         }
 
         @Override
+        public int alternatives(GuiGraphics g, int y, int right, boolean compact, int mx, int my) {
+            return page.alts().chip(g, UiFont.get(), this, y, right, compact, mx, my);
+        }
+
+        @Override
         public int refresh(GuiGraphics g, int x, int y, int mx, int my, String staleTip) {
             if (Roadmap.isBuilding()) {
                 if (menu.steps.isEmpty()) {

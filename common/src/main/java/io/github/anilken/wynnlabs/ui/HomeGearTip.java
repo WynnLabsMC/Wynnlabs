@@ -25,7 +25,7 @@ final class HomeGearTip {
      * wear now in that slot (Roadmap.shownGain); its hover, reasons and panel say the same.
      */
     static double rowGain(RoadmapScreen menu, Roadmap.Gear u) {
-        return Roadmap.shownGain(menu.steps, menu.selected, u);
+        return Roadmap.shownGain(menu.home.viewSteps(), menu.selected, u);
     }
 
     /** The full story of an upgrade, for its hover; {@code emptyNow}: nothing is worn in its slot. */
@@ -62,7 +62,7 @@ final class HomeGearTip {
                     : L.t("wynnlabs.home.tip_seen")).withStyle(doubt != null ? ChatFormatting.RED : ChatFormatting.DARK_GRAY));
         }
         double vsWorn = rowGain(menu, u);
-        List<String> why = Roadmap.shownWhy(menu.steps, menu.selected, u);
+        List<String> why = Roadmap.shownWhy(menu.home.viewSteps(), menu.selected, u);
         if (Double.isNaN(vsWorn)) {
             // no per cent: a target, a slot you have nothing in, or a piece whose reasons say it needs its set
             String key = Roadmap.isTarget(u) ? "wynnlabs.home.tip_target" : emptyNow ? "wynnlabs.home.tip_fills"

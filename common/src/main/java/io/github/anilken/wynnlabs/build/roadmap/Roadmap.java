@@ -111,8 +111,8 @@ public final class Roadmap {
 
     /**
      * One card of a milestone's "Build 1 / N" choice ({@link Step#alternatives}). {@code label}:
-     * the weapon and the build's main element(s), "Halcyon · Water/Air" (with "· No tome needed" on
-     * {@code noTome}); {@code gapPct}: how far its score is below the pick's, the score the search
+     * the weapon and the build's main element(s), "Halcyon · Water/Air" (the menu tags
+     * {@code noTome} itself); {@code gapPct}: how far its score is below the pick's, the score the search
      * ranks sets by (0 on the pick; per cent, ≤ 0 as a rule); {@code spellDps}, {@code ehp} (the
      * elemental effective health) and {@code healPerSecond} (0 unless the goal heals) of its set;
      * {@code owned} of its {@code pieces} you have (worn, carried, banked), and {@code price} what

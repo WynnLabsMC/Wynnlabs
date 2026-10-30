@@ -93,6 +93,14 @@ final class HomeActions {
             menu.rebuildMap();                     // rebuilt in the background, picked up when ready
         } else if (c.startsWith("#qwbexport:")) {
             UiExport.copy(UiExport.HOME, io.github.anilken.wynnlabs.build.WynnBuilderExport.worn());
+        } else if (c.startsWith("#qgearwb:")) {
+            page.alts().exportShown();             // the Gear header's ↗: the set shown at the milestone
+        } else if (c.startsWith("#qaltwb:")) {
+            page.alts().export(Integer.parseInt(c.substring(8)));
+        } else if (c.startsWith("#qaltpick:")) {
+            page.alts().pick(Integer.parseInt(c.substring(10)));     // the menu stays open on the card
+        } else if (c.startsWith("#qalt:")) {
+            page.alts().openMenu();
         } else if (c.startsWith("#qarch:")) {
             menu.archPicker.openAt(c);             // the list opens; a row picks the archetype
         } else if (c.startsWith("#qnear:")) {

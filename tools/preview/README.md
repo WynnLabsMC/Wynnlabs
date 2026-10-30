@@ -32,6 +32,9 @@ tree scrolled to its last page. A run takes about half a minute and opens a wind
 - `-PpreviewOnly=wbexport`: "Export to WynnBuilder" on Home (at rest, hovered, copied, failed) and in the build window
   (Choose items, Results with its tooltip and copied state, Saved faded, Edit), at 3440x1440 and 1380x960 in one run;
   shots in `preview/wbexport/`.
+- `-PpreviewOnly=egalts`: an endgame milestone's other builds on Home: the "Build 1/N" chip closed, its menu open,
+  the second card picked (menu open and closed) and that card's export copied, at 3440x1440 and 1380x960 in one run;
+  shots in `preview/egalts/`.
 - `-PpreviewOnly=search`: only that tab: the catalogue before typing, an item, its marks list, a tracked mob and
   the tracked list, a place, the Stats category and a stat, nothing found ("did you mean") and the filter menu.
   With `-PpreviewSize=1380x960` the card shows in its drawer.

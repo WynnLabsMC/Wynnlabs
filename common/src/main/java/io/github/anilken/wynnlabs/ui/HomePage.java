@@ -104,6 +104,13 @@ public final class HomePage extends MenuTab {
         public boolean key(int key) {
             return popupKeyImpl(key);
         }
+
+        @Override
+        public void scrolled(double x, double y, double v) {
+            if (alts != null && alts.open()) {
+                alts.wheel(v);
+            }
+        }
     };
 
     @Override
@@ -112,7 +119,7 @@ public final class HomePage extends MenuTab {
     }
 
     private boolean popupOpenImpl() {
-        return goalOpen || stats != null && stats.picker.open();
+        return goalOpen || stats != null && stats.picker.open() || alts != null && alts.open();
     }
 
     private void drawPopupImpl(GuiGraphics g, int mx, int my, List<int[]> boxes) {
@@ -121,6 +128,10 @@ public final class HomePage extends MenuTab {
             boxes.add(b);
         }
         b = stats != null ? stats.picker.drawList(g, homeHost, mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
+        b = alts != null ? alts.drawList(g, homeHost, mx, my) : null;
         if (b != null) {
             boxes.add(b);
         }
@@ -134,6 +145,9 @@ public final class HomePage extends MenuTab {
         if (stats != null) {
             stats.picker.close();
         }
+        if (alts != null) {
+            alts.close();
+        }
     }
 
     void pickGoal(int i) {
@@ -141,6 +155,9 @@ public final class HomePage extends MenuTab {
     }
 
     private boolean popupClickedImpl(MouseButtonEvent event) {
+        if (alts != null && alts.open()) {
+            return alts.press(event.x(), event.y());     // its scroll bar; a card's own click picks it
+        }
         if (stats != null && stats.picker.open()) {
             stats.picker.close();               // a row's own click area still picks
             return false;
@@ -276,6 +293,20 @@ public final class HomePage extends MenuTab {
     private HomePlanView planView;
     /** The character card on top, made on first use (a field without an initializer: safe to hot swap in). */
     private HomeHero hero;
+    /** The endgame milestones' other builds, made on first use (no initializer: safe to hot swap in). */
+    private HomeAlts alts;
+
+    HomeAlts alts() {
+        if (alts == null) {
+            alts = new HomeAlts(menu);
+        }
+        return alts;
+    }
+
+    /** The road map as the Home shows it: the selected milestone as the build picked in its menu. */
+    List<Roadmap.Step> viewSteps() {
+        return alts().view(menu.steps, menu.selected);
+    }
 
     private HomeHero hero() {
         if (hero == null) {
@@ -294,13 +325,14 @@ public final class HomePage extends MenuTab {
     /** Upgrades reached by the selected milestone, by slot type name ("RING", "RELIK", ...). */
     private Map<String, Roadmap.Gear> upgrades() {
         Map<String, Roadmap.Gear> out = new LinkedHashMap<>();
-        for (int i = 0; i <= menu.selected && i < menu.steps.size(); i++) {
-            for (Roadmap.Gear g : menu.steps.get(i).gear()) {
+        List<Roadmap.Step> steps = viewSteps();
+        for (int i = 0; i <= menu.selected && i < steps.size(); i++) {
+            for (Roadmap.Gear g : steps.get(i).gear()) {
                 out.put(g.slot(), g);
             }
         }
-        if (!menu.steps.isEmpty()) {
-            Roadmap.Step at = menu.steps.get(Math.min(menu.selected, menu.steps.size() - 1));
+        if (!steps.isEmpty()) {
+            Roadmap.Step at = steps.get(Math.min(menu.selected, steps.size() - 1));
             Roadmap.keepWorn(out, at);
         }
         // what the best build you own puts on from the bag, where the road map has no pick: the
@@ -394,7 +426,7 @@ public final class HomePage extends MenuTab {
         // a level pill other than "now": the stats compare with the road map's build for that level
         Plans.Build current = Plans.current();
         boolean levelPill = !HomeLevels.planPills.planSelected(current) && menu.selected > 0 && menu.selected < menu.steps.size();
-        stats().source.level(levelPill ? menu.steps.get(menu.selected) : null);
+        stats().source.level(levelPill ? viewSteps().get(menu.selected) : null);
         boolean planPill = HomeLevels.planPills.planSelected(current);
         stats().source.planPill(planPill);
         stats().source.pill(planPill ? "plan" : "at" + menu.selected);
@@ -414,7 +446,8 @@ public final class HomePage extends MenuTab {
         // the build score now, and with the selected milestone's whole set (NaN when it has none)
         Build.Plan plan = Build.plan();
         double now = plan == null || plan.current() == null ? Double.NaN : plan.current().objective();
-        Roadmap.Step s = menu.steps.isEmpty() ? null : menu.steps.get(Math.max(0, Math.min(menu.selected, menu.steps.size() - 1)));
+        List<Roadmap.Step> steps = viewSteps();
+        Roadmap.Step s = steps.isEmpty() ? null : steps.get(Math.max(0, Math.min(menu.selected, steps.size() - 1)));
         double after = s == null || s.set() == null ? Double.NaN : s.set().result().objective();
         Plans.Build current = Plans.current();
         int chosen = Locks.names().size();
@@ -466,11 +499,17 @@ public final class HomePage extends MenuTab {
             detailScroll = detailBar.offset();
             return true;
         }
+        if (alts != null && alts.drag(y)) {
+            return true;
+        }
         return stats != null && stats.barDragged(y);
     }
 
     void statsReleased() {
         detailBar.mouseReleased();
+        if (alts != null) {
+            alts.release();
+        }
         if (stats != null) {
             stats.barReleased();
         }

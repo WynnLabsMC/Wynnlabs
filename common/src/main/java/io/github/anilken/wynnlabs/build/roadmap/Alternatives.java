@@ -9,7 +9,6 @@ import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Gear;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Option;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Scored;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Step;
-import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.ShoppingSources;
@@ -297,7 +296,7 @@ final class Alternatives {
         int[] prof = profile(c, m);
         String weapon = weaponName(c.set);
         String label = (weapon.isEmpty() ? "?" : weapon) + " · " + ELEMENT_NAMES[prof[0]]
-                + (prof[1] > 0 ? "/" + ELEMENT_NAMES[prof[1]] : "") + (c.noTome ? " · " + L.t("wynnlabs.road.alt_no_tome") : "");
+                + (prof[1] > 0 ? "/" + ELEMENT_NAMES[prof[1]] : "");
         double gap = st == null || pickJ <= 0 ? 0 : (c.j / pickJ - 1) * 100;
         int owned = 0;
         int pieces = 0;

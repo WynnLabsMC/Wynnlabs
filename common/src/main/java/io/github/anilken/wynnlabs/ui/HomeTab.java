@@ -118,6 +118,14 @@ public final class HomeTab {
 
         /** The small refresh button (or its bar while the map is rebuilt) at x; the width it took. */
         int refresh(GuiGraphics g, int x, int y, int mx, int my, String staleTip);
+
+        /**
+         * The selected milestone's "Build 1/N" chip and the ↗ that exports the set shown, ending at
+         * {@code right} on the title row at {@code y}; the width they took with the gap after them (0: none).
+         */
+        default int alternatives(GuiGraphics g, int y, int right, boolean compact, int mx, int my) {
+            return 0;
+        }
     }
 
     /** The items you chose: their frames, pills and the stand's part in the archetype's purple. */
