@@ -493,6 +493,11 @@ public final class TreeModel {
         final Map<String, TreeBonuses.Bonus> bonuses;
         /** What else the text says, for the breakdown source by source ({@link Sources#read}). */
         final SourceText.Reading text;
+        /**
+         * The tree you have leans to another archetype than the one chosen ({@link #respecs}):
+         * {@code plan} is the chosen archetype's whole plan, and the levels ahead take it alone.
+         */
+        final boolean respec;
 
         Run(List<Read> reads, List<String> spellNames, List<String> unlocked, List<TreePlanner.Step> plan, int level,
                 String archetype, double earlyMainAttack, double passiveCap) {
@@ -503,6 +508,13 @@ public final class TreeModel {
         Run(List<Read> reads, List<String> spellNames, List<String> unlocked, List<TreePlanner.Step> plan, int level,
                 String archetype, double earlyMainAttack, double passiveCap, Map<String, TreeBonuses.Bonus> bonuses,
                 SourceText.Reading text) {
+            this(reads, spellNames, unlocked, plan, level, archetype, earlyMainAttack, passiveCap, bonuses, text, false);
+        }
+
+        Run(List<Read> reads, List<String> spellNames, List<String> unlocked, List<TreePlanner.Step> plan, int level,
+                String archetype, double earlyMainAttack, double passiveCap, Map<String, TreeBonuses.Bonus> bonuses,
+                SourceText.Reading text, boolean respec) {
+            this.respec = respec;
             this.text = text;
             this.bonuses = bonuses;
             this.reads = reads;
@@ -515,11 +527,17 @@ public final class TreeModel {
             this.passiveCap = passiveCap;
         }
 
-        /** The nodes you have at {@code m}: yours at your level, then the plan's steps up to it. */
+        /**
+         * The nodes you have at {@code m}: yours at your level, then the plan's steps up to it; after
+         * a respec ({@link #respec}) the levels ahead have the chosen archetype's plan alone.
+         */
         List<String> taken(int m) {
             List<String> out = new ArrayList<>(unlocked);
             if (m <= level && !unlocked.isEmpty()) {
                 return out;
+            }
+            if (respec) {
+                out.clear();
             }
             for (TreePlanner.Step s : plan) {
                 if (s.level() <= m && !out.contains(s.name())) {
@@ -550,6 +568,29 @@ public final class TreeModel {
     /** The spells rules.model.spells names (the class profile's), or the tree's spell nodes when it has none. */
     static List<String> spellNames(List<AbilityNode> tree, String cls) {
         return TreeReading.spellNames(tree, cls);
+    }
+
+    /**
+     * Whether the tree you have leans to another archetype than {@code chosen}: more of your nodes
+     * are in the archetype you lean to ({@link TreePlanner#mostUnlocked}) than in the chosen one (or
+     * the two combined). Then the plan is a respec, as the tree screen draws it (the whole plan
+     * from the first node), and the levels ahead are scored with it: an Arcanist's nodes left a
+     * Light Bender healer's road map without Orphion's Pulse, Sunflare or Larger Heal.
+     */
+    static boolean respecs(String chosen) {
+        ArchetypeMix mix = ArchetypeMix.parse(chosen);
+        if (mix.auto()) {
+            return false;
+        }
+        String lean = TreePlanner.mostUnlocked();
+        if (lean.isEmpty() || mix.has(lean)) {
+            return false;
+        }
+        int inChosen = 0;
+        for (String a : mix.members()) {
+            inChosen += TreePlanner.unlockedIn(a);
+        }
+        return TreePlanner.unlockedIn(lean) > inChosen;
     }
 
     /** The run for the game as it is, following {@link #archetype}; null when the tree cannot be read. */
@@ -584,7 +625,9 @@ public final class TreeModel {
                 return null;
             }
             // nothing read as unlocked (the tree menu not opened yet): the plan from the first node
-            List<TreePlanner.Step> plan = have.isEmpty() ? TreePlanner.wholePlan(arch) : TreePlanner.plan(arch, have);
+            // the tree leaning to another archetype than the one chosen is respecced into its plan
+            boolean respec = !have.isEmpty() && respecs(arch);
+            List<TreePlanner.Step> plan = have.isEmpty() || respec ? TreePlanner.wholePlan(arch) : TreePlanner.plan(arch, have);
             double archWeight = ClassProfiles.mainAttackWeight(cls, arch, tree);
             double early = arch.isEmpty() || archWeight <= 0 ? 1 : ClassProfiles.mainAttackWeight(cls, "", tree) / archWeight;
             List<Read> reads = read(tree, cls, spells);
@@ -599,7 +642,7 @@ public final class TreeModel {
                 bonuses = TreeBonuses.read(tree, cls, spells, summons);
             }
             Run r = new Run(reads, spells, have, plan, gs.level(), arch, early, cap, bonuses,
-                    SourceText.read(tree, cls, spells));
+                    SourceText.read(tree, cls, spells), respec);
             lastRun = new Object[] {key, r};
             return r;
         } catch (Throwable t) {

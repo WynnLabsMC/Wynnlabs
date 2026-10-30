@@ -527,6 +527,12 @@ public final class TreePlanner {
         JsonObject change = new JsonObject();
         change.add("tree", tree);
         Rules.update(change);
+        if (Rules.get().has("goalPreset")) {
+            // the goal's label names the archetype ("healer build, Light Bender"): it follows the choice
+            JsonObject label = new JsonObject();
+            label.addProperty("goal", Setup.goalLabel(Setup.goal()));
+            Rules.update(label);
+        }
         applied = "";
         if (!next.isEmpty()) {
             ClassProfiles.apply(next, false);   // elements, powders, summons follow the archetype

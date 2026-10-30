@@ -117,11 +117,20 @@ public final class Setup {
         model.add("byHand", byHandWith("goalXp", false));     // the XP switch starts at the goal's default
         JsonObject change = new JsonObject();
         change.addProperty("goalPreset", preset);
-        change.addProperty("goal", preset.toLowerCase(java.util.Locale.ROOT) + " build"
-                + (TreePlanner.chosen().isEmpty() ? "" : ", " + TreePlanner.chosenMix().label()));
+        change.addProperty("goal", goalLabel(preset));
         change.addProperty("questLevelMargin", questMargin);
         change.add("model", model);
         Rules.update(change);
+    }
+
+    /**
+     * rules.goal as /status and the characters list show it: the goal and the archetype chosen
+     * ("healer build, Light Bender"). Written again when the archetype changes
+     * ({@link TreePlanner#choose}), or it kept the archetype the goal was set with.
+     */
+    static String goalLabel(String preset) {
+        return preset.toLowerCase(java.util.Locale.ROOT) + " build"
+                + (TreePlanner.chosen().isEmpty() ? "" : ", " + TreePlanner.chosenMix().label());
     }
 
     /** Whether the score counts XP and XP bonus (rules.model.goalXp above 0): the home's XP switch. */
@@ -189,9 +198,10 @@ public final class Setup {
      * health for the goals that fight for damage (ehpSoftCap, Damage.softCap); 10 lets the Damage
      * goal count XP a little ({@link #DAMAGE_XP}) while you level (its 0 becomes that, unless the
      * home's XP switch turned it off by hand); 11 gives the Healer goal its damage weight and the
-     * Tank goal its health soft cap (damageWeight, ehpSoftCap).
+     * Tank goal its health soft cap (damageWeight, ehpSoftCap); 12 has the Healer goal count XP as
+     * the Damage goal does (goalXp, xpLog: a little, with diminishing returns).
      */
-    static final int SURVIVAL_MODEL = 11;
+    static final int SURVIVAL_MODEL = 12;
 
     /**
      * The Damage goal's XP factor: modest and with diminishing returns (xpLog), so leveling picks
@@ -223,8 +233,10 @@ public final class Setup {
             // tree's heals × Healing Efficiency × the casts the mana pays for, up to what a party
             // takes in: Damage.healScored), then survival as a log alone: its own heals keep it up,
             // so health past the floor is no tank's power. Damage counts at 0.4: a healer still
-            // fights (at 0.2 the pick was a 760 DPS set that out-healed real Halcyon healers 2 ×)
-            case "HEALER" -> new double[] {0.5, 0.3, 0.6, 1.0, 0.4, 0, 1, 1, 1, 0, 0, 1.3, 0, 0};
+            // fights (at 0.2 the pick was a 760 DPS set that out-healed real Halcyon healers 2 ×).
+            // XP as the Damage goal counts it (DAMAGE_XP, diminishing): counted in a straight line
+            // at 1, +126 % XP doubled the score and a Lv 120 healer wore XP gear over Halcyon
+            case "HEALER" -> new double[] {0.5, 0.3, 0.6, 1.0, 0.4, 0, DAMAGE_XP, 1, 1, 0, 0, 1.3, 1, 0};
             // one big target: the hit per cast, walk speed and XP matter less
             case "BOSS" -> new double[] {0.3, 0.2, 0.3, 0, 1.0, 0.3, 0.3, 0.5, 0.6, 1.2, 0, 1.15, 1, 2};
             // many weak targets: run from pack to pack and keep casting
@@ -332,6 +344,14 @@ public final class Setup {
         // 11: a healer still fights (damage 0.4) and a tank's health levels off past 2.5 × its floor
         if (from < 11 && (g.equals("HEALER") || g.equals("TANK"))) {
             for (String k : new String[] {"damageWeight", "ehpSoftCap"}) {
+                if (!byHand.contains(k)) {
+                    model.addProperty(k, w[keys.indexOf(k)]);
+                }
+            }
+        }
+        // 12: a healer counts XP a little, with diminishing returns; an XP switch turned off by hand stays off
+        if (from < 12 && g.equals("HEALER")) {
+            for (String k : new String[] {"goalXp", "xpLog"}) {
                 if (!byHand.contains(k)) {
                     model.addProperty(k, w[keys.indexOf(k)]);
                 }
