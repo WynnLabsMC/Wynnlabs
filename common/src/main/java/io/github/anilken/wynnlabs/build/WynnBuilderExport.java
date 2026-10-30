@@ -209,6 +209,33 @@ public final class WynnBuilderExport {
         return link(newest(pieces, state.tomes(), skills, level), tree);
     }
 
+    /**
+     * The link for a saved build: its pieces looked up by name (one the item data does not know is
+     * left out), the skill points it was saved with (null: left to WynnBuilder), at its level
+     * (yours when it has none), as {@link #milestone} writes a set. Null for no build.
+     */
+    public static String saved(Plans.Build b) {
+        if (b == null) {
+            return null;
+        }
+        GameState state = GameState.current();
+        java.util.Set<String> want = new java.util.HashSet<>(b.items().values());
+        Map<String, ItemData> infos = new HashMap<>();
+        state.allGear().filter(i -> want.contains(i.name())).forEach(i -> infos.putIfAbsent(i.name(), i));
+        Map<String, Damage.Piece> set = new HashMap<>();
+        b.items().forEach((slot, name) -> {
+            ItemData info = infos.get(name);
+            if (info != null) {
+                set.put(slot, Damage.piece(info));
+            }
+        });
+        Build.Eval eval = null;
+        if (b.points() != null && b.points().size() == SkillKind.values().length) {
+            eval = new Build.Eval(b.points().stream().mapToInt(Integer::intValue).toArray(), null);
+        }
+        return milestone(set, eval, b.level() > 0 ? b.level() : state.level());
+    }
+
     /** A piece's own powders and those the road map adds ({@link Pieces#addedPowders}, {@link Pieces#assumedCount}). */
     private static String judgedPowders(Damage.Piece p, GameState state) {
         if (p.stack() != null && !p.stack().isEmpty()) {

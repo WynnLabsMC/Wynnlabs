@@ -178,6 +178,7 @@ final class BuildActions {
                 win.search.setFocused(false);
                 win.imports().read(win.host());
             }
+            case "wbExport" -> UiExport.copy(UiExport.WINDOW, BuildFrame.exportLink(win));
             case "wbCancel" -> win.imports().shown = null;
             case "wbPlan", "pickPlan" -> {
                 // the items as the plan even when they cannot be worn yet: for its stats on the Home

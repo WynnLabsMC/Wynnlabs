@@ -81,6 +81,7 @@ final class HomeHero extends MenuPaint {
                 L.c("wynnlabs.home.archetype_click").withStyle(ChatFormatting.DARK_GRAY)), "#qarch:"));
         cx += aw + Theme.SP_3;
         Type.MUTED.draw(g, font, "Lv " + level, cx, Type.BODY.yIn(cy, Ui.CHIP_H));
+        int lvEnd = cx + Type.MUTED.width(font, "Lv " + level);
         // the build score (what you wear now) on its gauge at the card's right, filled toward the
         // road map's last milestone (its Lv 120 build); the bars compare with the next milestone
         Build.Plan plan = Build.plan();
@@ -96,6 +97,7 @@ final class HomeHero extends MenuPaint {
             targetLevel = menu.steps.get(shown.get(0)).level();
         }
         int gx = x + w - pad - GAUGE_W;
+        int exportEnd = export(g, lvEnd + Theme.SP_4, cy, gx - Theme.SP_6, !compact && !tight, mx, my);
         if (tight) {
             int iw = 3 * (Ui.CHIP_H + 2) + 2 * Theme.SP_1;
             int ix = x + w - pad - iw;
@@ -105,7 +107,7 @@ final class HomeHero extends MenuPaint {
                 String scoreShown = compact(Math.round(now.objective()));
                 int sw = Type.LEAD.width(font, scoreShown);
                 int sx = ix - Theme.SP_4 - sw;
-                if (sx > cx + Type.MUTED.width(font, "Lv " + level) + Theme.SP_4) {
+                if (sx > exportEnd + Theme.SP_4) {
                     Type.LEAD.draw(g, font, scoreShown, sx, Type.LEAD.yIn(cy, Ui.CHIP_H));
                     menu.hits.add(new MenuHit(sx, cy, sw, Ui.CHIP_H, null, scoreTip(score, now, scoreGoal, scoreFrac), null));
                 }
@@ -186,6 +188,20 @@ final class HomeHero extends MenuPaint {
         out += Theme.SP_3;
         int nw = nearest(g, x + w, out - 3, mx, my, true);
         return experience(g, x, out, w, xp, nw > 0 ? nw + Theme.SP_3 : 0);
+    }
+
+    /**
+     * "Export to WynnBuilder" for what you wear now, on the name line from {@code from}: its words
+     * ending at {@code right} when {@code roomy} and they fit, else the icon button at {@code from}.
+     * Returns the x after it.
+     */
+    private int export(GuiGraphics g, int from, int y, int right, boolean roomy, int mx, int my) {
+        int ww = UiExport.width(font(), UiExport.HOME, true);
+        boolean words = roomy && right - ww >= from;
+        int ex = words ? right - ww : from;
+        int ew = UiExport.draw(g, font(), UiExport.HOME, ex, y, words, true, mx, my);
+        menu.hits.add(new MenuHit(ex, y, ew, Ui.CHIP_H, null, UiExport.wornTip(words), "#qwbexport:"));
+        return ex + ew;
     }
 
     /** The build score's hover: the score, then "26.0k of 640k at Lv 120" and the share, or that there is no goal yet. */

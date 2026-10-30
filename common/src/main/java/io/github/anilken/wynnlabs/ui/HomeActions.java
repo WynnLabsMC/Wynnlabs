@@ -91,6 +91,8 @@ final class HomeActions {
             Rules.update(pc);
             menu.flash(L.t(on ? "wynnlabs.home.powder_off" : "wynnlabs.home.powder_on"));
             menu.rebuildMap();                     // rebuilt in the background, picked up when ready
+        } else if (c.startsWith("#qwbexport:")) {
+            UiExport.copy(UiExport.HOME, io.github.anilken.wynnlabs.build.WynnBuilderExport.worn());
         } else if (c.startsWith("#qarch:")) {
             menu.archPicker.openAt(c);             // the list opens; a row picks the archetype
         } else if (c.startsWith("#qnear:")) {

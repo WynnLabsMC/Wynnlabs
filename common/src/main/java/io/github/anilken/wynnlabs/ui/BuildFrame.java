@@ -1,7 +1,10 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.build.Plans;
+import io.github.anilken.wynnlabs.build.WynnBuilderExport;
+import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.L;
+import io.github.anilken.wynnlabs.game.GameState;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -45,16 +48,71 @@ final class BuildFrame {
         int r = x + w;
         r -= win.ui.iconBtn(g, host, r - Ui.CHIP_H - 2, y, "x", false, "close", null,
                 List.of(L.c("wynnlabs.pick.close_tip").withStyle(ChatFormatting.GRAY)), mx, my);
-        if (win.view == BuildWindow.View.PICK) {
-            String imp = L.t("wynnlabs.pick.import");
-            int room = r - Theme.SP_4 - cx;
-            int iw = win.ui.controlW("clipboard", imp, room);
-            win.ui.control(g, host, r - Theme.SP_2 - iw, y, Ui.CHIP_H, "clipboard", imp, BuildControls.WOOD, win.imports().shown != null, room,
+        // Export | Import from WynnBuilder: both with their words when both fit, else both as icons
+        r -= Theme.SP_2;
+        int room = r - Theme.SP_2 - cx;
+        boolean pickView = win.view == BuildWindow.View.PICK;
+        String imp = L.t("wynnlabs.pick.import");
+        int ew = UiExport.width(win.ui.font, UiExport.WINDOW, true);
+        int iwFull = win.ui.controlW("clipboard", imp, Integer.MAX_VALUE);
+        boolean words = ew + (pickView ? Theme.SP_2 + iwFull : 0) <= room;
+        if (pickView) {
+            int iw = words ? iwFull : BuildControls.ICON_W;
+            r -= iw;
+            win.ui.control(g, host, r, y, Ui.CHIP_H, "clipboard", imp, BuildControls.WOOD, win.imports().shown != null, iw,
                     "wbImport", null, List.of(L.c("wynnlabs.pick.import_tip").withStyle(ChatFormatting.GRAY)), mx, my);
+            r -= Theme.SP_2;
         }
+        boolean can = canExport(win);
+        int xw = UiExport.width(win.ui.font, UiExport.WINDOW, words);
+        r -= xw;
+        UiExport.draw(g, win.ui.font, UiExport.WINDOW, r, y, words, can, mx, my);
+        if (can) {
+            win.ui.btn(r, y, xw, Ui.CHIP_H, "wbExport", null);
+        }
+        List<Component> tip = new ArrayList<>();
+        if (!words) {
+            tip.add(L.c("wynnlabs.wb.export").withStyle(ChatFormatting.WHITE));
+        }
+        int s = UiExport.state(UiExport.WINDOW, System.currentTimeMillis());
+        if (s != 0 && !words) {
+            tip.add(L.c(s > 0 ? "wynnlabs.wb.copied" : "wynnlabs.wb.copy_failed").withStyle(s > 0 ? ChatFormatting.GREEN : ChatFormatting.RED));
+        }
+        tip.add(L.c(!can ? "wynnlabs.wb.export_none" : pickView ? "wynnlabs.wb.export_tip_now" : "wynnlabs.wb.export_tip_this")
+                .withStyle(ChatFormatting.GRAY));
+        host.tip(r, y, xw, Ui.CHIP_H, tip);
         int hy = y + Ui.CHIP_H + Theme.SP_2;
         Kit.hair(g, x, hy, w, 1, Theme.LINE);
         return hy + 1 + Theme.SP_4 - y;
+    }
+
+    /**
+     * Whether the open tab has a build to export: Choose items, what you wear (in a world);
+     * Results, the picked build; Edit, the build open in it. The saved list has none of its own.
+     */
+    static boolean canExport(BuildWindow win) {
+        return switch (win.view) {
+            case PICK -> GameState.current().inGame();
+            case RESULTS -> win.result != null && !win.result.builds().isEmpty();
+            case EDIT -> win.editId != null && Plans.byId(win.editId) != null;
+            case SAVED -> false;
+        };
+    }
+
+    /** The open tab's WynnBuilder link (see {@link #canExport}), null when there is none. */
+    static String exportLink(BuildWindow win) {
+        if (!canExport(win)) {
+            return null;
+        }
+        return switch (win.view) {
+            case PICK -> WynnBuilderExport.worn();
+            case RESULTS -> {
+                Roadmap.Candidate c = win.result.builds().get(Math.max(0, Math.min(win.card, win.result.builds().size() - 1)));
+                yield WynnBuilderExport.milestone(c.set(), c.eval(), win.result.level());
+            }
+            case EDIT -> WynnBuilderExport.saved(Plans.byId(win.editId));
+            case SAVED -> null;
+        };
     }
 
     /** The Priority menu's "None" row. */

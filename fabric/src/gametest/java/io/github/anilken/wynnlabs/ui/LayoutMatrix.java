@@ -86,7 +86,7 @@ public class LayoutMatrix implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
-        if (only != null && !only.equals("layout") && !only.equals("fill") && !only.equals("build")) {
+        if (only != null && !only.equals("layout") && !only.equals("fill") && !only.equals("build") && !only.equals("wbexport")) {
             return;
         }
         Path out = Path.of(System.getProperty("wynnlabs.preview", "preview"));
@@ -178,6 +178,12 @@ public class LayoutMatrix implements FabricClientGameTest {
                 ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
                 ctx.waitTicks(5);
                 homeStates(ctx, PreviewSize.WIDTH + "x" + PreviewSize.HEIGHT + "@3", gui(ctx), report, out.resolve("build"));
+                return;
+            }
+            if ("wbexport".equals(only)) {
+                // -PpreviewOnly=wbexport: "Export to WynnBuilder" on Home and in the build window, large and small
+                ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
+                wbExportShots(ctx, out.resolve("wbexport"));
                 return;
             }
             ctx.waitTicks(10);
@@ -812,6 +818,73 @@ public class LayoutMatrix implements FabricClientGameTest {
             Locks.use(null);
             Locks.useTuning(null);
         });
+    }
+
+    /**
+     * "Export to WynnBuilder" at 3440x1440 and 1380x960 (GUI 3): the Home's chip at rest, copied,
+     * failed and hovered; the build window's on Choose items, Results (copied, hovered), Saved
+     * (faded) and Edit. Logs whether each tab's link was written.
+     */
+    private static void wbExportShots(ClientGameTestContext ctx, Path dir) throws Exception {
+        Files.createDirectories(dir);
+        Tuning.Choice strip = new Tuning.Choice(Tuning.BALANCED, true, false, 640);
+        ctx.runOnClient(mc -> {
+            if (builds == null) {
+                Roadmap.Computed c = Roadmap.compute(new Roadmap.Inputs(AROUND, strip, true, Around.BUILDS), null);
+                builds = new Around.Result(1, AROUND, strip, c.level(), c.builds(), c.problem(), !c.budgetCut().isEmpty(), false);
+            }
+            Plans.clearAll();
+        });
+        for (int[] size : new int[][] {{3440, 1440}, {1380, 960}}) {
+            ctx.getInput().resizeWindow(size[0], size[1]);
+            ctx.runOnClient(mc -> {
+                mc.options.guiScale().set(3);
+                mc.resizeDisplay();
+            });
+            ctx.waitTicks(5);
+            String n = size[0] + "x" + size[1];
+            ctx.runOnClient(mc -> {
+                BuildWindow.INSTANCE.close();
+                ((RoadmapScreen) mc.screen).selected = 0;
+                UiExport.preview(null, true);
+            });
+            ctx.waitTicks(3);
+            wbShot(ctx, dir, n + "-home");
+            double[] chip = ctx.computeOnClient(mc -> onScreen(mc, UiExport.drawnAt(UiExport.HOME)));
+            hoverShot(ctx, chip, dir, n + "-home-tip");
+            ctx.runOnClient(mc -> UiExport.preview(UiExport.HOME, true));
+            wbShot(ctx, dir, n + "-home-copied");
+            ctx.runOnClient(mc -> UiExport.preview(UiExport.HOME, false));
+            wbShot(ctx, dir, n + "-home-failed");
+            for (String s : new String[] {"pick", "results", "saved", "saved-edit"}) {
+                ctx.runOnClient(mc -> {
+                    UiExport.preview(null, true);
+                    homeState(s);
+                });
+                ctx.waitTicks(3);
+                String link = ctx.computeOnClient(mc -> BuildFrame.exportLink(BuildWindow.INSTANCE));
+                System.out.println("[WynnLabs] preview wbexport " + n + " " + s + ": " + (link == null ? "no link" : link));
+                wbShot(ctx, dir, n + "-window-" + s);
+                if (s.equals("results")) {
+                    double[] at = ctx.computeOnClient(mc -> onScreen(mc, UiExport.drawnAt(UiExport.WINDOW)));
+                    hoverShot(ctx, at, dir, n + "-window-results-tip");
+                    ctx.runOnClient(mc -> UiExport.preview(UiExport.WINDOW, true));
+                    wbShot(ctx, dir, n + "-window-results-copied");
+                }
+            }
+        }
+        ctx.runOnClient(mc -> {
+            UiExport.preview(null, true);
+            BuildWindow.INSTANCE.close();
+            Plans.clearAll();
+            Locks.use(null);
+            Locks.useTuning(null);
+        });
+    }
+
+    private static void wbShot(ClientGameTestContext ctx, Path dir, String name) {
+        ctx.waitTicks(2);
+        ctx.takeScreenshot(TestScreenshotOptions.of(name).disableCounterPrefix().withDestinationDir(dir));
     }
 
     /** One of {@link #homeStates}. */
