@@ -87,11 +87,16 @@ wynnlabs.road.trace_budget              after "skip: " in the road map trace
 wynnlabs.road.trace_above               after "skip: " in the road map trace
 wynnlabs.road.trace_quest               after "skip: " in the road map trace
 wynnlabs.road.trace_points              after "skip: " in the road map trace
+wynnlabs.road.trace_rule_walk           after "skip: " in the road map trace
+wynnlabs.road.trace_rule_speed          after "skip: " in the road map trace
+wynnlabs.road.trace_worn_ring           after "skip: " in the road map trace
 wynnlabs.road.trace_source              after "skip: " in the road map trace
 wynnlabs.road.trace_not_best            after "skip: " in the road map trace
 wynnlabs.road.trace_under_bar           after "skip: " in the road map trace
 wynnlabs.road.trace_clash               after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_ranked              after "Name LvN: " or as a note in the road map trace
+wynnlabs.road.trace_refit               after "Name LvN: " or as a note in the road map trace
+wynnlabs.road.trace_quest_later         after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_fresh               a start's name or a note inside a road map trace line
 wynnlabs.road.trace_judged              after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_tie                 after "Name LvN: " or as a note in the road map trace

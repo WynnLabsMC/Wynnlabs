@@ -187,11 +187,28 @@ public final class ShoppingSources {
         return name.replace('’', '\'').trim().toLowerCase(java.util.Locale.ROOT);
     }
 
-    /** Where it comes from in the world, "MERCHANT: Ragni" style; "UNKNOWN" when nothing says. */
+    /**
+     * Where it comes from in the world, "MERCHANT: Ragni" style; "UNKNOWN" when nothing says. A
+     * seasonal event's piece reads EVENT however else it is sold (Prologue is also at the Isles of
+     * Fiction merchant, which only opens for the events), and so does a piece sold only by such an
+     * event merchant (the Ornaments); a merchant named after a world event is that world event
+     * (Golem's Arm).
+     */
     public static String origin(ItemData info) {
         List<Obtain> obtain = GameState.current().obtain(info);
         if (obtain == null || obtain.isEmpty()) {
             return "UNKNOWN";
+        }
+        Places places = places();
+        boolean onlyEventShops = true;
+        for (Obtain o : obtain) {
+            if (o.type().equals("EVENT")) {
+                return label(o);
+            }
+            onlyEventShops &= merchant(o.type()) && places.eventShops.contains(o.name().orElse(""));
+        }
+        if (onlyEventShops) {
+            return "EVENT" + obtain.get(0).name().map(n -> ": " + n).orElse("");
         }
         // prefer a source you can walk to over random loot
         Obtain best = obtain.get(0);
@@ -202,6 +219,54 @@ public final class ShoppingSources {
                 break;
             }
         }
-        return best.type() + best.name().map(n -> ": " + n).orElse("");
+        if (merchant(best.type()) && places.worldEvents.contains(best.name().orElse(""))) {
+            return "WORLD_EVENT" + best.name().map(n -> ": " + n).orElse("");
+        }
+        return label(best);
+    }
+
+    private static String label(Obtain o) {
+        return o.type() + o.name().map(n -> ": " + n).orElse("");
+    }
+
+    private static boolean merchant(String type) {
+        return type.equals("MERCHANT") || type.equals("DUNGEON_MERCHANT");
+    }
+
+    /**
+     * The item data's event merchants (a merchant that also sells a seasonal event's pieces) and
+     * world event names, worked out once per game state.
+     */
+    private record Places(GameState state, java.util.Set<String> eventShops, java.util.Set<String> worldEvents) {}
+
+    private static volatile Places places;
+
+    private static Places places() {
+        GameState state = GameState.current();
+        Places p = places;
+        if (p != null && p.state == state) {
+            return p;
+        }
+        java.util.Set<String> shops = new java.util.HashSet<>();
+        java.util.Set<String> events = new java.util.HashSet<>();
+        state.allGear().forEach(info -> {
+            List<Obtain> obtain = state.obtain(info);
+            if (obtain == null) {
+                return;
+            }
+            boolean seasonal = obtain.stream().anyMatch(o -> o.type().equals("EVENT"));
+            for (Obtain o : obtain) {
+                if (seasonal && merchant(o.type())) {
+                    o.name().ifPresent(shops::add);
+                } else if (o.type().equals("WORLD_EVENT")) {
+                    o.name().ifPresent(events::add);
+                }
+            }
+        });
+        p = new Places(state, java.util.Set.copyOf(shops), java.util.Set.copyOf(events));
+        if (!shops.isEmpty() || !events.isEmpty()) {
+            places = p;               // the game's item data may not be loaded yet: ask again then
+        }
+        return p;
     }
 }

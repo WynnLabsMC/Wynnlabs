@@ -75,7 +75,7 @@
   },
   "earnedPoints": 38,
   "planned": {
-    "objective": 221.5,
+    "objective": 236.3,
     "spellDps": 98.4,
     "mainAttackDps": 59.7,
     "damagePerCast": 123,
@@ -89,14 +89,14 @@
       "life": 1.437,
       "mana": 1.202,
       "speed": 1.0,
-      "xp": 1.0,
+      "xp": 1.067,
       "attackSpeedFeel": 1.0
     },
     "xpBonus": 25.0,
     "walkSpeed": 0.0
   },
   "current": {
-    "objective": 108.7,
+    "objective": 110.3,
     "spellDps": 80.9,
     "mainAttackDps": 59.0,
     "damagePerCast": 101,
@@ -110,13 +110,13 @@
       "life": 0.909,
       "mana": 1.083,
       "speed": 1.0,
-      "xp": 1.0,
+      "xp": 1.015,
       "attackSpeedFeel": 1.0
     },
     "xpBonus": 5.0,
     "walkSpeed": 0.0
   },
-  "gainPercent": 103.8,
+  "gainPercent": 114.3,
   "minPoints": {
     "STRENGTH": 0,
     "DEXTERITY": 0,

@@ -62,6 +62,30 @@ final class CandidateRules {
         return later == null || later > m;
     }
 
+    /**
+     * A piece below the level window that may still be the best of its kind there: one you cannot
+     * buy anew each bracket (untradable: Vanguard, Altum Spatium) or one with XP bonus while the
+     * score counts XP (Papyrus, Bad Wolf). Players keep these well past their level, so they get
+     * rules.shopping.keepWindow (40) levels instead of the window; the score still decides.
+     */
+    static boolean keepsLonger(ItemData info, int m) {
+        if (info.requirements().level() < m - (int) Rules.sub("shopping", "keepWindow", 40)) {
+            return false;
+        }
+        if (!Shopping.tradable(info)) {
+            return true;
+        }
+        if (Rules.sub("model", "goalXp", 0) <= 0 || m >= Rules.sub("model", "maxLevel", 120)) {
+            return false;
+        }
+        for (var st : info.stats()) {
+            if ((st.key().equals("combatExperience") || st.key().equals("xpBonus")) && st.max() > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** From shopping.endgameLevel (80) on, every tier and raid gear count. */
     static boolean endgame(int m) {
         return m >= Rules.sub("shopping", "endgameLevel", 80);

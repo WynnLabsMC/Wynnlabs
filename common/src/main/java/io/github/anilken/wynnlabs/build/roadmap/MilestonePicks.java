@@ -67,6 +67,12 @@ final class MilestonePicks {
     final Map<Slot, List<ItemData>> wide = new java.util.EnumMap<>(Slot.class);
     /** For the trace's reasons: the most each skill could get from the milestone's gear. */
     private final int[] reach;
+    /**
+     * Pieces turned down for skill points against the set as it stood slot by slot (too many
+     * points, off-skill ones, no spread that fits): the final set may give those points
+     * ({@link #refit}). No initializer: a field a hot swap adds keeps no value.
+     */
+    private Map<Slot, List<ItemData>> refused;
 
     MilestonePicks(MilestonePlanner run, int m, boolean first) {
         this.run = run;
@@ -106,6 +112,84 @@ final class MilestonePicks {
         reach = Roadmap.trace == null ? null : RoadmapTrace.windowReach(run.cands, m, laterVersion);
     }
 
+    /** A piece turned down for its skill points against the set slot by slot, to be judged again in the final one. */
+    private void refuse(Slot t, ItemData info) {
+        if (allocM == null || t.isWeapon()) {
+            return;
+        }
+        if (refused == null) {
+            refused = new java.util.EnumMap<>(Slot.class);
+        }
+        refused.computeIfAbsent(t, k -> new ArrayList<>()).add(info);
+    }
+
+    /**
+     * The pieces turned down for their skill points judged again in the set the search ended with:
+     * a Morph piece too costly against the first picks fits once the set's gear gives the points
+     * (Morph-Gold at Lv 25, Gale's Sight at Lv 90). The best that clears the bar goes in, for a
+     * few rounds; the trace says how each one did.
+     */
+    void refit(List<Gear> gear) {
+        if (refused == null || run.baseline == null) {
+            return;
+        }
+        int cap = (int) Rules.sub("roadmap", "refit", 8);
+        Map<Slot, List<ItemData>> left = new java.util.EnumMap<>(Slot.class);
+        refused.forEach((t, l) -> left.put(t, l.stream().distinct()
+                .sorted((a, b) -> Double.compare(AutoAdvice.score(b), AutoAdvice.score(a)))
+                .limit(cap).collect(java.util.stream.Collectors.toCollection(ArrayList::new))));
+        double bar = Rules.sub("shopping", "minGainPercent", 10);
+        for (int round = 0; round < 3; round++) {
+            Build.Eval now = Build.allocate(run.baseline, m, earned);
+            double nowJ = now == null ? 0 : SetJudge.judged(now, run.prevAlloc, m);
+            if (nowJ <= 0) {
+                return;
+            }
+            double[] cover = Build.cover(run.baseline, now.allocation());
+            ItemData best = null;
+            String bestSlot = null;
+            double bestGain = Double.NEGATIVE_INFINITY;
+            for (var e : left.entrySet()) {
+                Slot t = e.getKey();
+                for (ItemData info : e.getValue()) {
+                    int off = CandidateRules.offPoints(info, run.preferred, cover);
+                    if (off > maxOff) {
+                        continue;
+                    }
+                    Damage.Piece cand = OwnedGear.pieceOf(info);
+                    for (String slot : t == Slot.RING ? new String[] {"RING1", "RING2"} : new String[] {Build.slotOf(t, 0)}) {
+                        Damage.Piece there = slot == null ? null : run.baseline.get(slot);
+                        if (slot == null || run.fixed.contains(slot) || there != null && there.key().equals(cand.key())
+                                || Exclusive.clash(run.baseline, slot, Exclusive.group(info)) != null) {
+                            continue;
+                        }
+                        Build.Eval fe = SetJudge.fullEval(run.baseline, slot, cand, m, earned);
+                        if (fe == null) {
+                            continue;
+                        }
+                        double gain = (SetJudge.judged(fe, run.prevAlloc, m) / nowJ - 1) * 100
+                                + Rules.communityBonus(info.name());
+                        RoadmapTrace.trace(m, t, info, L.t("wynnlabs.road.trace_refit", RoadmapTrace.pct(gain), slot));
+                        if (gain > bestGain && (gain >= bar || gain >= Build.gainThreshold(there, m))) {
+                            bestGain = gain;
+                            best = info;
+                            bestSlot = slot;
+                        }
+                    }
+                }
+            }
+            if (best == null) {
+                break;
+            }
+            Map<String, Damage.Piece> chosen = new LinkedHashMap<>(run.baseline);
+            chosen.put(bestSlot, OwnedGear.pieceOf(best));
+            RoadmapRows.applySet(chosen, startSet, run.baseline, run.placed, pools, gear, m, earned, run.prevAlloc);
+            for (List<ItemData> l : left.values()) {
+                l.remove(best);
+            }
+        }
+    }
+
     /** Picks the best for slot type {@code t}, adds its row and puts it into the run's set. */
     void pick(Slot t) {
         new SlotPick(t).pick();
@@ -117,7 +201,30 @@ final class MilestonePicks {
      * the same bar as any pick; null when nothing does.
      */
     Gear otherRing() {
-        return otherRing(run.baseline, run.placed, ringPool, m, earned, baseObj, badSources, run.affordable);
+        Gear g = otherRing(run.baseline, run.placed, ringPool, m, earned, baseObj, badSources, run.affordable);
+        String slot = g == null ? null : run.placed.get(Roadmap.RING2);
+        if (slot == null || run.wornNow == null) {
+            return g;
+        }
+        // a ring you wear that does as well in that hand stays on: the other hand only looked
+        // at the earlier picks, and an XP ring you wear could beat the new one there
+        double picked = SetJudge.full(run.baseline, slot, run.baseline.get(slot), m, earned);
+        for (String s : new String[] {"RING1", "RING2"}) {
+            Damage.Piece worn = run.wornNow.get(s);
+            Damage.Piece other = run.baseline.get(slot.equals("RING1") ? "RING2" : "RING1");
+            if (worn == null || worn.key().equals(run.baseline.get(slot).key())
+                    || other != null && other.key().equals(worn.key())) {
+                continue;
+            }
+            double kept = SetJudge.full(run.baseline, slot, worn, m, earned);
+            if (!Double.isNaN(kept) && (Double.isNaN(picked) || kept >= picked)) {
+                RoadmapTrace.trace(m, Slot.RING, g.info(), L.t("wynnlabs.road.trace_skip",
+                        L.t("wynnlabs.road.trace_worn_ring", worn.name())));
+                run.baseline.put(slot, worn);
+                return null;
+            }
+        }
+        return g;
     }
 
     private static Gear otherRing(Map<String, Damage.Piece> baseline, Map<String, String> placed, List<ItemData> pool,
@@ -294,6 +401,7 @@ final class MilestonePicks {
                     run.budget, run.state);
             if (judge == null || allocM == null && wornNames.contains(lname)
                     || info.requirements().level() < floor && !CandidateRules.lastOfItsKind(info, m, laterVersion)
+                            && !CandidateRules.keepsLonger(info, m) && !held(info)
                     || badTiers.contains(info.tier().name())) {
                 RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_window");
                 return;
@@ -302,6 +410,7 @@ final class MilestonePicks {
             int off = t.isWeapon() ? 0 : CandidateRules.offPoints(info, run.preferred, cover);
             if (off > maxOff) {
                 RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_off_skill", off, maxOff);
+                refuseLater(info);
                 return;
             }
             if (!run.affordable.test(info)) {
@@ -316,16 +425,22 @@ final class MilestonePicks {
                 RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_above");
                 return;
             }
-            // a quest the piece asks for that you have not done: not before its level
-            // (Sodeta Boots want Lost Soles); from there on it stays, with a caution
+            // a quest the piece asks for that you have not done: not the pick before the quest's
+            // level (Sodeta Boots want Lost Soles), but an alternative "after quest X" (its
+            // caution) rather than gone; from the quest's level on it is a pick, with the caution
             QuestBook.Entry quest = ShoppingSources.questPending(run.state, info);
             if (quest != null && quest.level() > m) {
-                RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_quest", quest.name(), quest.level());
-                return;
+                if (allocM == null) {
+                    RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_quest", quest.name(), quest.level());
+                    return;
+                }
+                RoadmapTrace.trace(m, t, info, L.t("wynnlabs.road.trace_quest_later", quest.name(), quest.level()));
+                future = true;
             }
             int total = info.requirements().skills().stream().mapToInt(r -> r.points()).sum();
             if (total > earned) {
                 RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_points", total, earned);
+                refuseLater(info);
                 return;
             }
             if (!future && info.set().isPresent()) {
@@ -365,6 +480,9 @@ final class MilestonePicks {
                 if (Double.isNaN(sc) || baseObj <= 0 && !t.isWeapon()) {
                     if (Roadmap.trace != null) {
                         traceUnfit(info, cand);
+                    }
+                    if (Double.isNaN(sc)) {
+                        refuseLater(info);
                     }
                     return;
                 }
@@ -419,6 +537,32 @@ final class MilestonePicks {
                 topReal = sc;
                 top = info;
             }
+        }
+
+        /**
+         * Kept for {@link #refit} when the final set could hold it: something you can get now,
+         * not a piece for a later level, not one an earlier milestone already holds.
+         */
+        private void refuseLater(ItemData info) {
+            QuestBook.Entry quest = ShoppingSources.questPending(run.state, info);
+            if (info.requirements().level() <= m && !held(info) && run.affordable.test(info)
+                    && (quest == null || quest.level() <= m)
+                    && (!ShoppingSources.excluded(info, badSources) || run.owned.contains(info.name()))) {
+                refuse(t, info);
+            }
+        }
+
+        /** An earlier milestone's pick, in the set already: it stays a candidate however far below the window. */
+        private boolean held(ItemData info) {
+            if (run.baseline == null) {
+                return false;
+            }
+            for (Damage.Piece p : run.baseline.values()) {
+                if (p != null && p.name().equals(info.name())) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /** For the trace: the allocator's reason, for the first slot it could take. */

@@ -152,6 +152,15 @@ class NowSetTest {
         io.github.anilken.wynnlabs.core.Rules.update(change);
     }
 
+    /** rules.shopping.keepWindow set to {@code v} (20: no piece looks further down than the window). */
+    private static void keepWindow(int v) {
+        com.google.gson.JsonObject shopping = new com.google.gson.JsonObject();
+        shopping.addProperty("keepWindow", v);
+        com.google.gson.JsonObject change = new com.google.gson.JsonObject();
+        change.add("shopping", shopping);
+        io.github.anilken.wynnlabs.core.Rules.update(change);
+    }
+
     private static Damage.Piece gear(String name) {
         return Damage.piece(GameState.current().allGear().filter(i -> i.name().equals(name)).findFirst().orElseThrow());
     }
@@ -175,8 +184,11 @@ class NowSetTest {
             Fixtures.note(String.format(java.util.Locale.ROOT, "without XP: %s %.0f, ornaments %.0f", accessories(picked), p, o));
             assertTrue(p >= o, "on the Damage goal the picks win without XP");
         }
-        // where XP counts in full the worn set is not broken up one piece at a time
+        // where XP counts in full the worn set is not broken up one piece at a time (the XP pieces
+        // kept below the level window, Living Slime and Jagged Bone Necklace, left out: this is
+        // about the set, not about them)
         goalXp(1);
+        keepWindow(20);
         Roadmap.Step s = now();
         assertEquals(ORNAMENTS, accessories(s.build()), "the set stays on");
         for (Roadmap.Gear g : s.gear()) {
@@ -204,8 +216,10 @@ class NowSetTest {
         assertTrue(Build.allocate(picked, 72, 142).result().objective()
                 >= Build.allocate(ornaments, 72, 142).result().objective(), "on the Damage goal the picks win without XP");
         // where XP counts in full (goalXp 1, as before the fighting goals weighed it less) the set
-        // is worth it: the search must see that only the four together pay
+        // is worth it: the search must see that only the four together pay (the XP pieces kept
+        // below the level window left out, as above)
         goalXp(1);
+        keepWindow(20);
         Roadmap.Step s = now();
         assertEquals(ORNAMENTS, accessories(s.build()), "the set from the bank: " + s.build().keySet());
         Map<String, Damage.Piece> apart = new LinkedHashMap<>(s.build());

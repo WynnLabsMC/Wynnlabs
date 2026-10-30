@@ -35,7 +35,7 @@ public final class BeamCache {
      * added by a hot swap keeps no value.
      */
     static int modelVersion() {
-        return 23;
+        return 24;
     }
 
     /** The loaded entries and whose they are; access-ordered, so the oldest drop first. */

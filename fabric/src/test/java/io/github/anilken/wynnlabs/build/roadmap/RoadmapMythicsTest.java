@@ -239,7 +239,10 @@ class RoadmapMythicsTest {
         // Transfiguration fits 200 points on its own: never "impossible" because of the set it met
         List<String> trans = relik.stream().filter(l -> l.startsWith("Lv 120 Transfiguration Lv117: ")).toList();
         assertFalse(trans.isEmpty(), "no line for Transfiguration at Lv 120");
-        trans.forEach(l -> assertFalse(l.contains(skip), l));
+        // (judged in the set and under the bar there is no such skip: the set's weapon simply scores more)
+        String bar120 = L.t("wynnlabs.road.trace_under_bar", "\u0001", "\u0001", "\u0001", "\u0001", "\u0001");
+        String underBar120 = "Lv 120 Transfiguration Lv117: " + L.t("wynnlabs.road.trace_skip", bar120.substring(0, bar120.indexOf('\u0001')));
+        trans.forEach(l -> assertFalse(l.contains(skip) && !l.startsWith(underBar120), l));
         // Olympic (Lv 93) at Lv 120: below the window, but no Masterwork one can be had
         String window = "Lv 120 Olympic Lv93: " + L.t("wynnlabs.road.trace_skip", L.t("wynnlabs.road.trace_window"));
         assertTrue(relik.stream().anyMatch(l -> l.startsWith("Lv 120 Olympic Lv93: ")) && !relik.contains(window),

@@ -32,7 +32,8 @@ class XpSwitchTest {
     void defaultsFollowTheGoal() {
         Rules.use(new JsonObject());
         Setup.setGoal("DAMAGE");
-        assertFalse(Setup.countsXp(), "Damage leaves XP out by default");
+        assertTrue(Setup.countsXp(), "Damage counts XP a little by default");
+        assertEquals(Setup.DAMAGE_XP, goalXp(), 1e-9);
         Setup.setGoal("BOSS");
         assertTrue(Setup.countsXp());
         assertEquals(0.3, goalXp(), 1e-9);
@@ -46,7 +47,7 @@ class XpSwitchTest {
         Setup.setGoal("DAMAGE");
         Setup.setCountsXp(true);
         assertTrue(Setup.countsXp());
-        assertEquals(0.3, goalXp(), 1e-9, "Damage counts XP at 0.3 when on");
+        assertEquals(Setup.DAMAGE_XP, goalXp(), 1e-9, "Damage counts XP at its own factor when on");
         Setup.setCountsXp(false);
         assertFalse(Setup.countsXp());
         assertEquals(0, goalXp(), 1e-9);
@@ -70,7 +71,7 @@ class XpSwitchTest {
         assertFalse(Rules.list("model", "byHand").contains("GOALXP"), "the goal's default again");
         Setup.setCountsXp(false);
         Setup.setGoal("DAMAGE");
-        assertFalse(Setup.countsXp());
+        assertTrue(Setup.countsXp(), "the Damage goal's default again");
     }
 
     @Test

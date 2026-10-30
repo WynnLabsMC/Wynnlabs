@@ -131,7 +131,7 @@ public final class Setup {
 
     /**
      * The home's XP switch: off leaves XP out of the score (goal XP factor 0), on gives the goal's
-     * own factor back (the Damage goal's 0.3, its preset being 0). Marked as set by hand, so an
+     * own factor back (the Damage goal's DAMAGE_XP). Marked as set by hand, so an
      * upgrade keeps it; a new goal sets it again ({@link #setGoal}).
      */
     public static void setCountsXp(boolean on) {
@@ -186,9 +186,18 @@ public final class Setup {
      * and the weights your own picks used to raise; 7 drops the simulated fight's mana keys (the
      * mana part comes from the stats alone); 8 gives the Healer goal its weights again (the
      * healing it keeps up is scored as a power, {@link #HEALER_KEYS}); 9 brings the soft cap on
-     * health for the goals that fight for damage (ehpSoftCap, Damage.softCap).
+     * health for the goals that fight for damage (ehpSoftCap, Damage.softCap); 10 lets the Damage
+     * goal count XP a little ({@link #DAMAGE_XP}) while you level (its 0 becomes that, unless the
+     * home's XP switch turned it off by hand).
      */
-    static final int SURVIVAL_MODEL = 9;
+    static final int SURVIVAL_MODEL = 10;
+
+    /**
+     * The Damage goal's XP factor: modest and with diminishing returns (xpLog), so leveling picks
+     * value XP bonus as players do (Vanguard, Papyrus) without it winning a slot on XP alone; worth
+     * nothing at the level cap (Damage). The home's XP switch turns it off for pure damage.
+     */
+    static final double DAMAGE_XP = 0.3;
 
     /** The Healer goal's weights that 8 writes again. */
     private static final String[] HEALER_KEYS = {"healWeight", "damageWeight", "manaWeight", "survivalWeight",
@@ -220,9 +229,9 @@ public final class Setup {
             case "XP" -> new double[] {0.25, 0.2, 0.3, 0, 0.8, 0.2, 3, 2.0, 1.7, 0, 0, 1.0, 0, 1.5};
             // loot runs: Loot Bonus and Loot Quality
             case "LOOT" -> new double[] {0.25, 0.2, 0.3, 0, 0.8, 0.2, 0.5, 1.3, 1.4, 0, 2.0, 1.0, 0, 1.5};
-            // fighting for damage: XP is not counted (0); at 0.3 an XP piece still won a slot it
-            // lost on damage and health (Sodeta Boots over Stronghold at Lv 75)
-            default -> new double[] {0.2, 0.2, 0.3, 0, 1.0, 0.25, 0, 1, 1, 0, 0, 1.0, 1, 1.5};
+            // fighting for damage while leveling: XP counts a little (DAMAGE_XP, with diminishing
+            // returns), nothing at the level cap; the home's XP switch leaves it out
+            default -> new double[] {0.2, 0.2, 0.3, 0, 1.0, 0.25, DAMAGE_XP, 1, 1, 0, 0, 1.0, 1, 1.5};
         };
     }
 
@@ -310,6 +319,11 @@ public final class Setup {
             if (!byHand.contains("ehpSoftCap")) {
                 model.addProperty("ehpSoftCap", w[keys.indexOf("ehpSoftCap")]);
             }
+        }
+        // 10: the Damage goal counts XP a little while you level; an XP switch turned off by hand stays off
+        if (from < 10 && g.equals("DAMAGE") && !byHand.contains("goalXp")
+                && (!model.has("goalXp") || model.get("goalXp").getAsDouble() == 0)) {
+            model.addProperty("goalXp", DAMAGE_XP);
         }
         model.addProperty("survivalModel", SURVIVAL_MODEL);
     }

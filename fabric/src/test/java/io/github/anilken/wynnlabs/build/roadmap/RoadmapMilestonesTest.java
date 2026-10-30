@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.GameState;
+import io.github.anilken.wynnlabs.model.ItemData;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -73,12 +74,15 @@ class RoadmapMilestonesTest {
             FixtureState.load(shaman()).atLevel(m).install("en");
             Roadmap.Computed c = Roadmap.compute(new Roadmap.Inputs(List.of(), Tuning.Choice.PLAIN, true, 0), null);
             // the chain's pieces a search at this level alone never looks at: below the window
-            // (rules.shopping.milestoneWindow) and not yours; the chain carried them from before
+            // (rules.shopping.milestoneWindow), not yours and not kept longer (CandidateRules.keepsLonger:
+            // untradable, XP bonus); the chain carried them from before
             java.util.Set<String> owned = Roadmap.ownedCounts(GameState.current()).keySet();
             int floor = m - (int) Rules.sub("shopping", "milestoneWindow", 20);
             List<String> unseen = new ArrayList<>();
             s.build().values().forEach(p -> {
-                if (p != null && p.level() < floor && !owned.contains(p.name())) {
+                ItemData info = p == null ? null : Roadmap.findGear(p.name());
+                if (p != null && p.level() < floor && !owned.contains(p.name())
+                        && (info == null || !CandidateRules.keepsLonger(info, m))) {
                     unseen.add(p.name() + " (Lv " + p.level() + ")");
                 }
             });
@@ -144,8 +148,8 @@ class RoadmapMilestonesTest {
                 bad.add(String.format("Lv %d: alone %.0f is more than 10 %% behind chained %.0f", p.level(), alone, chained));
             }
         }
-        // with XP left out on the Damage goal the chain keeps the Lv 33 Desert Winds rings up to
-        // Lv 80 (no XP ring replaces them), so fewer milestones are comparable than before
+        // the chain keeps the Lv 33 Desert Winds rings up to Lv 80, which a search alone also sees
+        // when XP counts (kept longer), so most milestones are comparable
         assertTrue(compared >= 4, "only " + compared + " milestones compared");
         assertTrue(bad.isEmpty(), String.join("\n", bad));
     }

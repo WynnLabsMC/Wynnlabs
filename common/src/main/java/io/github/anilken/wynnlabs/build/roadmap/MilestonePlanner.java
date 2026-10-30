@@ -80,7 +80,7 @@ final class MilestonePlanner {
     /** The set the milestones build on, pick by pick (null without a build plan). */
     final Map<String, Damage.Piece> baseline;
     /** What you wear now, for the "worn → pick" gain of each milestone (Step.vsWorn). */
-    private final Map<String, Damage.Piece> wornNow;
+    final Map<String, Damage.Piece> wornNow;
     /** Slot type name → build slot of its latest pick. */
     final Map<String, String> placed = new LinkedHashMap<>();
     /** The last milestone's set's skill points ({@link SetJudge#carry}); before the first, the ones you placed. */
@@ -183,15 +183,26 @@ final class MilestonePlanner {
             int lv = info.requirements().level();
             // what you have is weighed below the level window too: the bag or bank may hold a set
             // that only pays off whole (the Wynnterfest ornaments at Lv 50 on a Lv 72 build)
-            if (!best.containsKey(t) || lv > last || lv < level - window && !owned.contains(info.name())
-                    || badTiersLast.contains(info.tier().name())
-                    || Shopping.walkPenalty(info) > Rules.sub("shopping", "maxWalkSpeedPenalty", 999)
-                    || info.base().attackSpeed().isPresent()
-                            && Rules.list("shopping", "excludeAttackSpeeds").contains(info.base().attackSpeed().get())) {
+            // and so is what players keep longer (CandidateRules.keepsLonger: untradable, XP bonus)
+            if (!best.containsKey(t) || lv > last
+                    || lv < level - window && !owned.contains(info.name()) && !CandidateRules.keepsLonger(info, level)
+                    || badTiersLast.contains(info.tier().name())) {
                 return;
             }
             Klass need = info.requirements().klass().orElse(t.klass());
             if (need != null && need != Klass.NONE && need != cls) {
+                return;
+            }
+            // your own no-gos (rules.shopping.maxWalkSpeedPenalty / excludeAttackSpeeds): said in
+            // the trace, or a slow weapon that scores well (Sonicboom, Fuunyet) just was not there
+            double walk = Shopping.walkPenalty(info);
+            if (walk > Rules.sub("shopping", "maxWalkSpeedPenalty", 999)) {
+                RoadmapTrace.skip(level, t, info, "wynnlabs.road.trace_rule_walk", Math.round(walk));
+                return;
+            }
+            if (info.base().attackSpeed().isPresent()
+                    && Rules.list("shopping", "excludeAttackSpeeds").contains(info.base().attackSpeed().get())) {
+                RoadmapTrace.skip(level, t, info, "wynnlabs.road.trace_rule_speed", info.base().attackSpeed().get());
                 return;
             }
             cands.computeIfAbsent(t, k -> new ArrayList<>()).add(info);
@@ -293,6 +304,8 @@ final class MilestonePlanner {
                     ownedCount, buyable, wornNow, fixed, m, earned, prevAlloc, ms.freshCopies),
                     baseline, placed, gear);
             Perf.end("roadmap.search", perfSearch);
+            // what the slot-by-slot picks turned down for skill points, judged in the final set
+            ms.refit(gear);
             Build.Eval be = Build.allocate(baseline, m, earned);
             if (be != null) {
                 ms.baseObj = be.result().objective();
