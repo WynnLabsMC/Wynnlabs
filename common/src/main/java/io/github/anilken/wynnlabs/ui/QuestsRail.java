@@ -55,7 +55,7 @@ final class QuestsRail extends MenuPaint {
     /** The rail's rows: the search's matches, or the tracked quest, the filter's list, then the finished ones. */
     List<Row> rows() {
         ContentType t = tab.questType;
-        return QuestsCache.kept("rows|" + t + "|" + tab.questFilter + "|" + tab.query() + "|" + QuestsData.tracked(), 500,
+        return QuestsCache.kept("rows|" + t + "|" + tab.questFilter + "|" + tab.query() + "|" + QuestsData.tracked() + "|" + QuestBook.changedAt(), 500,
                 () -> t.book() ? tab.types.rows(t, tab.query())
                         : t == ContentType.RECOMMENDED && tab.questFilter.equals("RECOMMENDED") && tab.query().isEmpty()
                         ? QuestsTypes.mix(rowsNow()) : rowsNow());
@@ -97,7 +97,9 @@ final class QuestsRail extends MenuPaint {
         }
         String tracked = QuestsData.tracked();
         List<String> seen = new ArrayList<>();
-        if (tracked != null && QuestsData.entry(tracked) != null && kind(tracked)) {
+        // the tracked quest first, unless chat just said it is done (the tracker can linger a moment)
+        QuestBook.Entry te = tracked == null ? null : QuestsData.entry(tracked);
+        if (te != null && !"COMPLETED".equals(te.status()) && kind(tracked)) {
             out.add(new Row(tracked, null, suggestion(lists, tracked)));
             seen.add(tracked);
         }

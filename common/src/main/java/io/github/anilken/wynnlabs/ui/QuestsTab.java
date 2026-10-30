@@ -281,15 +281,17 @@ final class QuestsTab extends MenuTab {
             filterOpen = false;
             List<int[]> pts = new ArrayList<>();
             List<String> labels = new ArrayList<>();
+            List<String> quests = new ArrayList<>();
             int i = 1;
             for (String name : c.substring(7).split("\n")) {
                 QuestBook.Entry q = QuestsData.entry(name);
                 if (q != null && q.x() != null) {
                     pts.add(new int[] {q.x(), q.y(), q.z()});
                     labels.add((i++) + ") " + name);
+                    quests.add(q.name());
                 }
             }
-            int n = Waypoints.all(pts, labels);
+            int n = Waypoints.all(pts, labels, quests);
             menu.flash(L.n("wynnlabs.quests.plan_marked", n));
         } else {
             return false;
@@ -301,7 +303,8 @@ final class QuestsTab extends MenuTab {
 
     /** Every filter's list, refreshed every two seconds. */
     Map<String, List<QuestAdvisor.Suggestion>> lists() {
-        if (System.currentTimeMillis() - questListsAt > 2000) {
+        // a quest just finished (chat): worked out again now, not after the two seconds
+        if (System.currentTimeMillis() - questListsAt > 2000 || questListsAt < QuestBook.changedAt()) {
             Map<String, List<QuestAdvisor.Suggestion>> m = new HashMap<>();
             for (String f : QuestAdvisor.FILTERS) {
                 try {

@@ -34,9 +34,14 @@ public final class Waypoints {
     /**
      * A pin of ours and which kind: "go" (one at a time), "quest" (a quest's point on the map) or
      * "next" (a quest point waiting its turn: only one quest point is shown at a time, because the
-     * world labels of several pins draw over each other).
+     * world labels of several pins draw over each other). {@code quest}: the quest a quest point was
+     * set for, or null (the pins inbox and other points no quest owns).
      */
-    private record Mine(String kind, String name, int x, int y, int z) {
+    record Mine(String kind, String name, int x, int y, int z, String quest) {
+        Mine(String kind, String name, int x, int y, int z) {
+            this(kind, name, x, y, z, null);
+        }
+
         /** The same spot: Wynntils keeps one pin per position, and the label may not be readable. */
         boolean is(Pin p) {
             return x == p.x() && y == p.y() && z == p.z();
@@ -70,7 +75,8 @@ public final class Waypoints {
                     for (var e : JsonParser.parseString(Files.readString(file(), StandardCharsets.UTF_8)).getAsJsonArray()) {
                         JsonObject o = e.getAsJsonObject();
                         mine.add(new Mine(o.get("kind").getAsString(), o.get("name").getAsString(),
-                                o.get("x").getAsInt(), o.get("y").getAsInt(), o.get("z").getAsInt()));
+                                o.get("x").getAsInt(), o.get("y").getAsInt(), o.get("z").getAsInt(),
+                                o.has("quest") ? o.get("quest").getAsString() : null));
                     }
                 }
             } catch (Exception e) {
@@ -89,6 +95,9 @@ public final class Waypoints {
             o.addProperty("x", m.x());
             o.addProperty("y", m.y());
             o.addProperty("z", m.z());
+            if (m.quest() != null) {
+                o.addProperty("quest", m.quest());
+            }
             a.add(o);
         }
         try {
@@ -223,8 +232,12 @@ public final class Waypoints {
 
     /** Puts a pin of ours on the map. */
     static void add(Wyn.Pins pins, int x, int y, int z, String label, boolean quest) {
+        add(pins, x, y, z, label, quest, null);
+    }
+
+    private static void add(Wyn.Pins pins, int x, int y, int z, String label, boolean quest, String forQuest) {
         pins.add(x, y, z, label);
-        mine().add(new Mine(quest ? "quest" : "go", label, x, y, z));
+        mine().add(new Mine(quest ? "quest" : "go", label, x, y, z, forQuest));
         save();
     }
 
@@ -257,21 +270,71 @@ public final class Waypoints {
     }
 
     /**
+     * A quest was finished: its own points leave the map and the queue. Points set for another
+     * quest or for none (the pins inbox, "go there", lasting pins) stay; when the shown point
+     * went, the next waiting one is put on the map.
+     */
+    static void clearQuest(String quest) {
+        List<Mine> gone = forget(mine(), quest);
+        if (gone.isEmpty()) {
+            return;
+        }
+        save();
+        var pins = Wyn.waypoints();
+        if (pins == null) {
+            return;
+        }
+        for (Pin p : pins.all()) {
+            if (gone.stream().anyMatch(m -> m.kind().equals("quest") && m.is(p))) {
+                pins.remove(p);
+            }
+        }
+        if (pins.all().stream().noneMatch(Waypoints::isQuest)) {
+            next(pins);
+        }
+    }
+
+    /** Takes the quest and waiting points set for {@code quest} out of {@code list}; the ones taken. */
+    static List<Mine> forget(List<Mine> list, String quest) {
+        String key = QuestBook.nameKey(quest);
+        List<Mine> gone = new ArrayList<>();
+        if (key.isEmpty()) {
+            return gone;
+        }
+        Iterator<Mine> it = list.iterator();
+        while (it.hasNext()) {
+            Mine m = it.next();
+            boolean point = m.kind().equals("quest") || m.kind().equals("next");
+            if (point && m.quest() != null && key.equals(QuestBook.nameKey(m.quest()))) {
+                gone.add(m);
+                it.remove();
+            }
+        }
+        return gone;
+    }
+
+    /**
      * Queues quest points in order: the first goes on the map now unless a quest point of ours is
      * already there, the rest wait for {@link #next}.
      */
     public static int queue(List<int[]> points, List<String> labels) {
+        return queue(points, labels, null);
+    }
+
+    /** {@link #queue}, each point set for the quest at its index in {@code quests} (null: none). */
+    static int queue(List<int[]> points, List<String> labels, List<String> quests) {
         var pins = Wyn.waypoints();
         boolean shown = pins.all().stream().anyMatch(Waypoints::isQuest);
         for (int i = 0; i < points.size(); i++) {
             int[] p = points.get(i);
             String l = labels.get(i);
             String label = l.length() > 40 ? l.substring(0, 40) : l;
+            String quest = quests == null ? null : quests.get(i);
             if (!shown) {
-                add(pins, p[0], p[1], p[2], label, true);
+                add(pins, p[0], p[1], p[2], label, true, quest);
                 shown = true;
             } else {
-                mine().add(new Mine("next", label, p[0], p[1], p[2]));
+                mine().add(new Mine("next", label, p[0], p[1], p[2], quest));
             }
         }
         save();
@@ -360,7 +423,7 @@ public final class Waypoints {
         for (Mine m : mine()) {
             if (m.kind().equals("next")) {
                 mine().remove(m);
-                add(pins, m.x(), m.y(), m.z(), m.name(), true);
+                add(pins, m.x(), m.y(), m.z(), m.name(), true, m.quest());
                 return m.name();
             }
         }
@@ -413,9 +476,14 @@ public final class Waypoints {
 
     /** Every point of a quest, in order, one on the map at a time (the previous quest's points go first). */
     public static int all(List<int[]> points, List<String> labels) {
+        return all(points, labels, null);
+    }
+
+    /** {@link #all}, each point set for the quest at its index in {@code quests}, so it goes when that quest is done. */
+    public static int all(List<int[]> points, List<String> labels, List<String> quests) {
         try {
             clearQuest();
-            return queue(points, labels);
+            return queue(points, labels, quests);
         } catch (Throwable t) {
             return 0;
         }
@@ -423,13 +491,19 @@ public final class Waypoints {
 
     /** Every point of a quest on the map at once (the previous quest's points go first); how many were placed. */
     public static int showAll(List<int[]> points, List<String> labels) {
+        return showAll(points, labels, null);
+    }
+
+    /** {@link #showAll}, each point set for the quest at its index in {@code quests}. */
+    public static int showAll(List<int[]> points, List<String> labels, List<String> quests) {
         try {
             clearQuest();
             var pins = Wyn.waypoints();
             for (int i = 0; i < points.size(); i++) {
                 int[] p = points.get(i);
                 String l = labels.get(i);
-                add(pins, p[0], p[1], p[2], l.length() > 40 ? l.substring(0, 39) + "…" : l, true);
+                add(pins, p[0], p[1], p[2], l.length() > 40 ? l.substring(0, 39) + "…" : l, true,
+                        quests == null ? null : quests.get(i));
             }
             return points.size();
         } catch (Throwable t) {

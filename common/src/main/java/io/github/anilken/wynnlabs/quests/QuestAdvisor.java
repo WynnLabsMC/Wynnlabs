@@ -171,7 +171,7 @@ public final class QuestAdvisor {
     /** The best three, recomputed at most every two seconds (for glows and tooltips). */
     public static List<Suggestion> top() {
         long now = System.currentTimeMillis();
-        if (now - topAt > 2000) {
+        if (now - topAt > 2000 || topAt < QuestBook.changedAt()) {
             topAt = now;
             try {
                 top = suggest(3);

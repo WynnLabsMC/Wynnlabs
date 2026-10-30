@@ -136,7 +136,7 @@ final class QuestsData {
             pts.add(new int[] {q.x(), q.y(), q.z()});
             labels.add(L.t("wynnlabs.quests.pin_start", QuestGuides.title(name)));
         }
-        int n = Waypoints.showAll(pts, labels);
+        int n = Waypoints.showAll(pts, labels, java.util.Collections.nCopies(pts.size(), name));
         menu.flash(n > 0 ? L.n("wynnlabs.quests.pins_added", n) : L.t("wynnlabs.quests.no_coords"));
     }
 

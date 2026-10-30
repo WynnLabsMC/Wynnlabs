@@ -16,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -201,56 +202,131 @@ public final class QuestBook {
         }
     }
 
+    /**
+     * The completion banner: "[Quest Completed]", "[Quest Complete]", "[Mini-Quest Completed]", and
+     * the game's Turkish translation ("[Görev Tamamlandı]").
+     */
+    private static final Pattern BANNER = Pattern.compile(
+            "\\[\\s*(?:mini[- ]?)?quest\\s+complete(?:d)?\\s*]|\\[[^\\]]*görev tamamlandı\\s*]",
+            Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    /** How far apart the banner and the quest's name may come. */
+    private static final long NAME_WINDOW = 3000;
+    private static final int RECENT = 4;
+    private static final java.util.ArrayDeque<String> recent = new java.util.ArrayDeque<>();
+    private static long recentAt;
     private static long completedAt;
+    /** When a quest was last marked completed from chat; lists kept for a moment are worked out again. */
+    private static volatile long changedAt;
+
+    /** When chat last marked a quest completed (epoch ms); 0 when not this session. */
+    public static long changedAt() {
+        return changedAt;
+    }
 
     /**
-     * Chat: "[Quest Completed]" (or "[Görev Tamamlandı]") and the quest's name. The finished quest leaves the
-     * suggestions at once, without waiting for the content book to be opened again.
+     * Chat: the completion banner and the quest's name. The finished quest is marked completed and
+     * saved at once (it leaves the suggestions, the list and the quest pins) without waiting for
+     * the content book to be opened again; the next book read stays the source.
      */
     public static void onChat(net.minecraft.network.chat.Component message, boolean overlay) {
         if (overlay || message == null) {
             return;
         }
-        String text = ItemJson.clean(message.getString()).trim();
-        if (text.isEmpty()) {
+        onText(message.getString(), System.currentTimeMillis());
+    }
+
+    /**
+     * One chat message: the game may send the banner, the name and the rewards as one message of
+     * several lines or as separate messages, the name before or after the banner.
+     */
+    static void onText(String raw, long now) {
+        if (raw == null) {
             return;
         }
-        long now = System.currentTimeMillis();
-        // the banner in the game's English and in its Turkish translation
-        if (text.contains("[Quest Completed]") || text.contains("[Görev Tamamlandı]")) {
-            // the game sends the quest's name first, then "[Quest Completed]" (Frost Bite stayed
-            // open when only a name after the banner counted)
-            if (now - lastLineAt < 3000 && complete(lastLine)) {
+        for (String part : raw.split("\\R")) {
+            String line = ItemJson.clean(part).trim();
+            if (!line.isEmpty()) {
+                onLine(line, now);
+            }
+        }
+    }
+
+    private static void onLine(String line, long now) {
+        Matcher b = BANNER.matcher(line);
+        if (b.find()) {
+            String rest = (line.substring(0, b.start()) + " " + line.substring(b.end())).trim();
+            if (!rest.isEmpty() && complete(rest)) {
                 return;
+            }
+            // the name may come first (Frost Bite stayed open when only a name after the banner counted)
+            if (now - recentAt <= NAME_WINDOW) {
+                for (String l : recent) {
+                    if (complete(l)) {
+                        recent.clear();
+                        return;
+                    }
+                }
             }
             completedAt = now;
             return;
         }
-        if (now - completedAt <= 3000 && complete(text)) {
+        if (now - completedAt <= NAME_WINDOW && complete(line)) {
             completedAt = 0;
             return;
         }
-        lastLine = text;
-        lastLineAt = now;
+        if (now - recentAt > NAME_WINDOW) {
+            recent.clear();
+        }
+        recent.addFirst(line);
+        while (recent.size() > RECENT) {
+            recent.removeLast();
+        }
+        recentAt = now;
     }
 
-    private static String lastLine = "";
-    private static long lastLineAt;
+    /** Letters and digits only: "The Olmic Rune", "the olmic rune" and "The Olmic Rune." match; "'" and ":" do not count. */
+    static String nameKey(String s) {
+        return s == null ? "" : s.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
+    }
 
-    /** Marks the quest named {@code name} completed; false when no open quest has that name. */
+    /**
+     * Marks the quest named {@code name} completed and saves it; false when the book has no quest
+     * by that name (true, and nothing changes, when it is already completed).
+     */
     private static boolean complete(String name) {
         load();
+        String key = nameKey(name);
+        if (key.isEmpty()) {
+            return false;
+        }
         for (Entry e : ENTRIES.values()) {
             // the game's Turkish translation names the quest by its translated title
-            boolean named = e.name().equalsIgnoreCase(name) || QuestGuides.title(e.name()).equalsIgnoreCase(name);
-            if (named && !"COMPLETED".equals(e.status())) {
+            if (!key.equals(nameKey(e.name())) && !key.equals(nameKey(QuestGuides.title(e.name())))) {
+                continue;
+            }
+            if (!"COMPLETED".equals(e.status())) {
                 ENTRIES.put(e.name(), new Entry(e.name(), "COMPLETED", e.level(), e.length(), e.xp(), e.met(), e.task(),
                         e.x(), e.y(), e.z(), e.bookDistance(), System.currentTimeMillis(), e.type(), e.difficulty()));
                 save();
-                return true;
+                changedAt = System.currentTimeMillis();
+                System.out.println("[WynnLabs] quest completed from chat: " + e.name());
+                try {
+                    Waypoints.clearQuest(e.name());     // its own points only; other pins stay
+                } catch (Throwable ignored) {
+                }
             }
+            return true;
         }
         return false;
+    }
+
+    /** For tests: no quests and no chat seen. */
+    static void reset() {
+        ENTRIES.clear();
+        recent.clear();
+        recentAt = 0;
+        completedAt = 0;
+        changedAt = 0;
     }
 
     static int size() {
