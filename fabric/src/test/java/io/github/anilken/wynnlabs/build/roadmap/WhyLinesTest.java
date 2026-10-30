@@ -131,6 +131,17 @@ class WhyLinesTest {
                     }
                 }
                 double cap = Math.max(100, 5 * moved);
+                // a trade-off inside the damage: one part may grow up to five times while another falls by a
+                // quarter or more, as the main attack does when the mana paces the spells
+                // (Brainbleed at Lv 50: +90 raw main attack on a weak relik, its Dexterity and
+                // Defence taken from Intelligence; "Main Attack: 206 → 575", spells halved, +9 %;
+                // Mask of Hate at Lv 60: "Main Attack: 202 → 666", spells −76 %, +4 %)
+                for (String line : why) {
+                    Matcher fall = PCT.matcher(line);
+                    if (fall.find() && !fall.group(3).equals("+") && Double.parseDouble(fall.group(4)) >= 25) {
+                        cap = Math.max(cap, 400);
+                    }
+                }
                 for (String line : why) {
                     Matcher mt = PCT.matcher(line);
                     if (mt.find() && Double.parseDouble(mt.group(2)) < 10 * Double.parseDouble(mt.group(1))) {

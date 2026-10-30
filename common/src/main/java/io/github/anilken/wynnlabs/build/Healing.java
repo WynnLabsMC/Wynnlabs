@@ -18,8 +18,8 @@ import java.util.TreeMap;
  * boss) pay for at the heal's cost after Intelligence and the cost IDs of its slot, never more than
  * rules.model.maxCastsPer5s allows; a recast cuts Orphion's pulses still to come (the wiki's Mage
  * ability tree), so only those that land before it count. Mana Steal only comes from
- * main attack hits (the wiki's Identifications page), which a healer lands less: it counts at
- * rules.model.healManaSteal (half). Each ally gets what a cast heals them, at most half their max
+ * main attack hits (the wiki's Identifications page), which a healer lands less: the mana back it
+ * is given has only the share the main attack lands ({@link Damage#manaSteal}). Each ally gets what a cast heals them, at most half their max
  * health (the Heal's own text), their max health taken as yours; rules.model.healAllies (3, a
  * party of four) of them. With no heal in the tree (an unread tree, a class without one) a cast
  * heals {@link #FALLBACK_FRACTION} of your max health at {@link #FALLBACK_COST} mana, Mage's plain
@@ -78,8 +78,8 @@ final class Healing {
         }
         // never faster than the model's cast rate
         double cap = Math.max(0, Damage.model("maxCastsPer5s", 4)) / 5.0;
-        double steal = s.getOrDefault("manaSteal", 0.0) * 5.0 / 3.0;
-        double perSecond = (manaPer5 - (1 - Damage.model("healManaSteal", 0.5)) * steal) / 5.0;
+        // manaPer5 already has only the Mana Steal the main attack lands (Damage.manaSteal)
+        double perSecond = manaPer5 / 5.0;
         double casts = cost > 0 ? casts(cost, perSecond, pool, Damage.model("healWindow", 90), cap) : 0;
         // a recast cuts the pulses still to come: those that land before the next cast count
         double interval = casts > 0 ? 1 / casts : Double.POSITIVE_INFINITY;

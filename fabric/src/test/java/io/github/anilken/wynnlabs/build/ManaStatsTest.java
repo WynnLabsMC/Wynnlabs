@@ -19,8 +19,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The mana part of the score comes from the build's own stats: mana back every 5 s (Mana Regen,
  * Mana Steal) and the spells' cost cut (Intelligence, the raw and % cost IDs) by each spell's
- * share. Spells are cast at the fixed rate whatever the mana, so mana moves the mana part and
- * never the spell damage; with rules.model.castModel 1 the casts follow the mana (SpellCasts).
+ * share. The casts follow the mana (SpellCasts), so the mana part keeps a third of its weight;
+ * Mana Steal counts only as far as the main attack lands it; rules.model.castModel 0 casts at the
+ * old fixed rate whatever the mana.
  */
 class ManaStatsTest {
 
@@ -57,20 +58,39 @@ class ManaStatsTest {
     }
 
     @Test
-    void castsFollowTheManaWhenAskedTo() {
-        // rules.model.castModel 1: the casts follow the mana, and the mana part keeps half its weight
-        JsonObject paced = new JsonObject();
-        paced.addProperty("castModel", 1);
-        JsonObject withPaced = new JsonObject();
-        withPaced.add("model", paced);
-        Rules.use(withPaced);
+    void castsFollowTheMana() {
+        // the casts follow the mana, and the mana part keeps a third of its weight
         Damage.Result base = score(0, Map.of());
         Damage.Result more = score(0, Map.of("manaRegen", 30.0));
         assertTrue(base.casts() < Rules.sub("model", "maxCastsPer5s", 4), "the base mana pays for fewer: " + base.casts());
         assertTrue(more.casts() > base.casts());
         assertTrue(more.spellDps() > base.spellDps(), "more mana, more casts, more spell damage");
         assertTrue(score(0, Map.of("manaRegen", -40.0)).spellDps() <= base.spellDps());
-        assertEquals(1 + 0.3 * 0.5 * Math.log(2), mana(score(0, Map.of("manaRegen", 25.0))), 1e-9);
+        assertEquals(1 + 0.3 / 3 * Math.log(2), mana(score(0, Map.of("manaRegen", 25.0))), 1e-9);
+    }
+
+    @Test
+    void manaStealCountsAsFarAsTheMainAttackLandsIt() {
+        // a melee archetype hits all fight: its value every 3 s, whole
+        assertEquals(25 + 10, withMainAttack(1.0, () -> score(0, Map.of("manaSteal", 6.0))).manaPer5(), 1e-9);
+        // a Summoner casts and hits a fifth of the time: a fifth of it
+        assertEquals(25 + 2, withMainAttack(0.2, () -> score(0, Map.of("manaSteal", 6.0))).manaPer5(), 1e-9);
+        // and the casts see the same mana: the caster gets fewer of them from it
+        assertTrue(withMainAttack(0.2, () -> score(0, Map.of("manaSteal", 20.0))).casts()
+                < withMainAttack(1.0, () -> score(0, Map.of("manaSteal", 20.0))).casts());
+    }
+
+    private static Damage.Result withMainAttack(double weight, java.util.function.Supplier<Damage.Result> f) {
+        JsonObject model = new JsonObject();
+        model.addProperty("mainAttackWeight", weight);
+        JsonObject rules = new JsonObject();
+        rules.add("model", model);
+        Rules.use(rules);
+        try {
+            return f.get();
+        } finally {
+            Rules.use(new JsonObject());
+        }
     }
 
     @Test
@@ -86,9 +106,9 @@ class ManaStatsTest {
         double base = mana(score(0, Map.of()));
         Damage.Result regen = score(0, Map.of("manaRegen", 25.0));
         assertEquals(50, regen.manaPer5(), 1e-9);
-        assertEquals(1 + 0.3 * Math.log(2), mana(regen), 1e-9, "twice the base: manaWeight × ln 2");
+        assertEquals(1 + 0.3 / 3 * Math.log(2), mana(regen), 1e-9, "twice the base: a third of manaWeight × ln 2");
         Damage.Result steal = score(0, Map.of("manaSteal", 6.0));
-        assertEquals(35, steal.manaPer5(), 1e-9, "Mana Steal whole, its value every 3 s");
+        assertEquals(30, steal.manaPer5(), 1e-9, "Mana Steal's value every 3 s, half of it: the main attack's half of the fight");
         assertTrue(mana(steal) > base);
     }
 

@@ -1,26 +1,6 @@
 {
-  "count": 11,
+  "count": 14,
   "items": [
-    {
-      "slot": "HELMET",
-      "rank": 1,
-      "tradable": true,
-      "name": "Astigmatism",
-      "tier": "LEGENDARY",
-      "level": 48,
-      "score": 9.0,
-      "gain": 9.0,
-      "skillRequirements": {
-        "STRENGTH": 12,
-        "DEXTERITY": 12,
-        "INTELLIGENCE": 12,
-        "DEFENCE": 12,
-        "AGILITY": 12
-      },
-      "source": "NORMAL_MOB_DROP: Between level 44 and 52",
-      "restriction": "NONE",
-      "powderSlots": 3
-    },
     {
       "slot": "CHESTPLATE",
       "rank": 1,
@@ -28,8 +8,8 @@
       "name": "Sawdust",
       "tier": "LEGENDARY",
       "level": 49,
-      "score": 11.2,
-      "gain": 11.2,
+      "score": 9.2,
+      "gain": 9.2,
       "source": "TRADE_MARKET",
       "restriction": "NONE",
       "powderSlots": 3,
@@ -40,17 +20,16 @@
       "slot": "CHESTPLATE",
       "rank": 2,
       "tradable": true,
-      "name": "Bob's Battle Chestplate",
+      "name": "Solid Quartz Chestplate",
       "tier": "UNIQUE",
-      "level": 45,
-      "score": 6.8,
-      "gain": 6.8,
-      "questRequirement": "Bob's Lost Soul",
-      "source": "TRADE_MARKET",
+      "level": 43,
+      "score": 4.5,
+      "gain": 4.5,
+      "source": "MERCHANT: Llevigar",
       "restriction": "NONE",
-      "powderSlots": 3,
-      "price": 1573,
-      "priceText": "25 EB"
+      "powderSlots": 2,
+      "price": 1,
+      "priceText": "1 E"
     },
     {
       "slot": "CHESTPLATE",
@@ -59,8 +38,8 @@
       "name": "Narima Pasukan",
       "tier": "RARE",
       "level": 48,
-      "score": 6.7,
-      "gain": 6.7,
+      "score": 4.5,
+      "gain": 4.5,
       "skillRequirements": {
         "STRENGTH": 8,
         "DEXTERITY": 8,
@@ -76,11 +55,27 @@
       "slot": "CHESTPLATE",
       "rank": 4,
       "tradable": true,
+      "name": "Bob's Battle Chestplate",
+      "tier": "UNIQUE",
+      "level": 45,
+      "score": 4.2,
+      "gain": 4.2,
+      "questRequirement": "Bob's Lost Soul",
+      "source": "TRADE_MARKET",
+      "restriction": "NONE",
+      "powderSlots": 3,
+      "price": 1573,
+      "priceText": "25 EB"
+    },
+    {
+      "slot": "CHESTPLATE",
+      "rank": 5,
+      "tradable": true,
       "name": "Gale Burst",
       "tier": "UNIQUE",
       "level": 45,
-      "score": 4.6,
-      "gain": 4.6,
+      "score": 2.7,
+      "gain": 2.7,
       "skillRequirements": {
         "AGILITY": 25
       },
@@ -91,29 +86,14 @@
       "priceText": "8 EB"
     },
     {
-      "slot": "CHESTPLATE",
-      "rank": 5,
-      "tradable": true,
-      "name": "Solid Quartz Chestplate",
-      "tier": "UNIQUE",
-      "level": 43,
-      "score": 3.9,
-      "gain": 3.9,
-      "source": "MERCHANT: Llevigar",
-      "restriction": "NONE",
-      "powderSlots": 2,
-      "price": 1,
-      "priceText": "1 E"
-    },
-    {
       "slot": "BOOTS",
       "rank": 1,
       "tradable": true,
       "name": "Kaleidoscope",
       "tier": "RARE",
       "level": 47,
-      "score": 18.4,
-      "gain": 18.4,
+      "score": 18.7,
+      "gain": 18.7,
       "skillRequirements": {
         "STRENGTH": 10,
         "DEXTERITY": 10,
@@ -126,14 +106,30 @@
       "powderSlots": 2
     },
     {
+      "slot": "BOOTS",
+      "rank": 2,
+      "tradable": true,
+      "name": "Ice Climbing Boots",
+      "tier": "RARE",
+      "level": 43,
+      "score": 10.6,
+      "gain": 10.6,
+      "skillRequirements": {
+        "INTELLIGENCE": 25
+      },
+      "source": "NORMAL_MOB_DROP: Between level 39 and 47",
+      "restriction": "NONE",
+      "powderSlots": 2
+    },
+    {
       "slot": "RING",
       "rank": 1,
       "tradable": true,
       "name": "Marble",
       "tier": "RARE",
       "level": 48,
-      "score": 3.4,
-      "gain": 3.4,
+      "score": 3.8,
+      "gain": 3.8,
       "skillRequirements": {
         "STRENGTH": 8,
         "DEXTERITY": 8,
@@ -146,19 +142,65 @@
       "powderSlots": 0
     },
     {
-      "slot": "BRACELET",
-      "rank": 1,
+      "slot": "RING",
+      "rank": 2,
       "tradable": true,
-      "name": "Rime",
+      "name": "Precious",
       "tier": "LEGENDARY",
-      "level": 43,
-      "score": 4.0,
-      "gain": 4.0,
+      "level": 41,
+      "score": 2.0,
+      "gain": 2.0,
+      "source": "TRADE_MARKET",
+      "restriction": "NONE",
+      "powderSlots": 0,
+      "price": 2623,
+      "priceText": "41 EB"
+    },
+    {
+      "slot": "RING",
+      "rank": 3,
+      "tradable": true,
+      "name": "Horseshoe",
+      "tier": "RARE",
+      "level": 44,
+      "score": 1.4,
+      "gain": 1.4,
       "skillRequirements": {
-        "INTELLIGENCE": 15,
-        "AGILITY": 30
+        "AGILITY": 15
       },
-      "source": "CAVE_LOOT_CHEST: Between level 39 and 47",
+      "source": "MERCHANT: Bucie",
+      "restriction": "NONE",
+      "powderSlots": 0
+    },
+    {
+      "slot": "RING",
+      "rank": 4,
+      "tradable": true,
+      "name": "Quartron's Eye",
+      "tier": "RARE",
+      "level": 49,
+      "score": 1.3,
+      "gain": 1.3,
+      "questRequirement": "Rise of the Quartron",
+      "source": "TRADE_MARKET",
+      "restriction": "NONE",
+      "powderSlots": 0,
+      "price": 1113,
+      "priceText": "17 EB"
+    },
+    {
+      "slot": "RING",
+      "rank": 5,
+      "tradable": true,
+      "name": "Sticky Decoder Ring",
+      "tier": "RARE",
+      "level": 41,
+      "score": 1.0,
+      "gain": 1.0,
+      "skillRequirements": {
+        "INTELLIGENCE": 8
+      },
+      "source": "MERCHANT: Rymek",
       "restriction": "NONE",
       "powderSlots": 0
     },
@@ -169,8 +211,8 @@
       "name": "Heavensent",
       "tier": "LEGENDARY",
       "level": 42,
-      "score": 15.0,
-      "gain": 15.0,
+      "score": 14.4,
+      "gain": 14.4,
       "skillRequirements": {
         "INTELLIGENCE": 17,
         "AGILITY": 17
@@ -188,8 +230,8 @@
       "name": "Discotek",
       "tier": "LEGENDARY",
       "level": 49,
-      "score": 11.5,
-      "gain": 11.5,
+      "score": 11.9,
+      "gain": 11.9,
       "skillRequirements": {
         "STRENGTH": 11,
         "DEXTERITY": 11,

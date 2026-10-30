@@ -181,9 +181,9 @@ class RoadmapMilestonesTest {
                 bad.add(String.format("Lv %d: alone %.0f is more than 10 %% behind chained %.0f", p.level(), alone, chained));
             }
         }
-        // the chain keeps the Lv 33 Desert Winds rings up to Lv 80, which a search alone also sees
-        // when XP counts (kept longer), so most milestones are comparable
-        assertTrue(compared >= 4, "only " + compared + " milestones compared");
+        // the chain keeps the Lv 33 Desert Winds rings up to Lv 80 (Lv 60, 70 and 80 not
+        // compared) and a Lv 70 bracelet past Lv 90: Lv 44, 50 and 90 at least are comparable
+        assertTrue(compared >= 3, "only " + compared + " milestones compared");
         assertTrue(bad.isEmpty(), String.join("\n", bad));
     }
 

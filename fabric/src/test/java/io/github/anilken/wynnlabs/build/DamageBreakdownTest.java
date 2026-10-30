@@ -76,9 +76,9 @@ class DamageBreakdownTest {
             if (w.change().equals("+10% spell damage")) {
                 assertTrue(w.gain() > 0, "more spell damage helps a spell build");
             }
-            // the mana stats add no DPS (no fight is simulated) but raise the build score
+            // the mana stats pace the casts: they never take DPS away, and they raise the build score
             if (w.change().equals("+1 mana regen") || w.change().equals("-10% spell cost")) {
-                assertEquals(0, w.gain(), 1e-6, w.change() + " adds no DPS");
+                assertTrue(w.gain() >= -1e-6, w.change() + " takes no DPS away");
                 assertTrue(w.percent() > 0, w.change() + " raises the build score: " + w.percent());
             }
         }

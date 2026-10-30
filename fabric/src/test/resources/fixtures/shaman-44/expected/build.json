@@ -48,18 +48,18 @@
   },
   "skillPoints": {
     "STRENGTH": {
-      "target": 27,
-      "targetForBestBuild": 27,
+      "target": 20,
+      "targetForBestBuild": 20,
       "assigned": 25
     },
     "DEXTERITY": {
-      "target": 27,
-      "targetForBestBuild": 27,
+      "target": 21,
+      "targetForBestBuild": 21,
       "assigned": 15
     },
     "INTELLIGENCE": {
-      "target": 3,
-      "targetForBestBuild": 3,
+      "target": 19,
+      "targetForBestBuild": 19,
       "assigned": 15
     },
     "DEFENCE": {
@@ -68,26 +68,26 @@
       "assigned": 8
     },
     "AGILITY": {
-      "target": 21,
-      "targetForBestBuild": 21,
+      "target": 18,
+      "targetForBestBuild": 18,
       "assigned": 23
     }
   },
   "earnedPoints": 86,
   "planned": {
-    "objective": 5329.2,
-    "spellDps": 696.3,
-    "mainAttackDps": 894.9,
-    "damagePerCast": 870,
+    "objective": 4211.1,
+    "spellDps": 489.1,
+    "mainAttackDps": 861.8,
+    "damagePerCast": 1407,
     "manaPer5s": 29.0,
-    "spellCostCutPercent": 14.7,
+    "spellCostCutPercent": 21.9,
     "health": 1927,
-    "effectiveHealth": 2039,
-    "effectiveHealthElemental": 2180,
+    "effectiveHealth": 1989,
+    "effectiveHealthElemental": 2127,
     "parts": {
-      "damage": 1488.908,
-      "life": 2.555,
-      "mana": 1.092,
+      "damage": 1248.093,
+      "life": 2.531,
+      "mana": 1.04,
       "speed": 1.124,
       "xp": 1.141,
       "attackSpeedFeel": 1.0
@@ -96,19 +96,19 @@
     "walkSpeed": 51.0
   },
   "current": {
-    "objective": 5204.1,
-    "spellDps": 663.0,
+    "objective": 4194.6,
+    "spellDps": 470.1,
     "mainAttackDps": 856.3,
-    "damagePerCast": 829,
+    "damagePerCast": 1394,
     "manaPer5s": 29.0,
     "spellCostCutPercent": 20.2,
     "health": 1927,
     "effectiveHealth": 2072,
     "effectiveHealthElemental": 2216,
     "parts": {
-      "damage": 1419.049,
+      "damage": 1226.205,
       "life": 2.571,
-      "mana": 1.112,
+      "mana": 1.037,
       "speed": 1.124,
       "xp": 1.141,
       "attackSpeedFeel": 1.0
@@ -116,7 +116,7 @@
     "xpBonus": 60.0,
     "walkSpeed": 51.0
   },
-  "gainPercent": 2.4,
+  "gainPercent": 0.4,
   "minPoints": {
     "STRENGTH": 14,
     "DEXTERITY": 8,

@@ -11,13 +11,11 @@ import java.util.Map;
 /**
  * The spells' part of {@link Damage#evaluate}: each spell's cast through the damage pipeline (the
  * tree's cuts, waves, extras and one cast per Totem in its conversion), its mana a cast, and how
- * often it is cast: by default at the fixed rate (rules.model.maxCastsPer5s, the spells by their
- * shares), mana or not. With rules.model.castModel 1 the casts follow the mana ({@link Casting}):
- * the damage spells are cast as the mana back a second and the pool over a fight
- * (rules.model.castWindow, 30 s) pay for, best damage per mana first, at most
- * rules.model.castCapPer5s (4) casts every 5 s; a lasting spell (Totem) is recast as it runs out
- * and its mana comes off first. Off by default: its kinks left the road map's chained search up to
- * 7 % behind a fresh one and the comparison panel out of step with its row.
+ * often it is cast. The casts follow the mana ({@link Casting}): the damage spells are cast as the
+ * mana back a second and the pool over a fight (rules.model.castWindow, 30 s) pay for, best damage
+ * per mana first, at most rules.model.castCapPer5s (4) casts every 5 s; a lasting spell (Totem) is
+ * recast as it runs out and its mana comes off first. rules.model.castModel 0 casts at the old
+ * fixed rate instead (rules.model.maxCastsPer5s, the spells by their shares), mana or not.
  */
 final class SpellCasts {
 
@@ -115,9 +113,8 @@ final class SpellCasts {
             randomSum += dmg * multiplier;
         }
         double costCut = cutShare > 0 ? cutSum / cutShare : 0;
-        // Mana Steal comes from main attack hits, fewer while casting: a share of it (rules.model.castManaSteal)
-        double steal = s.getOrDefault("manaSteal", 0.0) * 5.0 / 3.0;
-        double[] x = rates(casts, manaPer5 - (1 - Damage.model("castManaSteal", 0.5)) * Math.max(0, steal), pool, lastingMana);
+        // manaPer5 already has only the Mana Steal the main attack lands (Damage.manaSteal)
+        double[] x = rates(casts, manaPer5, pool, lastingMana);
         double spellDps = 0;
         double perSecond = 0;
         for (int i = 0; i < casts.size(); i++) {
@@ -153,7 +150,7 @@ final class SpellCasts {
         if (n == 0) {
             return x;
         }
-        if (Damage.model("castModel", 0) <= 0) {
+        if (Damage.model("castModel", 1) <= 0) {
             double shareSum = 0;
             for (Cast k : casts) {
                 shareSum += k.share();

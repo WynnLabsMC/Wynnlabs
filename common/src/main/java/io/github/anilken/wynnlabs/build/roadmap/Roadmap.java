@@ -449,7 +449,7 @@ public final class Roadmap {
      * is the scoring's). A method, not a field: a field added by a hot swap keeps no value.
      */
     public static int mapVersion() {
-        return 9;
+        return 10;
     }
 
     /** Tests: the saved map is looked for again, and nothing is kept in memory. */

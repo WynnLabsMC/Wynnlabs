@@ -8,7 +8,7 @@
           "name": "Gnocchi",
           "level": 17,
           "tier": "RARE",
-          "gain": 11.2,
+          "gain": 11.0,
           "from": "Add 2 tier III powders (any element, same HP), about 2 EB",
           "price": null,
           "tradable": true,
@@ -19,7 +19,7 @@
           "name": "Golden Embrace",
           "level": 19,
           "tier": "RARE",
-          "gain": 5.6,
+          "gain": 5.5,
           "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
           "price": null,
           "tradable": true,
@@ -30,7 +30,7 @@
           "name": "Jate",
           "level": 17,
           "tier": "UNIQUE",
-          "gain": 5.6,
+          "gain": 5.5,
           "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
           "price": null,
           "tradable": true,
@@ -41,7 +41,7 @@
           "name": "Ado Saki",
           "level": 20,
           "tier": "RARE",
-          "gain": 5.6,
+          "gain": 5.5,
           "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
           "price": null,
           "tradable": true,
@@ -52,7 +52,7 @@
           "name": "Keen Measure",
           "level": 17,
           "tier": "UNIQUE",
-          "gain": 26.6,
+          "gain": 26.7,
           "from": "Add 1× Water III powder, about 1 EB",
           "price": null,
           "tradable": true,
@@ -63,7 +63,7 @@
           "name": "Helter Skelter",
           "level": 19,
           "tier": "LEGENDARY",
-          "gain": 75.3,
+          "gain": 72.0,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -71,91 +71,91 @@
             {
               "name": "Helter Skelter",
               "level": 19,
-              "gain": 347.6,
+              "gain": 386.3,
               "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Grindcore",
-              "level": 25,
-              "gain": 312.4,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Cave In",
-              "level": 21,
-              "gain": 291.1,
-              "from": "Trade Market",
-              "tradable": true
-            },
-            {
-              "name": "Technicolor Phase",
-              "level": 21,
-              "gain": 283.4,
-              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Intestine Lasso",
               "level": 25,
-              "gain": 251.3,
+              "gain": 331.2,
               "from": "loot chest",
               "tradable": true
             },
             {
-              "name": "Cruel Sun",
-              "level": 24,
-              "gain": 240.5,
-              "from": "loot chest",
+              "name": "Technicolor Phase",
+              "level": 21,
+              "gain": 264.3,
+              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
-              "name": "Flux and Flow",
+              "name": "Grindcore",
               "level": 25,
-              "gain": 231.9,
-              "from": "loot chest",
+              "gain": 263.0,
+              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Presto",
               "level": 16,
-              "gain": 212.0,
+              "gain": 222.3,
               "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Gestation",
-              "level": 23,
-              "gain": 207.2,
-              "from": "mob drop",
+              "name": "Cave In",
+              "level": 21,
+              "gain": 218.9,
+              "from": "Trade Market",
+              "tradable": true
+            },
+            {
+              "name": "Flux and Flow",
+              "level": 25,
+              "gain": 157.1,
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Prog",
               "level": 18,
-              "gain": 206.9,
+              "gain": 153.6,
               "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Gestation",
+              "level": 23,
+              "gain": 133.6,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Cruel Sun",
+              "level": 24,
+              "gain": 99.5,
+              "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Beachside Conch",
               "level": 25,
-              "gain": 88.3,
+              "gain": 43.2,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Earthwave",
               "level": 16,
-              "gain": 37.5,
+              "gain": -12.6,
               "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Butterfly Wings",
               "level": 19,
-              "gain": -78.2,
+              "gain": -119.8,
               "from": "Trade Market",
               "tradable": true
             }
@@ -166,7 +166,7 @@
           "name": "Lemon Legs",
           "level": 18,
           "tier": "LEGENDARY",
-          "gain": 32.8,
+          "gain": 30.9,
           "from": "Decrepit Sewers dungeon",
           "price": null,
           "tradable": true,
@@ -174,42 +174,35 @@
             {
               "name": "Lemon Legs",
               "level": 18,
-              "gain": 52.0,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Selchar's Famous Breeches",
-              "level": 25,
-              "gain": 30.2,
+              "gain": 54.2,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Tribal Pants",
               "level": 18,
-              "gain": 24.5,
+              "gain": 38.3,
               "from": "loot chest",
               "tradable": true
             },
             {
-              "name": "Skeletal Legs",
-              "level": 23,
-              "gain": 14.3,
-              "from": "loot chest",
+              "name": "Selchar's Famous Breeches",
+              "level": 25,
+              "gain": 29.2,
+              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Cloudburst",
               "level": 19,
-              "gain": 13.5,
+              "gain": 23.5,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Foundation",
               "level": 20,
-              "gain": 12.0,
+              "gain": 13.4,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             }
@@ -220,7 +213,7 @@
           "name": "Neolithic",
           "level": 20,
           "tier": "LEGENDARY",
-          "gain": 23.2,
+          "gain": 23.9,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -228,49 +221,49 @@
             {
               "name": "Neolithic",
               "level": 20,
-              "gain": 83.3,
+              "gain": 89.8,
               "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Bear Mask",
+              "level": 15,
+              "gain": 46.1,
+              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Memorial",
               "level": 19,
-              "gain": 43.3,
+              "gain": 42.8,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Mercenary Hood",
               "level": 19,
-              "gain": 32.0,
+              "gain": 42.0,
               "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
+              "name": "Bear Head",
+              "level": 15,
+              "gain": 40.3,
+              "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Straw Helmet",
               "level": 20,
-              "gain": 31.9,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Bear Mask",
-              "level": 15,
-              "gain": 31.6,
+              "gain": 34.0,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Tribal Cap",
               "level": 18,
-              "gain": 27.3,
-              "from": "Detlas merchant",
-              "tradable": true
-            },
-            {
-              "name": "Zombie Helm",
-              "level": 18,
-              "gain": 25.7,
+              "gain": 29.7,
               "from": "Detlas merchant",
               "tradable": true
             }
@@ -281,7 +274,7 @@
           "name": "Tribal Tunic",
           "level": 18,
           "tier": "RARE",
-          "gain": 2.2,
+          "gain": 9.1,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -289,42 +282,42 @@
             {
               "name": "Tribal Tunic",
               "level": 18,
-              "gain": 2.6,
+              "gain": 14.3,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "The Scarecrow's Vest",
               "level": 20,
-              "gain": 15.5,
-              "from": "The Hunger of Gerts Part 1 quest",
-              "tradable": false
-            },
-            {
-              "name": "Abdomen",
-              "level": 20,
-              "gain": -9.1,
+              "gain": 16.3,
               "from": "The Hunger of Gerts Part 1 quest",
               "tradable": false
             },
             {
               "name": "Tepid Plate",
               "level": 20,
-              "gain": -11.5,
+              "gain": -6.4,
               "from": "loot chest",
               "tradable": true
             },
             {
+              "name": "Abdomen",
+              "level": 20,
+              "gain": -9.3,
+              "from": "The Hunger of Gerts Part 1 quest",
+              "tradable": false
+            },
+            {
               "name": "Maltic's Aid",
               "level": 18,
-              "gain": -13.0,
+              "gain": -13.2,
               "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Ragni Fatigues",
               "level": 15,
-              "gain": -15.0,
+              "gain": -14.0,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             }
@@ -335,7 +328,7 @@
           "name": "Shajone",
           "level": 18,
           "tier": "UNIQUE",
-          "gain": 4.7,
+          "gain": 5.4,
           "from": "Detlas merchant",
           "price": null,
           "tradable": true,
@@ -343,42 +336,42 @@
             {
               "name": "Shajone",
               "level": 18,
-              "gain": 73.8,
+              "gain": 83.8,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Hunger",
               "level": 17,
-              "gain": 58.7,
+              "gain": 58.4,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Omnitread Boots",
               "level": 15,
-              "gain": 43.0,
+              "gain": 43.3,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Stingy",
               "level": 20,
-              "gain": 37.7,
+              "gain": 37.6,
               "from": "The Hunger of Gerts Part 1 quest",
               "tradable": false
             },
             {
               "name": "Tribal Boots",
               "level": 18,
-              "gain": 36.6,
+              "gain": 37.2,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Steel Toed Boots",
               "level": 19,
-              "gain": 35.9,
+              "gain": 36.6,
               "from": "loot chest",
               "tradable": true
             }
@@ -386,25 +379,32 @@
         },
         {
           "slot": "RING2",
-          "name": "Zap",
-          "level": 20,
+          "name": "Sparkle",
+          "level": 16,
           "tier": "UNIQUE",
-          "gain": 1.7,
-          "from": "loot chest",
+          "gain": 0.9,
+          "from": "Detlas merchant",
           "price": null,
           "tradable": true,
           "options": [
             {
-              "name": "Zap",
+              "name": "Sparkle",
+              "level": 16,
+              "gain": 6.1,
+              "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Major",
               "level": 20,
-              "gain": 4.9,
-              "from": "loot chest",
+              "gain": 8.7,
+              "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Lizard",
               "level": 18,
-              "gain": 6.7,
+              "gain": 8.3,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
@@ -416,49 +416,49 @@
               "tradable": true
             },
             {
-              "name": "Major",
-              "level": 20,
-              "gain": 5.2,
-              "from": "Detlas merchant",
-              "tradable": true
-            },
-            {
               "name": "Red String",
               "level": 16,
-              "gain": 5.1,
+              "gain": 5.2,
               "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Ring of Focus",
+              "name": "Zap",
               "level": 20,
-              "gain": 4.6,
-              "from": "Detlas merchant",
+              "gain": 4.0,
+              "from": "loot chest",
               "tradable": true
             }
           ]
         },
         {
           "slot": "RING",
-          "name": "Zap",
-          "level": 20,
+          "name": "Sparkle",
+          "level": 16,
           "tier": "UNIQUE",
-          "gain": 4.8,
-          "from": "loot chest",
+          "gain": 3.8,
+          "from": "Detlas merchant",
           "price": null,
           "tradable": true,
           "options": [
             {
-              "name": "Zap",
+              "name": "Sparkle",
+              "level": 16,
+              "gain": 6.1,
+              "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Major",
               "level": 20,
-              "gain": 4.9,
-              "from": "loot chest",
+              "gain": 8.7,
+              "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Lizard",
               "level": 18,
-              "gain": 6.7,
+              "gain": 8.3,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
@@ -470,63 +470,56 @@
               "tradable": true
             },
             {
-              "name": "Major",
-              "level": 20,
-              "gain": 5.2,
-              "from": "Detlas merchant",
-              "tradable": true
-            },
-            {
               "name": "Red String",
               "level": 16,
-              "gain": 5.1,
+              "gain": 5.2,
               "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Ring of Focus",
+              "name": "Zap",
               "level": 20,
-              "gain": 4.6,
-              "from": "Detlas merchant",
+              "gain": 4.0,
+              "from": "loot chest",
               "tradable": true
             }
           ]
         },
         {
           "slot": "BRACELET",
-          "name": "Gust",
-          "level": 20,
+          "name": "Slap",
+          "level": 15,
           "tier": "UNIQUE",
-          "gain": 4.2,
-          "from": "Detlas merchant",
+          "gain": 3.9,
+          "from": "loot chest",
           "price": null,
           "tradable": true,
           "options": [
             {
-              "name": "Gust",
-              "level": 20,
-              "gain": 4.2,
-              "from": "Detlas merchant",
-              "tradable": true
-            },
-            {
               "name": "Slap",
               "level": 15,
-              "gain": 7.6,
+              "gain": 8.8,
               "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Spider Bracelet",
               "level": 19,
-              "gain": 5.3,
+              "gain": 4.4,
               "from": "loot chest",
+              "tradable": true
+            },
+            {
+              "name": "Gust",
+              "level": 20,
+              "gain": 2.9,
+              "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Bejeweled Bracelet",
               "level": 17,
-              "gain": 1.4,
+              "gain": 0.1,
               "from": "Detlas merchant",
               "tradable": true
             }
@@ -537,7 +530,7 @@
           "name": "Spider's Eye Pendant",
           "level": 20,
           "tier": "RARE",
-          "gain": 9.2,
+          "gain": 7.5,
           "from": "Detlas merchant",
           "price": null,
           "tradable": true,
@@ -545,35 +538,35 @@
             {
               "name": "Spider's Eye Pendant",
               "level": 20,
-              "gain": 3.5,
+              "gain": 2.7,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Charm of the Flea",
               "level": 20,
-              "gain": 2.3,
+              "gain": 0.5,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Simple Coin",
               "level": 18,
-              "gain": 0.7,
+              "gain": -1.1,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Amulet of the Necromancer",
               "level": 18,
-              "gain": 0.4,
+              "gain": -3.7,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Diaconate",
               "level": 15,
-              "gain": -0.4,
+              "gain": -6.1,
               "from": "Detlas merchant",
               "tradable": true
             }
@@ -594,7 +587,7 @@
           "name": "Thriller",
           "level": 28,
           "tier": "LEGENDARY",
-          "gain": 56.4,
+          "gain": 40.3,
           "from": "The Hunger of Gerts Part 1 quest",
           "price": null,
           "tradable": false,
@@ -602,36 +595,36 @@
             {
               "name": "Thriller",
               "level": 28,
-              "gain": 209.7,
+              "gain": 183.9,
               "from": "The Hunger of Gerts Part 1 quest",
               "tradable": false
             },
             {
               "name": "Vivace",
               "level": 29,
-              "gain": 155.5,
+              "gain": 155.4,
               "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
+              "name": "Ablution",
+              "level": 30,
+              "gain": 139.8,
+              "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Breath of the Dragon",
               "level": 27,
-              "gain": 135.3,
+              "gain": 116.9,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
-              "name": "Boundary",
-              "level": 26,
-              "gain": 128.2,
-              "from": "The Hunger of Gerts Part 1 quest",
-              "tradable": false
-            },
-            {
-              "name": "Grindcore",
+              "name": "Intestine Lasso",
               "level": 25,
-              "gain": 112.0,
-              "from": "Decrepit Sewers dungeon",
+              "gain": 109.9,
+              "from": "loot chest",
               "tradable": true
             }
           ]
@@ -641,7 +634,7 @@
           "name": "Black Ripper",
           "level": 27,
           "tier": "RARE",
-          "gain": 14.4,
+          "gain": 17.8,
           "from": "The Hunger of Gerts Part 1 quest",
           "price": null,
           "tradable": false,
@@ -649,42 +642,42 @@
             {
               "name": "Black Ripper",
               "level": 27,
-              "gain": 118.9,
+              "gain": 159.3,
               "from": "The Hunger of Gerts Part 1 quest",
               "tradable": false
             },
             {
               "name": "Giant's Kneecap",
               "level": 30,
-              "gain": 139.5,
+              "gain": 147.7,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Advancement",
               "level": 29,
-              "gain": 109.8,
+              "gain": 111.7,
               "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
               "tradable": false
             },
             {
               "name": "Fire Relic Helmet",
               "level": 30,
-              "gain": 92.8,
+              "gain": 95.4,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Santa Earmuffs",
               "level": 30,
-              "gain": 86.6,
+              "gain": 88.5,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Black Mask",
               "level": 29,
-              "gain": 60.3,
+              "gain": 68.4,
               "from": "Detlas merchant",
               "tradable": true
             }
@@ -692,33 +685,33 @@
         },
         {
           "slot": "CHESTPLATE",
-          "name": "Arakadicus' Body",
-          "level": 21,
+          "name": "Nemract's Ruin",
+          "level": 27,
           "tier": "LEGENDARY",
-          "gain": 18.8,
-          "from": "Detlas merchant",
+          "gain": 20.4,
+          "from": "loot chest",
           "price": null,
           "tradable": true,
           "options": [
             {
-              "name": "Arakadicus' Body",
-              "level": 21,
-              "gain": 16.2,
-              "from": "Detlas merchant",
-              "tradable": true
-            },
-            {
               "name": "Nemract's Ruin",
               "level": 27,
-              "gain": 65.4,
+              "gain": 86.0,
               "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Hero's Beginning",
               "level": 27,
-              "gain": 21.0,
+              "gain": 30.3,
               "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
+              "name": "Arakadicus' Body",
+              "level": 21,
+              "gain": 16.0,
+              "from": "Detlas merchant",
               "tradable": true
             },
             {
@@ -731,8 +724,62 @@
             {
               "name": "Reckless Vessel",
               "level": 29,
-              "gain": 3.3,
+              "gain": 3.9,
               "from": "Detlas merchant",
+              "tradable": true
+            }
+          ]
+        },
+        {
+          "slot": "LEGGINGS",
+          "name": "Conductor",
+          "level": 25,
+          "tier": "LEGENDARY",
+          "gain": 0.4,
+          "from": "Detlas merchant",
+          "price": null,
+          "tradable": true,
+          "options": [
+            {
+              "name": "Conductor",
+              "level": 25,
+              "gain": 30.7,
+              "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Enhanced Panorama",
+              "level": 30,
+              "gain": 42.4,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Tribal Pants",
+              "level": 18,
+              "gain": 33.8,
+              "from": "loot chest",
+              "tradable": true
+            },
+            {
+              "name": "Bronze-Plated Greaves",
+              "level": 26,
+              "gain": 22.4,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Cloudburst",
+              "level": 19,
+              "gain": 22.0,
+              "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Tarnish",
+              "level": 21,
+              "gain": 2.2,
+              "from": "mob drop",
               "tradable": true
             }
           ]
@@ -742,7 +789,7 @@
           "name": "Meanderthal",
           "level": 29,
           "tier": "LEGENDARY",
-          "gain": 30.2,
+          "gain": 28.3,
           "from": "Decrepit Sewers dungeon",
           "price": null,
           "tradable": true,
@@ -750,150 +797,42 @@
             {
               "name": "Meanderthal",
               "level": 29,
-              "gain": 118.5,
+              "gain": 119.1,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Almuj's Walker",
               "level": 25,
-              "gain": 106.0,
+              "gain": 105.9,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Cyclo",
               "level": 21,
-              "gain": 86.2,
+              "gain": 93.0,
               "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Disco",
               "level": 27,
-              "gain": 82.7,
+              "gain": 83.3,
               "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Sharp Heels",
               "level": 29,
-              "gain": 53.3,
+              "gain": 66.5,
               "from": "loot chest",
               "tradable": true
             },
             {
-              "name": "The Brigand's Brogues",
-              "level": 25,
-              "gain": 51.7,
-              "from": "loot chest",
-              "tradable": true
-            }
-          ]
-        },
-        {
-          "slot": "RING2",
-          "name": "Barrage",
-          "level": 28,
-          "tier": "UNIQUE",
-          "gain": 0.2,
-          "from": "mob drop",
-          "price": null,
-          "tradable": true,
-          "options": [
-            {
-              "name": "Barrage",
-              "level": 28,
-              "gain": 4.7,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Quatrain",
-              "level": 16,
-              "gain": 5.2,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Timelocked Coal",
-              "level": 28,
-              "gain": 4.5,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Timelocked Spark",
-              "level": 28,
-              "gain": 4.5,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Timelocked Stone",
-              "level": 28,
-              "gain": 4.2,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Uriel",
-              "level": 27,
-              "gain": 2.9,
-              "from": "Detlas merchant",
-              "tradable": true
-            }
-          ]
-        },
-        {
-          "slot": "RING",
-          "name": "Barrage",
-          "level": 28,
-          "tier": "UNIQUE",
-          "gain": 0.2,
-          "from": "mob drop",
-          "price": null,
-          "tradable": true,
-          "options": [
-            {
-              "name": "Barrage",
-              "level": 28,
-              "gain": 4.7,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Quatrain",
-              "level": 16,
-              "gain": 5.2,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Timelocked Coal",
-              "level": 28,
-              "gain": 4.5,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Timelocked Spark",
-              "level": 28,
-              "gain": 4.5,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Timelocked Stone",
-              "level": 28,
-              "gain": 4.2,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Uriel",
-              "level": 27,
-              "gain": 2.9,
+              "name": "Hertz",
+              "level": 23,
+              "gain": 53.4,
               "from": "Detlas merchant",
               "tradable": true
             }
@@ -904,7 +843,7 @@
           "name": "Dynamic",
           "level": 28,
           "tier": "UNIQUE",
-          "gain": 2.8,
+          "gain": 2.3,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -912,42 +851,42 @@
             {
               "name": "Dynamic",
               "level": 28,
-              "gain": 9.4,
+              "gain": 11.1,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Practice",
               "level": 30,
-              "gain": 11.3,
+              "gain": 16.1,
               "from": "The Hunger of Gerts Part 1 quest · 2× Time Fragment",
               "tradable": false
             },
             {
-              "name": "Vindicator",
-              "level": 30,
-              "gain": 11.1,
-              "from": "Detlas merchant",
+              "name": "Buster Bracer",
+              "level": 20,
+              "gain": 13.1,
+              "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Buster Bracer",
-              "level": 20,
-              "gain": 10.9,
-              "from": "mob drop",
+              "name": "Vindicator",
+              "level": 30,
+              "gain": 8.8,
+              "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Used Wolf Paw",
               "level": 30,
-              "gain": 7.3,
+              "gain": 4.5,
               "from": "loot chest",
               "tradable": true
             },
             {
-              "name": "Slap",
-              "level": 15,
-              "gain": 5.6,
+              "name": "The Meddler",
+              "level": 19,
+              "gain": 4.1,
               "from": "loot chest",
               "tradable": true
             }
@@ -955,55 +894,81 @@
         },
         {
           "slot": "NECKLACE",
-          "name": "Slainte",
-          "level": 30,
-          "tier": "RARE",
-          "gain": 3.6,
-          "from": "The Hunger of Gerts Part 1 quest · 2× Time Fragment",
+          "name": "Durum's Serenity",
+          "level": 25,
+          "tier": "LEGENDARY",
+          "gain": 5.9,
+          "from": "The Hunger of Gerts Part 1 quest",
           "price": null,
           "tradable": false,
           "options": [
             {
+              "name": "Durum's Serenity",
+              "level": 25,
+              "gain": 18.5,
+              "from": "The Hunger of Gerts Part 1 quest",
+              "tradable": false
+            },
+            {
               "name": "Slainte",
               "level": 30,
-              "gain": 20.7,
+              "gain": 18.2,
               "from": "The Hunger of Gerts Part 1 quest · 2× Time Fragment",
               "tradable": false
             },
             {
               "name": "Zombie Eye Pendant",
               "level": 27,
-              "gain": 15.2,
+              "gain": 18.0,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Dark Diadem",
               "level": 24,
-              "gain": 5.1,
+              "gain": 3.0,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Longevity",
               "level": 30,
-              "gain": 4.0,
+              "gain": 2.7,
               "from": "The Hunger of Gerts Part 1 quest · 2× Time Fragment",
               "tradable": false
             },
             {
               "name": "Power Scale",
               "level": 28,
-              "gain": 2.8,
+              "gain": 1.2,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Spirit Calling",
               "level": 28,
-              "gain": 0.2,
+              "gain": 0.7,
               "from": "mob drop",
               "tradable": true
+            }
+          ]
+        },
+        {
+          "slot": "RING2",
+          "name": "Timelocked Spark",
+          "level": 28,
+          "tier": "UNIQUE",
+          "gain": 0.2,
+          "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
+          "price": null,
+          "tradable": false,
+          "options": [
+            {
+              "name": "Timelocked Spark",
+              "level": 28,
+              "gain": 4.8,
+              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
+              "tradable": false
             }
           ]
         }
@@ -1019,11 +984,114 @@
       "level": 40,
       "gear": [
         {
+          "slot": "HELMET",
+          "name": "Ridge",
+          "level": 34,
+          "tier": "RARE",
+          "gain": 2.5,
+          "from": "Decrepit Sewers dungeon",
+          "price": null,
+          "tradable": true,
+          "options": [
+            {
+              "name": "Ridge",
+              "level": 34,
+              "gain": 154.5,
+              "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
+              "name": "Enhanced Hilltop",
+              "level": 33,
+              "gain": 169.9,
+              "from": "loot chest",
+              "tradable": true
+            },
+            {
+              "name": "Giant's Kneecap",
+              "level": 30,
+              "gain": 124.6,
+              "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
+              "name": "Hood of the Resistance",
+              "level": 32,
+              "gain": 119.1,
+              "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Hilltop",
+              "level": 33,
+              "gain": 109.8,
+              "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
+              "name": "Ice Mask",
+              "level": 28,
+              "gain": 91.1,
+              "from": "loot chest",
+              "tradable": true
+            },
+            {
+              "name": "Advancement",
+              "level": 29,
+              "gain": 89.8,
+              "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
+              "tradable": false
+            },
+            {
+              "name": "Tarnhelm",
+              "level": 33,
+              "gain": 78.5,
+              "from": "loot chest",
+              "tradable": true
+            },
+            {
+              "name": "Neolithic",
+              "level": 20,
+              "gain": 57.5,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Black Mask",
+              "level": 29,
+              "gain": 53.9,
+              "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Brainy Beanie",
+              "level": 22,
+              "gain": 43.4,
+              "from": "Trade Market",
+              "tradable": true
+            },
+            {
+              "name": "Gnocchi",
+              "level": 17,
+              "gain": 34.6,
+              "from": "Trade Market",
+              "tradable": true
+            },
+            {
+              "name": "Straw Helmet",
+              "level": 20,
+              "gain": 23.2,
+              "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            }
+          ]
+        },
+        {
           "slot": "CHESTPLATE",
           "name": "Vagabond",
           "level": 33,
           "tier": "RARE",
-          "gain": 6.0,
+          "gain": 4.8,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -1031,84 +1099,84 @@
             {
               "name": "Vagabond",
               "level": 33,
-              "gain": 112.9,
+              "gain": 118.1,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Sanguine Spaulder",
               "level": 32,
-              "gain": 70.0,
+              "gain": 61.9,
               "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Nemract's Ruin",
-              "level": 27,
-              "gain": 61.4,
-              "from": "loot chest",
+              "name": "Body Axe",
+              "level": 26,
+              "gain": 53.8,
+              "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Black Tunic",
               "level": 33,
-              "gain": 57.0,
+              "gain": 43.4,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Hourslip",
               "level": 32,
-              "gain": 40.7,
+              "gain": 36.6,
               "from": "The Hunger of Gerts Part 1 quest · 7× Time Fragment",
               "tradable": false
             },
             {
-              "name": "Body Axe",
-              "level": 26,
-              "gain": 38.7,
-              "from": "Detlas merchant",
+              "name": "Santa's Coat",
+              "level": 32,
+              "gain": 23.2,
+              "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Santa's Coat",
-              "level": 32,
-              "gain": 26.8,
-              "from": "mob drop",
+              "name": "Angel Wing Shroud",
+              "level": 27,
+              "gain": 22.4,
+              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Secondsaver",
               "level": 30,
-              "gain": 24.4,
+              "gain": 20.7,
               "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
               "tradable": false
             },
             {
-              "name": "Angel Wing Shroud",
-              "level": 27,
-              "gain": 21.8,
-              "from": "Decrepit Sewers dungeon",
+              "name": "Arakadicus' Body",
+              "level": 21,
+              "gain": 16.0,
+              "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "The Scarecrow's Vest",
               "level": 20,
-              "gain": 8.0,
+              "gain": 7.0,
               "from": "The Hunger of Gerts Part 1 quest",
               "tradable": false
             },
             {
-              "name": "Abdomen",
+              "name": "Tepid Plate",
               "level": 20,
-              "gain": -4.8,
-              "from": "The Hunger of Gerts Part 1 quest",
-              "tradable": false
+              "gain": -0.9,
+              "from": "loot chest",
+              "tradable": true
             },
             {
               "name": "Ragni Fatigues",
               "level": 15,
-              "gain": -5.3,
+              "gain": -6.2,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             }
@@ -1116,150 +1184,143 @@
         },
         {
           "slot": "LEGGINGS",
-          "name": "Alternator",
+          "name": "Seismic Chaps",
           "level": 32,
-          "tier": "LEGENDARY",
-          "gain": 10.3,
-          "from": "loot chest",
+          "tier": "RARE",
+          "gain": 8.1,
+          "from": "mob drop",
           "price": null,
           "tradable": true,
           "options": [
             {
-              "name": "Alternator",
+              "name": "Seismic Chaps",
               "level": 32,
-              "gain": 69.8,
-              "from": "loot chest",
+              "gain": 101.3,
+              "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Diminution",
               "level": 33,
-              "gain": 82.4,
+              "gain": 76.2,
               "from": "The Hunger of Gerts Part 1 quest · 7× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Seismic Chaps",
-              "level": 32,
-              "gain": 80.3,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Dead Sands",
-              "level": 32,
-              "gain": 74.8,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Dilation",
-              "level": 31,
-              "gain": 69.5,
-              "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
               "tradable": false
             },
             {
               "name": "Urheus",
               "level": 32,
-              "gain": 61.0,
+              "gain": 75.1,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
+              "name": "Dead Sands",
+              "level": 32,
+              "gain": 71.1,
+              "from": "Decrepit Sewers dungeon",
+              "tradable": true
+            },
+            {
+              "name": "Alternator",
+              "level": 32,
+              "gain": 70.9,
+              "from": "loot chest",
+              "tradable": true
+            },
+            {
+              "name": "Dilation",
+              "level": 31,
+              "gain": 62.0,
+              "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
+              "tradable": false
+            },
+            {
               "name": "Black Pants",
               "level": 33,
-              "gain": 51.1,
+              "gain": 57.1,
               "from": "loot chest",
+              "tradable": true
+            },
+            {
+              "name": "Lemon Legs",
+              "level": 18,
+              "gain": 35.2,
+              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Enhanced Panorama",
               "level": 30,
-              "gain": 39.8,
+              "gain": 32.9,
               "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Conductor",
-              "level": 25,
-              "gain": 31.8,
-              "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Foundation",
               "level": 20,
-              "gain": 7.9,
+              "gain": 5.9,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
-              "name": "Spinneret",
-              "level": 19,
-              "gain": 5.5,
-              "from": "The Hunger of Gerts Part 1 quest",
-              "tradable": false
-            },
-            {
               "name": "Golden Pants of Fortune",
               "level": 19,
-              "gain": -0.1,
+              "gain": -1.0,
               "from": "loot chest",
               "tradable": true
             }
           ]
         },
         {
-          "slot": "RING2",
-          "name": "Misshapen Libella",
-          "level": 32,
+          "slot": "RING",
+          "name": "Timelocked Spark",
+          "level": 28,
           "tier": "UNIQUE",
-          "gain": 0.3,
-          "from": "Decrepit Sewers dungeon",
+          "gain": 0.8,
+          "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
           "price": null,
-          "tradable": true,
+          "tradable": false,
           "options": [
+            {
+              "name": "Timelocked Spark",
+              "level": 28,
+              "gain": 4.8,
+              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
+              "tradable": false
+            },
             {
               "name": "Misshapen Libella",
               "level": 32,
-              "gain": 6.0,
+              "gain": 9.2,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
-              "name": "Warsong",
+              "name": "Carnivorous",
               "level": 33,
-              "gain": 8.7,
-              "from": "Decrepit Sewers dungeon",
+              "gain": 9.1,
+              "from": "mob drop",
               "tradable": true
             },
             {
-              "name": "Timelocked Dew",
+              "name": "Barrage",
               "level": 28,
-              "gain": 5.4,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Timelocked Stone",
-              "level": 28,
-              "gain": 3.0,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Timelocked Breath",
-              "level": 28,
-              "gain": 2.7,
-              "from": "The Hunger of Gerts Part 1 quest · 1× Time Fragment",
-              "tradable": false
+              "gain": 4.6,
+              "from": "mob drop",
+              "tradable": true
             },
             {
               "name": "Libella",
               "level": 32,
-              "gain": 2.0,
+              "gain": 4.3,
               "from": "Detlas merchant",
+              "tradable": true
+            },
+            {
+              "name": "Unwavering",
+              "level": 21,
+              "gain": 4.1,
+              "from": "loot chest",
               "tradable": true
             }
           ]
@@ -1280,114 +1341,11 @@
       "level": 60,
       "gear": [
         {
-          "slot": "HELMET",
-          "name": "Ridge",
-          "level": 34,
-          "tier": "RARE",
-          "gain": 3.7,
-          "from": "Decrepit Sewers dungeon",
-          "price": null,
-          "tradable": true,
-          "options": [
-            {
-              "name": "Ridge",
-              "level": 34,
-              "gain": 89.1,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Advancement",
-              "level": 29,
-              "gain": 46.3,
-              "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Shiny Mask",
-              "level": 26,
-              "gain": 42.6,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Reversion",
-              "level": 31,
-              "gain": 34.3,
-              "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
-              "tradable": false
-            },
-            {
-              "name": "Santa Earmuffs",
-              "level": 30,
-              "gain": 32.9,
-              "from": "Detlas merchant",
-              "tradable": true
-            },
-            {
-              "name": "Jingu Headband",
-              "level": 33,
-              "gain": 31.1,
-              "from": "Detlas merchant",
-              "tradable": true
-            },
-            {
-              "name": "Santa Hat",
-              "level": 30,
-              "gain": 30.4,
-              "from": "loot chest",
-              "tradable": true
-            },
-            {
-              "name": "Brainy Beanie",
-              "level": 22,
-              "gain": 25.3,
-              "from": "Trade Market",
-              "tradable": true
-            },
-            {
-              "name": "Butterfly",
-              "level": 27,
-              "gain": 22.6,
-              "from": "The Hunger of Gerts Part 1 quest",
-              "tradable": false
-            },
-            {
-              "name": "The Crow's Nest",
-              "level": 27,
-              "gain": 21.7,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Straw Helmet",
-              "level": 20,
-              "gain": 14.9,
-              "from": "Decrepit Sewers dungeon",
-              "tradable": true
-            },
-            {
-              "name": "Mask of the Dark Vexations",
-              "level": 20,
-              "gain": 12.2,
-              "from": "loot chest",
-              "tradable": true
-            },
-            {
-              "name": "Blue Team Helmet",
-              "level": 20,
-              "gain": 2.5,
-              "from": "The Hunger of Gerts Part 1 quest",
-              "tradable": false
-            }
-          ]
-        },
-        {
           "slot": "LEGGINGS",
           "name": "Diminution",
           "level": 33,
           "tier": "LEGENDARY",
-          "gain": 2.6,
+          "gain": 1.3,
           "from": "The Hunger of Gerts Part 1 quest · 7× Time Fragment",
           "price": null,
           "tradable": false,
@@ -1395,77 +1353,77 @@
             {
               "name": "Diminution",
               "level": 33,
-              "gain": 32.7,
+              "gain": 29.3,
               "from": "The Hunger of Gerts Part 1 quest · 7× Time Fragment",
               "tradable": false
             },
             {
               "name": "Dilation",
               "level": 31,
-              "gain": 33.1,
+              "gain": 29.0,
               "from": "The Hunger of Gerts Part 1 quest · 5× Time Fragment",
               "tradable": false
             },
             {
+              "name": "Plankton",
+              "level": 34,
+              "gain": 17.0,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
               "name": "Santa's Pants",
               "level": 31,
-              "gain": 14.5,
+              "gain": 12.2,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Selchar's Famous Breeches",
               "level": 25,
-              "gain": 14.3,
+              "gain": 11.8,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Zombified Pants",
               "level": 30,
-              "gain": 12.2,
+              "gain": 8.2,
               "from": "loot chest",
               "tradable": true
             },
             {
               "name": "Burning Greaves",
               "level": 33,
-              "gain": 10.7,
+              "gain": 7.0,
               "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Oxidation",
               "level": 27,
-              "gain": 4.7,
+              "gain": 2.6,
               "from": "Detlas merchant",
               "tradable": true
             },
             {
               "name": "Tarnish",
               "level": 21,
-              "gain": 4.6,
+              "gain": 0.4,
               "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Villager Pants",
-              "level": 24,
-              "gain": 1.7,
-              "from": "Decrepit Sewers dungeon",
               "tradable": true
             },
             {
               "name": "Blue Team Leggings",
               "level": 20,
-              "gain": -7.3,
+              "gain": -8.9,
               "from": "The Hunger of Gerts Part 1 quest",
               "tradable": false
             },
             {
               "name": "Red Team Leggings",
               "level": 20,
-              "gain": -7.3,
+              "gain": -8.9,
               "from": "The Hunger of Gerts Part 1 quest",
               "tradable": false
             }
@@ -1492,27 +1450,7 @@
     },
     {
       "level": 90,
-      "gear": [
-        {
-          "slot": "RING2",
-          "name": "Barrage",
-          "level": 28,
-          "tier": "UNIQUE",
-          "gain": 0.1,
-          "from": "mob drop",
-          "price": null,
-          "tradable": true,
-          "options": [
-            {
-              "name": "Barrage",
-              "level": 28,
-              "gain": 4.7,
-              "from": "mob drop",
-              "tradable": true
-            }
-          ]
-        }
-      ],
+      "gear": [],
       "abilities": [],
       "places": [],
       "skillPoints": 20

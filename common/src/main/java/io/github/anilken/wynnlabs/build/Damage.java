@@ -564,9 +564,22 @@ public final class Damage {
         double regen = Math.log(Math.max(0.05, manaPer5 / BASE_MANA_PER_5));
         double cut = -Math.log(Math.max(0.05, 1 - costCut));
         // with the casts paced by the mana (SpellCasts) the spells' damage already follows it: the
-        // mana part keeps only a share of its weight (rules.model.castManaWeight, half)
-        double w = model("manaWeight", 0.3) * (model("castModel", 0) > 0 ? model("castManaWeight", 0.5) : 1);
+        // mana part keeps only a third of its weight (rules.model.castManaWeight), so the mana is
+        // not counted twice; the old fixed rate (rules.model.castModel 0) keeps it whole
+        double w = model("manaWeight", 0.3) * (model("castModel", 1) > 0 ? model("castManaWeight", 1 / 3.0) : 1);
         return Math.max(0.3, 1 + w * (Tuning.weight("manaRegenLean") * regen + Tuning.weight("costCutLean") * cut));
+    }
+
+    /**
+     * Mana Steal's mana every 5 s: the ID gives its value at most once every 3 s, and only on a
+     * main attack hit. Over a fight that is the share of time spent on the main attack
+     * (rules.model.mainAttackWeight: 1 for a melee archetype, 0.2 for a Summoner, the rest goes to
+     * spells) times the share of 3 s windows a hit lands in at {@code hitsPerSecond} while you do;
+     * WynnBuilder counts it whole for everyone, so a pure caster got mana it never steals.
+     */
+    static double manaSteal(double steal, double hitsPerSecond) {
+        double melee = Math.max(0, Math.min(1, model("mainAttackWeight", 0.5)));
+        return steal * 5.0 / 3.0 * melee * Math.min(1, 3 * hitsPerSecond);
     }
 
     /** A spell slot's name in the cost IDs ("1st" … "4th"). */
@@ -629,9 +642,12 @@ public final class Damage {
         double multiplier = 1 + str / 100.0 + dex / 100.0 * Math.max(0, 1 + stat(s, "criticalDamageBonus") / 100.0);
         double intReduction = 0.5 * intel / curve(150);      // half off at 150 points
 
-        // mana back every 5 s: the base and the tree's nodes, Mana Regen (per 5 s) and Mana Steal
-        // counted whole, as WynnBuilder does (its value comes back every 3 s)
-        double manaPer5 = baseManaPer5() + stat(s, "manaRegen") + stat(s, "manaSteal") * 5.0 / 3.0;
+        // the main attack's tier: the weapon's plus Attack Speed IDs (its hits a second, HITS)
+        int tier = weapon == null ? 3 : (int) Math.round(weapon.stats().getOrDefault(TIER, 3.0));
+        int tierNow = Math.max(0, Math.min(6, tier + (int) Math.round(stat(s, "rawAttackSpeed"))));
+        // mana back every 5 s: the base and the tree's nodes, Mana Regen (per 5 s) and the Mana
+        // Steal the main attack lands (manaSteal); the spells, the heals and the mana part all see this one number
+        double manaPer5 = baseManaPer5() + stat(s, "manaRegen") + manaSteal(stat(s, "manaSteal"), HITS[tierNow]);
         // Spells (SpellCasts): each cast's conversion through the damage pipeline (the tree's cuts,
         // waves, extras and one cast per Totem in it), cast as the mana pays for (Casting)
         double[] lastingEl = parts == null ? null : new double[ELEMENTS.length];
@@ -646,8 +662,6 @@ public final class Damage {
         AbilityMechanics.Sum ab = TreeModel.abilities();
 
         // Main attack: per hit times hits per second from the weapon's tier plus Attack Speed IDs
-        int tier = weapon == null ? 3 : (int) Math.round(weapon.stats().getOrDefault(TIER, 3.0));
-        int tierNow = Math.max(0, Math.min(6, tier + (int) Math.round(stat(s, "rawAttackSpeed"))));
         double perHitBase = baseDps / HITS[tier];
         double[] mc = split(new double[] {1, 0, 0, 0, 0, 0}, shares);
         // the tree's own hits with each main attack (Pyrokinesis, Ophanim's orbs)

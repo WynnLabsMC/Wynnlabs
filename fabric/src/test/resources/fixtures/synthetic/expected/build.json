@@ -75,19 +75,19 @@
   },
   "earnedPoints": 38,
   "planned": {
-    "objective": 236.3,
-    "spellDps": 98.4,
+    "objective": 141.9,
+    "spellDps": 56.9,
     "mainAttackDps": 59.7,
-    "damagePerCast": 123,
+    "damagePerCast": 116,
     "manaPer5s": 45.0,
     "spellCostCutPercent": 8.1,
     "health": 467,
     "effectiveHealth": 456,
     "effectiveHealthElemental": 483,
     "parts": {
-      "damage": 128.268,
+      "damage": 86.753,
       "life": 1.437,
-      "mana": 1.202,
+      "mana": 1.067,
       "speed": 1.0,
       "xp": 1.067,
       "attackSpeedFeel": 1.0
@@ -96,19 +96,19 @@
     "walkSpeed": 0.0
   },
   "current": {
-    "objective": 110.3,
-    "spellDps": 80.9,
+    "objective": 58.9,
+    "spellDps": 32.6,
     "mainAttackDps": 59.0,
-    "damagePerCast": 101,
+    "damagePerCast": 94,
     "manaPer5s": 33.0,
     "spellCostCutPercent": 0.0,
     "health": 387,
     "effectiveHealth": 304,
     "effectiveHealthElemental": 321,
     "parts": {
-      "damage": 110.398,
+      "damage": 62.124,
       "life": 0.909,
-      "mana": 1.083,
+      "mana": 1.028,
       "speed": 1.0,
       "xp": 1.015,
       "attackSpeedFeel": 1.0
@@ -116,7 +116,7 @@
     "xpBonus": 5.0,
     "walkSpeed": 0.0
   },
-  "gainPercent": 114.3,
+  "gainPercent": 141.1,
   "minPoints": {
     "STRENGTH": 0,
     "DEXTERITY": 0,
