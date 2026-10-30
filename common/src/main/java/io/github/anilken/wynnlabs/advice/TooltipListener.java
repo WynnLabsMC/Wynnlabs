@@ -220,6 +220,12 @@ public final class TooltipListener {
         if (stack.isEmpty() || mc.player == null) {
             return;
         }
+        // other players' Trade Market listings are things to buy, not yours to sell: no verdict on them
+        MenuKind kind = Wyn.container();
+        if (kind != null && kind.type().startsWith("TradeMarket") && !kind.marketSell()
+                && slot.container != mc.player.getInventory()) {
+            return;
+        }
         // every menu: the bag, the bank, chests, daily rewards, loot chests, shops
         drawBadge(g, slot.x, slot.y, stack);
     }
