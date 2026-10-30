@@ -273,21 +273,22 @@ public final class Damage {
                 pct += stat(s, "elemental" + kind + "Damage") + stat(s, "elementalDamage");
             }
             double flat = i > 0 ? stat(s, flatKey(el)) * hits : 0;
-            dmg += (baseDps * c[i] + flat) * (1 + pct / 100.0);
             String cap = Character.toUpperCase(el.charAt(0)) + el.substring(1);
-            double elementRaw = 0;
-            if (i > 0) {
-                elementRaw = (stat(s, "raw" + cap + kind + "Damage") + stat(s, "raw" + cap + "Damage")) * convTotal;
-                dmg += elementRaw;
-            }
+            double elementRaw = i > 0
+                    ? (stat(s, "raw" + cap + kind + "Damage") + stat(s, "raw" + cap + "Damage")) * convTotal
+                    : 0;
+            // the generic raw goes to each element by its share of the conversion. An element
+            // never deals less than nothing (WynnBuilder's min damage 0): a pacifist weapon's
+            // -40000 % Spell Damage (Silent Ballet) silences its spells, it does not turn them
+            // into a 399 × negative hit that drags the other sources under zero
+            double part = (baseDps * c[i] + flat) * (1 + pct / 100.0) + elementRaw + raw * c[i]
+                    + (i > 0 ? rawElemental * c[i] : 0);
+            part = Math.max(0, part);
+            dmg += part;
             if (byElement != null) {
-                // the generic raw goes to each element by its share of the conversion
-                byElement[i] += (baseDps * c[i] + flat) * (1 + pct / 100.0) + elementRaw + raw * c[i]
-                        + (i > 0 ? rawElemental * c[i] : 0);
+                byElement[i] += part;
             }
         }
-        dmg += raw * convTotal;
-        dmg += rawElemental * (convTotal - Math.max(0, c[0]));
         return dmg;
     }
 
@@ -351,7 +352,7 @@ public final class Damage {
      * The health the score counts once it is past {@code knee}: the same below it, then
      * knee + h·(1 − exp(−(health − knee) / h)) with h = knee / 2, so it leaves the knee with no
      * kink and levels off at 1.5 × knee. The Damage goal puts the knee at 1.5 × the floor, so
-     * health stops paying at about 2.25 × the floor (Balanced 2.5 → 3.75 ×; Safe, Tank and Healer
+     * health stops paying at about 2.25 × the floor (Balanced 2.5 → 3.75 ×, Tank 2.5 → 3.75 × its own floor; Safe and Healer
      * have none). Community damage builds sit at 1-2 × the floor; with health counted to 6 × a
      * pick with less damage outscored them by 2-8 ×, and a log past the knee still left 1.5-2.5 ×.
      * 0 or less turns it off.
@@ -362,6 +363,25 @@ public final class Damage {
         }
         double h = knee / 2;
         return knee + h * (1 - Math.exp(-(ehp - knee) / h));
+    }
+
+    /**
+     * The healing a second the Healer goal counts: the same up to what a party can take in, then
+     * {@link #softCap}ped. The knee is rules.model.healSoftCap (0.12: that share of the level's
+     * health table, {@link #ehpTable}, a second, 3k at Lv 120) for you and each of
+     * rules.model.healAllies, so it levels off at 1.5 × that (18k a second for a party of four): a party
+     * only loses so much health a second, and the rest of a heal is overheal. Without it a heal
+     * worth twice as much scored twice as high however far past that, so the Healer pick stacked
+     * health and Healing Efficiency into a set with next to no damage (760 DPS, healing 29k a
+     * second against the 10-15k of real Halcyon healers). 0 or less turns it off.
+     */
+    static double healScored(double heal, int level) {
+        double k = model("healSoftCap", 0.12);
+        if (k <= 0) {
+            return heal;
+        }
+        double members = 1 + Math.max(0, model("healAllies", 3));
+        return softCap(heal, k * members * ehpTable(level));
     }
 
     /**
@@ -606,7 +626,7 @@ public final class Damage {
         double baseDps = weapon == null ? 0 : weapon.baseDps();
         Map<String, Double> shares = weapon == null ? Map.of("neutral", 1.0) : weapon.weaponShares();
         // Strength adds, a crit adds +100 % plus Crit Damage % (additive with Strength, not ×)
-        double multiplier = 1 + str / 100.0 + dex / 100.0 * (1 + stat(s, "criticalDamageBonus") / 100.0);
+        double multiplier = 1 + str / 100.0 + dex / 100.0 * Math.max(0, 1 + stat(s, "criticalDamageBonus") / 100.0);
         double intReduction = 0.5 * intel / curve(150);      // half off at 150 points
 
         // mana back every 5 s: the base and the tree's nodes, Mana Regen (per 5 s) and Mana Steal
@@ -743,7 +763,7 @@ public final class Damage {
         // counts less (damageWeight below 1). Healing Efficiency far below -100 % (Immolation's
         // -650 %) heals nothing, never less: a NaN score threw the weapon out
         double fHeal = healWeight > 0
-                ? Math.pow(Math.max(1e-6, healing.value() * 5 / regenScale), healWeight)
+                ? Math.pow(Math.max(1e-6, healScored(healing.value(), level) * 5 / regenScale), healWeight)
                 : 1;
         // Boss fights reward a big hit per cast (rules.model.burstWeight), loot runs Loot Bonus and
         // Loot Quality (rules.model.lootWeight); both 0 unless the goal asks for them

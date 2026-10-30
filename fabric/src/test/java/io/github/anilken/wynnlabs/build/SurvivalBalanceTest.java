@@ -50,9 +50,12 @@ class SurvivalBalanceTest {
     @Test
     void onlyTheGoalsThatFightForDamageCapHealth() {
         int cap = List.of(keysOf()).indexOf("ehpSoftCap");
-        for (String g : List.of("SAFE", "TANK", "HEALER")) {
+        for (String g : List.of("SAFE", "HEALER")) {
             assertEquals(0, Setup.weights(g)[cap], 1e-9, g);
         }
+        // a tank's health counts in full far longer (its own floor is 1.6 × the Damage one), but
+        // levels off: with no cap its pick stacked 8 × the floor where community tanks keep 2-4 ×
+        assertEquals(2.5, Setup.weights("TANK")[cap], 1e-9);
         for (String g : List.of("DAMAGE", "BALANCED", "BOSS", "MOBBING", "XP", "LOOT")) {
             assertTrue(Setup.weights(g)[cap] >= 1.5, g);
         }
@@ -80,7 +83,8 @@ class SurvivalBalanceTest {
         assertFalse(m.has("negativeRegenWeight"));
         JsonObject tank = JsonParser.parseString("{\"goalPreset\": \"TANK\", \"model\": {\"survivalModel\": 8}}").getAsJsonObject();
         Setup.upgrade(tank);
-        assertEquals(0, tank.getAsJsonObject("model").get("ehpSoftCap").getAsDouble(), 1e-9);
+        assertEquals(Setup.weights("TANK")[List.of(keysOf()).indexOf("ehpSoftCap")],
+                tank.getAsJsonObject("model").get("ehpSoftCap").getAsDouble(), 1e-9);
     }
 
     private static String[] keysOf() {

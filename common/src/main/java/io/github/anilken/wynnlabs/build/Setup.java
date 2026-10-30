@@ -188,9 +188,10 @@ public final class Setup {
      * healing it keeps up is scored as a power, {@link #HEALER_KEYS}); 9 brings the soft cap on
      * health for the goals that fight for damage (ehpSoftCap, Damage.softCap); 10 lets the Damage
      * goal count XP a little ({@link #DAMAGE_XP}) while you level (its 0 becomes that, unless the
-     * home's XP switch turned it off by hand).
+     * home's XP switch turned it off by hand); 11 gives the Healer goal its damage weight and the
+     * Tank goal its health soft cap (damageWeight, ehpSoftCap).
      */
-    static final int SURVIVAL_MODEL = 10;
+    static final int SURVIVAL_MODEL = 11;
 
     /**
      * The Damage goal's XP factor: modest and with diminishing returns (xpLog), so leveling picks
@@ -215,12 +216,15 @@ public final class Setup {
         return switch (preset) {
             case "BALANCED" -> new double[] {0.4, 0.2, 0.3, 0, 1.0, 0.4, 1, 1, 1, 0, 0, 1.15, 0, 2.5};
             case "SAFE" -> new double[] {0.7, 0.3, 0.3, 0, 1.0, 0.6, 1, 1, 1, 0, 0, 1.3, 1, 0};
-            // a tank holds the line: health counts in full, damage little
-            case "TANK" -> new double[] {1.4, 0.6, 0.3, 0, 0.4, 1.0, 1, 1, 1, 0, 0, 1.6, 0, 0};
+            // a tank holds the line: health counts in full up to 2.5 × its floor, then levels off
+            // (community Paladin tanks sit at 2-4 × it; with no cap the pick stacked 8 ×), damage little
+            case "TANK" -> new double[] {1.4, 0.6, 0.3, 0, 0.4, 1.0, 1, 1, 1, 0, 0, 1.6, 0, 2.5};
             // a healer is scored by the healing it keeps up for itself and the party (Healing: the
-            // tree's heals × Healing Efficiency × the casts the mana pays for), then survival as a
-            // log alone: its own heals keep it up, so health past the floor is no tank's power
-            case "HEALER" -> new double[] {0.5, 0.3, 0.6, 1.0, 0.2, 0, 1, 1, 1, 0, 0, 1.3, 0, 0};
+            // tree's heals × Healing Efficiency × the casts the mana pays for, up to what a party
+            // takes in: Damage.healScored), then survival as a log alone: its own heals keep it up,
+            // so health past the floor is no tank's power. Damage counts at 0.4: a healer still
+            // fights (at 0.2 the pick was a 760 DPS set that out-healed real Halcyon healers 2 ×)
+            case "HEALER" -> new double[] {0.5, 0.3, 0.6, 1.0, 0.4, 0, 1, 1, 1, 0, 0, 1.3, 0, 0};
             // one big target: the hit per cast, walk speed and XP matter less
             case "BOSS" -> new double[] {0.3, 0.2, 0.3, 0, 1.0, 0.3, 0.3, 0.5, 0.6, 1.2, 0, 1.15, 1, 2};
             // many weak targets: run from pack to pack and keep casting
@@ -324,6 +328,14 @@ public final class Setup {
         if (from < 10 && g.equals("DAMAGE") && !byHand.contains("goalXp")
                 && (!model.has("goalXp") || model.get("goalXp").getAsDouble() == 0)) {
             model.addProperty("goalXp", DAMAGE_XP);
+        }
+        // 11: a healer still fights (damage 0.4) and a tank's health levels off past 2.5 × its floor
+        if (from < 11 && (g.equals("HEALER") || g.equals("TANK"))) {
+            for (String k : new String[] {"damageWeight", "ehpSoftCap"}) {
+                if (!byHand.contains(k)) {
+                    model.addProperty(k, w[keys.indexOf(k)]);
+                }
+            }
         }
         model.addProperty("survivalModel", SURVIVAL_MODEL);
     }

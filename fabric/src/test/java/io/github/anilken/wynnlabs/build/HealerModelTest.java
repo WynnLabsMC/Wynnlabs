@@ -126,6 +126,36 @@ class HealerModelTest {
         assertEquals(5000 * casts, huge.perAlly(), 1e-6);
     }
 
+    @Test
+    void healingPastWhatAPartyTakesInLevelsOff() throws Exception {
+        FixtureState.load(Fixtures.root().resolve("shaman-44")).install("en");
+        Setup.setGoal("HEALER");
+        // the knee: 0.12 of the Lv 120 health table (25000) a second, for you and three allies
+        double knee = 0.12 * 4 * 25000;
+        assertEquals(5000, Damage.healScored(5000, 120), 1e-9, "below the knee as it is");
+        assertTrue(Damage.healScored(2 * knee, 120) < 1.5 * knee, "levels off at 1.5 × the knee");
+        assertTrue(Damage.healScored(2 * knee, 120) > Damage.healScored(knee * 1.5, 120), "more healing still counts a little");
+    }
+
+    @Test
+    void oldHealerAndTankRulesGetTheirNewWeights() {
+        for (String goal : List.of("HEALER", "TANK")) {
+            JsonObject rules = new JsonObject();
+            rules.addProperty("goalPreset", goal);
+            JsonObject model = new JsonObject();
+            model.addProperty("survivalModel", 10);
+            model.addProperty("damageWeight", 0.2);
+            model.addProperty("ehpSoftCap", 0.0);
+            rules.add("model", model);
+            Setup.upgrade(rules);
+            double[] w = Setup.weights(goal);
+            assertEquals(w[4], model.get("damageWeight").getAsDouble(), 1e-9, goal);
+            assertEquals(w[13], model.get("ehpSoftCap").getAsDouble(), 1e-9, goal);
+        }
+        assertEquals(0.4, Setup.weights("HEALER")[4], 1e-9, "a healer still fights");
+        assertEquals(2.5, Setup.weights("TANK")[13], 1e-9, "a tank's health levels off");
+    }
+
     // ---- the Lv 121 Light Bender ------------------------------------------------------------
 
     private static void install() throws Exception {
