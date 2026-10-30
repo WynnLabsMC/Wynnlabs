@@ -118,8 +118,19 @@ class WhyLinesTest {
                 // the reasons come from the same builds: a stat can move more than the whole
                 // build, not by orders of magnitude more (five times, at least 100 points: a minor
                 // part of the score can double), unless it starts from next to nothing (a Lv 4
-                // spear's 22 main attack: ten times or more)
-                double cap = Math.max(100, 5 * Math.abs(shown));
+                // spear's 22 main attack: ten times or more). Against the part of the score that
+                // moved most when the panel's first option is the pick: a trade-off moves one part
+                // far more than the whole (Tachypsychia at Lv 80: damage +219 %, health −56 %, the
+                // build +18 %, its line "Spell Damage: 728 → 2398 (+230%)" is right)
+                double moved = Math.abs(shown);
+                if (g.options() != null && !g.options().isEmpty()
+                        && g.options().get(0).info().name().equals(g.info().name()) && g.options().get(0).factorPct() != null) {
+                    double[] f = g.options().get(0).factorPct();
+                    for (int k = 0; k < Math.min(6, f.length); k++) {     // the six parts the score multiplies
+                        moved = Math.max(moved, Math.abs(f[k]));
+                    }
+                }
+                double cap = Math.max(100, 5 * moved);
                 for (String line : why) {
                     Matcher mt = PCT.matcher(line);
                     if (mt.find() && Double.parseDouble(mt.group(2)) < 10 * Double.parseDouble(mt.group(1))) {

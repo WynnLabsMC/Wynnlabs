@@ -97,6 +97,7 @@ wynnlabs.road.trace_clash               after "Name LvN: " or as a note in the r
 wynnlabs.road.trace_ranked              after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_refit               after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_quest_later         after "Name LvN: " or as a note in the road map trace
+wynnlabs.road.trace_quest_token         after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_fresh               a start's name or a note inside a road map trace line
 wynnlabs.road.trace_judged              after "Name LvN: " or as a note in the road map trace
 wynnlabs.road.trace_tie                 after "Name LvN: " or as a note in the road map trace

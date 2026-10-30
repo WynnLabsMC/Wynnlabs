@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Exclusive;
 import io.github.anilken.wynnlabs.core.Rules;
+import io.github.anilken.wynnlabs.market.EarnCost;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.model.Slot;
@@ -32,6 +33,8 @@ final class SetJudge {
      * set that is clearly better may change course. Points added are free: you earn them.
      * The bonus: rules.roadmap.keepBonusPercent (1 %) for each piece the set keeps from the last
      * milestone's, so of two sets about as good the one you mostly have already wins.
+     * And the effort charge ({@link #effort}): an untradable piece paid in fragments, tokens or
+     * runs costs what earning it takes, with or without {@code prev}.
      * {@code prev}: as {@link #carry} makes it, only skill points (the ones you placed), or null.
      */
     static double judged(Build.Eval e, int[] prev, int m) {
@@ -52,11 +55,11 @@ final class SetJudge {
     private static double judged(Build.Eval e, int[] prev, int m, List<Damage.Piece> pieces, Damage.Piece weapon) {
         // the effective health floor (what build-solver asks as min EHP) is part of the score
         // itself now (Damage.ehpFloor), so the skill points are spread with it in mind too
-        double o = e.result().objective();
+        int n = SkillKind.values().length;
+        double o = e.result().objective() * effort(prev, n + 1, pieces, weapon);
         if (prev == null) {
             return o;
         }
-        int n = SkillKind.values().length;
         int back = 0;
         for (int i = 0; i < n && i < prev.length && i < e.allocation().length; i++) {
             back += Math.max(0, prev[i] - e.allocation()[i]);
@@ -69,7 +72,62 @@ final class SetJudge {
         double charge = Math.max(Rules.sub("roadmap", "respecFloor", 0.85),
                 1 - Rules.sub("roadmap", "respecWeight", 0.2) * scale * back / 100.0);
         int kept = prev.length > n + 1 ? kept(prev, n + 1, pieces, weapon) : 0;
+        if (from > 101) {
+            // past the last skill point the gear is the whole upgrade: a set you keep counts for
+            // at most rules.roadmap.keepBonusEndPieces (1) pieces, or Lv 120 stayed on the Lv 100
+            // set 5 % behind a fresh one for its nine old pieces
+            kept = Math.min(kept, (int) Rules.sub("roadmap", "keepBonusEndPieces", 1));
+        }
         return o * charge * (1 + Rules.sub("roadmap", "keepBonusPercent", 1) / 100.0 * kept);
+    }
+
+    /**
+     * The effort charge: each untradable piece the set asks you to earn takes
+     * {@link EarnCost#percent} off (Tempo Town's Seal Breaker, seven Time Fragments from 8-hourly
+     * bosses: 5.3 %; a Corrupted dungeon piece: 3.8 %; at most rules.shopping.effortCapPercent
+     * each), so it only wins when it is worth the runs. Paid once: not for a piece you have (it
+     * carries its stack) nor one the last milestone's set held (its name hashed in {@code prev}
+     * from {@code at} on); a quest reward the table does not know once per quest
+     * ({@link EarnCost#once}: the four Cosmic pieces are one quest). Tradable pieces never pay.
+     */
+    private static double effort(int[] prev, int at, List<Damage.Piece> pieces, Damage.Piece weapon) {
+        double f = 1;
+        List<String> paid = null;               // the once-per-source charges taken
+        int count = pieces == null ? 0 : pieces.size();
+        for (int k = 0; k <= count; k++) {
+            Damage.Piece p = k < count ? pieces.get(k) : weapon;
+            if (p == null || p.stack() != null || p.crafted()) {
+                continue;
+            }
+            double pct = EarnCost.percent(p.name());
+            if (pct <= 0 || held(prev, at, p.name().hashCode())) {
+                continue;
+            }
+            String once = EarnCost.once(p.name());
+            if (once != null) {
+                if (paid != null && paid.contains(once)) {
+                    continue;
+                }
+                if (paid == null) {
+                    paid = new ArrayList<>(2);
+                }
+                paid.add(once);
+            }
+            f *= 1 - pct / 100.0;
+        }
+        return f;
+    }
+
+    private static boolean held(int[] prev, int at, int hash) {
+        if (prev == null) {
+            return false;
+        }
+        for (int i = at; i < prev.length; i++) {
+            if (prev[i] == hash) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** How many of the pieces are among the names hashed in {@code prev} from {@code at} on (each name once). */

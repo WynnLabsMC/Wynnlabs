@@ -18,7 +18,8 @@ public final class Exclusive {
     private Exclusive() {}
 
     private static final Map<String, List<String>> GROUPS = Map.of(
-            "Ornate Shadow", List.of("Ornate Shadow Cowl", "Ornate Shadow Cloak", "Ornate Shadow Cover", "Ornate Shadow Cloud"),
+            "Ornate Shadow", List.of("Ornate Shadow Cowl", "Ornate Shadow Cloak", "Ornate Shadow Garb",
+                    "Ornate Shadow Cover", "Ornate Shadow Cloud"),
             "Grookwarts", List.of("Dragon's Eye Bracelet", "Draoi Fair", "Renda Langit"),
             "Master Hive", List.of("Abyss-Imbued Leggings", "Boreal-Patterned Crown", "Anima-Infused Cuirass",
                     "Chaos-Woven Greaves", "Elysium-Engraved Aegis", "Eden-Blessed Guards", "Gaea-Hewn Boots",

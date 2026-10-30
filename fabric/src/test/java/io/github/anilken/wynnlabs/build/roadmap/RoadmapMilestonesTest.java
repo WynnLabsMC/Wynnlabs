@@ -117,6 +117,42 @@ class RoadmapMilestonesTest {
         assertTrue(bad.isEmpty(), String.join("\n", bad));
     }
 
+    /**
+     * StepGains' second rule: {@code back} (the set with {@code slot} as the milestone started) with
+     * one other pick's slot back too, the best that can be worn; NaN when none can. The other picks
+     * are the rows with a step gain whose piece changed its slot since {@code start}.
+     */
+    private static double partner(List<Roadmap.Gear> gear, Map<String, Damage.Piece> set,
+            Map<String, Damage.Piece> start, Map<String, Damage.Piece> back, String slot, int m, int[] prev) {
+        double best = Double.NaN;
+        for (var e : set.entrySet()) {
+            String o = e.getKey();
+            Damage.Piece p = e.getValue();
+            Damage.Piece was = start.get(o);
+            if (o.equals(slot) || p == null || was != null && was.key().equals(p.key())
+                    || gear.stream().noneMatch(g -> !Double.isNaN(g.gain()) && !Roadmap.isPowder(g)
+                            && g.info().name().equalsIgnoreCase(p.name()))) {
+                continue;
+            }
+            Map<String, Damage.Piece> two = new LinkedHashMap<>(back);
+            two.remove(o);
+            if (was != null) {
+                if (Exclusive.clash(two, o, Exclusive.group(was)) != null) {
+                    continue;
+                }
+                two.put(o, was);
+            }
+            Build.Eval ev = Build.allocate(two, m, earned(m));
+            if (ev != null) {
+                double j = Roadmap.judged(ev, prev, m);
+                if (Double.isNaN(best) || j > best) {
+                    best = j;
+                }
+            }
+        }
+        return best;
+    }
+
     private static List<String> names(Map<String, Damage.Piece> set) {
         List<String> out = new ArrayList<>();
         set.forEach((slot, p) -> out.add(slot + "=" + (p == null ? "-" : p.name())));
@@ -192,12 +228,20 @@ class RoadmapMilestonesTest {
                     if (start.get(slot) != null) {
                         back.put(slot, start.get(slot));
                     }
-                    Build.Eval be = Exclusive.clash(back, slot, start.get(slot) == null ? null : Exclusive.group(start.get(slot))) == null
-                            ? Build.allocate(back, m, earned(m)) : null;
-                    if (be == null) {
-                        continue;                       // the slot cannot go back: the row keeps its own number
+                    boolean clash = Exclusive.clash(back, slot,
+                            start.get(slot) == null ? null : Exclusive.group(start.get(slot))) != null;
+                    Build.Eval be = clash ? null : Build.allocate(back, m, earned(m));
+                    double backJ = be == null ? Double.NaN : Roadmap.judged(be, prev, m);
+                    if (be == null && !clash) {
+                        // the slot cannot go back alone (its old piece wants skill points the set no
+                        // longer gives): StepGains then puts it back with one other changed slot, the
+                        // best such that can be worn (Diamond Steam Ring at Lv 120 with the other hand)
+                        backJ = partner(s.gear(), set, start, back, slot, m, prev);
                     }
-                    double expect = (fullJ / Roadmap.judged(be, prev, m) - 1) * 100;
+                    if (Double.isNaN(backJ)) {
+                        continue;                       // not even with a partner: the row keeps its own number
+                    }
+                    double expect = (fullJ / backJ - 1) * 100;
                     if (Double.isNaN(first)) {
                         first = expect;
                     }

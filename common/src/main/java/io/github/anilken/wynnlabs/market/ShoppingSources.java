@@ -20,6 +20,10 @@ public final class ShoppingSources {
 
     /** "MERCHANT: Detlas" becomes "Detlas tüccarı" ("Detlas merchant") and so on, for tooltips. */
     public static String where(String source) {
+        int cut = source.indexOf(COST);
+        if (cut >= 0) {
+            return costText(where(source.substring(0, cut)), source.substring(cut + COST.length()));
+        }
         String[] parts = source.split(": ", 2);
         String name = parts.length > 1 ? parts[1] : "";
         return switch (parts[0]) {
@@ -27,6 +31,11 @@ public final class ShoppingSources {
             case "MERCHANT" -> L.t("wynnlabs.shop.where_merchant", name);
             case "DUNGEON_MERCHANT" -> L.t("wynnlabs.shop.where_dungeon_merchant", name);
             case "QUEST" -> L.t("wynnlabs.shop.where_quest", name);
+            case "QUEST_TOKEN" -> {
+                Token tk = tokenOfQuest(name);
+                yield tk == null ? L.t("wynnlabs.shop.where_quest", name)
+                        : L.t("wynnlabs.shop.where_quest_token", tk.merchant(), tk.token(), tk.quest());
+            }
             case "DUNGEON" -> L.t("wynnlabs.shop.where_dungeon", name);
             case "CAVE_LOOT_CHEST", "CAVE_COMPLETION" -> L.t("wynnlabs.shop.where_cave_chest");
             case "LOOT_CHEST" -> L.t("wynnlabs.shop.where_loot_chest");
@@ -62,7 +71,7 @@ public final class ShoppingSources {
             case "MERCHANT", "DUNGEON_MERCHANT" -> "merchant";
             case "WORLD_EVENT" -> "event";
             case "DUNGEON" -> "dungeon";
-            case "QUEST" -> "quest";
+            case "QUEST", "QUEST_TOKEN" -> "quest";
             case "CAVE_LOOT_CHEST", "CAVE_COMPLETION", "LOOT_CHEST" -> "chest";
             case "NORMAL_MOB_DROP", "MOB_REGION", "SPECIFIC_MOB_DROP", "MINIBOSS" -> "drop";
             case "BOSS_ALTAR" -> "altar";
@@ -76,7 +85,52 @@ public final class ShoppingSources {
     }
 
     public static String sourceOf(ItemData info) {
-        return source(info);
+        return withCost(info, source(info));
+    }
+
+    /** Between a source and what the piece costs to earn ({@link #withCost}). */
+    private static final String COST = " #";
+
+    /**
+     * {@code src} (a raw source of this piece) with what it costs to earn when its seller takes
+     * no emeralds ({@link EarnCost}), for {@link #where} to show: "MERCHANT: Tempo Town #7|Time
+     * Fragment||Tempo Town Trouble" reads "Tempo Town merchant · 7× Time Fragment (after Tempo Town
+     * Trouble)". The Trade Market and an unknown source stay as they are.
+     */
+    public static String withCost(ItemData info, String src) {
+        if (src == null || src.startsWith("TRADE_MARKET") || src.startsWith("UNKNOWN") || src.contains(COST)) {
+            return src;
+        }
+        EarnCost.Cost c = EarnCost.of(info, src);
+        if (c == null) {
+            return src;
+        }
+        long n = Math.round(c.amount());
+        return src + COST + n + "|" + c.currency() + "|" + (c.needs() == null ? "" : c.needs()) + "|"
+                + (c.quest() == null ? "" : c.quest());
+    }
+
+    /** {@code place} with the cost {@link #withCost} wrote: the amount and currency, the piece it also takes, the quest still to do. */
+    private static String costText(String place, String cost) {
+        String[] f = cost.split("\\|", -1);
+        if (f.length < 4) {
+            return place;
+        }
+        String paid = f[2].isEmpty() ? L.t("wynnlabs.shop.earn_cost", f[0], f[1])
+                : L.t("wynnlabs.shop.earn_cost_with", f[0], f[1], f[2]);
+        String out = L.t("wynnlabs.shop.earn_where", place, paid);
+        return f[3].isEmpty() || questDone(GameState.current(), f[3]) ? out : L.t("wynnlabs.shop.earn_after", out, f[3]);
+    }
+
+    /** Whether the quest book lists {@code quest} as done; an empty book or an unknown quest counts as done (gates nothing). */
+    private static boolean questDone(GameState state, String quest) {
+        String want = questKey(quest);
+        for (QuestBook.Entry q : state.quests()) {
+            if (questKey(q.name()).equals(want)) {
+                return "COMPLETED".equals(q.status());
+            }
+        }
+        return true;
     }
 
     /**
@@ -152,16 +206,20 @@ public final class ShoppingSources {
     }
 
     /**
-     * Whether getting this untradable piece takes a run of its own: a dungeon, its merchant
-     * (Admiral wants Redbeard's Hair from the dungeon), a raid or a quest. The road map asks such
-     * a piece to beat a market one by rules.shopping.untradableEffortPercent more.
+     * Whether getting this untradable piece takes runs of its own ({@link EarnCost#percent}): a
+     * dungeon or its merchant (Admiral wants four Redbeard's Hair), a raid, a quest, a challenge,
+     * an altar or a seller paid in fragments, tokens or materials (Tempo Town's Time Fragments).
      */
     public static boolean effort(ItemData info) {
-        if (Shopping.tradable(info)) {
-            return false;
-        }
-        String o = origin(info);
-        return o != null && (o.startsWith("DUNGEON") || o.startsWith("RAID") || o.startsWith("QUEST"));
+        return EarnCost.percent(info) > 0;
+    }
+
+    /**
+     * How much more this piece must gain to be worth earning, in % ({@link EarnCost#percent}):
+     * the time its currency takes, 0 for a tradable piece or one you just pick up.
+     */
+    public static double effortPercent(ItemData info) {
+        return EarnCost.percent(info);
     }
 
     /**
@@ -169,7 +227,14 @@ public final class ShoppingSources {
      * asks for none, it is done, or the book does not know it (an empty book gates nothing).
      */
     public static QuestBook.Entry questPending(GameState state, ItemData info) {
-        var need = info.requirements().quest();
+        Token tk = token(info);
+        var need = tk != null ? java.util.Optional.of(tk.quest()) : info.requirements().quest();
+        if (need.isEmpty()) {
+            // a seller a quest opens (Tempo Town's merchant after Tempo Town Trouble, the Hive
+            // shop after The Qira Hive): the earn cost table says which
+            EarnCost.Cost c = EarnCost.of(info);
+            need = java.util.Optional.ofNullable(c == null ? null : c.quest());
+        }
         if (need.isEmpty()) {
             return null;
         }
@@ -180,6 +245,36 @@ public final class ShoppingSources {
             }
         }
         return null;
+    }
+
+    /**
+     * A currency only a quest gives, the merchant that takes it and the quest. The Ornate Shadow
+     * pieces are sold by the Mysterious Merchant in Lutho for one Corrupted Soul Token each, and
+     * the token's one source is A Hunter's Calling (one token): a character gets one piece, and it
+     * is untradable (the wiki's Corrupted Soul Token and Ornate Shadow pages).
+     */
+    record Token(String quest, String token, String merchant) {}
+
+    /** The quest-only currency this piece is bought with, or null. */
+    static Token token(ItemData info) {
+        return info == null ? null : tokenOfGroup(io.github.anilken.wynnlabs.build.Exclusive.group(info.name()));
+    }
+
+    private static Token tokenOfGroup(String group) {
+        return "Ornate Shadow".equals(group) ? new Token("A Hunter's Calling", "Corrupted Soul Token", "Lutho") : null;
+    }
+
+    private static Token tokenOfQuest(String quest) {
+        Token tk = tokenOfGroup("Ornate Shadow");
+        return questKey(tk.quest()).equals(questKey(quest)) ? tk : null;
+    }
+
+    /**
+     * Whether this piece is bought with a quest's one-off currency (the Ornate Shadow pieces):
+     * until the quest is done it is an alternative for after it, never a pick, whatever the level.
+     */
+    public static boolean questToken(ItemData info) {
+        return token(info) != null;
     }
 
     /** A quest name to compare by: case, curly apostrophes and edge spaces aside. */
@@ -195,6 +290,9 @@ public final class ShoppingSources {
      * (Golem's Arm).
      */
     public static String origin(ItemData info) {
+        if (token(info) != null) {
+            return "QUEST_TOKEN: " + token(info).quest();
+        }
         List<Obtain> obtain = GameState.current().obtain(info);
         if (obtain == null || obtain.isEmpty()) {
             return "UNKNOWN";

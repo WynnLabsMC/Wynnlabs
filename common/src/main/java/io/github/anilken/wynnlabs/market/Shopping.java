@@ -258,7 +258,6 @@ public final class Shopping {
         List<Pick> all = new ArrayList<>();
         Map<String, Pick> names = new HashMap<>();
         boolean preferMarket = Rules.sub("shopping", "preferTradeMarket", 1) > 0;
-        double effort = Rules.sub("shopping", "untradableEffortPercent", 5);
         for (Slot t : slots) {
             List<Pick> sorted = new ArrayList<>(perType.getOrDefault(t, List.of()));
             sorted.sort(Comparator.comparingDouble(Pick::score).reversed());
@@ -274,7 +273,7 @@ public final class Shopping {
             if (preferMarket) {
                 double topMarket = market.stream().mapToDouble(Pick::score).max().orElse(Double.NEGATIVE_INFINITY);
                 sorted.stream().filter(p -> !tradable(p.info())
-                        && p.score() - (ShoppingSources.effort(p.info()) ? effort : 0) > topMarket).findFirst().ifPresent(p -> {
+                        && p.score() - ShoppingSources.effortPercent(p.info()) > topMarket).findFirst().ifPresent(p -> {
                     Pick alt = new Pick(p.info(), p.slot(), 0, p.score(), p.gain(), p.source());
                     all.add(alt);
                     names.putIfAbsent(p.info().name(), alt);

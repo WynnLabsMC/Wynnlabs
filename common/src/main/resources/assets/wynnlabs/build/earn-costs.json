@@ -1,0 +1,151 @@
+{
+  "_doc": [
+    "What an untradable piece really costs when its seller does not take emeralds (EarnCost). Hand-maintained from wynncraft.wiki.gg (the pages under sources).",
+    "A family matches a piece by its world source (type and name as the item data gives them, e.g. MERCHANT Tempo Town) or by name (items).",
+    "currency: what the seller takes; amount: how many a piece costs (items: per piece, else default); perRun: how many one run earns;",
+    "minutesPerRun: one run with travel and waits spread over it (a boss with a cooldown counts its wait in part); how: how the currency is earned;",
+    "quest: the quest that opens the seller (a piece is an alternative 'after quest' until it is done, as a quest the item asks for).",
+    "Effort minutes = amount / perRun * minutesPerRun (runs rounded up); tiers (Legendary Island) give each tier's token, amount, clears (runs) and the tier it consumes.",
+    "The road map charges rules.shopping.effortPercentPerHour (3 %) per hour, at most rules.shopping.effortCapPercent (8 %),",
+    "once, for a piece you do not have and an earlier milestone did not pick. Tradable pieces are never charged."
+  ],
+  "families": [
+    {
+      "id": "tempo_town",
+      "match": {"type": "MERCHANT", "name": "Tempo Town"},
+      "currency": "Time Fragment",
+      "how": "Time Trouble bosses in Time Valley, each every 8 h",
+      "perRun": 1,
+      "minutesPerRun": 15,
+      "quest": "Tempo Town Trouble",
+      "default": 5,
+      "items": {
+        "Timelocked Stone": 1, "Timelocked Spark": 1, "Timelocked Dew": 1, "Timelocked Coal": 1, "Timelocked Breath": 1,
+        "Practice": 2, "Intuition": 2, "Longevity": 2, "Slainte": 2,
+        "Tempo Totem": 5, "Advancement": 5, "Reversion": 5, "Secondsaver": 5, "Dilation": 5,
+        "Tempo Trident": 7, "Tempo Trebuchet": 7, "Tempo Ticker": 7, "Tempo Tanto": 7,
+        "Hourslip": 7, "Diminution": 7, "Trouble Tamer": 7, "Seal Breaker": 7
+      },
+      "sources": ["https://wynncraft.wiki.gg/wiki/Mysterious_Merchant_(Tempo_Town)", "https://wynncraft.wiki.gg/wiki/Time_Fragment",
+        "https://wynncraft.wiki.gg/wiki/Seal_Breaker"],
+      "note": "Fragments per kill are not on the wiki: one per kill assumed. Five bosses, each every 8 h, so 7 fragments take two rounds."
+    },
+    {
+      "id": "qira_master",
+      "items": {
+        "Abyss-Imbued Leggings": 1, "Boreal-Patterned Crown": 1, "Anima-Infused Cuirass": 1, "Chaos-Woven Greaves": 1,
+        "Elysium-Engraved Aegis": 1, "Eden-Blessed Guards": 1, "Gaea-Hewn Boots": 1, "Hephaestus-Forged Sabatons": 1,
+        "Obsidian-Framed Helmet": 1, "Twilight-Gilded Cloak": 1, "Infused Hive Relik": 1, "Infused Hive Wand": 1,
+        "Infused Hive Spear": 1, "Infused Hive Dagger": 1, "Infused Hive Bow": 1, "Contrast": 1, "Prowess": 1, "Intensity": 1
+      },
+      "currency": "Master Voucher",
+      "how": "finishing The Qira Hive",
+      "perRun": 1,
+      "minutesPerRun": 120,
+      "quest": "The Qira Hive",
+      "default": 1,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Hive_Shop", "https://wynncraft.wiki.gg/wiki/The_Qira_Hive_(Quest)"],
+      "note": "One piece per voucher per class; the Master Voucher comes from the whole quest (Lv 80-101)."
+    },
+    {
+      "id": "qira_hive",
+      "match": {"type": "QUEST", "name": "The Qira Hive"},
+      "currency": "Hive voucher",
+      "how": "a division of The Qira Hive",
+      "perRun": 1,
+      "minutesPerRun": 45,
+      "quest": "The Qira Hive",
+      "default": 1,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Hive_Shop", "https://wynncraft.wiki.gg/wiki/The_Qira_Hive_(Quest)"],
+      "note": "Each division gives one voucher of its element; one voucher buys one piece per class; another costs 10 catalysts."
+    },
+    {
+      "id": "legendary_island",
+      "match": {"type": "CHALLENGE", "name": "Legendary Island"},
+      "currency": "Legendary Token",
+      "how": "Legendary Island clears (12 Emerald Blocks each)",
+      "perRun": 1,
+      "minutesPerRun": 40,
+      "default": 1,
+      "tiers": {
+        "Bronze": {"currency": "Bronze Token", "amount": 10, "runs": 1},
+        "Silver": {"currency": "Silver Token", "amount": 8, "runs": 1, "needs": "Bronze"},
+        "Gold": {"currency": "Gold Token", "amount": 6, "runs": 1, "needs": "Silver"},
+        "Diamond": {"currency": "Diamond Token", "amount": 2, "runs": 2, "needs": "Gold"}
+      },
+      "items": {"Legendary Medallion": 128},
+      "sources": ["https://wynncraft.wiki.gg/wiki/Legendary_Island", "https://wynncraft.wiki.gg/wiki/Diamond_Static_Bracelet",
+        "https://wynncraft.wiki.gg/wiki/Gold_Static_Bracelet", "https://wynncraft.wiki.gg/wiki/Bronze_Basic_Bracelet",
+        "https://wynncraft.wiki.gg/wiki/Legendary_Medallion"],
+      "note": "A clear gives 25 Bronze, 15 Silver, 7 Gold and 1 Diamond token; each tier also takes the tier below (Diamond: 2 Diamond tokens and the Gold piece), so a Diamond piece is two clears. Rings cost half (a Diamond ring is one clear)."
+    },
+    {
+      "id": "corrupted_dungeon",
+      "match": {"type": "DUNGEON_MERCHANT", "prefix": "Corrupted "},
+      "currency": "corrupted boss token",
+      "how": "corrupted dungeon runs (one token each)",
+      "perRun": 1,
+      "minutesPerRun": 15,
+      "default": 5,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Dungeon_Merchant", "https://wynncraft.wiki.gg/wiki/Corrupted_Ice_Barrows"],
+      "note": "Items cost 2-6 of the corrupted boss's token (Peaceful Rest: 6); a run gives one, plus a key to get in."
+    },
+    {
+      "id": "dungeon",
+      "match": {"type": "DUNGEON_MERCHANT"},
+      "currency": "boss token",
+      "how": "dungeon runs (one token each)",
+      "perRun": 1,
+      "minutesPerRun": 10,
+      "default": 4,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Dungeon_Merchant", "https://wynncraft.wiki.gg/wiki/Galleon%27s_Graveyard"],
+      "note": "Admiral: 4 Redbeard's Hair, Blasphemy: 4 Theorick's Permafrost; a run gives one token."
+    },
+    {
+      "id": "altar",
+      "match": {"type": "BOSS_ALTAR"},
+      "currency": "altar run",
+      "how": "boss altar runs (4-8 tribute materials each)",
+      "perRun": 1,
+      "minutesPerRun": 10,
+      "default": 3,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Boss_Altar", "https://wynncraft.wiki.gg/wiki/Summa"],
+      "note": "Drop chances are not on the wiki: about three runs per piece assumed."
+    },
+    {
+      "id": "almuj_glass",
+      "items": {
+        "Blood-Tinted Necklace": 1, "Crystal-Blend Pendant": 1, "Emerald-Tinted Charm": 1, "Marrow-Tinted Necklace": 1,
+        "Plain Glass Necklace": 1, "Scarab-Shelled Charm": 1, "Sting-Glass Necklace": 1, "Webbed Glass Charm": 1
+      },
+      "currency": "material set",
+      "how": "mob materials for the Almuj glassblower (Sting-Glass: 6 Soft Sand and a Shinesting Scorpion Tail)",
+      "perRun": 1,
+      "minutesPerRun": 20,
+      "default": 1,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Sting-Glass_Necklace"]
+    },
+    {
+      "id": "iboju_masks",
+      "match": {"type": "MERCHANT", "name": "Iboju Village", "untradable": true},
+      "currency": "Antic Bead",
+      "how": "the Tribal Sanctuary altar",
+      "perRun": 20,
+      "minutesPerRun": 45,
+      "default": 20,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Mask_of_Courage"],
+      "note": "20 Antic Beads a mask; beads per altar run are not on the wiki (a few runs assumed)."
+    },
+    {
+      "id": "gert_camp",
+      "match": {"type": "MERCHANT", "name": "Gert Camp"},
+      "currency": "Pig Meat",
+      "how": "pig drops",
+      "perRun": 15,
+      "minutesPerRun": 15,
+      "quest": "Hunger of the Gerts Part I",
+      "default": 15,
+      "sources": ["https://wynncraft.wiki.gg/wiki/Gert_Bangswing_Manypointystick"]
+    }
+  ]
+}

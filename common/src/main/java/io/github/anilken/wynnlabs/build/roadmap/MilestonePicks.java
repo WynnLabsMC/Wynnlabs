@@ -427,14 +427,18 @@ final class MilestonePicks {
             }
             // a quest the piece asks for that you have not done: not the pick before the quest's
             // level (Sodeta Boots want Lost Soles), but an alternative "after quest X" (its
-            // caution) rather than gone; from the quest's level on it is a pick, with the caution
-            QuestBook.Entry quest = ShoppingSources.questPending(run.state, info);
-            if (quest != null && quest.level() > m) {
+            // caution) rather than gone; from the quest's level on it is a pick, with the caution.
+            // A piece bought with a quest's one token (Ornate Shadow: A Hunter's Calling) stays an
+            // alternative until the quest is done, at any level: the quest is the cost
+            QuestBook.Entry quest = questLater(info);
+            if (quest != null) {
                 if (allocM == null) {
                     RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_quest", quest.name(), quest.level());
                     return;
                 }
-                RoadmapTrace.trace(m, t, info, L.t("wynnlabs.road.trace_quest_later", quest.name(), quest.level()));
+                RoadmapTrace.trace(m, t, info, ShoppingSources.questToken(info)
+                        ? L.t("wynnlabs.road.trace_quest_token", quest.name())
+                        : L.t("wynnlabs.road.trace_quest_later", quest.name(), quest.level()));
                 future = true;
             }
             int total = info.requirements().skills().stream().mapToInt(r -> r.points()).sum();
@@ -491,6 +495,11 @@ final class MilestonePicks {
                 sc = baseObj <= 0 ? sc : (sc / baseObj - 1) * 100;
                 // a nudge toward what players actually pick (rules.community)
                 sc += Rules.communityBonus(info.name());
+                // and what earning it takes, as the judged score charges it (a copy you have or
+                // an earlier milestone's pick: nothing)
+                if (baseObj > 0 && cand.stack() == null && !held(info)) {
+                    sc -= ShoppingSources.effortPercent(info);
+                }
                 // and away from what needs a skill reset in town
                 if (slotUsed != null && Build.needsRespec(run.baseline, run.prevAlloc, slotUsed, cand, earned)) {
                     sc -= Rules.sub("shopping", "respecPenaltyPercent", 3);
@@ -544,12 +553,26 @@ final class MilestonePicks {
          * not a piece for a later level, not one an earlier milestone already holds.
          */
         private void refuseLater(ItemData info) {
-            QuestBook.Entry quest = ShoppingSources.questPending(run.state, info);
             if (info.requirements().level() <= m && !held(info) && run.affordable.test(info)
-                    && (quest == null || quest.level() <= m)
+                    && questLater(info) == null
                     && (!ShoppingSources.excluded(info, badSources) || run.owned.contains(info.name()))) {
                 refuse(t, info);
             }
+        }
+
+        /**
+         * The quest still in the way of this piece at this milestone, or null: one above the
+         * milestone it asks for, or the quest whose one token buys it (unless you have the piece).
+         */
+        private QuestBook.Entry questLater(ItemData info) {
+            QuestBook.Entry quest = ShoppingSources.questPending(run.state, info);
+            if (quest == null) {
+                return null;
+            }
+            if (ShoppingSources.questToken(info)) {
+                return run.owned.contains(info.name()) ? null : quest;
+            }
+            return quest.level() > m ? quest : null;
         }
 
         /** An earlier milestone's pick, in the set already: it stays a candidate however far below the window. */
@@ -646,15 +669,13 @@ final class MilestonePicks {
                     if (Build.needsRespec(run.baseline, run.prevAlloc, slotUsed, cand, earned)) {
                         full -= Rules.sub("shopping", "respecPenaltyPercent", 3);
                     }
-                    // for the choice only (the row shows the gain itself): an untradable
-                    // piece from a dungeon, its merchant, a raid or a quest takes a run of
-                    // its own, so it must clear the bar by this much more (Admiral wants
-                    // Redbeard's Hair); what you have needs no buy and counts a little extra
+                    // for the choice only (the row shows the gain itself): what you have needs
+                    // no buy and counts a little extra. An untradable piece's runs (Admiral's
+                    // Redbeard's Hair, Tempo Town's Time Fragments) are in the judged score
+                    // already (SetJudge's effort charge)
                     double pickBy = full;
                     if (run.owned.contains(info.name()) && !buy) {
                         pickBy += Rules.sub("shopping", "ownedBonusPercent", 2);
-                    } else if (ShoppingSources.effort(info)) {
-                        pickBy -= Rules.sub("shopping", "untradableEffortPercent", 5);
                     }
                     // a fresh copy of the one you wear must beat it by the full bar, never the
                     // lower one old gear gets

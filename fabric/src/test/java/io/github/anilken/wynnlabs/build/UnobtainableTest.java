@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A piece nothing says how to get (Ornate Shadow Cloak in the recorded item data) is never
+ * A piece nothing says how to get (an untradable one with no source in the recorded item data) is never
  * offered as a buy: only the Trade Market's price makes one buyable, and one you have is kept
  * and said to be of unknown source.
  */
@@ -46,10 +46,18 @@ class UnobtainableTest {
         return GameState.current().allGear().filter(i -> i.name().equals(name)).findFirst().orElseThrow();
     }
 
+    /** An untradable piece nothing says how to get, the first by name. */
+    private static ItemData noSource() {
+        return GameState.current().allGear()
+                .filter(i -> ShoppingSources.unknownSource(i) && !Shopping.tradable(i) && !i.name().equals("Diverted Loyalty")
+                        && !"QUEST_ITEM".equals(i.restriction()))
+                .min(java.util.Comparator.comparing(ItemData::name)).orElseThrow();
+    }
+
     @Test
     void aPieceWithNoKnownSourceIsLeftOut() throws Exception {
         shaman();
-        ItemData cloak = gear("Ornate Shadow Cloak");
+        ItemData cloak = noSource();
         assertTrue(ShoppingSources.unknownSource(cloak));
         assertFalse(Shopping.tradable(cloak));
         // left out with no rule asking for it
@@ -97,6 +105,6 @@ class UnobtainableTest {
         assertTrue(Roadmap.ownedCounts(GameState.current()).containsKey(mine.name()), "but yours: the road map keeps it");
         assertEquals(L.t("wynnlabs.results.unknown_have"), BuildSources.sourceText(mine.name()));
         // one you do not have reads as before
-        assertEquals(L.t("wynnlabs.results.untradable"), BuildSources.sourceText("Ornate Shadow Cloak"));
+        assertEquals(L.t("wynnlabs.results.untradable"), BuildSources.sourceText(noSource().name()));
     }
 }

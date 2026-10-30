@@ -185,7 +185,8 @@ public final class BuildSources {
         if (info == null) {
             return new Object[] {L.t("wynnlabs.results.price_unknown"), null};
         }
-        String src = ShoppingSources.origin(info);
+        // with what earning it takes when the seller wants no emeralds (Tempo Town: Time Fragments)
+        String src = ShoppingSources.withCost(info, ShoppingSources.origin(info));
         boolean tradable = Shopping.tradable(info);
         if (tradable) {
             Prices.Price p = GameState.current().price(name);
