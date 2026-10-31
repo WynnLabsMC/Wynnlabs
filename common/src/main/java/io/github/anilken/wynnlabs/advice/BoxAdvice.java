@@ -134,36 +134,44 @@ final class BoxAdvice {
             }
             return sell(box, L.t("wynnlabs.auto.box_none_for_class", AltCharacters.className(cls)));
         }
-        // If even the best outcome is weaker than what you wear, the box is for selling
-        // the build model: does any outcome you could wear raise the build at its level? A box
-        // whose outcomes all leave the build where it is gets sold, not identified
+        // The build plan, as it judges the piece once identified: an outcome is one you would
+        // wear only when the plan would take it at its best roll. When none would, the box is
+        // sold by its value (Blacksmith or the Trade Market's reveal), never identified to wear
         Build.Plan plan = Build.plan();
         String wearName = null;
-        if (all > 0 && plan != null && plan.result() != null && plan.result().objective() > 0) {
+        boolean judged = false;
+        if (all > 0) {
             double bestGain = Double.NEGATIVE_INFINITY;
-            String bestName = null;
+            String rival = null;
             for (ItemData info : GameState.current().possibleGears(box)) {
                 Klass c = info.requirements().klass().orElse(info.slot().klass());
                 if (c != null && c != Klass.NONE && c != cls) {
                     continue;
                 }
-                double g = GearScore.buildGain(plan, info, level);
-                if (!Double.isNaN(g) && g > bestGain) {
-                    bestGain = g;
-                    bestName = info.name();
+                PlanFit.Fit fit = PlanFit.of(info, level);
+                if (fit == null) {
+                    continue;
+                }
+                judged = true;
+                rival = rival != null ? rival : fit.rival();
+                // of the wanted ones, the one the build gains most from at a middle roll
+                double g = fit.wanted() ? GearScore.buildGain(plan, info, level) : Double.NaN;
+                if (fit.wanted() && (wearName == null || g > bestGain)) {
+                    bestGain = Double.isNaN(g) ? Double.NEGATIVE_INFINITY : g;
+                    wearName = info.name();
                 }
             }
-            if (bestName != null && bestGain < Rules.num("boxMinGainPercent", 3)) {
-                return sell(box, L.t("wynnlabs.auto.box_no_build_gain", bestName,
-                        (bestGain >= 0 ? "+" : "") + Math.round(bestGain * 10) / 10.0));
+            if (judged && wearName == null) {
+                return sell(box, rival == null ? L.t("wynnlabs.auto.box_plan_skips")
+                        : L.t("wynnlabs.auto.box_plan_runs", rival));
             }
-            wearName = bestName;
         }
         // too far ahead to identify now: kept for later only when an outcome will help (above)
         if (low > level + tooHigh) {
             return plain(new Advice.Entry(Verdict.KEEP, L.t("wynnlabs.auto.identify_near_level", low)));
         }
-        WornGear.Weakest wb = !GameState.current().inGame() ? null : WornGear.weakest(WornGear.worn(box.slot()));
+        // without a plan to ask, the rough check: the best outcome against what you wear
+        WornGear.Weakest wb = judged || !GameState.current().inGame() ? null : WornGear.weakest(WornGear.worn(box.slot()));
         if (wb != null && wb.name() != null && all > 0) {
             double bestOutcome = Double.NEGATIVE_INFINITY;
             for (ItemData info : GameState.current().possibleGears(box)) {

@@ -68,9 +68,15 @@ final class GearAdvice {
             if (itemLevel > level + tooHigh) {
                 return new Advice.Entry(Verdict.KEEP, L.t("wynnlabs.auto.identify_near_level", itemLevel));
             }
-            // Judged by what it could become against what you wear, not by its level alone
+            // Worth the fee only when the build plan would take it at its best roll; without a
+            // plan, judged by what it could become against what you wear
+            PlanFit.Fit fit = PlanFit.of(info, level);
+            if (fit != null && !fit.wanted()) {
+                return SellAdvice.sell(gear, fit.rival() == null ? L.t("wynnlabs.auto.plan_skips_unid")
+                        : L.t("wynnlabs.auto.plan_runs_no_id", fit.rival()));
+            }
             double potential = GearScore.score(info);
-            if (now != null && now.name() != null && potential < now.score() - 0.5) {
+            if (fit == null && now != null && now.name() != null && potential < now.score() - 0.5) {
                 return SellAdvice.sell(gear, L.t("wynnlabs.auto.worn_better_even_identified", now.name()));
             }
             if (itemLevel < level - tooLow) {
