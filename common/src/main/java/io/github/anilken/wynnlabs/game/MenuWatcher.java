@@ -223,6 +223,14 @@ public final class MenuWatcher {
                 // a chat note must never break the game
             }
         }
+        if (tick % 10 == 0) {
+            try {
+                // the Content Book's page, when the player has it open on a kind the mod keeps
+                io.github.anilken.wynnlabs.quests.ContentBookPage.capture();
+            } catch (Throwable ignored) {
+                // reading a menu must never break the game
+            }
+        }
         if (tick % 10 != 0 || !(mc.screen instanceof AbstractContainerScreen<?> screen)) {
             return;
         }
@@ -233,12 +241,6 @@ public final class MenuWatcher {
         }
         try {
             TomeMemory.capture();               // the equipped tomes, when the Mastery Tomes menu is open
-        } catch (Throwable ignored) {
-            // reading a menu must never break the game
-        }
-        try {
-            // the Content Book's page, when the player has it open on a kind the mod keeps
-            io.github.anilken.wynnlabs.quests.ContentBookPage.capture();
         } catch (Throwable ignored) {
             // reading a menu must never break the game
         }

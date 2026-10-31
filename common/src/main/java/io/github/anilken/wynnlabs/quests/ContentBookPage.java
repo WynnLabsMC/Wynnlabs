@@ -99,7 +99,8 @@ public final class ContentBookPage {
         String first = plain(lore.get(0));
         int dash = first.lastIndexOf(" - ");
         String s = dash < 0 ? first : first.substring(dash + 3).trim();
-        if (s.startsWith("Already completed")) {
+        // a finished cave or similar reads "Can be explored again" (the check mark shows it)
+        if (s.startsWith("Already completed") || s.endsWith(" again")) {
             return "COMPLETED";
         }
         if (s.startsWith("Currently ")) {

@@ -18,6 +18,7 @@ class ContentBookPageTest {
     @Test
     void statusComesFromTheFirstLoreLine() {
         assertEquals("COMPLETED", ContentBookPage.status(List.of("§aAlready completed")));
+        assertEquals("COMPLETED", ContentBookPage.status(List.of("§aCan be explored again")), "a finished cave");
         assertEquals("STARTED", ContentBookPage.status(List.of("§aCurrently in progress")));
         assertEquals("STARTED", ContentBookPage.status(List.of("§aCurrently tracking")));
         assertEquals("AVAILABLE", ContentBookPage.status(List.of("§eCan be started")));
