@@ -1,5 +1,9 @@
 # Wynn Labs
 
+[![Modrinth](https://img.shields.io/badge/Modrinth-wynnlabs-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/mod/wynnlabs)
+[![CurseForge](https://img.shields.io/badge/CurseForge-wynnlabs-F16436?logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/mc-mods/wynnlabs)
+[![GitHub release](https://img.shields.io/github/v/release/WynnLabsMC/Wynnlabs?label=GitHub&logo=github)](https://github.com/WynnLabsMC/Wynnlabs/releases/latest)
+
 An in-game assistant for [Wynncraft](https://wynncraft.com): a client-side mod for Minecraft
 1.21.11 on Fabric or NeoForge. It reads your own character, bag and bank and tells you what to
 wear, sell, level and do next.
