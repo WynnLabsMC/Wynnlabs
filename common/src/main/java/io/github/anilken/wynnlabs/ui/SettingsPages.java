@@ -358,17 +358,20 @@ final class SettingsPages extends MenuPaint {
             case "preset" -> RuleEditor.applyPreset(i);
             case "profiles" -> {
                 List<String> names = Settings.presetNames();
-                if (i == 0) {
-                    SettingsPresets.choose(null);
-                } else if (i <= names.size()) {
-                    SettingsPresets.choose(names.get(i - 1));
-                } else if (i == names.size() + 1) {
-                    String made = SettingsPresets.saveNew(L.t("wynnlabs.settings.profile_base"));
-                    if (made != null) {
-                        menu.flash(L.t("wynnlabs.settings.profile_saved", made));
+                String label = SettingsText.options(new SettingsRows.SetRow("profiles", key, null, null)).get(i);
+                switch (label) {
+                    case "@add" -> tab.startNameBox(1);
+                    case "@edit" -> tab.startNameBox(2);
+                    case "@ok" -> tab.saveNameBox();
+                    case "@cancel" -> tab.endNameBox();
+                    case "@del" -> tab.deleteClicked();
+                    default -> {
+                        if (i == 0) {
+                            SettingsPresets.choose(null);
+                        } else if (i <= names.size()) {
+                            SettingsPresets.choose(names.get(i - 1));
+                        }
                     }
-                } else if (Settings.activePreset() != null) {
-                    SettingsPresets.delete(Settings.activePreset());
                 }
             }
             default -> {

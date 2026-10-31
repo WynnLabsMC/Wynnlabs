@@ -476,6 +476,27 @@ public final class Settings {
         return true;
     }
 
+    /** A preset renamed; the name it got, null when the new name is empty or another preset has it. */
+    public static synchronized String renamePreset(String old, String raw) {
+        String name = presetName(raw);
+        if (name.isEmpty() || !presetNames().contains(old)) {
+            return null;
+        }
+        if (!name.equalsIgnoreCase(old) && presetNames().stream().anyMatch(name::equalsIgnoreCase)) {
+            return null;
+        }
+        try {
+            Files.move(presetFile(old), presetFile(name), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            System.out.println("[WynnLabs] could not rename preset " + old + ": " + e);
+            return null;
+        }
+        if (old.equals(preset)) {
+            preset = name;
+        }
+        return name;
+    }
+
     /** A preset deleted; the shared settings come back when it was the one in use. */
     public static synchronized void deletePreset(String name) {
         load();

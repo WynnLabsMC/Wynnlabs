@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.advice.MarketSlots;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.RuleEditor;
 import io.github.anilken.wynnlabs.core.Settings;
+import io.github.anilken.wynnlabs.core.SettingsPresets;
 import io.github.anilken.wynnlabs.core.UpdateCheck;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.ui.SettingsRows.SetRow;
@@ -52,7 +53,10 @@ final class SettingsTab extends MenuTab {
         ruleBox.setMaxLength(12);
         ruleBoxFor = null;
         searchBox = UiInput.box(font(), "wynnlabs.settings.search_hint", searchBox, s -> settingsScroll = 0);
-        return List.of(keyBox, ruleBox, searchBox);
+        nameBox = UiInput.box(font(), "wynnlabs.settings.profile_box", null, v -> { });
+        nameBox.setMaxLength(16);
+        SettingsRows.profileEdit = 0;
+        return List.of(keyBox, ruleBox, searchBox, nameBox);
     }
 
     @Override
@@ -116,6 +120,9 @@ final class SettingsTab extends MenuTab {
             return true;
         }
         searchBox.setFocused(false);
+        if (SettingsRows.profileEdit != 0 && boxClicked(nameBox, nameBoxRect, event, doubleClick)) {
+            return true;
+        }
         if (ruleBoxFor != null && boxClicked(ruleBox, ruleBoxRect, event, doubleClick)) {
             return true;
         }
@@ -226,6 +233,16 @@ final class SettingsTab extends MenuTab {
     @Override
     boolean keyPressed(int key) {
         boolean enter = key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || key == org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER;
+        if (SettingsRows.profileEdit != 0 && nameBox.isFocused()) {
+            if (enter) {
+                saveNameBox();
+                return true;
+            }
+            if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+                endNameBox();
+                return true;
+            }
+        }
         if (ruleBox != null && ruleBox.isFocused() && enter) {
             saveRuleBox();
             return true;
@@ -360,6 +377,7 @@ final class SettingsTab extends MenuTab {
     private void drawSettings(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         keyBoxShown = false;                    // set again where the key box is drawn
         ruleBoxRect = null;
+        nameBoxRect = null;
         settingsListRect = null;
         if (settingsCat < 0 || settingsCat >= SETTING_CATS.length) {
             settingsCat = 0;
@@ -439,6 +457,64 @@ final class SettingsTab extends MenuTab {
         List<SetRow> rows = SettingsRows.settingRows(SETTING_CATS[Math.max(0, Math.min(SETTING_CATS.length - 1, cat))]);
         if (row >= 0 && row < rows.size() && rows.get(row).fold() != null) {
             openFolds.add(rows.get(row).fold());
+        }
+    }
+
+    // ---- the preset name box (a new preset's name, or the one in use renamed) ----
+
+    EditBox nameBox;
+    int[] nameBoxRect;
+    /** When the preset's delete button was first clicked: a second click within {@link #RESET_WINDOW_MS} deletes. */
+    private long deleteArmedAt;
+
+    /** Opens the name box: empty for a new preset (1), the name in use for a rename (2). */
+    void startNameBox(int mode) {
+        SettingsRows.profileEdit = mode;
+        nameBox.setValue(mode == 2 && Settings.activePreset() != null ? Settings.activePreset() : "");
+        nameBox.setFocused(true);
+        menu.setFocused(nameBox);
+    }
+
+    void endNameBox() {
+        SettingsRows.profileEdit = 0;
+        nameBox.setFocused(false);
+        menu.setFocused(null);
+    }
+
+    /** Saves what is in the name box (a blank new name gets "Preset"); it stays open when the name is no good. */
+    void saveNameBox() {
+        String typed = nameBox.getValue();
+        String made;
+        if (SettingsRows.profileEdit == 2 && Settings.activePreset() != null) {
+            made = SettingsPresets.rename(Settings.activePreset(), typed);
+        } else {
+            made = SettingsPresets.saveNew(Settings.presetName(typed).isEmpty() ? L.t("wynnlabs.settings.profile_base") : typed);
+        }
+        if (made == null) {
+            menu.flash(L.t("wynnlabs.settings.profile_bad"));
+            return;
+        }
+        menu.flash(L.t("wynnlabs.settings.profile_saved", made));
+        endNameBox();
+    }
+
+    boolean deleteArmed() {
+        return deleteArmedAt != 0 && System.currentTimeMillis() - deleteArmedAt < RESET_WINDOW_MS;
+    }
+
+    /** The delete button: the first click asks, a second one soon after deletes the preset in use. */
+    void deleteClicked() {
+        String name = Settings.activePreset();
+        if (name == null) {
+            return;
+        }
+        if (deleteArmed()) {
+            deleteArmedAt = 0;
+            SettingsPresets.delete(name);
+            menu.flash(L.t("wynnlabs.settings.profile_deleted", name));
+        } else {
+            deleteArmedAt = System.currentTimeMillis();
+            menu.flash(L.t("wynnlabs.settings.profile_del_sure"));
         }
     }
 

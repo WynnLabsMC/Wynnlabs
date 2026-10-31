@@ -78,6 +78,9 @@ final class SettingsRows {
         return new Multi(keys, labels);
     }
 
+    /** The preset row's name box: 0 closed, 1 naming a new preset, 2 renaming the one in use. */
+    static int profileEdit;
+
     /** A page's rows in the order the list shows them. */
     static List<SetRow> settingRows(String cat) {
         Page p = new Page();

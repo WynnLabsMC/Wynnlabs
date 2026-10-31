@@ -128,6 +128,9 @@ final class SettingsControls extends MenuPaint {
     // ---- chips ----
 
     private int chipWidth(SetRow r, int i, String label) {
+        if (label.startsWith("@")) {
+            return label.equals("@box") ? BOX_W : SQ;
+        }
         return multi(r) ? Ui.iconChipWidth(font(), SettingsText.picked(r, i) ? "check" : null, label, false) : Ui.chipWidth(font(), label);
     }
 
@@ -166,7 +169,42 @@ final class SettingsControls extends MenuPaint {
         return x - Theme.SP_2 - x0;
     }
 
+    /** The preset name box's width. */
+    private static final int BOX_W = 110;
+
+    /** A preset row's button (or its name box) in the chip line; the tip names what it does. */
+    private int tool(GuiGraphics g, String label, int i, int x, int y, int mx, int my) {
+        if (label.equals("@box")) {
+            tab.nameBoxRect = UiInput.input(g, font(), tab.nameBox, L.t("wynnlabs.settings.profile_box"), x, y - 1, BOX_W, true, false, mx, my);
+            return BOX_W;
+        }
+        boolean armed = label.equals("@del") && tab.deleteArmed();
+        String icon = switch (label) {
+            case "@edit" -> "edit";
+            case "@add" -> "plus";
+            case "@del" -> "trash";
+            case "@ok" -> "check";
+            default -> "x";
+        };
+        String tip = L.t(switch (label) {
+            case "@edit" -> "wynnlabs.settings.profile_edit";
+            case "@add" -> "wynnlabs.settings.profile_add";
+            case "@del" -> armed ? "wynnlabs.settings.profile_del_sure" : "wynnlabs.settings.profile_del";
+            case "@ok" -> "wynnlabs.settings.profile_ok";
+            default -> "wynnlabs.settings.profile_cancel";
+        });
+        Ui.iconButton(g, icon, x, y, armed, mx, my);
+        menu.toggles.add(new Object[] {new int[] {x, y, SQ, Ui.CHIP_H}, "#opt:profiles:presets:" + i});
+        if (mx >= x && mx < x + SQ && my >= y && my < y + Ui.CHIP_H) {
+            rowTip(x, y, SQ, Ui.CHIP_H, tip, null);
+        }
+        return SQ;
+    }
+
     private int chip(GuiGraphics g, SetRow r, int i, String label, int x, int y, int mx, int my) {
+        if (label.startsWith("@")) {
+            return tool(g, label, i, x, y, mx, my);
+        }
         int cw = chipWidth(r, i, label);
         boolean on = SettingsText.picked(r, i);
         if (multi(r)) {

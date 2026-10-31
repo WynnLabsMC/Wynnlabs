@@ -63,6 +63,25 @@ public final class SettingsPresets {
         return name;
     }
 
+    /** A preset renamed, for every character that plays with it; the name it got, null if it could not. */
+    public static String rename(String old, String wanted) {
+        String name = Settings.renamePreset(old, wanted);
+        if (name == null) {
+            return null;
+        }
+        try (var all = Files.list(Profile.dir().getParent())) {
+            for (Path d : (Iterable<Path>) all::iterator) {
+                Path f = d.resolve("preset.txt");
+                if (Files.exists(f) && Files.readString(f, StandardCharsets.UTF_8).strip().equals(old)) {
+                    Files.writeString(f, name, StandardCharsets.UTF_8);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("[WynnLabs] could not follow the rename: " + e);
+        }
+        return name;
+    }
+
     /** A preset deleted; characters that used it fall back to the shared settings when they are picked. */
     public static void delete(String name) {
         boolean mine = name.equals(Settings.activePreset());

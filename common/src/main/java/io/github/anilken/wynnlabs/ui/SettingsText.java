@@ -93,11 +93,19 @@ final class SettingsText {
                 }
             }
             case "profiles" -> {
-                out.add(L.t("wynnlabs.settings.profile_shared"));
-                out.addAll(Settings.presetNames());
-                out.add(L.t("wynnlabs.settings.profile_new"));
-                if (Settings.activePreset() != null) {
-                    out.add(L.t("wynnlabs.settings.profile_delete"));
+                // "@..." are the buttons and the name box between the chips, not words
+                if (SettingsRows.profileEdit != 0) {
+                    out.addAll(List.of("@box", "@ok", "@cancel"));
+                } else {
+                    out.add(L.t("wynnlabs.settings.profile_shared"));
+                    out.addAll(Settings.presetNames());
+                    if (Settings.activePreset() != null) {
+                        out.add("@edit");
+                    }
+                    out.add("@add");
+                    if (Settings.activePreset() != null) {
+                        out.add("@del");
+                    }
                 }
             }
             default -> {
@@ -249,7 +257,7 @@ final class SettingsText {
             return false;
         }
         String q = query.strip().toLowerCase(Locale.ROOT);
-        String text = rowTitle(r) + "\n" + String.join("\n", options(r)) + "\n" + rowDesc(r) + "\n" + rowExample(r);
+        String text = rowTitle(r) + "\n" + options(r).stream().filter(o -> !o.startsWith("@")).collect(java.util.stream.Collectors.joining("\n")) + "\n" + rowDesc(r) + "\n" + rowExample(r);
         return text.toLowerCase(Locale.ROOT).contains(q);
     }
 }

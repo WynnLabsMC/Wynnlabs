@@ -84,4 +84,17 @@ class SettingsPresetsTest {
         assertNull(Settings.activePreset());
         assertTrue(Settings.on("mobTrack"));
     }
+
+    @Test
+    void renamingKeepsTheSettingsAndRefusesATakenName() {
+        Settings.savePreset("Tank");
+        Settings.set("mobTrack", false);
+        Settings.savePreset("Healer");
+        assertNull(Settings.renamePreset("Tank", "healer"), "another preset has that name");
+        assertEquals("Mage", Settings.renamePreset("Healer", "Mage"));
+        assertEquals("Mage", Settings.activePreset(), "the one in use follows the rename");
+        assertEquals(List.of("Mage", "Tank"), Settings.presetNames());
+        Settings.usePreset("Tank");
+        assertFalse(Settings.on("mobTrack"));
+    }
 }
