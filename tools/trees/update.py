@@ -26,7 +26,7 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     today = datetime.date.today().isoformat()
     for cls in CLASSES:
-        req = urllib.request.Request(URL + cls, headers={"User-Agent": "WynnLabs tools (https://github.com/anilken/wynn-inventory-api)"})
+        req = urllib.request.Request(URL + cls, headers={"User-Agent": "WynnLabs tools (https://github.com/WynnLabsMC/Wynnlabs)"})
         with urllib.request.urlopen(req, timeout=30) as r:
             data = json.load(r)
         cells = {}

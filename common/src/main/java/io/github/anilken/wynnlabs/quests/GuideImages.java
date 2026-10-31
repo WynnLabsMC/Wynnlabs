@@ -44,7 +44,7 @@ public final class GuideImages {
 
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10))
             .followRedirects(HttpClient.Redirect.NORMAL).build();
-    private static final String AGENT = "WynnLabs (Minecraft client mod; quest guide; https://github.com/anilken/wynnlabs)";
+    private static final String AGENT = "WynnLabs (Minecraft client mod; quest guide; https://github.com/WynnLabsMC/Wynnlabs)";
 
     private GuideImages() {}
 

@@ -34,7 +34,7 @@ CACHE = os.path.join(ROOT, "build", "discoveries-wiki")
 FIXES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixes.json")
 API = "https://wynncraft.wiki.gg/api.php"
 PAGE = "https://wynncraft.wiki.gg/wiki/"
-UA = "WynnLabs (Minecraft client mod; secret discoveries; https://github.com/anilken/wynnlabs)"
+UA = "WynnLabs (Minecraft client mod; secret discoveries; https://github.com/WynnLabsMC/Wynnlabs)"
 NAVBOX = "Template:Navbox Secret discoveries"
 
 

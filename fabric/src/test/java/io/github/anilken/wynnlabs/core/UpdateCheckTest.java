@@ -58,8 +58,8 @@ class UpdateCheckTest {
     void readsTagAndPageFromAReleaseAnswer() {
         String json = """
                 {
-                  "url": "https://api.github.com/repos/anilken/wynnlabs/releases/1",
-                  "html_url": "https://github.com/anilken/wynnlabs/releases/tag/v0.3.0",
+                  "url": "https://api.github.com/repos/WynnLabsMC/Wynnlabs/releases/1",
+                  "html_url": "https://github.com/WynnLabsMC/Wynnlabs/releases/tag/v0.3.0",
                   "id": 1,
                   "tag_name": "v0.3.0",
                   "name": "v0.3.0",
@@ -72,14 +72,14 @@ class UpdateCheckTest {
                 """;
         UpdateCheck.Release r = UpdateCheck.parse(json);
         assertEquals("v0.3.0", r.tag());
-        assertEquals("https://github.com/anilken/wynnlabs/releases/tag/v0.3.0", r.url());
+        assertEquals("https://github.com/WynnLabsMC/Wynnlabs/releases/tag/v0.3.0", r.url());
         assertEquals(java.time.Instant.parse("2026-10-01T12:00:00Z").toEpochMilli(), r.published());
         assertEquals(0, UpdateCheck.parse(json.replace("2026-10-01T12:00:00Z", "yesterday")).published());
     }
 
     // ---- the About page's state and "Check again" ----
 
-    private static final String NEWER = "{\"tag_name\": \"v0.3.0\", \"html_url\": \"https://github.com/anilken/wynnlabs/releases/tag/v0.3.0\","
+    private static final String NEWER = "{\"tag_name\": \"v0.3.0\", \"html_url\": \"https://github.com/WynnLabsMC/Wynnlabs/releases/tag/v0.3.0\","
             + " \"published_at\": \"2026-10-01T12:00:00Z\"}";
 
     /** A fresh run of jar {@code version} with the setting {@code on}; returns how many requests started. */
@@ -115,7 +115,7 @@ class UpdateCheckTest {
         UpdateCheck.State s = UpdateCheck.state();
         assertEquals(UpdateCheck.Status.NEWER, s.status());
         assertEquals("v0.3.0", s.latest());
-        assertEquals("https://github.com/anilken/wynnlabs/releases/tag/v0.3.0", s.url());
+        assertEquals("https://github.com/WynnLabsMC/Wynnlabs/releases/tag/v0.3.0", s.url());
         assertEquals(java.time.Instant.parse("2026-10-01T12:00:00Z").toEpochMilli(), s.published());
         assertEquals(102_000, s.checkedAt());
         assertFalse(UpdateCheck.checkNow(109_999), "under ten seconds after the last press");
@@ -158,22 +158,22 @@ class UpdateCheckTest {
         assertNull(UpdateCheck.parse("{\"message\": \"API rate limit exceeded\"}"));
         assertNull(UpdateCheck.parse("{\"tag_name\": \"v0.3.0\"}"));
         assertNull(UpdateCheck.parse("{\"tag_name\": \"v0.3.0\", \"html_url\": \"https://evil.example/x\"}"));
-        assertNull(UpdateCheck.parse("{\"tag_name\": 3, \"html_url\": \"https://github.com/anilken/wynnlabs\"}"));
+        assertNull(UpdateCheck.parse("{\"tag_name\": 3, \"html_url\": \"https://github.com/WynnLabsMC/Wynnlabs\"}"));
         assertNull(UpdateCheck.parse("{\"tag_name\": \"v0.3.0\", \"html_url\": \"https://github.com/a/b\", \"draft\": true}"));
     }
 
     // ---- the updater: notes, assets, the first join, the chat line, ignoring ----
 
     private static final String WITH_ASSETS = """
-            {"tag_name": "v0.3.0", "html_url": "https://github.com/anilken/Wynnlabs/releases/tag/v0.3.0",
+            {"tag_name": "v0.3.0", "html_url": "https://github.com/WynnLabsMC/Wynnlabs/releases/tag/v0.3.0",
              "draft": false, "prerelease": false, "body": "### Bug Fixes\\n\\n* one",
              "assets": [
                {"name": "wynnlabs-fabric-0.3.0.jar", "size": 4320605, "state": "uploaded",
                 "digest": "sha256:d4d3f04e5cb10bf4601652ca12cef4ab785d44d49a4f918af5c1c01cd126a5ad",
-                "browser_download_url": "https://github.com/anilken/Wynnlabs/releases/download/v0.3.0/wynnlabs-fabric-0.3.0.jar"},
+                "browser_download_url": "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.3.0/wynnlabs-fabric-0.3.0.jar"},
                {"name": "wynnlabs-neoforge-0.3.0.jar", "size": 4329012, "state": "uploaded",
                 "digest": "sha256:8ed4b3b425e7a8c7f986ba7c64a97e24d515eb7bbb6604905a6bb85cf2f144c4",
-                "browser_download_url": "https://github.com/anilken/Wynnlabs/releases/download/v0.3.0/wynnlabs-neoforge-0.3.0.jar"}
+                "browser_download_url": "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.3.0/wynnlabs-neoforge-0.3.0.jar"}
              ]}
             """;
 
@@ -255,7 +255,7 @@ class UpdateCheckTest {
 
     @Test
     void theChatLineHasOneLinkThatUpdates() {
-        UpdateCheck.Release r = new UpdateCheck.Release("v0.3.0", "https://github.com/anilken/Wynnlabs/releases/tag/v0.3.0");
+        UpdateCheck.Release r = new UpdateCheck.Release("v0.3.0", "https://github.com/WynnLabsMC/Wynnlabs/releases/tag/v0.3.0");
         java.util.List<net.minecraft.network.chat.ClickEvent> clicks = new java.util.ArrayList<>();
         UpdateCheck.line(r, "0.2.0").visit((style, text) -> {
             if (style.getClickEvent() != null && !text.isEmpty()) {

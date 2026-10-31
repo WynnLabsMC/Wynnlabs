@@ -32,7 +32,7 @@ import java.util.function.Supplier;
  */
 public final class UpdateCheck {
 
-    static final String URL = "https://api.github.com/repos/anilken/wynnlabs/releases/latest";
+    static final String URL = "https://api.github.com/repos/WynnLabsMC/Wynnlabs/releases/latest";
     /** Ticks in a world before asking: about five seconds, so joining is not crowded. */
     private static final int DELAY_TICKS = 100;
     /** The shortest time between two requests (a press on "Check again" sooner does nothing). */
@@ -198,7 +198,7 @@ public final class UpdateCheck {
             var http = java.net.http.HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
             var req = java.net.http.HttpRequest.newBuilder(URI.create(URL))
                     .header("Accept", "application/vnd.github+json")
-                    .header("User-Agent", "WynnLabs/" + mine + " (Minecraft client mod; update check; https://github.com/anilken/wynnlabs)")
+                    .header("User-Agent", "WynnLabs/" + mine + " (Minecraft client mod; update check; https://github.com/WynnLabsMC/Wynnlabs)")
                     .timeout(Duration.ofSeconds(10))
                     .GET().build();
             var res = http.send(req, java.net.http.HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));

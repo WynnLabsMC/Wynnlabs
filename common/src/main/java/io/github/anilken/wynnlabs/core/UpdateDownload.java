@@ -270,7 +270,7 @@ public final class UpdateDownload {
                 .followRedirects(java.net.http.HttpClient.Redirect.NEVER)
                 .connectTimeout(Duration.ofSeconds(10)).build();
         var req = java.net.http.HttpRequest.newBuilder(uri)
-                .header("User-Agent", "WynnLabs/" + UpdateCheck.version.get() + " (Minecraft client mod; updater; https://github.com/anilken/wynnlabs)")
+                .header("User-Agent", "WynnLabs/" + UpdateCheck.version.get() + " (Minecraft client mod; updater; https://github.com/WynnLabsMC/Wynnlabs)")
                 .timeout(Duration.ofSeconds(30))
                 .GET().build();
         try {
