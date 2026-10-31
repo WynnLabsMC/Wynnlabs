@@ -694,7 +694,10 @@ public final class Wyn {
     public record BookSlot(String name, List<String> lore) {}
 
     /** The open Content Book: its filter button (null when not found) and the entries on the page shown. */
-    public record BookPage(BookSlot filter, List<BookSlot> entries) {}
+    public record BookPage(BookSlot filter, List<BookSlot> entries, List<TypedEntry> typed) {}
+
+    /** One entry as Wynntils read it: its kind (an ActivityType name), name, status name and level, with its lore. */
+    public record TypedEntry(String type, String name, String status, int level, String description, List<String> lore) {}
 
     /**
      * The Content Book the player has open, as shown: the filter button and this page's entries
@@ -715,6 +718,7 @@ public final class Wyn {
             java.util.Set<Integer> page = new java.util.HashSet<>(book.getBounds().getSlots());
             BookSlot filter = null;
             List<BookSlot> entries = new ArrayList<>();
+            List<TypedEntry> typed = new ArrayList<>();
             var slots = player.containerMenu.slots;
             for (int i = 0; i < slots.size(); i++) {
                 var slot = slots.get(i);
@@ -731,11 +735,19 @@ public final class Wyn {
                     String read = Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class)
                             .map(a -> a.getActivityInfo() == null ? null : a.getActivityInfo().name()).orElse(null);
                     entries.add(new BookSlot(read == null || read.isBlank() ? name : read, lore));
+                    Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class).ifPresent(a -> {
+                        var info = a.getActivityInfo();
+                        if (info != null && info.type() != null && info.name() != null) {
+                            int lv = info.requirements() == null || info.requirements().level() == null ? 0 : info.requirements().level().a();
+                            typed.add(new TypedEntry(info.type().name(), info.name(), info.status() == null ? "UNKNOWN" : info.status().name(),
+                                    lv, "", lore));
+                        }
+                    });
                 } else if (filter == null && "Filter".equals(name)) {
                     filter = new BookSlot(name, lore);
                 }
             }
-            return new BookPage(filter, entries);
+            return new BookPage(filter, entries, typed);
         }, null);
     }
 

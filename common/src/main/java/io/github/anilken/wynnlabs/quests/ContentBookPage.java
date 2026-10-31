@@ -33,6 +33,18 @@ public final class ContentBookPage {
         ContentType type = filterOf(page.filter());
         List<Wyn.ContentLine> lines = lines(page.entries());
         diagnose(page, type, lines.size());
+        // Wynntils has read each entry's kind and status already: group by that, no filter needed
+        java.util.Map<ContentType, List<Wyn.ContentLine>> byKind = new java.util.EnumMap<>(ContentType.class);
+        for (Wyn.TypedEntry e : page.typed()) {
+            ContentType t = kindOf(e.type());
+            if (t != null && t.book()) {
+                byKind.computeIfAbsent(t, k -> new ArrayList<>()).add(new Wyn.ContentLine(plain(e.name()), statusOf(e), e.level(), ""));
+            }
+        }
+        if (!byKind.isEmpty()) {
+            byKind.forEach(Content::tookPage);
+            return;
+        }
         if (type == null || !type.book()) {
             return;                             // "All", or a kind the mod has no list for
         }
@@ -41,12 +53,27 @@ public final class ContentBookPage {
         }
     }
 
+    /** The mod's kind for a Wynntils ActivityType name, or null when it keeps no list for it. */
+    static ContentType kindOf(String activityType) {
+        for (ContentType t : ContentType.values()) {
+            if (t.name().equals(activityType)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    /** Wynntils' status, except a finished entry the book words "can be ... again" is completed. */
+    static String statusOf(Wyn.TypedEntry e) {
+        return "COMPLETED".equals(status(e.lore())) ? "COMPLETED" : e.status();
+    }
+
     private static String lastDiag = "";
 
     /** One log line per change of what the open book shows, so a silent miss can be told from a miss. */
     private static void diagnose(Wyn.BookPage page, ContentType type, int usable) {
         String d = (type == null ? "no filter kind" : type.shown) + ", " + page.entries().size() + " items, " + usable + " entries"
-                + (page.filter() == null ? ", no filter button" : "");
+                + (page.filter() == null ? ", no filter button" : "") + ", kinds " + page.typed().stream().map(Wyn.TypedEntry::type).distinct().toList();
         if (!d.equals(lastDiag)) {
             lastDiag = d;
             System.out.println("[WynnLabs] content book open: " + d);
