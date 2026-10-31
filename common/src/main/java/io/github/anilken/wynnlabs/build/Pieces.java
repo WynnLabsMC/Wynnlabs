@@ -108,9 +108,23 @@ final class Pieces {
      * fills every slot the way players fill them ({@link #assumedPowders}).
      */
     static Piece piece(ItemData info, String powders) {
+        return piece(info, powders, false);
+    }
+
+    /**
+     * {@link #piece(ItemData)} with every roll at its best (the top of its range, the bottom
+     * where less is better): what an unidentified piece could become at most.
+     */
+    static Piece bestRoll(ItemData info) {
+        return piece(info, null, true);
+    }
+
+    private static Piece piece(ItemData info, String powders, boolean best) {
         Map<String, Double> stats = new HashMap<>();
         for (StatRange v : info.stats()) {
-            stats.merge(v.key(), (v.min() + v.max()) / 2.0, Double::sum);
+            double roll = !best ? (v.min() + v.max()) / 2.0
+                    : v.inverted() ? Math.min(v.min(), v.max()) : Math.max(v.min(), v.max());
+            stats.merge(v.key(), roll, Double::sum);
         }
         Map<SkillKind, Integer> reqs = new java.util.EnumMap<>(SkillKind.class);
         info.requirements().skills().forEach(r -> reqs.put(r.skill(), r.points()));
@@ -147,7 +161,7 @@ final class Pieces {
                 health += powderHealth(ps);
             }
         }
-        String key = "info:" + info.name() + (powders == null ? "" : "|" + powders);
+        String key = "info:" + info.name() + (powders == null ? "" : "|" + powders) + (best ? "|best" : "");
         return new Piece(null, key, info.name(), info.slot(), info.requirements().level(), stats,
                 reqs, dps, sh, health);
     }

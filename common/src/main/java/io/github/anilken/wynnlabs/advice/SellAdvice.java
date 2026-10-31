@@ -91,14 +91,16 @@ final class SellAdvice {
     /**
      * A revealed piece you will not wear (named, stats "?"): it lists on the Trade Market as it
      * is, but buyers cannot see its rolls. Identify it first only when identified copies sell
-     * for clearly more (at least rules.trade.revealMinProfit over the fee). Null without a price.
+     * for clearly more (at least rules.trade.revealMinProfit over the fee) and the identified
+     * price reaches your Trade Market minimum; under it the Blacksmith takes it as it is, no
+     * fee paid. Null without a price.
      */
     private static Advice.Entry sellRevealed(ItemView gear, String why, Prices.Price price) {
         Double unid = price.unidTypical();
         Double identified = price.typical();
         int cost = gear.data().tier().identificationCost(gear.data().level());
-        if (unid != null && identified != null
-                && (identified - unid) * (1 - marketFee() / 100.0) - cost >= revealMinProfit()) {
+        boolean pays = identifyPays(unid, identified, cost, marketFee(), revealMinProfit());
+        if (pays && identified >= minMarketPrice()) {
             return new Advice.Entry(Verdict.IDENTIFY, L.t("wynnlabs.auto.unid_identify_then_sell", cost,
                     Prices.fmt(identified), Prices.fmt(unid), why));
         }
@@ -106,11 +108,22 @@ final class SellAdvice {
         if (asIs == null) {
             return null;
         }
-        if (asIs >= Rules.sub("trade", "minTradeMarketPrice", 1920)) {
+        if (asIs >= minMarketPrice()) {
             return AutoAdvice.market(new Advice.Entry(Verdict.SELL, L.t("wynnlabs.auto.sell_market_unidentified", why,
                     Prices.fmt(asIs))), afterFee(asIs));
         }
+        if (pays) {
+            // identified it would sell for more, but still under your Trade Market minimum: no fee
+            return new Advice.Entry(Verdict.SELL, L.t("wynnlabs.auto.unid_blacksmith_under_min", why,
+                    Prices.fmt(identified), Prices.fmt(minMarketPrice())));
+        }
         return new Advice.Entry(Verdict.SELL, L.t("wynnlabs.auto.sell_blacksmith_market_price", why, Prices.fmt(asIs)));
+    }
+
+    /** Identified copies sell for at least {@code minProfit} more than unidentified ones, after the fee and the ID cost. */
+    static boolean identifyPays(Double unid, Double identified, int cost, double feePercent, double minProfit) {
+        return unid != null && identified != null
+                && (identified - unid) * (1 - feePercent / 100.0) - cost >= minProfit;
     }
 
     static Advice.Entry sellBox(ItemView.Box box, String why) {

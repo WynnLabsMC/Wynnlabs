@@ -156,6 +156,11 @@ public final class Damage {
         return Pieces.piece(info);
     }
 
+    /** {@link #piece(ItemData)} with every roll at its best: an unidentified piece at most. */
+    public static Piece bestRoll(ItemData info) {
+        return Pieces.bestRoll(info);
+    }
+
     /** {@link #piece(ItemData)} with the powders a WynnBuilder link gives it ("T6T6E7") instead of assumed ones. */
     public static Piece piece(ItemData info, String powders) {
         return Pieces.piece(info, powders);
