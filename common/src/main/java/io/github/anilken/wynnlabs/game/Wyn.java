@@ -690,6 +690,67 @@ public final class Wyn {
         }, List.of());
     }
 
+    /** One item of the open Content Book: its name and its lore lines with their colour codes. */
+    public record BookSlot(String name, List<String> lore) {}
+
+    /** The open Content Book: its filter button (null when not found) and the entries on the page shown. */
+    public record BookPage(BookSlot filter, List<BookSlot> entries, List<TypedEntry> typed) {}
+
+    /** One entry as Wynntils read it: its kind (an ActivityType name), name, status name and level, with its lore. */
+    public record TypedEntry(String type, String name, String status, int level, String description, List<String> lore) {}
+
+    /**
+     * The Content Book the player has open, as shown: the filter button and this page's entries
+     * (an entry's name as Wynntils reads it when it can, else the plain item name). Null when
+     * another screen, or none, is open. Only reads the open menu: never clicks or turns a page.
+     */
+    public static BookPage contentBookPage() {
+        return guard(Feature.QUESTS, () -> {
+            // Wynntils shows the book in its own screen, not a container screen: the items still
+            // sit in the player's open container menu
+            if (!(Models.Container.getCurrentContainer() instanceof com.wynntils.models.containers.containers.ContentBookContainer book)) {
+                return null;
+            }
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null || player.containerMenu == null || player.containerMenu == player.inventoryMenu) {
+                return null;
+            }
+            java.util.Set<Integer> page = new java.util.HashSet<>(book.getBounds().getSlots());
+            BookSlot filter = null;
+            List<BookSlot> entries = new ArrayList<>();
+            List<TypedEntry> typed = new ArrayList<>();
+            var slots = player.containerMenu.slots;
+            for (int i = 0; i < slots.size(); i++) {
+                var slot = slots.get(i);
+                ItemStack stack = slot.getItem();
+                if ((player != null && slot.container == player.getInventory()) || stack.isEmpty()) {
+                    continue;
+                }
+                List<String> lore = new ArrayList<>();
+                for (var line : com.wynntils.utils.mc.LoreUtils.getLore(stack)) {
+                    lore.add(line.getString());
+                }
+                String name = plain(stack.getHoverName().getString());
+                if (page.contains(i)) {
+                    String read = Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class)
+                            .map(a -> a.getActivityInfo() == null ? null : a.getActivityInfo().name()).orElse(null);
+                    entries.add(new BookSlot(read == null || read.isBlank() ? name : read, lore));
+                    Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class).ifPresent(a -> {
+                        var info = a.getActivityInfo();
+                        if (info != null && info.type() != null && info.name() != null) {
+                            int lv = info.requirements() == null || info.requirements().level() == null ? 0 : info.requirements().level().a();
+                            typed.add(new TypedEntry(info.type().name(), info.name(), info.status() == null ? "UNKNOWN" : info.status().name(),
+                                    lv, "", lore));
+                        }
+                    });
+                } else if (filter == null && "Filter".equals(name)) {
+                    filter = new BookSlot(name, lore);
+                }
+            }
+            return new BookPage(filter, entries, typed);
+        }, null);
+    }
+
     /** Whether this Wynntils knows the content book kind (Time Trial is missing in 4.2.x). */
     public static boolean knowsKind(String kind) {
         return activityType(kind) != null;
@@ -1818,6 +1879,128 @@ public final class Wyn {
         @Override
         public String getName() {
             return mark.label();
+        }
+    }
+
+    // ---- finished caves red and dim on Wynntils' map ----
+
+    /**
+     * Brings Wynntils' map in line with the "fade finished caves" setting and the content book:
+     * registers our attribute override for the cave category while the setting is on, drops it
+     * when off, and re-reads which caves are done. Called once a second and when Wynntils rereads
+     * the caves; cheap when nothing changed. Rendering only: no waypoint, marker or packet.
+     */
+    public static void caveMapSync() {
+        boolean on = io.github.anilken.wynnlabs.core.Settings.on(io.github.anilken.wynnlabs.quests.CaveMap.SETTING);
+        run(Feature.WAYPOINTS, () -> {
+            try {
+                DoneCaves.sync(on);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Wynntils' cave icons are not where expected", e);
+            }
+        });
+    }
+
+    /**
+     * Wynntils' map draws caves from its own icon list ({@code PoiService}), not from the map-data
+     * attributes, and paints the hover label a fixed green. So a finished cave's icon is swapped
+     * for {@link Done}, a copy that draws a dark red icon and a red label; the list is put back
+     * when the cave is no longer finished or the setting goes off. Rendering only: no waypoint,
+     * marker or packet. Like {@link SearchMarks}, every line that hands Wynntils one of our
+     * objects is in here, so this class is only loaded (and verified against Wynntils) in a
+     * running game.
+     */
+    private static final class DoneCaves {
+        private static java.lang.reflect.Field field;
+
+        /** Draws the finished caves faded (or all as Wynntils does when {@code on} is false). */
+        static void sync(boolean on) throws ReflectiveOperationException {
+            java.util.Set<String> done = on
+                    ? io.github.anilken.wynnlabs.quests.CaveMap.doneNames(
+                            io.github.anilken.wynnlabs.quests.Content.bookLines(io.github.anilken.wynnlabs.quests.ContentType.CAVE),
+                            knownContent("CAVE"))
+                    : java.util.Set.of();
+            if (field == null) {
+                field = com.wynntils.services.map.PoiService.class.getDeclaredField("cavePois");
+                field.setAccessible(true);
+            }
+            @SuppressWarnings("unchecked")
+            java.util.Set<com.wynntils.services.map.pois.CombatPoi> now =
+                    (java.util.Set<com.wynntils.services.map.pois.CombatPoi>) field.get(com.wynntils.core.components.Services.Poi);
+            java.util.Set<com.wynntils.services.map.pois.CombatPoi> next = new java.util.LinkedHashSet<>();
+            int changed = 0;
+            int faded = 0;
+            for (com.wynntils.services.map.pois.CombatPoi p : now) {
+                Done d = p instanceof Done x ? x : null;
+                com.wynntils.services.map.pois.CombatPoi base = d != null ? d.original : p;
+                boolean hit = io.github.anilken.wynnlabs.quests.CaveMap.isDone(base.getName(), done);
+                if (hit && d == null) {
+                    next.add(new Done(p));
+                    changed++;
+                } else if (!hit && d != null) {
+                    next.add(base);
+                    changed++;
+                } else {
+                    next.add(p);
+                }
+                faded += hit ? 1 : 0;
+            }
+            if (changed > 0) {
+                field.set(com.wynntils.core.components.Services.Poi, java.util.Collections.unmodifiableSet(next));
+                System.out.println("[WynnLabs] done caves: " + faded + " of " + next.size() + " cave icons drawn faded");
+            }
+        }
+
+        /** A finished cave's icon: Wynntils' own, tinted dark red, with a red hover label. */
+        private static final class Done extends com.wynntils.services.map.pois.CombatPoi {
+            final com.wynntils.services.map.pois.CombatPoi original;
+
+            Done(com.wynntils.services.map.pois.CombatPoi original) {
+                super(original.getLocation(), original.getName(), original.getKind());
+                this.original = original;
+            }
+
+            private static final float FADE = 0.6f;
+            private static java.lang.reflect.Method alpha;
+
+            /** Wynntils' own zoom alpha for an icon (1 when it needs no fading). */
+            private float zoomAlpha(float zoomLevel) {
+                try {
+                    if (alpha == null) {
+                        alpha = com.wynntils.services.map.pois.IconPoi.class.getDeclaredMethod("getIconAlpha", float.class);
+                        alpha.setAccessible(true);
+                    }
+                    return (Float) alpha.invoke(this, zoomLevel);
+                } catch (ReflectiveOperationException e) {
+                    return 1f;
+                }
+            }
+
+            @Override
+            protected com.wynntils.utils.colors.CustomColor getIconColor() {
+                return com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.ICON_ARGB);
+            }
+
+            @Override
+            public void renderAt(net.minecraft.client.gui.GuiGraphics graphics, float x, float y, boolean hovered,
+                    float scale, float zoom, float zoomLevel, boolean flag) {
+                // Wynntils sets the icon's alpha from the zoom on every frame, so the fade is drawn
+                // here: its own alpha (the private getIconAlpha) times FADE
+                float s = hovered ? scale * 1.05f : scale;
+                com.wynntils.utils.render.Texture icon = getIcon();
+                float w = icon.width() * s;
+                float h = icon.height() * s;
+                com.wynntils.utils.render.RenderUtils.drawScalingTexturedRect(graphics, icon,
+                        getIconColor().withAlpha(zoomAlpha(zoomLevel) * FADE), x - w / 2, y - h / 2, w, h);
+                if (hovered) {
+                    com.wynntils.utils.render.FontRenderer.getInstance().renderText(graphics,
+                            com.wynntils.core.text.StyledText.fromString(getName()), x, 15.0f + y,
+                            com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.LABEL_ARGB),
+                            com.wynntils.utils.render.type.HorizontalAlignment.CENTER,
+                            com.wynntils.utils.render.type.VerticalAlignment.MIDDLE,
+                            com.wynntils.utils.render.type.TextShadow.OUTLINE);
+                }
+            }
         }
     }
 }

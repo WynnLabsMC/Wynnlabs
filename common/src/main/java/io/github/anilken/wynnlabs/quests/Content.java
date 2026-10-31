@@ -201,12 +201,22 @@ public final class Content {
 
     /** The player pressed refresh on a kind: Wynntils reads that part of the content book. */
     public static boolean scan(ContentType type) {
-        if (!type.book() || scanning(type) || !Wyn.canRescanQuests() || !Wyn.knowsKind(type.name())) {
-            return false;
+        // each gate says why in the log: a silent false left the player guessing
+        if (!type.book()) {
+            return skipped(type, "not a kind the content book lists");
+        }
+        if (scanning(type)) {
+            return skipped(type, "a read is still running");
+        }
+        if (!Wyn.canRescanQuests()) {
+            return skipped(type, "Wynntils cannot read the content book now (not in a world, or its quest feature is off)");
+        }
+        if (!Wyn.knowsKind(type.name())) {
+            return skipped(type, "this Wynntils does not know the kind");
         }
         load();
         if (!Wyn.scanContent(type.name(), lines -> took(type, lines))) {
-            return false;
+            return skipped(type, "Wynntils' content book read could not start");
         }
         synchronized (BOOK) {
             ASKED_AT.put(type, System.currentTimeMillis());
@@ -230,6 +240,11 @@ public final class Content {
         }
     }
 
+    private static boolean skipped(ContentType type, String why) {
+        System.out.println("[WynnLabs] content scan of " + type.shown + " skipped: " + why);
+        return false;
+    }
+
     private static void took(ContentType type, List<Wyn.ContentLine> lines) {
         Map<String, Wyn.ContentLine> m = new LinkedHashMap<>();
         for (Wyn.ContentLine l : lines) {
@@ -239,9 +254,60 @@ public final class Content {
             BOOK.put(type, m);
             READ_AT.put(type, System.currentTimeMillis());
         }
-        System.out.println("[WynnLabs] took " + lines.size() + " " + type.shown + " lines from Wynntils' content book read");
+        stored(type, lines.size(), "Wynntils' content book read");
+        if (type == ContentType.QUEST) {
+            // the same press reads the caves too (one read at a time: this one is done), so the
+            // map knows which are finished without a second button
+            scan(ContentType.CAVE);
+        }
+    }
+
+    /**
+     * Lines read off the page of the Content Book the player has open ({@link ContentBookPage}):
+     * added to the book copy, the other pages' lines staying, so scrolling through the book once
+     * fills it. Nothing is written when the page shows what the copy already has.
+     */
+    public static void tookPage(ContentType type, List<Wyn.ContentLine> lines) {
+        if (Profile.id().isEmpty()) {
+            return;                             // no character yet: nowhere to keep them
+        }
+        load();
+        boolean changed = false;
+        synchronized (BOOK) {
+            Map<String, Wyn.ContentLine> m = BOOK.computeIfAbsent(type, t -> new LinkedHashMap<>());
+            for (Wyn.ContentLine l : lines) {
+                if (!l.equals(m.put(l.name(), l))) {
+                    changed = true;
+                }
+            }
+            if (changed) {
+                READ_AT.put(type, System.currentTimeMillis());
+            }
+        }
+        if (changed) {
+            stored(type, lines.size(), "the open Content Book's page");
+        }
+    }
+
+    /** New lines are in the copy: log, save for the character, and tell the map about caves. */
+    private static void stored(ContentType type, int count, String from) {
+        System.out.println("[WynnLabs] took " + count + " " + type.shown + " lines from " + from);
         if (!Profile.id().isEmpty()) {
             Saver.mark(file(), Content::json);
+        }
+        if (type == ContentType.CAVE) {
+            Wyn.caveMapSync();                  // the finished caves fade on the map right away
+        }
+    }
+
+    /**
+     * The book's lines of a kind as this character last read them (the Quests tab's refresh),
+     * from memory or the character's file; empty before the first read.
+     */
+    public static List<Wyn.ContentLine> bookLines(ContentType type) {
+        load();
+        synchronized (BOOK) {
+            return new ArrayList<>(BOOK.getOrDefault(type, Map.of()).values());
         }
     }
 
