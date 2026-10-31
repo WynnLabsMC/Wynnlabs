@@ -1973,6 +1973,15 @@ public final class Wyn {
                 System.out.println("[WynnLabs] done caves: Wynntils resolves " + label(told.get(0)) + " as label "
                         + r.labelColor() + ", icon " + r.iconColor() + ", asked " + asked);
             }
+            // every feature called Hill Hovel, whatever its category: which one is the map drawing?
+            com.wynntils.core.components.Services.MapData.getFeatures().filter(f -> {
+                String l = label(f);
+                return l != null && l.contains("Hill Hovel");
+            }).forEach(f -> {
+                var r = com.wynntils.core.components.Services.MapData.resolveMapAttributes(f);
+                System.out.println("[WynnLabs] done caves: Hill Hovel feature " + f.getFeatureId() + " category "
+                        + f.getCategoryId() + " label " + r.labelColor() + " icon " + r.iconColor() + " iconId " + r.iconId());
+            });
         }
 
         /** The feature's own label (the cave's name); Wynntils' interface hands the feature raw. */
