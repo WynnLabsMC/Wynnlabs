@@ -1960,9 +1960,13 @@ public final class Wyn {
                     changed.add(s);
                 }
             }
-            com.wynntils.core.components.Services.MapData.getFeaturesForCategory(io.github.anilken.wynnlabs.quests.CaveMap.CATEGORY)
+            java.util.List<com.wynntils.services.mapdata.features.type.MapFeature> told = com.wynntils.core.components.Services.MapData
+                    .getFeaturesForCategory(io.github.anilken.wynnlabs.quests.CaveMap.CATEGORY)
                     .filter(f -> io.github.anilken.wynnlabs.quests.CaveMap.isDone(label(f), changed))
-                    .forEach(this::notifyCallbacks);
+                    .map(f -> (com.wynntils.services.mapdata.features.type.MapFeature) f).toList();
+            System.out.println("[WynnLabs] done caves: " + now.size() + " finished known, " + told.size() + " map features told to redraw"
+                    + (told.isEmpty() ? "" : " (first: " + label(told.get(0)) + ")"));
+            told.forEach(this::notifyCallbacks);
         }
 
         /** The feature's own label (the cave's name); Wynntils' interface hands the feature raw. */
