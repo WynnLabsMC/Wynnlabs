@@ -1307,7 +1307,7 @@
   "wynnlabs.verdict_tip.reroll": "Roll'lar kötü: Identifier'da reroll at",
   "wynnlabs.verdict_tip.sell": "İşine yaramaz: okun gösterdiği yerde sat",
   "wynnlabs.verdict_tip.skip": "Almaya değmez, pas geç",
-  "wynnlabs.verdict_tip.keep": "Elinde tut: sonra ya da alt karakterin için lazım",
+  "wynnlabs.verdict_tip.keep": "Elinde tut: sonra lazım olacak",
   "wynnlabs.verdict_tip.buy_later": "Level'ına gelince iyi seçim: o zaman al",
   "wynnlabs.verdict_tip.wait": "Henüz değil: sonra tekrar bak",
   "wynnlabs.verdict_tip.taken": "Zaten sende var",
