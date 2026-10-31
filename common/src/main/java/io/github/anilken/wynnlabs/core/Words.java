@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -131,15 +132,20 @@ public record Words(String key, List<Object> args) {
 
     /**
      * Text an older version saved already worded, back into its key and arguments: the first of
-     * {@code keys} whose text in a shipped language it is. Null when none matches.
+     * {@code keys} whose text in a shipped language, or an earlier wording of it ({@link #LEGACY}),
+     * it is. Null when none matches.
      */
     public static Words unword(String text, List<String> keys) {
         if (text == null) {
             return null;
         }
         for (String key : keys) {
+            List<String> templates = new ArrayList<>();
             for (String code : SHIPPED) {
-                String t = L.template(code, key);
+                templates.add(L.template(code, key));
+            }
+            templates.addAll(LEGACY.getOrDefault(key, List.of()));
+            for (String t : templates) {
                 List<Object> args = t == null ? null : match(t, text);
                 if (args != null) {
                     return new Words(key, args);
@@ -148,6 +154,25 @@ public record Words(String key, List<Object> args) {
         }
         return null;
     }
+
+    /**
+     * Earlier English and Turkish wordings of lines that saved files may still hold worded (death
+     * advice, session tips), so a reworded key still matches what an older version wrote.
+     */
+    private static final Map<String, List<String>> LEGACY = Map.ofEntries(
+            Map.entry("wynnlabs.death.area_level", List.of("Area Lv. %s, you're Lv. %s", "Bölge Lv. %s, sen %s")),
+            Map.entry("wynnlabs.death.burst", List.of("Your health ran out in %s s: burst damage, and your effective HP is low (%s)", "Canın %s sn'de bitti: ani hasar, etkili can düşük (%s)")),
+            Map.entry("wynnlabs.death.no_potions", List.of("You had no healing potions left; bring some", "Can iksirin kalmamıştı, yanına iksir al")),
+            Map.entry("wynnlabs.death.one_off", List.of("Looks like a one-off; back off when your health gets low", "Tek seferlik görünüyor; canın azalınca geri çekil")),
+            Map.entry("wynnlabs.death.heal_sooner", List.of("Heal sooner, before your health gets low", "Daha erken heal at, canın azalmadan")),
+            Map.entry("wynnlabs.death.heal_sooner_combo", List.of("Heal sooner: cast Heal (%s) before your health gets low")),
+            Map.entry("wynnlabs.death.heal_sooner_spell", List.of("Heal sooner: cast %s (%s) before your health gets low", "Daha erken heal at: canın azalmadan %s büyüsünü (%s) kullan")),
+            Map.entry("wynnlabs.death.out_of_mana", List.of("You had no mana left to heal; keep enough for one heal", "Heal atacak manan kalmamıştı; bir heal'lik manayı hep sakla")),
+            Map.entry("wynnlabs.death.one_off_heal", List.of("Looks like a one-off; heal earlier, while your health is still high", "Tek seferlik görünüyor; canın daha yüksekken heal at")),
+            Map.entry("wynnlabs.death.one_off_tank", List.of("Looks like a one-off; heal or drink a pot earlier, or add effective HP", "Tek seferlik görünüyor; daha erken heal at ya da pot iç, ya da etkili canını artır")),
+            Map.entry("wynnlabs.death.repeat_boss", List.of("Death #%s at this boss: more effective HP or earlier heals before the next try", "Bu boss'ta %s. ölümün: sonraki denemeden önce etkili canını artır ya da daha erken heal at")),
+            Map.entry("wynnlabs.coach.tip_deaths", List.of("%s deaths: pick a safer place", "%s ölüm: daha güvenli bir yer seç")),
+            Map.entry("wynnlabs.coach.tip_mana", List.of("Mana ran out often: look at mana steal/regen or Int", "Mana sık bitti: mana çalma/yenileme ya da Int'e bak")));
 
     /** The arguments that fill {@code template} into {@code text}, by position; null when it does not fit. */
     private static List<Object> match(String template, String text) {

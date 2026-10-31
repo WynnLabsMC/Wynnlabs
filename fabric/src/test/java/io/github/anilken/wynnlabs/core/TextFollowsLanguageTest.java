@@ -56,10 +56,10 @@ class TextFollowsLanguageTest {
         language(EN);
         Words w = Words.of("wynnlabs.death.area_level", 48, 44);
         Words back = Words.fromJson(JsonParser.parseString(w.json().toString()));
-        assertEquals("Area Lv. 48, you're Lv. 44", back.text());
+        assertEquals("Area Lv 48, you're Lv 44", back.text());
         turkishFromHere();
         language(TR);
-        assertEquals("Bölge Lv. 48, sen 44", back.text());
+        assertEquals("Bölge Lv 48, sen 44", back.text());
         // a nested argument is worded with it
         Words nested = Words.fromJson(JsonParser.parseString(
                 Words.of("wynnlabs.coach.tip_deaths_at", Words.of("wynnlabs.death.area_near", "Nivla Woods")).json().toString()));
@@ -68,12 +68,12 @@ class TextFollowsLanguageTest {
 
     @Test
     void oldWordedTextMatchesBackToItsKeyInEitherLanguage() {
-        Words fromEn = Words.unword("Area Lv. 48, you're Lv. 44", List.of("wynnlabs.death.one_off", "wynnlabs.death.area_level"));
+        Words fromEn = Words.unword("Area Lv 48, you're Lv 44", List.of("wynnlabs.death.one_off", "wynnlabs.death.area_level"));
         assertEquals("wynnlabs.death.area_level", fromEn.key());
         assertEquals(List.of("48", "44"), fromEn.args());
         assertNull(Words.unword("something else entirely", List.of("wynnlabs.death.area_level")));
         turkishFromHere();
-        Words fromTr = Words.unword("Bölge Lv. 48, sen 44", List.of("wynnlabs.death.one_off", "wynnlabs.death.area_level"));
+        Words fromTr = Words.unword("Bölge Lv 48, sen 44", List.of("wynnlabs.death.one_off", "wynnlabs.death.area_level"));
         assertEquals(fromEn, fromTr);
         // "%%" is a plain percent sign, not an argument
         Words pct = Words.unword(" (build +%12)", List.of("wynnlabs.auto.build_gain"));
@@ -97,15 +97,15 @@ class TextFollowsLanguageTest {
 
         DeathCoach.Death back = DeathCoach.read(file).get(0);
         assertEquals("near Nivla Woods", back.place());
-        assertEquals(List.of("Area Lv. 48, you're Lv. 44",
-                "Your health ran out in 2.5 s: burst damage, and your effective HP is low (2900)",
+        assertEquals(List.of("Area Lv 48, you're Lv 44",
+                "Burst: you went down in 2.5 s and your EHP is low (2900)",
                 "Put a few points into Defence (now 3)",
-                "You had no healing potions left; bring some"), back.adviceText());
+                "You ran out of healing potions: stock up"), back.adviceText());
 
         turkishFromHere();
         language(TR);
         assertEquals("Nivla Woods yakını", back.place());
-        assertEquals("Bölge Lv. 48, sen 44", back.adviceText().get(0));
+        assertEquals("Bölge Lv 48, sen 44", back.adviceText().get(0));
         assertEquals("Savunmaya birkaç puan ver (şu an 3)", back.adviceText().get(2));
     }
 
@@ -138,11 +138,25 @@ class TextFollowsLanguageTest {
         DeathCoach.Death d = DeathCoach.read(file.toString()).get(0);
         assertEquals("near Nivla Woods", d.place());
         assertEquals(List.of("Death #3 here: leave this area for now",
-                "You had no healing potions left; bring some", "a line no key knows"), d.adviceText());
+                "You ran out of healing potions: stock up", "a line no key knows"), d.adviceText());
         // saved again, it is keys from now on
         DeathCoach.Death again = DeathCoach.read(DeathCoach.write(List.of(d))).get(0);
         language(TR);
         assertEquals("Burada 3. ölümün, bu bölgeyi şimdilik bırak", again.adviceText().get(0));
+    }
+
+    @Test
+    void rewordedLinesStillMatchTheirOldWording() {
+        // an older version saved these worded, before the lines were reworded
+        Words en = Words.unword("Your health ran out in 2.5 s: burst damage, and your effective HP is low (2900)",
+                List.of("wynnlabs.death.burst", "wynnlabs.death.no_potions"));
+        assertEquals("wynnlabs.death.burst", en.key());
+        assertEquals(List.of("2.5", "2900"), en.args());
+        Words tr = Words.unword("Can iksirin kalmamıştı, yanına iksir al",
+                List.of("wynnlabs.death.burst", "wynnlabs.death.no_potions"));
+        assertEquals("wynnlabs.death.no_potions", tr.key());
+        Words lv = Words.unword("Area Lv. 48, you're Lv. 44", List.of("wynnlabs.death.area_level"));
+        assertEquals(List.of("48", "44"), lv.args());
     }
 
     // ---- the last session's tips ----

@@ -302,7 +302,7 @@ final class RoadmapRows {
         return out;
     }
 
-    /** "Add 2× Thunder VI powder, about 12 EB" for {element, count, tier} ({@link Damage#addedPowders}). */
+    /** "Add 2× Thunder VI powder, ~12 EB" for {element, count, tier} ({@link Damage#addedPowders}). */
     private static String powderText(Object[] add) {
         String[] roman = {"I", "II", "III", "IV", "V", "VI", "VII"};
         int n = (int) add[1];

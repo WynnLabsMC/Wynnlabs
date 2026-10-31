@@ -237,7 +237,7 @@ final class CraftSetsPanel extends CraftPanel {
         return false;
     }
 
-    /** "Updated 3 h ago" for the band and weapon shown, or that it is not calculated yet. */
+    /** "Updated 3 h ago" for the band and weapon shown, or that its sets aren't calculated yet. */
     String updatedText() {
         var e = CraftSuggestCache.get(tab).setsEntry(weaponShown(), bandShown());
         return e == null ? L.t("wynnlabs.craft.calc_none_band", CraftSuggestionsPanel.levelLabel(bandShown()), typeName(weaponShown()))

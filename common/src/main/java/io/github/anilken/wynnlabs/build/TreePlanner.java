@@ -451,7 +451,7 @@ public final class TreePlanner {
             e.addProperty("key", "ability:" + s.name());
             e.addProperty("verdict", (have.contains(s.name()) ? Verdict.TAKEN
                     : s.level() <= level ? Verdict.BUY : Verdict.BUY_LATER).name());
-            // "Lv. N" is read back by Advice.promoteAbilities/abilityPlan: kept as is in every language
+            // "Lv N" (older notes "Lv. N") is read back by Advice.promoteAbilities/abilityPlan: kept as is in every language
             e.addProperty("note", L.t("wynnlabs.tree.plan_note", i, plan.size(), s.level(), ArchetypeMix.parse(chosen).label()));
             items.add(e);
         }

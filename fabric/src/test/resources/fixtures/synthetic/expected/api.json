@@ -164,7 +164,7 @@
         "key": "name:Water Powder II",
         "ruleAdvice": {
           "verdict": "USE",
-          "note": "Apply it to your weapon (drag it on): your build does Water damage"
+          "note": "Drag it onto your weapon: your build deals Water damage"
         },
         "kind": "powder"
       },
@@ -695,7 +695,7 @@
         "marketPriceText": "48 EB",
         "ruleAdvice": {
           "verdict": "KEEP",
-          "note": "Equippable at Lv. 22"
+          "note": "Equippable at Lv 22"
         },
         "kind": "gear",
         "type": "HELMET",
@@ -776,7 +776,7 @@
         "key": "gear:Hourglass:unidentified",
         "ruleAdvice": {
           "verdict": "SELL",
-          "note": "Even identified, your equipped Keen Measure is better. Sell it to the Blacksmith (untradable)"
+          "note": "Your equipped Keen Measure beats it even once ID'd. Sell it to the Blacksmith (untradable)"
         },
         "kind": "gear",
         "type": "RELIK",
@@ -837,7 +837,7 @@
         "marketPriceText": "40 E",
         "ruleAdvice": {
           "verdict": "SELL",
-          "note": "Normal item, still weak at Lv. 22. Sell it to the Blacksmith (market ~40 E)"
+          "note": "Normal item, still weak at Lv 22. Sell it to the Blacksmith (market ~40 E)"
         },
         "kind": "gear",
         "type": "BOOTS",
@@ -885,7 +885,7 @@
         "marketPriceText": "40 E",
         "ruleAdvice": {
           "verdict": "KEEP",
-          "note": "Low value (~13 EB), not worth listing; trash it if you need space"
+          "note": "Only ~13 EB, not worth listing: trash it if you need space"
         },
         "kind": "ingredient",
         "tier": 1,
@@ -1498,7 +1498,7 @@
             "level": 17,
             "tier": "RARE",
             "gain": 11.0,
-            "from": "Add 2 tier III powders (any element, same HP), about 2 EB",
+            "from": "Add 2 tier III powders (any element, same HP), ~2 EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1509,7 +1509,7 @@
             "level": 19,
             "tier": "RARE",
             "gain": 5.5,
-            "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
+            "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1520,7 +1520,7 @@
             "level": 17,
             "tier": "UNIQUE",
             "gain": 5.5,
-            "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
+            "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1531,7 +1531,7 @@
             "level": 20,
             "tier": "RARE",
             "gain": 5.5,
-            "from": "Add 1 tier III powder (any element, same HP), about 1 EB",
+            "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1542,7 +1542,7 @@
             "level": 17,
             "tier": "UNIQUE",
             "gain": 26.7,
-            "from": "Add 1× Water III powder, about 1 EB",
+            "from": "Add 1× Water III powder, ~1 EB",
             "price": null,
             "tradable": true,
             "options": []

@@ -186,7 +186,7 @@ class WhyLinesTest {
      * Every row a milestone first picks starts its reasons from the same build: what you have
      * equipped, at that milestone's level. A row that pairs with its milestone's other upgrades
      * once started from the milestone's set without it (Windborne: "Main Attack: 13257 → 19976"
-     * under "+62.9 % over what you have equipped" while 22 was equipped). Returns how many such
+     * under "+62.9 % over your current gear" while 22 was equipped). Returns how many such
      * pairing rows were seen.
      */
     private static int oneEquippedBaseline(List<Roadmap.Step> steps) {

@@ -396,7 +396,7 @@
         "key": "gearbox:CHESTPLATE:LEGENDARY:36-40",
         "ruleAdvice": {
           "verdict": "SELL",
-          "note": "No outcome helps your build (best: Sundown Poncho -4.0%). Sell it to the Blacksmith (untradable)"
+          "note": "No roll in here helps your build (best: Sundown Poncho -4.0%). Sell it to the Blacksmith (untradable)"
         },
         "kind": "gearbox",
         "type": "CHESTPLATE",
@@ -494,7 +494,7 @@
         "marketPriceText": "5 EB",
         "ruleAdvice": {
           "verdict": "KEEP",
-          "note": "Low value (~5 EB), not worth listing; trash it if you need space"
+          "note": "Only ~5 EB, not worth listing: trash it if you need space"
         },
         "kind": "ingredient",
         "tier": 1,
@@ -1287,7 +1287,7 @@
             "level": 42,
             "tier": "LEGENDARY",
             "gain": 14.9,
-            "from": "Add 2× Air V powder, about 10 EB",
+            "from": "Add 2× Air V powder, ~10 EB",
             "price": null,
             "tradable": true,
             "options": []

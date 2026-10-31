@@ -162,7 +162,7 @@ public final class Advice {
         return out;
     }
 
-    private static final java.util.regex.Pattern LEVEL_NOTE = java.util.regex.Pattern.compile("Lv\\. (\\d+)");
+    private static final java.util.regex.Pattern LEVEL_NOTE = java.util.regex.Pattern.compile("Lv\\.? (\\d+)");
     private static final java.util.regex.Pattern PLAN_STEP = java.util.regex.Pattern.compile("(\\d+)/\\d+");
     private static final java.util.regex.Pattern SPACES = java.util.regex.Pattern.compile("\\s+");
 
