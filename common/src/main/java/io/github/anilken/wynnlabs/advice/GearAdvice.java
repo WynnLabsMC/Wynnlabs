@@ -109,6 +109,12 @@ final class GearAdvice {
                 return SellAdvice.sell(gear, L.t("wynnlabs.auto.list_pick_better", target.info().name(),
                         target.info().requirements().level()));
             }
+            // the build plan would not wear it even at its best roll: nothing to keep it for
+            PlanFit.Fit fit = PlanFit.of(info, level);
+            if (fit != null && !fit.wanted()) {
+                return SellAdvice.sell(gear, fit.rival() == null ? L.t("wynnlabs.auto.plan_skips_later")
+                        : L.t("wynnlabs.auto.plan_runs_later", fit.rival()));
+            }
             return new Advice.Entry(Verdict.KEEP, L.t("wynnlabs.auto.wear_at_level", itemLevel));
         }
         // Compare with the weakest piece you wear in the same slot
