@@ -20,7 +20,7 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CACHE = os.path.join(ROOT, "build", "quests-wiki")
 API = "https://wynncraft.wiki.gg/api.php"
-UA = "WynnLabs (Minecraft client mod; quest guides; https://github.com/anilken/wynnlabs)"
+UA = "WynnLabs (Minecraft client mod; quest guides; https://github.com/WynnLabsMC/Wynnlabs)"
 CATEGORIES = {"quest": "Category:Quests", "mini": "Category:Mini-Quests"}
 OLD_VERSION = re.compile(r"\(\d+(?:\.\d+)+\)")
 

@@ -17,7 +17,7 @@ import urllib.request
 
 BASE = "https://wynnbuilder.github.io/data/baseline/compressed/"
 OUT = pathlib.Path(__file__).resolve().parents[2] / "common/src/main/resources/assets/wynnlabs/crafting/wynnbuilder-ids.json"
-AGENT = "WynnLabs tools (https://github.com/anilken/wynnlabs)"
+AGENT = "WynnLabs tools (https://github.com/WynnLabsMC/Wynnlabs)"
 
 
 def fetch(name):

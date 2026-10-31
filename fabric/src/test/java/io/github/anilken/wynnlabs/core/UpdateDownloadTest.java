@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class UpdateDownloadTest {
 
     private static final byte[] JAR = "PK new wynn labs jar bytes".getBytes(StandardCharsets.UTF_8);
-    private static final String URL = "https://github.com/anilken/Wynnlabs/releases/download/v0.3.0/wynnlabs-fabric-0.3.0.jar";
+    private static final String URL = "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.3.0/wynnlabs-fabric-0.3.0.jar";
 
     @TempDir
     Path dir;

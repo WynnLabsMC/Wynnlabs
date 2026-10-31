@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 public record UpdateAsset(String name, long size, String sha256, String url) {
 
     /** Where every release jar lives (GitHub writes the owner's name with a capital W; compared ignoring case). */
-    static final String PREFIX = "https://github.com/anilken/wynnlabs/releases/download/";
+    static final String PREFIX = "https://github.com/wynnlabsmc/wynnlabs/releases/download/";
     /** No Wynn Labs jar comes near this; anything bigger is not ours. */
     static final long MAX_SIZE = 64L << 20;
     /** The one Minecraft version releases are built for; a jar name without "mc" is for this one. */

@@ -29,7 +29,7 @@ function output(name, value) {
 
 const head = arg("--head", "HEAD");
 const notesFile = arg("--notes", null);
-const repo = process.env.GITHUB_REPOSITORY || "anilken/wynnlabs";
+const repo = process.env.GITHUB_REPOSITORY || "WynnLabsMC/Wynnlabs";
 const server = process.env.GITHUB_SERVER_URL || "https://github.com";
 const repoUrl = `${server}/${repo}`;
 

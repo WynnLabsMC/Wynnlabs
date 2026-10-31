@@ -1215,7 +1215,7 @@ public class LayoutMatrix implements FabricClientGameTest {
     private static void settingsView(RoadmapScreen screen, int view, boolean compact) {
         String name = settingsName(view);
         long now = System.currentTimeMillis();
-        String page = "https://github.com/anilken/wynnlabs/releases/tag/";
+        String page = "https://github.com/WynnLabsMC/Wynnlabs/releases/tag/";
         switch (name) {
             case "about-uptodate" -> {
                 screen.settings.showAbout();
@@ -1236,7 +1236,7 @@ public class LayoutMatrix implements FabricClientGameTest {
                 // the updater's states: a jar for this game, then downloading at 40 %, ready, or last run's install failed
                 screen.settings.showAbout();
                 UpdateAsset jar = new UpdateAsset("wynnlabs-fabric-0.4.0.jar", 4_320_605, "0".repeat(64),
-                        "https://github.com/anilken/Wynnlabs/releases/download/v0.4.0/wynnlabs-fabric-0.4.0.jar");
+                        "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.4.0/wynnlabs-fabric-0.4.0.jar");
                 UpdateCheck.preview(new UpdateCheck.State(UpdateCheck.Status.NEWER, UpdateCheck.Reason.NONE, "0.3.0",
                         "v0.4.0", page + "v0.4.0", now - 3 * 86_400_000L, now - 2 * 60_000L, "", jar));
                 switch (name) {
@@ -1321,14 +1321,14 @@ public class LayoutMatrix implements FabricClientGameTest {
 
     /** The update window over a newer release: its summary, its changelog, and while downloading. */
     private static void updateScreens(ClientGameTestContext ctx, String where, int[] gui, Map<String, List<String>> report) {
-        String notes = "## [v0.4.0](https://github.com/anilken/Wynnlabs/compare/v0.3.0...v0.4.0) (2026-10-23)\n\n### New Features\n\n"
-                + "* **roadmap:** more options per slot, with a Trade Market filter ([#66](https://github.com/anilken/Wynnlabs/pull/66))\n"
-                + "* **ui:** show where each gear slot's piece comes from ([#62](https://github.com/anilken/Wynnlabs/pull/62))\n\n"
-                + "### Bug Fixes\n\n* **quests:** finished quests are recognised right away ([#63](https://github.com/anilken/Wynnlabs/pull/63))\n";
+        String notes = "## [v0.4.0](https://github.com/WynnLabsMC/Wynnlabs/compare/v0.3.0...v0.4.0) (2026-10-23)\n\n### New Features\n\n"
+                + "* **roadmap:** more options per slot, with a Trade Market filter ([#66](https://github.com/WynnLabsMC/Wynnlabs/pull/66))\n"
+                + "* **ui:** show where each gear slot's piece comes from ([#62](https://github.com/WynnLabsMC/Wynnlabs/pull/62))\n\n"
+                + "### Bug Fixes\n\n* **quests:** finished quests are recognised right away ([#63](https://github.com/WynnLabsMC/Wynnlabs/pull/63))\n";
         ctx.runOnClient(mc -> UpdateCheck.preview(new UpdateCheck.State(UpdateCheck.Status.NEWER, UpdateCheck.Reason.NONE, "0.3.0",
-                "v0.4.0", "https://github.com/anilken/Wynnlabs/releases/tag/v0.4.0", System.currentTimeMillis() - 86_400_000L,
+                "v0.4.0", "https://github.com/WynnLabsMC/Wynnlabs/releases/tag/v0.4.0", System.currentTimeMillis() - 86_400_000L,
                 System.currentTimeMillis(), notes, new UpdateAsset("wynnlabs-fabric-0.4.0.jar", 4_320_605, "0".repeat(64),
-                        "https://github.com/anilken/Wynnlabs/releases/download/v0.4.0/wynnlabs-fabric-0.4.0.jar"))));
+                        "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.4.0/wynnlabs-fabric-0.4.0.jar"))));
         checkScreen(ctx, where + " update", gui, report, () -> new UpdateScreen(null, false), null);
         updateShot(ctx, where, "update");
         checkScreen(ctx, where + " update-changelog", gui, report, () -> new UpdateScreen(null, true), null);

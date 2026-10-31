@@ -187,7 +187,7 @@ public final class QuestWiki {
     public static String api(String query) throws Exception {
         HttpResponse<String> r = HTTP.send(HttpRequest.newBuilder(URI.create("https://wynncraft.wiki.gg/api.php?" + query))
                 .timeout(Duration.ofSeconds(30))
-                .header("User-Agent", "WynnLabs (Minecraft client mod; quest guide; https://github.com/anilken/wynnlabs)").GET().build(),
+                .header("User-Agent", "WynnLabs (Minecraft client mod; quest guide; https://github.com/WynnLabsMC/Wynnlabs)").GET().build(),
                 HttpResponse.BodyHandlers.ofString());
         return r.body();
     }
@@ -221,7 +221,7 @@ public final class QuestWiki {
         String url = "https://wynncraft.wiki.gg/api.php?action=query&prop=revisions&rvprop=content&rvslots=main"
                 + "&format=json&redirects=1&titles=" + URLEncoder.encode(title.replace(' ', '_'), StandardCharsets.UTF_8);
         HttpResponse<String> r = HTTP.send(HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(15))
-                .header("User-Agent", "WynnLabs (Minecraft client mod; quest guide; https://github.com/anilken/wynnlabs)").GET().build(),
+                .header("User-Agent", "WynnLabs (Minecraft client mod; quest guide; https://github.com/WynnLabsMC/Wynnlabs)").GET().build(),
                 HttpResponse.BodyHandlers.ofString());
         var pages = JsonParser.parseString(r.body()).getAsJsonObject().getAsJsonObject("query").getAsJsonObject("pages");
         var p = pages.entrySet().iterator().next().getValue().getAsJsonObject();

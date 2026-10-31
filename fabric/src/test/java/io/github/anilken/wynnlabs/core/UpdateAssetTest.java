@@ -22,11 +22,11 @@ class UpdateAssetTest {
               {"name": "wynnlabs-fabric-0.2.4.jar", "size": 4320605, "state": "uploaded",
                "content_type": "application/java-archive",
                "digest": "sha256:d4d3f04e5cb10bf4601652ca12cef4ab785d44d49a4f918af5c1c01cd126a5ad",
-               "browser_download_url": "https://github.com/anilken/Wynnlabs/releases/download/v0.2.4/wynnlabs-fabric-0.2.4.jar"},
+               "browser_download_url": "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.2.4/wynnlabs-fabric-0.2.4.jar"},
               {"name": "wynnlabs-neoforge-0.2.4.jar", "size": 4329012, "state": "uploaded",
                "content_type": "application/java-archive",
                "digest": "sha256:8ed4b3b425e7a8c7f986ba7c64a97e24d515eb7bbb6604905a6bb85cf2f144c4",
-               "browser_download_url": "https://github.com/anilken/Wynnlabs/releases/download/v0.2.4/wynnlabs-neoforge-0.2.4.jar"}
+               "browser_download_url": "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.2.4/wynnlabs-neoforge-0.2.4.jar"}
             ]
             """;
 
@@ -43,7 +43,7 @@ class UpdateAssetTest {
         List<UpdateAsset> a = parse(V024);
         assertEquals(2, a.size());
         assertEquals(new UpdateAsset("wynnlabs-fabric-0.2.4.jar", 4320605, FABRIC_SHA,
-                "https://github.com/anilken/Wynnlabs/releases/download/v0.2.4/wynnlabs-fabric-0.2.4.jar"), a.get(0));
+                "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.2.4/wynnlabs-fabric-0.2.4.jar"), a.get(0));
         assertEquals(NEO_SHA, a.get(1).sha256());
     }
 
@@ -54,8 +54,8 @@ class UpdateAssetTest {
         assertTrue(parse(one.replace("\"digest\": \"sha256:" + FABRIC_SHA + "\",", "")).isEmpty(), "no digest");
         assertTrue(parse(one.replace("sha256:" + FABRIC_SHA, "md5:0123456789abcdef0123456789abcdef")).isEmpty(), "md5");
         assertTrue(parse(one.replace("sha256:" + FABRIC_SHA, "sha256:abc")).isEmpty(), "short hash");
-        assertTrue(parse(one.replace("https://github.com/anilken/Wynnlabs/", "https://evil.example/anilken/Wynnlabs/")).isEmpty(), "other host");
-        assertTrue(parse(one.replace("https://github.com/anilken/Wynnlabs/", "https://github.com/someone/Wynnlabs/")).isEmpty(), "other repo");
+        assertTrue(parse(one.replace("https://github.com/WynnLabsMC/Wynnlabs/", "https://evil.example/anilken/Wynnlabs/")).isEmpty(), "other host");
+        assertTrue(parse(one.replace("https://github.com/WynnLabsMC/Wynnlabs/", "https://github.com/someone/Wynnlabs/")).isEmpty(), "other repo");
         assertTrue(parse(one.replace("\"uploaded\"", "\"starter\"")).isEmpty(), "not uploaded");
         assertTrue(parse(one.replace("4320605", "0")).isEmpty(), "empty");
         assertTrue(parse(one.replace("4320605", "999999999")).isEmpty(), "too big");
@@ -89,15 +89,15 @@ class UpdateAssetTest {
 
     @Test
     void releaseNotesBecomePlainLines() {
-        String body = "## [v0.2.4](https://github.com/anilken/Wynnlabs/compare/v0.2.3...v0.2.4) (2026-10-23)\n\n"
+        String body = "## [v0.2.4](https://github.com/WynnLabsMC/Wynnlabs/compare/v0.2.3...v0.2.4) (2026-10-23)\n\n"
                 + "### New Features\n\n"
-                + "* **roadmap:** more options per slot, with a Trade Market filter ([#66](https://github.com/anilken/Wynnlabs/pull/66))"
-                + " ([8ee7330](https://github.com/anilken/Wynnlabs/commit/8ee7330e48d7a5c7de5825a32ccda278920a3a10))\n"
-                + "* **home:** \"now\" weighs whole sets and what you take off ([#42](https://github.com/anilken/Wynnlabs/pull/42))"
-                + " ([5714dfb](https://github.com/anilken/Wynnlabs/commit/5714dfbd6b9a31c730626c3a2123ca676859ff27))\n\n"
+                + "* **roadmap:** more options per slot, with a Trade Market filter ([#66](https://github.com/WynnLabsMC/Wynnlabs/pull/66))"
+                + " ([8ee7330](https://github.com/WynnLabsMC/Wynnlabs/commit/8ee7330e48d7a5c7de5825a32ccda278920a3a10))\n"
+                + "* **home:** \"now\" weighs whole sets and what you take off ([#42](https://github.com/WynnLabsMC/Wynnlabs/pull/42))"
+                + " ([5714dfb](https://github.com/WynnLabsMC/Wynnlabs/commit/5714dfbd6b9a31c730626c3a2123ca676859ff27))\n\n"
                 + "### Code Refactoring\n\n"
-                + "* move the classes into feature packages ([#59](https://github.com/anilken/Wynnlabs/pull/59))"
-                + " ([0a58f13](https://github.com/anilken/Wynnlabs/commit/0a58f130fdc38c458250fd02e179c67b8f3663e6))\n";
+                + "* move the classes into feature packages ([#59](https://github.com/WynnLabsMC/Wynnlabs/pull/59))"
+                + " ([0a58f13](https://github.com/WynnLabsMC/Wynnlabs/commit/0a58f130fdc38c458250fd02e179c67b8f3663e6))\n";
         List<ReleaseNotes.Line> l = ReleaseNotes.lines(body);
         assertEquals(List.of(
                 new ReleaseNotes.Line("v0.2.4 (2026-10-23)", true, false),

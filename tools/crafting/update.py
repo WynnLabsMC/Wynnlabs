@@ -23,7 +23,7 @@ import urllib.request
 
 URL = "https://api.wynncraft.com/v3/item/recipe/database?full_result"
 OUT = pathlib.Path(__file__).resolve().parents[2] / "common/src/main/resources/assets/wynnlabs/crafting/recipes.json"
-AGENT = "WynnLabs tools (https://github.com/anilken/wynnlabs)"
+AGENT = "WynnLabs tools (https://github.com/WynnLabsMC/Wynnlabs)"
 
 # The refined material's kind as the game shows it ("Refined Oak Wood" is "Oak Planks").
 SHOWN_KIND = {"Wood": "Planks"}

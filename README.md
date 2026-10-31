@@ -40,7 +40,7 @@ market window. Rebind them under Options › Controls.
 
 ## Install
 
-Take the jar for your loader from the [latest release](https://github.com/anilken/Wynnlabs/releases/latest)
+Take the jar for your loader from the [latest release](https://github.com/WynnLabsMC/Wynnlabs/releases/latest)
 and put it into `mods`:
 
 - **Fabric:** [Fabric Loader](https://fabricmc.net) 0.18.4 or newer for 1.21.11, Fabric API, and

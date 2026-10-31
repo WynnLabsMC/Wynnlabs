@@ -24,12 +24,12 @@ import java.nio.file.Path;
  */
 public class AboutPreview implements FabricClientGameTest {
 
-    private static final String PAGE = "https://github.com/anilken/wynnlabs/releases/tag/";
-    private static final String NOTES = "## [v0.4.0](https://github.com/anilken/Wynnlabs/compare/v0.3.0...v0.4.0) (2026-10-23)\n\n"
+    private static final String PAGE = "https://github.com/WynnLabsMC/Wynnlabs/releases/tag/";
+    private static final String NOTES = "## [v0.4.0](https://github.com/WynnLabsMC/Wynnlabs/compare/v0.3.0...v0.4.0) (2026-10-23)\n\n"
             + "### New Features\n\n"
-            + "* **roadmap:** more options per slot, with a Trade Market filter ([#66](https://github.com/anilken/Wynnlabs/pull/66))\n"
-            + "* **ui:** show where each gear slot's piece comes from ([#62](https://github.com/anilken/Wynnlabs/pull/62))\n\n"
-            + "### Bug Fixes\n\n* **quests:** finished quests are recognised right away ([#63](https://github.com/anilken/Wynnlabs/pull/63))\n";
+            + "* **roadmap:** more options per slot, with a Trade Market filter ([#66](https://github.com/WynnLabsMC/Wynnlabs/pull/66))\n"
+            + "* **ui:** show where each gear slot's piece comes from ([#62](https://github.com/WynnLabsMC/Wynnlabs/pull/62))\n\n"
+            + "### Bug Fixes\n\n* **quests:** finished quests are recognised right away ([#63](https://github.com/WynnLabsMC/Wynnlabs/pull/63))\n";
 
     @Override
     public void runTest(ClientGameTestContext ctx) {
@@ -85,7 +85,7 @@ public class AboutPreview implements FabricClientGameTest {
         long now = System.currentTimeMillis();
         UpdateDownload.preview(UpdateDownload.Phase.IDLE, 0, UpdateDownload.Failure.NONE, null);
         UpdateAsset jar = new UpdateAsset("wynnlabs-fabric-0.4.0.jar", 4_320_605, "0".repeat(64),
-                "https://github.com/anilken/Wynnlabs/releases/download/v0.4.0/wynnlabs-fabric-0.4.0.jar");
+                "https://github.com/WynnLabsMC/Wynnlabs/releases/download/v0.4.0/wynnlabs-fabric-0.4.0.jar");
         switch (name) {
             case "uptodate" -> UpdateCheck.preview(new UpdateCheck.State(UpdateCheck.Status.UP_TO_DATE, UpdateCheck.Reason.NONE, "0.3.0",
                     "v0.3.0", PAGE + "v0.3.0", now - 5 * 86_400_000L, now - 4 * 60_000L));

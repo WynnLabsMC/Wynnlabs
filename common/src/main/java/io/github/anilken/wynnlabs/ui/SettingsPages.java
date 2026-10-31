@@ -30,7 +30,7 @@ final class SettingsPages extends MenuPaint {
         this.tab = tab;
     }
 
-    static final String REPO = "https://github.com/anilken/wynnlabs";
+    static final String REPO = "https://github.com/WynnLabsMC/Wynnlabs";
     /** The About page's links: the source, a new issue (its template chooser), the licence. */
     private static final String[][] ABOUT_LINKS = {
         {"wynnlabs.about.source", REPO},
