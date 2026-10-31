@@ -690,6 +690,52 @@ public final class Wyn {
         }, List.of());
     }
 
+    /** One item of the open Content Book: its name and its lore lines with their colour codes. */
+    public record BookSlot(String name, List<String> lore) {}
+
+    /** The open Content Book: its filter button (null when not found) and the entries on the page shown. */
+    public record BookPage(BookSlot filter, List<BookSlot> entries) {}
+
+    /**
+     * The Content Book the player has open, as shown: the filter button and this page's entries
+     * (an entry's name as Wynntils reads it when it can, else the plain item name). Null when
+     * another screen, or none, is open. Only reads the open menu: never clicks or turns a page.
+     */
+    public static BookPage contentBookPage() {
+        return guard(Feature.QUESTS, () -> {
+            if (!(Models.Container.getCurrentContainer() instanceof com.wynntils.models.containers.containers.ContentBookContainer book)
+                    || !(net.minecraft.client.Minecraft.getInstance().screen
+                            instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
+                return null;
+            }
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            java.util.Set<Integer> page = new java.util.HashSet<>(book.getBounds().getSlots());
+            BookSlot filter = null;
+            List<BookSlot> entries = new ArrayList<>();
+            var slots = screen.getMenu().slots;
+            for (int i = 0; i < slots.size(); i++) {
+                var slot = slots.get(i);
+                ItemStack stack = slot.getItem();
+                if ((player != null && slot.container == player.getInventory()) || stack.isEmpty()) {
+                    continue;
+                }
+                List<String> lore = new ArrayList<>();
+                for (var line : com.wynntils.utils.mc.LoreUtils.getLore(stack)) {
+                    lore.add(line.getString());
+                }
+                String name = plain(stack.getHoverName().getString());
+                if (page.contains(i)) {
+                    String read = Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class)
+                            .map(a -> a.getActivityInfo() == null ? null : a.getActivityInfo().name()).orElse(null);
+                    entries.add(new BookSlot(read == null || read.isBlank() ? name : read, lore));
+                } else if (filter == null && "Filter".equals(name)) {
+                    filter = new BookSlot(name, lore);
+                }
+            }
+            return new BookPage(filter, entries);
+        }, null);
+    }
+
     /** Whether this Wynntils knows the content book kind (Time Trial is missing in 4.2.x). */
     public static boolean knowsKind(String kind) {
         return activityType(kind) != null;

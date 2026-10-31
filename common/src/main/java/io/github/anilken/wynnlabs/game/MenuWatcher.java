@@ -237,6 +237,12 @@ public final class MenuWatcher {
             // reading a menu must never break the game
         }
         try {
+            // the Content Book's page, when the player has it open on a kind the mod keeps
+            io.github.anilken.wynnlabs.quests.ContentBookPage.capture();
+        } catch (Throwable ignored) {
+            // reading a menu must never break the game
+        }
+        try {
             Map<SkillKind, Integer> found = new EnumMap<>(SkillKind.class);
             Map<SkillKind, String> keys = new EnumMap<>(SkillKind.class);
             int crystal = -1;
