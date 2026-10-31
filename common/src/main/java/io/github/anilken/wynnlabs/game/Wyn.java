@@ -1892,125 +1892,93 @@ public final class Wyn {
      */
     public static void caveMapSync() {
         boolean on = io.github.anilken.wynnlabs.core.Settings.on(io.github.anilken.wynnlabs.quests.CaveMap.SETTING);
-        run(Feature.WAYPOINTS, () -> DoneCaves.sync(on));
+        run(Feature.WAYPOINTS, () -> {
+            try {
+                DoneCaves.sync(on);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException("Wynntils' cave icons are not where expected", e);
+            }
+        });
     }
 
     /**
-     * Our override for Wynntils' cave features: a finished cave (its map label is a COMPLETED line
-     * of the content book) gets a red, dark icon and label; every other cave gets no attribute at
-     * all, so Wynntils' own values stay. Wynntils resolves attributes once per feature and caches
-     * them, so a cave that changes side is handed back through {@code notifyCallbacks}. Like
-     * {@link SearchMarks}, every line that hands Wynntils one of our objects is in here, so this
-     * class is only loaded (and verified against Wynntils) in a running game.
+     * Wynntils' map draws caves from its own icon list ({@code PoiService}), not from the map-data
+     * attributes, and paints the hover label a fixed green. So a finished cave's icon is swapped
+     * for {@link Done}, a copy that draws a dark red icon and a red label; the list is put back
+     * when the cave is no longer finished or the setting goes off. Rendering only: no waypoint,
+     * marker or packet. Like {@link SearchMarks}, every line that hands Wynntils one of our
+     * objects is in here, so this class is only loaded (and verified against Wynntils) in a
+     * running game.
      */
-    private static final class DoneCaves
-            extends com.wynntils.services.mapdata.providers.type.AbstractMapDataOverrideProvider {
-        static final String ID = "wynnlabs:done-caves";
-        private static DoneCaves registered;
+    private static final class DoneCaves {
+        private static java.lang.reflect.Field field;
 
-        /** Registers, refreshes or drops the override to match the setting. */
-        static void sync(boolean on) {
-            if (!on) {
-                if (registered != null) {
-                    com.wynntils.core.components.Services.MapData.unregisterOverrideProvider(ID);
-                    registered = null;
+        /** Draws the finished caves faded (or all as Wynntils does when {@code on} is false). */
+        static void sync(boolean on) throws ReflectiveOperationException {
+            java.util.Set<String> done = on
+                    ? io.github.anilken.wynnlabs.quests.CaveMap.doneNames(
+                            io.github.anilken.wynnlabs.quests.Content.bookLines(io.github.anilken.wynnlabs.quests.ContentType.CAVE),
+                            knownContent("CAVE"))
+                    : java.util.Set.of();
+            if (field == null) {
+                field = com.wynntils.services.map.PoiService.class.getDeclaredField("cavePois");
+                field.setAccessible(true);
+            }
+            @SuppressWarnings("unchecked")
+            java.util.Set<com.wynntils.services.map.pois.CombatPoi> now =
+                    (java.util.Set<com.wynntils.services.map.pois.CombatPoi>) field.get(com.wynntils.core.components.Services.Poi);
+            java.util.Set<com.wynntils.services.map.pois.CombatPoi> next = new java.util.LinkedHashSet<>();
+            int changed = 0;
+            int faded = 0;
+            for (com.wynntils.services.map.pois.CombatPoi p : now) {
+                Done d = p instanceof Done x ? x : null;
+                com.wynntils.services.map.pois.CombatPoi base = d != null ? d.original : p;
+                boolean hit = io.github.anilken.wynnlabs.quests.CaveMap.isDone(base.getName(), done);
+                if (hit && d == null) {
+                    next.add(new Done(p));
+                    changed++;
+                } else if (!hit && d != null) {
+                    next.add(base);
+                    changed++;
+                } else {
+                    next.add(p);
                 }
-                return;
+                faded += hit ? 1 : 0;
             }
-            if (registered == null) {
-                DoneCaves p = new DoneCaves();
-                p.refresh();
-                com.wynntils.core.components.Services.MapData.registerOverrideProvider(ID, p);
-                registered = p;
-                System.out.println("[WynnLabs] done caves: map override registered, " + p.done.size() + " finished caves known, "
-                        + com.wynntils.core.components.Services.MapData.getFeaturesForCategory(io.github.anilken.wynnlabs.quests.CaveMap.CATEGORY)
-                                .filter(f -> io.github.anilken.wynnlabs.quests.CaveMap.isDone(label(f), p.done)).count() + " map features match");
-            } else {
-                registered.refresh();
+            if (changed > 0) {
+                field.set(com.wynntils.core.components.Services.Poi, java.util.Collections.unmodifiableSet(next));
+                System.out.println("[WynnLabs] done caves: " + faded + " of " + next.size() + " cave icons drawn faded");
             }
         }
 
-        private final com.wynntils.services.mapdata.attributes.type.MapAttributes faded;
-        private final com.wynntils.services.mapdata.attributes.type.MapAttributes untouched;
-        private volatile java.util.Set<String> done = java.util.Set.of();
-        private volatile boolean asked;
+        /** A finished cave's icon: Wynntils' own, tinted dark red, with a red hover label. */
+        private static final class Done extends com.wynntils.services.map.pois.CombatPoi {
+            final com.wynntils.services.map.pois.CombatPoi original;
 
-        private DoneCaves() {
-            faded = new com.wynntils.services.mapdata.attributes.MapAttributesBuilder()
-                    .setIconColor(com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.ICON_ARGB))
-                    .setLabelColor(com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.LABEL_ARGB))
-                    .asLocationAttributes().build();
-            untouched = new com.wynntils.services.mapdata.attributes.MapAttributesBuilder().asLocationAttributes().build();
-        }
-
-        /** Rereads the finished caves; the map re-resolves only the caves that changed side. */
-        void refresh() {
-            java.util.Set<String> now = io.github.anilken.wynnlabs.quests.CaveMap.doneNames(
-                    io.github.anilken.wynnlabs.quests.Content.bookLines(io.github.anilken.wynnlabs.quests.ContentType.CAVE),
-                    knownContent("CAVE"));
-            java.util.Set<String> before = done;
-            if (now.equals(before)) {
-                return;
+            Done(com.wynntils.services.map.pois.CombatPoi original) {
+                super(original.getLocation(), original.getName(), original.getKind());
+                this.original = original;
             }
-            done = now;
-            java.util.Set<String> changed = new java.util.HashSet<>(now);
-            changed.removeAll(before);
-            for (String s : before) {
-                if (!now.contains(s)) {
-                    changed.add(s);
+
+            @Override
+            protected com.wynntils.utils.colors.CustomColor getIconColor() {
+                return com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.ICON_ARGB);
+            }
+
+            @Override
+            public void renderAt(net.minecraft.client.gui.GuiGraphics graphics, float x, float y, boolean hovered,
+                    float scale, float zoom, float zoomLevel, boolean flag) {
+                // Wynntils draws the label green only when hovered: draw the icon alone, then our label
+                super.renderAt(graphics, x, y, false, hovered ? scale * 1.05f : scale, zoom, zoomLevel, flag);
+                if (hovered) {
+                    com.wynntils.utils.render.FontRenderer.getInstance().renderText(graphics,
+                            com.wynntils.core.text.StyledText.fromString(getName()), x, 15.0f + y,
+                            com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.LABEL_ARGB),
+                            com.wynntils.utils.render.type.HorizontalAlignment.CENTER,
+                            com.wynntils.utils.render.type.VerticalAlignment.MIDDLE,
+                            com.wynntils.utils.render.type.TextShadow.OUTLINE);
                 }
             }
-            java.util.List<com.wynntils.services.mapdata.features.type.MapFeature> told = com.wynntils.core.components.Services.MapData
-                    .getFeaturesForCategory(io.github.anilken.wynnlabs.quests.CaveMap.CATEGORY)
-                    .filter(f -> io.github.anilken.wynnlabs.quests.CaveMap.isDone(label(f), changed))
-                    .map(f -> (com.wynntils.services.mapdata.features.type.MapFeature) f).toList();
-            System.out.println("[WynnLabs] done caves: " + now.size() + " finished known, " + told.size() + " map features told to redraw"
-                    + (told.isEmpty() ? "" : " (first: " + label(told.get(0)) + ")"));
-            told.forEach(this::notifyCallbacks);
-            if (!told.isEmpty()) {
-                // what Wynntils now resolves for the first of them: the proof the colour got through
-                var r = com.wynntils.core.components.Services.MapData.resolveMapAttributes(told.get(0));
-                System.out.println("[WynnLabs] done caves: Wynntils resolves " + label(told.get(0)) + " as label "
-                        + r.labelColor() + ", icon " + r.iconColor() + ", asked " + asked);
-            }
-            // every feature called Hill Hovel, whatever its category: which one is the map drawing?
-            com.wynntils.core.components.Services.MapData.getFeatures().filter(f -> {
-                String l = label(f);
-                return l != null && l.contains("Hill Hovel");
-            }).forEach(f -> {
-                var r = com.wynntils.core.components.Services.MapData.resolveMapAttributes(f);
-                System.out.println("[WynnLabs] done caves: Hill Hovel feature " + f.getFeatureId() + " category "
-                        + f.getCategoryId() + " label " + r.labelColor() + " icon " + r.iconColor() + " iconId " + r.iconId());
-            });
-        }
-
-        /** The feature's own label (the cave's name); Wynntils' interface hands the feature raw. */
-        @SuppressWarnings({"rawtypes", "unchecked"})
-        private static String label(com.wynntils.services.mapdata.features.type.MapFeature f) {
-            java.util.Optional<com.wynntils.services.mapdata.attributes.type.MapAttributes> a = f.getAttributes();
-            return a.flatMap(com.wynntils.services.mapdata.attributes.type.MapAttributes::getLabel).orElse(null);
-        }
-
-        @Override
-        @SuppressWarnings("rawtypes")
-        public com.wynntils.services.mapdata.attributes.type.MapAttributes getOverrideAttributes(
-                com.wynntils.services.mapdata.features.type.MapFeature feature) {
-            boolean hit = io.github.anilken.wynnlabs.quests.CaveMap.isDone(label(feature), done);
-            if (hit && !asked) {
-                asked = true;
-                System.out.println("[WynnLabs] done caves: Wynntils asked about a finished cave on the map (" + label(feature) + ")");
-            }
-            return hit ? faded : untouched;
-        }
-
-        @Override
-        public java.util.stream.Stream<String> getOverridenFeatureIds() {
-            return java.util.stream.Stream.empty();
-        }
-
-        @Override
-        public java.util.stream.Stream<String> getOverridenCategoryIds() {
-            return java.util.stream.Stream.of(io.github.anilken.wynnlabs.quests.CaveMap.CATEGORY);
         }
     }
 }
