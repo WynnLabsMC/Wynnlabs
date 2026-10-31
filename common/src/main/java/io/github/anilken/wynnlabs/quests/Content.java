@@ -255,6 +255,11 @@ public final class Content {
             READ_AT.put(type, System.currentTimeMillis());
         }
         stored(type, lines.size(), "Wynntils' content book read");
+        if (type == ContentType.QUEST) {
+            // the same press reads the caves too (one read at a time: this one is done), so the
+            // map knows which are finished without a second button
+            scan(ContentType.CAVE);
+        }
     }
 
     /**
