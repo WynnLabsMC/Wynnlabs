@@ -196,7 +196,7 @@ final class SettingsControls extends MenuPaint {
         Ui.iconButton(g, icon, x, y, armed, mx, my);
         menu.toggles.add(new Object[] {new int[] {x, y, SQ, Ui.CHIP_H}, "#opt:profiles:presets:" + i});
         if (mx >= x && mx < x + SQ && my >= y && my < y + Ui.CHIP_H) {
-            rowTip(x, y, SQ, Ui.CHIP_H, tip, null);
+            rowTip(x, y, SQ, Ui.CHIP_H, tip, "");
         }
         return SQ;
     }
