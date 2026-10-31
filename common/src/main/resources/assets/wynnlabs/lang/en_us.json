@@ -1307,7 +1307,7 @@
   "wynnlabs.verdict_tip.reroll": "Bad rolls: reroll it at the Identifier",
   "wynnlabs.verdict_tip.sell": "You don't need it: sell it where the arrow points",
   "wynnlabs.verdict_tip.skip": "Not worth picking up or buying",
-  "wynnlabs.verdict_tip.keep": "Hang on to it: useful later or for an alt",
+  "wynnlabs.verdict_tip.keep": "Hang on to it: it will be useful later",
   "wynnlabs.verdict_tip.buy_later": "Good pick once you hit its level: buy it then",
   "wynnlabs.verdict_tip.wait": "Not yet: check back later",
   "wynnlabs.verdict_tip.taken": "Already got it",
