@@ -703,16 +703,19 @@ public final class Wyn {
      */
     public static BookPage contentBookPage() {
         return guard(Feature.QUESTS, () -> {
-            if (!(Models.Container.getCurrentContainer() instanceof com.wynntils.models.containers.containers.ContentBookContainer book)
-                    || !(net.minecraft.client.Minecraft.getInstance().screen
-                            instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
+            // Wynntils shows the book in its own screen, not a container screen: the items still
+            // sit in the player's open container menu
+            if (!(Models.Container.getCurrentContainer() instanceof com.wynntils.models.containers.containers.ContentBookContainer book)) {
                 return null;
             }
             var player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null || player.containerMenu == null || player.containerMenu == player.inventoryMenu) {
+                return null;
+            }
             java.util.Set<Integer> page = new java.util.HashSet<>(book.getBounds().getSlots());
             BookSlot filter = null;
             List<BookSlot> entries = new ArrayList<>();
-            var slots = screen.getMenu().slots;
+            var slots = player.containerMenu.slots;
             for (int i = 0; i < slots.size(); i++) {
                 var slot = slots.get(i);
                 ItemStack stack = slot.getItem();

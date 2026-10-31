@@ -31,12 +31,25 @@ public final class ContentBookPage {
             return;                             // another screen, or none
         }
         ContentType type = filterOf(page.filter());
+        List<Wyn.ContentLine> lines = lines(page.entries());
+        diagnose(page, type, lines.size());
         if (type == null || !type.book()) {
             return;                             // "All", or a kind the mod has no list for
         }
-        List<Wyn.ContentLine> lines = lines(page.entries());
         if (!lines.isEmpty()) {
             Content.tookPage(type, lines);
+        }
+    }
+
+    private static String lastDiag = "";
+
+    /** One log line per change of what the open book shows, so a silent miss can be told from a miss. */
+    private static void diagnose(Wyn.BookPage page, ContentType type, int usable) {
+        String d = (type == null ? "no filter kind" : type.shown) + ", " + page.entries().size() + " items, " + usable + " entries"
+                + (page.filter() == null ? ", no filter button" : "");
+        if (!d.equals(lastDiag)) {
+            lastDiag = d;
+            System.out.println("[WynnLabs] content book open: " + d);
         }
     }
 
