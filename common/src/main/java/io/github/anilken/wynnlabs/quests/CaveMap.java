@@ -18,7 +18,7 @@ public final class CaveMap {
     public static final String SETTING = "caveMapDone";
 
     /** Wynntils' map category of every cave entrance. */
-    public static final String CATEGORY = "wynntils:content:cave";
+    public static final String CATEGORY = ContentType.CAVE.feature;
 
     /**
      * The tint of a finished cave's icon, ARGB: a dark red, so the icon reads as dimmed as well as
@@ -39,6 +39,18 @@ public final class CaveMap {
                 out.add(key(c.name()));
             }
         }
+        return out;
+    }
+
+    /**
+     * The finished caves from both places the mod knows them: the character's own content book
+     * copy ({@code Content.bookLines}, filled by the Quests tab's refresh and kept on disk) and
+     * what Wynntils' cave model holds live (often empty: Wynntils fills it only on its own read).
+     * A cave finished in either is done.
+     */
+    public static Set<String> doneNames(List<Wyn.ContentLine> book, List<Wyn.ContentLine> live) {
+        Set<String> out = doneNames(book);
+        out.addAll(doneNames(live));
         return out;
     }
 

@@ -1880,7 +1880,9 @@ public final class Wyn {
 
         /** Rereads the finished caves; the map re-resolves only the caves that changed side. */
         void refresh() {
-            java.util.Set<String> now = io.github.anilken.wynnlabs.quests.CaveMap.doneNames(knownContent("CAVE"));
+            java.util.Set<String> now = io.github.anilken.wynnlabs.quests.CaveMap.doneNames(
+                    io.github.anilken.wynnlabs.quests.Content.bookLines(io.github.anilken.wynnlabs.quests.ContentType.CAVE),
+                    knownContent("CAVE"));
             java.util.Set<String> before = done;
             if (now.equals(before)) {
                 return;

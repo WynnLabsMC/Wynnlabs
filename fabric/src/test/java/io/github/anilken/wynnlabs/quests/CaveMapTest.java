@@ -45,6 +45,18 @@ class CaveMapTest {
     }
 
     @Test
+    void bookAndWynntilsListsAreUnited() {
+        // the usual case: the character's book copy has the caves, Wynntils' own model is empty
+        List<Wyn.ContentLine> book = List.of(cave("Hill Hovel", "COMPLETED"), cave("Wolf Den", "AVAILABLE"));
+        assertEquals(Set.of("hill hovel"), CaveMap.doneNames(book, List.of()));
+        // and the other way round, or both with something: a cave finished in either is done
+        assertEquals(Set.of("hill hovel"), CaveMap.doneNames(List.of(), book));
+        assertEquals(Set.of("hill hovel", "wolf den"),
+                CaveMap.doneNames(book, List.of(cave("Wolf Den", "COMPLETED"))));
+        assertTrue(CaveMap.doneNames(List.of(), List.of()).isEmpty());
+    }
+
+    @Test
     void oddLinesAreSkipped() {
         Set<String> done = CaveMap.doneNames(List.of(cave(null, "COMPLETED"), cave("X", null)));
         assertTrue(done.isEmpty());

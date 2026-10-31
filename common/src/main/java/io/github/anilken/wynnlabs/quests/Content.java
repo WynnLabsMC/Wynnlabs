@@ -243,6 +243,20 @@ public final class Content {
         if (!Profile.id().isEmpty()) {
             Saver.mark(file(), Content::json);
         }
+        if (type == ContentType.CAVE) {
+            Wyn.caveMapSync();                  // the finished caves fade on the map right away
+        }
+    }
+
+    /**
+     * The book's lines of a kind as this character last read them (the Quests tab's refresh),
+     * from memory or the character's file; empty before the first read.
+     */
+    public static List<Wyn.ContentLine> bookLines(ContentType type) {
+        load();
+        synchronized (BOOK) {
+            return new ArrayList<>(BOOK.getOrDefault(type, Map.of()).values());
+        }
     }
 
     // ---- the character's file ----
