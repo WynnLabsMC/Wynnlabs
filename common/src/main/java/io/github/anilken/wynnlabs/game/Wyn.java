@@ -1960,6 +1960,22 @@ public final class Wyn {
                 this.original = original;
             }
 
+            private static final float FADE = 0.6f;
+            private static java.lang.reflect.Method alpha;
+
+            /** Wynntils' own zoom alpha for an icon (1 when it needs no fading). */
+            private float zoomAlpha(float zoomLevel) {
+                try {
+                    if (alpha == null) {
+                        alpha = com.wynntils.services.map.pois.IconPoi.class.getDeclaredMethod("getIconAlpha", float.class);
+                        alpha.setAccessible(true);
+                    }
+                    return (Float) alpha.invoke(this, zoomLevel);
+                } catch (ReflectiveOperationException e) {
+                    return 1f;
+                }
+            }
+
             @Override
             protected com.wynntils.utils.colors.CustomColor getIconColor() {
                 return com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.ICON_ARGB);
@@ -1968,8 +1984,14 @@ public final class Wyn {
             @Override
             public void renderAt(net.minecraft.client.gui.GuiGraphics graphics, float x, float y, boolean hovered,
                     float scale, float zoom, float zoomLevel, boolean flag) {
-                // Wynntils draws the label green only when hovered: draw the icon alone, then our label
-                super.renderAt(graphics, x, y, false, hovered ? scale * 1.05f : scale, zoom, zoomLevel, flag);
+                // Wynntils sets the icon's alpha from the zoom on every frame, so the fade is drawn
+                // here: its own alpha (the private getIconAlpha) times FADE
+                float s = hovered ? scale * 1.05f : scale;
+                com.wynntils.utils.render.Texture icon = getIcon();
+                float w = icon.width() * s;
+                float h = icon.height() * s;
+                com.wynntils.utils.render.RenderUtils.drawScalingTexturedRect(graphics, icon,
+                        getIconColor().withAlpha(zoomAlpha(zoomLevel) * FADE), x - w / 2, y - h / 2, w, h);
                 if (hovered) {
                     com.wynntils.utils.render.FontRenderer.getInstance().renderText(graphics,
                             com.wynntils.core.text.StyledText.fromString(getName()), x, 15.0f + y,
