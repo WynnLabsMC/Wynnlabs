@@ -105,7 +105,14 @@ public final class WearCheck {
             sumNow += now[i];
         }
         int earned = Math.max(0, (Math.min(state.level(), 101) - 1) * 2);
-        String names = String.join(", ", broken);
+        // the same piece worn twice (two rings) is named once, with its count
+        java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        for (String b : broken) {
+            counts.merge(b, 1, Integer::sum);
+        }
+        String names = counts.entrySet().stream()
+                .map(e -> e.getValue() > 1 ? e.getKey() + " ×" + e.getValue() : e.getKey())
+                .collect(java.util.stream.Collectors.joining(", "));
         String text;
         // the message: a head line, then step lines (what to take back in red, what to give in green)
         List<net.minecraft.network.chat.Component> lines = new ArrayList<>();
