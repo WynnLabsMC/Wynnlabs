@@ -137,6 +137,7 @@ final class SettingsRows {
                 p.row("switch", "glowQuest");
                 p.row("switch", "miniQuests");
                 p.row("switch", "questGuides");
+                p.row("switch", "caveMapDone");
             }
             case "mounts" -> {
                 p.head("wynnlabs.settings.sec_riding");

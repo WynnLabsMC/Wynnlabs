@@ -386,6 +386,10 @@ public final class WynnLabs {
         platform.onEndTick(client -> {
             if (++serverTick % 20 == 0) {
                 syncServer();
+                // finished caves red and dim on Wynntils' map: follows its setting the same way
+                if (client.player != null) {
+                    Wyn.caveMapSync();
+                }
             }
         });
     }

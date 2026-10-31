@@ -211,6 +211,8 @@ public final class WynntilsEvents {
                 } catch (Throwable t) {
                     System.out.println("[WynnLabs] quests from Wynntils failed: " + t);
                 }
+            } else if (type == ActivityType.CAVE) {
+                Wyn.caveMapSync();                  // finished caves fade on the map as the book changes
             }
         }
     }
