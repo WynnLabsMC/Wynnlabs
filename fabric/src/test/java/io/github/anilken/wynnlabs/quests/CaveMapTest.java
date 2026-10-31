@@ -63,12 +63,12 @@ class CaveMapTest {
     }
 
     @Test
-    void coloursAreRedAndDimmed() {
-        // both colours are reds (red channel well above green and blue) and below full alpha, so a
-        // finished cave reads as faded next to the untouched ones
+    void coloursAreWhiteAndDimmed() {
+        // both colours are white and below full alpha, so a finished cave reads as faded next to the
+        // untouched ones
         for (int argb : new int[] {CaveMap.ICON_ARGB, CaveMap.LABEL_ARGB}) {
             int a = argb >>> 24, r = (argb >> 16) & 0xFF, g = (argb >> 8) & 0xFF, b = argb & 0xFF;
-            assertTrue(r > g + 0x40 && r > b + 0x40, "red: " + Integer.toHexString(argb));
+            assertTrue(r == 0xFF && g == 0xFF && b == 0xFF, "white: " + Integer.toHexString(argb));
             assertTrue(a < 0xFF, "not fully opaque: " + Integer.toHexString(argb));
         }
     }
