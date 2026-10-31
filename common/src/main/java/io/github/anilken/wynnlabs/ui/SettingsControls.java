@@ -33,7 +33,7 @@ final class SettingsControls extends MenuPaint {
     /** Rows whose control is a row of chips. */
     static boolean chips(SetRow r) {
         return switch (r.kind()) {
-            case "multi", "rulemulti", "choice", "lang", "fill", "preset" -> true;
+            case "multi", "rulemulti", "choice", "lang", "fill", "preset", "profiles" -> true;
             default -> false;
         };
     }

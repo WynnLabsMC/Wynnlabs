@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.RuleEditor;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.core.Settings;
+import io.github.anilken.wynnlabs.core.SettingsPresets;
 import io.github.anilken.wynnlabs.core.UpdateCheck;
 import io.github.anilken.wynnlabs.core.Words;
 import io.github.anilken.wynnlabs.game.Wyn;
@@ -320,6 +321,7 @@ final class SettingsPages extends MenuPaint {
                 }
             }
             case "preset" -> RuleEditor.applyPreset(RuleEditor.NORMAL);
+            case "profiles" -> SettingsPresets.choose(null);
             case "slots" -> {
                 MarketSlots.setLimited(true);
                 RuleEditor.reset(RuleEditor.byId("market_slots"));
@@ -354,6 +356,21 @@ final class SettingsPages extends MenuPaint {
                 }
             }
             case "preset" -> RuleEditor.applyPreset(i);
+            case "profiles" -> {
+                List<String> names = Settings.presetNames();
+                if (i == 0) {
+                    SettingsPresets.choose(null);
+                } else if (i <= names.size()) {
+                    SettingsPresets.choose(names.get(i - 1));
+                } else if (i == names.size() + 1) {
+                    String made = SettingsPresets.saveNew(L.t("wynnlabs.settings.profile_base"));
+                    if (made != null) {
+                        menu.flash(L.t("wynnlabs.settings.profile_saved", made));
+                    }
+                } else if (Settings.activePreset() != null) {
+                    SettingsPresets.delete(Settings.activePreset());
+                }
+            }
             default -> {
             }
         }

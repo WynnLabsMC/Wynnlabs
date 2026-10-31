@@ -36,6 +36,7 @@ final class SettingsText {
             case "keynote" -> L.t("wynnlabs.settings.key_title");
             case "rule" -> L.t(r.r().title());
             case "preset" -> L.t("wynnlabs.rules.preset");
+            case "profiles" -> L.t("wynnlabs.settings.profiles");
             case "slots" -> L.t("wynnlabs.rules.market_slots");
             case "notice" -> L.t("wynnlabs.rules.per_character");
             default -> L.t(r.id());
@@ -54,6 +55,7 @@ final class SettingsText {
             case "keynote" -> L.t("wynnlabs.settings.key_hint");
             case "rule" -> L.t(r.r().desc());
             case "preset" -> L.t("wynnlabs.rules.preset_desc");
+            case "profiles" -> L.t("wynnlabs.settings.profiles_desc");
             case "slots" -> L.t("wynnlabs.rules.market_slots_desc");
             default -> "";
         };
@@ -90,6 +92,14 @@ final class SettingsText {
                     out.add(L.t("wynnlabs.rules.preset." + i));
                 }
             }
+            case "profiles" -> {
+                out.add(L.t("wynnlabs.settings.profile_shared"));
+                out.addAll(Settings.presetNames());
+                out.add(L.t("wynnlabs.settings.profile_new"));
+                if (Settings.activePreset() != null) {
+                    out.add(L.t("wynnlabs.settings.profile_delete"));
+                }
+            }
             default -> {
             }
         }
@@ -104,6 +114,11 @@ final class SettingsText {
             case "lang" -> Math.max(0, Math.min(2, Settings.number("langOverride", 0))) == i;
             case "fill" -> SettingsRows.menuFill() == SettingsRows.FILLS[i];
             case "preset" -> RuleEditor.preset() == i;
+            case "profiles" -> {
+                String active = Settings.activePreset();
+                yield active == null ? i == 0 : i > 0 && i <= Settings.presetNames().size()
+                        && Settings.presetNames().get(i - 1).equals(active);
+            }
             default -> false;
         };
     }
@@ -151,6 +166,7 @@ final class SettingsText {
             }
             case "lang", "fill" -> L.t("wynnlabs.settings.default", L.t("wynnlabs.settings.lang_auto"));
             case "preset" -> L.t("wynnlabs.settings.default", L.t("wynnlabs.rules.preset.1"));
+            case "profiles" -> L.t("wynnlabs.settings.default", L.t("wynnlabs.settings.profile_shared"));
             case "slots" -> L.t("wynnlabs.rules.market_slots_default", MarketSlots.MAX);
             case "rule" -> {
                 RuleEditor.Rule rule = r.r();
