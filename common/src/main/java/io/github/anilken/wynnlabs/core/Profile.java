@@ -86,6 +86,7 @@ public final class Profile {
             // name(), not toString(): a reskinned Shaman prints as "Shaman/Skyseer"
             currentClass = Wyn.classType().name();
             migrate();
+            SettingsPresets.onCharacter();
             Rules.load();
             Advice.load();
             MenuWatcher.reset();

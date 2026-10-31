@@ -78,11 +78,16 @@ final class SettingsRows {
         return new Multi(keys, labels);
     }
 
+    /** The preset row's name box: 0 closed, 1 naming a new preset, 2 renaming the one in use. */
+    static int profileEdit;
+
     /** A page's rows in the order the list shows them. */
     static List<SetRow> settingRows(String cat) {
         Page p = new Page();
         switch (cat) {
             case "basics" -> {
+                p.head("wynnlabs.settings.sec_presets");
+                p.row("profiles", "presets");
                 p.head("wynnlabs.settings.sec_menu");
                 p.row("lang", "language");
                 p.row("fill", "menu_fill");
@@ -226,7 +231,7 @@ final class SettingsRows {
     /** The section titles that carry the "saved for this character" mark. */
     static boolean perCharacter(String headId) {
         return headId.equals("wynnlabs.rules.sec_trade") || headId.equals("wynnlabs.settings.sec_rules")
-                || headId.equals("wynnlabs.settings.sec_character");
+                || headId.equals("wynnlabs.settings.sec_character") || headId.equals("wynnlabs.settings.sec_presets");
     }
 
     /** Whether the row works now: its parent switch on, its parent choice not Off (both parents off: dimmed). */
@@ -265,7 +270,7 @@ final class SettingsRows {
     /** Whether the row has a default to go back to. */
     static boolean hasDefault(SetRow r) {
         return switch (r.kind()) {
-            case "switch", "multi", "choice", "step", "advice", "fill", "lang", "rule", "rulemulti", "preset", "slots" -> true;
+            case "switch", "multi", "choice", "step", "advice", "fill", "lang", "rule", "rulemulti", "preset", "slots", "profiles" -> true;
             default -> false;
         };
     }
@@ -298,6 +303,7 @@ final class SettingsRows {
             // a rule the preset sets counts once, on the preset's row, unless it was set by hand
             case "rule" -> RuleEditor.changed(r.r()) && (!RuleEditor.PRESET_RULES.contains(r.id()) || RuleEditor.preset() < 0);
             case "preset" -> RuleEditor.preset() != RuleEditor.NORMAL;
+            case "profiles" -> Settings.activePreset() != null;
             case "slots" -> !MarketSlots.limited() || RuleEditor.changed(RuleEditor.byId("market_slots"));
             default -> false;
         };

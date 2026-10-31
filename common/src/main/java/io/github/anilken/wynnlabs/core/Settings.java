@@ -155,8 +155,15 @@ public final class Settings {
 
     private Settings() {}
 
+    /** Where the files live instead of the config folder (tests only). */
+    static Path dirOverride;
+
+    private static Path dir() {
+        return dirOverride != null ? dirOverride : Dirs.config();
+    }
+
     private static Path file() {
-        return Dirs.config().resolve("settings.json");
+        return dir().resolve("settings.json");
     }
 
     private static void load() {
@@ -235,6 +242,7 @@ public final class Settings {
     public static synchronized void use(JsonObject o) {
         VALUES.clear();
         NUMBERS.clear();
+        preset = null;
         read(o);
         publish();
         loaded = true;
@@ -315,13 +323,190 @@ public final class Settings {
         publish();
         Rules.version++;                        // cached verdicts and glows rebuild
         try {
-            JsonObject o = new JsonObject();
-            VALUES.forEach(o::addProperty);
-            NUMBERS.forEach(o::addProperty);
             Files.createDirectories(file().getParent());
-            Files.writeString(file(), GSON.toJson(o), StandardCharsets.UTF_8);
+            if (preset == null) {
+                write(file(), VALUES, NUMBERS);
+                return;
+            }
+            // a preset is on: the changes go into it, settings.json keeps the shared settings
+            // (and follows the few that belong to no preset)
+            Files.createDirectories(presetFile(preset).getParent());
+            write(presetFile(preset), withoutPersonal(VALUES), withoutPersonal(NUMBERS));
+            for (String k : PERSONAL) {
+                moveKey(k, VALUES, baseValues);
+                moveKey(k, NUMBERS, baseNumbers);
+            }
+            write(file(), baseValues, baseNumbers);
         } catch (Exception e) {
             System.out.println("[WynnLabs] could not save settings.json: " + e);
+        }
+    }
+
+    private static <V> void moveKey(String key, Map<String, V> from, Map<String, V> to) {
+        if (from.containsKey(key)) {
+            to.put(key, from.get(key));
+        } else {
+            to.remove(key);
+        }
+    }
+
+    private static void write(Path path, Map<String, Boolean> bools, Map<String, Integer> nums) throws java.io.IOException {
+        JsonObject o = new JsonObject();
+        bools.forEach(o::addProperty);
+        nums.forEach(o::addProperty);
+        Files.writeString(path, GSON.toJson(o), StandardCharsets.UTF_8);
+    }
+
+    // ---- presets: named copies of the settings, one chosen per character (SettingsPresets) ----
+
+    /** Kept out of presets: they belong to the player, not to a way of playing (the API switches are a security matter). */
+    private static final java.util.Set<String> PERSONAL = java.util.Set.of("localApi", "apiWrite", "langOverride", "menuFill",
+            SettingsMigration.VERSION_KEY);
+
+    /** The preset in use, null for the shared settings (settings.json). */
+    private static String preset;
+    /** What settings.json holds while a preset is in use. */
+    private static Map<String, Boolean> baseValues = new LinkedHashMap<>();
+    private static Map<String, Integer> baseNumbers = new LinkedHashMap<>();
+
+    private static <V> Map<String, V> withoutPersonal(Map<String, V> m) {
+        Map<String, V> out = new LinkedHashMap<>(m);
+        out.keySet().removeAll(PERSONAL);
+        return out;
+    }
+
+    static Path presetsDir() {
+        return dir().resolve("presets");
+    }
+
+    private static Path presetFile(String name) {
+        return presetsDir().resolve(name + ".json");
+    }
+
+    /** The preset in use, null for the shared settings. */
+    public static synchronized String activePreset() {
+        load();
+        return preset;
+    }
+
+    /** A name a preset can be saved under: letters, digits, space, - and _, 16 at most; "" when nothing is left. */
+    public static String presetName(String raw) {
+        String n = raw == null ? "" : raw.replaceAll("[^\\p{L}\\p{N} _-]", "").strip();
+        return n.length() > 16 ? n.substring(0, 16).strip() : n;
+    }
+
+    /** The saved presets, by name. */
+    public static synchronized java.util.List<String> presetNames() {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        try (var files = Files.isDirectory(presetsDir()) ? Files.list(presetsDir()) : java.util.stream.Stream.<Path>empty()) {
+            files.map(f -> f.getFileName().toString()).filter(f -> f.endsWith(".json"))
+                    .map(f -> f.substring(0, f.length() - 5)).sorted(String.CASE_INSENSITIVE_ORDER).forEach(out::add);
+        } catch (Exception e) {
+            System.out.println("[WynnLabs] could not list presets: " + e);
+        }
+        return out;
+    }
+
+    /**
+     * Uses a preset (its settings replace the live ones, but for the personal few), or, with
+     * null or a name that is gone, the shared settings again. Nothing is written: a preset only
+     * changes when its settings do.
+     */
+    public static synchronized void usePreset(String name) {
+        load();
+        JsonObject o = null;
+        name = name == null || presetName(name).isEmpty() ? null : presetName(name);
+        if (name != null) {
+            try {
+                if (Files.exists(presetFile(name))) {
+                    o = GSON.fromJson(Files.readString(presetFile(name), StandardCharsets.UTF_8), JsonObject.class);
+                }
+            } catch (Exception e) {
+                System.out.println("[WynnLabs] could not read preset " + name + ": " + e);
+            }
+        }
+        Map<String, Boolean> personalV = new LinkedHashMap<>(VALUES);
+        Map<String, Integer> personalN = new LinkedHashMap<>(NUMBERS);
+        personalV.keySet().retainAll(PERSONAL);
+        personalN.keySet().retainAll(PERSONAL);
+        if (preset == null) {
+            baseValues = new LinkedHashMap<>(VALUES);
+            baseNumbers = new LinkedHashMap<>(NUMBERS);
+        }
+        VALUES.clear();
+        NUMBERS.clear();
+        if (o == null) {
+            VALUES.putAll(baseValues);
+            NUMBERS.putAll(baseNumbers);
+            preset = null;
+        } else {
+            JsonObject mine = o;
+            mine.entrySet().forEach(e -> {
+                if (!e.getValue().isJsonPrimitive() || PERSONAL.contains(e.getKey()) || REMOVED.contains(e.getKey())) {
+                    return;
+                }
+                var p = e.getValue().getAsJsonPrimitive();
+                if (p.isBoolean()) {
+                    VALUES.put(e.getKey(), p.getAsBoolean());
+                } else if (p.isNumber()) {
+                    NUMBERS.put(e.getKey(), p.getAsInt());
+                }
+            });
+            VALUES.putAll(personalV);
+            NUMBERS.putAll(personalN);
+            preset = name;
+        }
+        publish();
+        Rules.version++;
+    }
+
+    /** The settings as they are now, saved as a preset and in use; false for a name with nothing left in it. */
+    public static synchronized boolean savePreset(String raw) {
+        String name = presetName(raw);
+        if (name.isEmpty()) {
+            return false;
+        }
+        load();
+        if (preset == null) {
+            baseValues = new LinkedHashMap<>(VALUES);
+            baseNumbers = new LinkedHashMap<>(NUMBERS);
+        }
+        preset = name;
+        save();
+        return true;
+    }
+
+    /** A preset renamed; the name it got, null when the new name is empty or another preset has it. */
+    public static synchronized String renamePreset(String old, String raw) {
+        String name = presetName(raw);
+        if (name.isEmpty() || !presetNames().contains(old)) {
+            return null;
+        }
+        if (!name.equalsIgnoreCase(old) && presetNames().stream().anyMatch(name::equalsIgnoreCase)) {
+            return null;
+        }
+        try {
+            Files.move(presetFile(old), presetFile(name), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            System.out.println("[WynnLabs] could not rename preset " + old + ": " + e);
+            return null;
+        }
+        if (old.equals(preset)) {
+            preset = name;
+        }
+        return name;
+    }
+
+    /** A preset deleted; the shared settings come back when it was the one in use. */
+    public static synchronized void deletePreset(String name) {
+        load();
+        if (name.equals(preset)) {
+            usePreset(null);
+        }
+        try {
+            Files.deleteIfExists(presetFile(name));
+        } catch (Exception e) {
+            System.out.println("[WynnLabs] could not delete preset " + name + ": " + e);
         }
     }
 
