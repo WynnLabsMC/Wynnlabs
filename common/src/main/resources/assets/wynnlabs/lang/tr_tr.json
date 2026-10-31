@@ -145,6 +145,8 @@
   "wynnlabs.auto.plan_has_better": "En iyi build'de %s var",
   "wynnlabs.auto.plan_runs_no_id": "Build'in burada %s kullanıyor: ID ücretine değmez",
   "wynnlabs.auto.plan_skips_unid": "Build'inin işine yaramıyor: ID ücretine değmez",
+  "wynnlabs.auto.plan_skips_later": "Build'inde işe yaramaz",
+  "wynnlabs.auto.plan_runs_later": "Build'in burada %s kullanıyor",
   "wynnlabs.auto.skill_change": ". SP: %s",
   "wynnlabs.auto.skill_target_up": "Hedef %s (+%s)",
   "wynnlabs.auto.skill_target_down": "Hedef %s: şehirde respec, %s puanı başka skill'e ver",
