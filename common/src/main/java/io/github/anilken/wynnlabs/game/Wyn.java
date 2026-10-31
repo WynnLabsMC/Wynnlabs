@@ -1967,6 +1967,12 @@ public final class Wyn {
             System.out.println("[WynnLabs] done caves: " + now.size() + " finished known, " + told.size() + " map features told to redraw"
                     + (told.isEmpty() ? "" : " (first: " + label(told.get(0)) + ")"));
             told.forEach(this::notifyCallbacks);
+            if (!told.isEmpty()) {
+                // what Wynntils now resolves for the first of them: the proof the colour got through
+                var r = com.wynntils.core.components.Services.MapData.resolveMapAttributes(told.get(0));
+                System.out.println("[WynnLabs] done caves: Wynntils resolves " + label(told.get(0)) + " as label "
+                        + r.labelColor() + ", icon " + r.iconColor() + ", asked " + asked);
+            }
         }
 
         /** The feature's own label (the cave's name); Wynntils' interface hands the feature raw. */
