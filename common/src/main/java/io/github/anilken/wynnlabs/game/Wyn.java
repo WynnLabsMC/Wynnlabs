@@ -1922,6 +1922,9 @@ public final class Wyn {
                 p.refresh();
                 com.wynntils.core.components.Services.MapData.registerOverrideProvider(ID, p);
                 registered = p;
+                System.out.println("[WynnLabs] done caves: map override registered, " + p.done.size() + " finished caves known, "
+                        + com.wynntils.core.components.Services.MapData.getFeaturesForCategory(io.github.anilken.wynnlabs.quests.CaveMap.CATEGORY)
+                                .filter(f -> io.github.anilken.wynnlabs.quests.CaveMap.isDone(label(f), p.done)).count() + " map features match");
             } else {
                 registered.refresh();
             }
@@ -1930,6 +1933,7 @@ public final class Wyn {
         private final com.wynntils.services.mapdata.attributes.type.MapAttributes faded;
         private final com.wynntils.services.mapdata.attributes.type.MapAttributes untouched;
         private volatile java.util.Set<String> done = java.util.Set.of();
+        private volatile boolean asked;
 
         private DoneCaves() {
             faded = new com.wynntils.services.mapdata.attributes.MapAttributesBuilder()
@@ -1972,7 +1976,12 @@ public final class Wyn {
         @SuppressWarnings("rawtypes")
         public com.wynntils.services.mapdata.attributes.type.MapAttributes getOverrideAttributes(
                 com.wynntils.services.mapdata.features.type.MapFeature feature) {
-            return io.github.anilken.wynnlabs.quests.CaveMap.isDone(label(feature), done) ? faded : untouched;
+            boolean hit = io.github.anilken.wynnlabs.quests.CaveMap.isDone(label(feature), done);
+            if (hit && !asked) {
+                asked = true;
+                System.out.println("[WynnLabs] done caves: Wynntils asked about a finished cave on the map (" + label(feature) + ")");
+            }
+            return hit ? faded : untouched;
         }
 
         @Override
