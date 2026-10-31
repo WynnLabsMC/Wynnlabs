@@ -1904,7 +1904,7 @@ public final class Wyn {
     /**
      * Wynntils' map draws caves from its own icon list ({@code PoiService}), not from the map-data
      * attributes, and paints the hover label a fixed green. So a finished cave's icon is swapped
-     * for {@link Done}, a copy that draws a dark red icon and a red label; the list is put back
+     * for {@link Done}, a copy that draws a white faded icon and a white label; the list is put back
      * when the cave is no longer finished or the setting goes off. Rendering only: no waypoint,
      * marker or packet. Like {@link SearchMarks}, every line that hands Wynntils one of our
      * objects is in here, so this class is only loaded (and verified against Wynntils) in a
@@ -1951,7 +1951,7 @@ public final class Wyn {
             }
         }
 
-        /** A finished cave's icon: Wynntils' own, tinted dark red, with a red hover label. */
+        /** A finished cave's icon: Wynntils' own, tinted white and faded, with a white hover label. */
         private static final class Done extends com.wynntils.services.map.pois.CombatPoi {
             final com.wynntils.services.map.pois.CombatPoi original;
 

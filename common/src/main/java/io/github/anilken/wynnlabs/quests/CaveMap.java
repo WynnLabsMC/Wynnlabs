@@ -21,13 +21,13 @@ public final class CaveMap {
     public static final String CATEGORY = ContentType.CAVE.feature;
 
     /**
-     * The tint of a finished cave's icon, ARGB: a dark red, so the icon reads as dimmed as well as
-     * red. The map scales a colour's alpha by zoom itself, so the darkness is what fades it.
+     * The tint of a finished cave's icon, ARGB: white, drawn faded (see the map's own fade), so a
+     * finished cave stands apart from the untouched ones.
      */
-    public static final int ICON_ARGB = 0xB0_A8_28_28;
+    public static final int ICON_ARGB = 0xB0_FF_FF_FF;
 
-    /** The colour of a finished cave's name under the icon, ARGB: a lighter red that stays readable. */
-    public static final int LABEL_ARGB = 0xB0_D8_60_60;
+    /** The colour of a finished cave's name under the icon, ARGB: white, faded like the icon. */
+    public static final int LABEL_ARGB = 0xB0_FF_FF_FF;
 
     private CaveMap() {}
 
