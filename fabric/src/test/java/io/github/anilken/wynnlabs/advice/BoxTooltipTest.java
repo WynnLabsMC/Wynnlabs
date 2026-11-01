@@ -71,22 +71,22 @@ class BoxTooltipTest {
                 Component.literal("◆ Possible drops (past prices):").withStyle(ChatFormatting.GOLD));
     }
 
-    private static String text(BoxTooltip.Row r) {
-        return ((BoxTooltip.Text) r).left().getString();
+    private static String text(TipRow r) {
+        return ((TipRow.Text) r).left().getString();
     }
 
     @Test
     void aBoxWithManyDropsListsEightByLevelThenMore() {
         ItemStack stack = boxStack(ELEVEN);
         String name = stack.getHoverName().getString();
-        List<BoxTooltip.Row> rows = BoxTooltip.rows(stack, lore(name), false);
+        List<TipRow> rows = BoxTooltip.rows(stack, lore(name), false);
         assertNotNull(rows);
 
-        BoxTooltip.Text head = assertInstanceOf(BoxTooltip.Text.class, rows.get(0));
+        TipRow.Text head = assertInstanceOf(TipRow.Text.class, rows.get(0));
         assertEquals("Unidentified Chestplate", head.left().getString());
         assertEquals("Lv 71–75", head.right().getString());
         assertEquals("  · 11 possible drops", text(rows.get(1)));
-        assertInstanceOf(BoxTooltip.Separator.class, rows.get(2));
+        assertInstanceOf(TipRow.Separator.class, rows.get(2));
 
         // the verdict row is the advice the badge and the full tooltip show, when there is one
         Advice.Entry e = AutoAdvice.cached(stack);
@@ -100,16 +100,16 @@ class BoxTooltipTest {
             }
         }
         assertEquals("▣ Shaman bank p. 3 ×2, Mage bank p. 1", text(rows.get(at++)));
-        assertInstanceOf(BoxTooltip.Separator.class, rows.get(at++));
+        assertInstanceOf(TipRow.Separator.class, rows.get(at++));
 
-        List<BoxTooltip.Item> items = rows.stream().filter(r -> r instanceof BoxTooltip.Item)
-                .map(r -> (BoxTooltip.Item) r).toList();
+        List<TipRow.Item> items = rows.stream().filter(r -> r instanceof TipRow.Item)
+                .map(r -> (TipRow.Item) r).toList();
         assertEquals(BoxTooltip.MAX_ITEMS, items.size());
         List<ItemData> expected = state.possibleGears(ELEVEN).stream()
                 .sorted(Comparator.comparingInt((ItemData i) -> i.requirements().level()).thenComparing(ItemData::name))
                 .limit(BoxTooltip.MAX_ITEMS).toList();
-        assertEquals(expected, items.stream().map(BoxTooltip.Item::data).toList());
-        for (BoxTooltip.Item it : items) {
+        assertEquals(expected, items.stream().map(TipRow.Item::data).toList());
+        for (TipRow.Item it : items) {
             assertEquals(it.data().requirements().level(), it.level());
             assertFalse(it.price().getString().isEmpty());
         }
@@ -122,13 +122,13 @@ class BoxTooltipTest {
     void eightDropsNeedNoMoreRowAndNoBankLineMeansNoBankRow() {
         ItemStack stack = boxStack(EIGHT);
         List<Component> lines = List.of(stack.getHoverName(), Component.literal("66-70 Level Range"));
-        List<BoxTooltip.Row> rows = BoxTooltip.rows(stack, lines, false);
+        List<TipRow> rows = BoxTooltip.rows(stack, lines, false);
         assertNotNull(rows);
-        assertEquals(8, rows.stream().filter(r -> r instanceof BoxTooltip.Item).count());
+        assertEquals(8, rows.stream().filter(r -> r instanceof TipRow.Item).count());
         assertEquals("[UNIQUE]  · 8 possible drops", text(rows.get(1)));
-        assertTrue(rows.stream().noneMatch(r -> r instanceof BoxTooltip.Text t && t.left().getString().startsWith("+")));
-        assertTrue(rows.stream().noneMatch(r -> r instanceof BoxTooltip.Text t && t.left().getString().startsWith("▣")));
-        assertInstanceOf(BoxTooltip.Item.class, rows.get(rows.size() - 2));
+        assertTrue(rows.stream().noneMatch(r -> r instanceof TipRow.Text t && t.left().getString().startsWith("+")));
+        assertTrue(rows.stream().noneMatch(r -> r instanceof TipRow.Text t && t.left().getString().startsWith("▣")));
+        assertInstanceOf(TipRow.Item.class, rows.get(rows.size() - 2));
     }
 
     @Test

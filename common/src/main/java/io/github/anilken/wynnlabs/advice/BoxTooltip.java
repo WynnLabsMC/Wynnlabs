@@ -28,7 +28,7 @@ import java.util.Optional;
  * The short tooltip of an unidentified gear box (setting {@code boxCompactTooltip}): the name and
  * level range, the rarity pill and how many items it can hold, the verdict and where to sell, the
  * bank line, then up to eight possible drops with their icon, level and price. Shift shows the
- * full tooltip again. The rows are plain data ({@link Row}), so they are built and tested without
+ * full tooltip again. The rows are plain data ({@link TipRow}), so they are built and tested without
  * the game; {@link TooltipRows} turns them into the game's tooltip parts.
  */
 public final class BoxTooltip {
@@ -37,18 +37,6 @@ public final class BoxTooltip {
 
     /** How many possible drops the short tooltip lists before "+N more". */
     static final int MAX_ITEMS = 8;
-
-    /** One row of the short tooltip. */
-    public sealed interface Row permits Text, Item, Separator {}
-
-    /** A text row: {@code left} at the start, {@code right} (may be null) at the far end. */
-    public record Text(Component left, Component right) implements Row {}
-
-    /** A possible drop: its icon and name (in its rarity's colour), level and price ("?" without one). */
-    public record Item(ItemData data, int level, Component price) implements Row {}
-
-    /** A thin line between the parts. */
-    public record Separator() implements Row {}
 
     /** The rows kept per stack, with what they were built from. */
     private record Built(long until, int stamp, int inSize, List<ClientTooltipComponent> out) {}
@@ -72,7 +60,7 @@ public final class BoxTooltip {
         if (b != null && now < b.until() && b.stamp() == stamp && b.inSize() == lines.size()) {
             return b.out();
         }
-        List<Row> rows = rows(stack, lines, false);
+        List<TipRow> rows = rows(stack, lines, false);
         List<ClientTooltipComponent> out = rows == null ? null
                 : List.copyOf(TooltipRows.of(rows, Minecraft.getInstance().font));
         BUILT.put(stack, new Built(now + 250 + (System.identityHashCode(stack) & 127), stamp, lines.size(), out));
@@ -80,7 +68,7 @@ public final class BoxTooltip {
     }
 
     /** The short tooltip's rows, or null when the stack keeps its full tooltip. */
-    static List<Row> rows(ItemStack stack, List<Component> lines, boolean shift) {
+    static List<TipRow> rows(ItemStack stack, List<Component> lines, boolean shift) {
         if (shift || stack == null || stack.isEmpty() || !Settings.on("boxCompactTooltip")) {
             return null;
         }
@@ -93,10 +81,10 @@ public final class BoxTooltip {
         List<ItemData> possible = new ArrayList<>(GameState.current().possibleGears(box));
         possible.sort(Comparator.comparingInt((ItemData i) -> i.requirements().level()).thenComparing(ItemData::name));
 
-        List<Row> rows = new ArrayList<>();
+        List<TipRow> rows = new ArrayList<>();
         // the name in its rarity's colour, the level range at the far end
         String name = ItemJson.clean(stack.getHoverName().getString());
-        rows.add(new Text(Component.literal(name).withStyle(rarity, ChatFormatting.BOLD),
+        rows.add(new TipRow.Text(Component.literal(name).withStyle(rarity, ChatFormatting.BOLD),
                 Component.literal(L.t("wynnlabs.boxtip.levels", box.low(), box.high())).withStyle(ChatFormatting.DARK_GRAY)));
         // the rarity pill as Wynncraft draws it (its own word when the lore has none), then the count
         Component pill = pill(lines, name);
@@ -104,37 +92,37 @@ public final class BoxTooltip {
                 .append(pill != null ? pill : Component.literal("[" + box.tier().name() + "]").withStyle(rarity))
                 .append(Component.literal("  · " + L.n("wynnlabs.boxtip.drops", possible.size(), possible.size()))
                         .withStyle(ChatFormatting.DARK_GRAY));
-        rows.add(new Text(second, null));
+        rows.add(new TipRow.Text(second, null));
         // the verdict and where to sell it, with what the box fetches on the Trade Market
-        List<Row> middle = new ArrayList<>();
-        Text verdict = verdict(stack, box);
+        List<TipRow> middle = new ArrayList<>();
+        TipRow.Text verdict = verdict(stack, box);
         if (verdict != null) {
             middle.add(verdict);
         }
         Component bank = bank(lines);
         if (bank != null) {
-            middle.add(new Text(bank, null));
+            middle.add(new TipRow.Text(bank, null));
         }
         if (!middle.isEmpty()) {
-            rows.add(new Separator());
+            rows.add(new TipRow.Separator());
             rows.addAll(middle);
         }
         // the possible drops, by level then name
         if (!possible.isEmpty()) {
-            rows.add(new Separator());
+            rows.add(new TipRow.Separator());
             for (int i = 0; i < possible.size() && i < MAX_ITEMS; i++) {
                 ItemData info = possible.get(i);
                 String p = Prices.text(info.name(), true);
                 Component price = p == null ? Component.literal("?").withStyle(ChatFormatting.DARK_GRAY)
                         : Component.literal(shortPrice(p)).withStyle(ChatFormatting.YELLOW);
-                rows.add(new Item(info, info.requirements().level(), price));
+                rows.add(new TipRow.Item(info, info.requirements().level(), price));
             }
             if (possible.size() > MAX_ITEMS) {
-                rows.add(new Text(Component.literal(L.t("wynnlabs.boxtip.more", possible.size() - MAX_ITEMS))
+                rows.add(new TipRow.Text(Component.literal(L.t("wynnlabs.boxtip.more", possible.size() - MAX_ITEMS))
                         .withStyle(ChatFormatting.DARK_GRAY), null));
             }
         }
-        rows.add(new Text(Component.literal(L.t("wynnlabs.boxtip.shift")).withStyle(ChatFormatting.DARK_GRAY), null));
+        rows.add(new TipRow.Text(Component.literal(L.t("wynnlabs.boxtip.shift")).withStyle(ChatFormatting.DARK_GRAY), null));
         return rows;
     }
 
@@ -148,15 +136,9 @@ public final class BoxTooltip {
      * "SELL → Blacksmith", the TM worth at the far end: the advice the slot's badge and the full
      * tooltip show (a saved verdict, else the rules' own), never worked out anew. Null without one.
      */
-    private static Text verdict(ItemStack stack, ItemView.Box box) {
-        if (!Rules.adviceHere() || !Settings.on("itemAdvice")) {
-            return null;
-        }
-        Advice.Entry e = Advice.find(stack, k -> !k.startsWith("ability:") && !k.startsWith("name:"));
+    private static TipRow.Text verdict(ItemStack stack, ItemView.Box box) {
+        Advice.Entry e = entry(stack);
         if (e == null) {
-            e = AutoAdvice.cached(stack);
-        }
-        if (e == null || e.verdict() == null || e.verdict() == Verdict.NOTE) {
             return null;
         }
         MutableComponent left = Component.empty()
@@ -169,7 +151,23 @@ public final class BoxTooltip {
         Double worth = BoxRoutes.value(BoxAdvice.outcomes(box, null), SellAdvice.marketFee()).expected();
         Component right = worth == null ? null
                 : Component.literal(L.t("wynnlabs.boxtip.tm", "~" + Prices.fmt(worth))).withStyle(ChatFormatting.DARK_GRAY);
-        return new Text(left, right);
+        return new TipRow.Text(left, right);
+    }
+
+    /**
+     * The advice the slot's badge and the full tooltip show for {@code stack}: a saved verdict,
+     * else the rules' own (never worked out anew). Null without one, for a NOTE, or when advice
+     * is off here.
+     */
+    static Advice.Entry entry(ItemStack stack) {
+        if (!Rules.adviceHere() || !Settings.on("itemAdvice")) {
+            return null;
+        }
+        Advice.Entry e = Advice.find(stack, k -> !k.startsWith("ability:") && !k.startsWith("name:"));
+        if (e == null) {
+            e = AutoAdvice.cached(stack);
+        }
+        return e == null || e.verdict() == null || e.verdict() == Verdict.NOTE ? null : e;
     }
 
     /** The bank line the full tooltip has ("▣ Mage bank p. 3"), its wrapped parts joined; null without one. */
