@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Plans;
+import io.github.anilken.wynnlabs.build.BuildEdits;
 import io.github.anilken.wynnlabs.build.WynnBuilderExport;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.L;
@@ -131,6 +132,31 @@ final class HomeAlts {
     void exportShown() {
         List<Roadmap.Step> v = view(menu.steps, menu.selected);
         UiExport.copy(GEAR, menu.selected > 0 && menu.selected < v.size() ? link(v.get(menu.selected)) : null);
+    }
+
+    /** The set the selected milestone shows as a build to save; null with a plan or no set. */
+    private Plans.Build shownBuild(long now) {
+        int i = menu.selected;
+        if (Plans.current() != null || i <= 0 || i >= menu.steps.size()) {
+            return null;
+        }
+        Roadmap.Step step = view(menu.steps, i).get(i);
+        return step.set() == null ? null : BuildEdits.ofMilestone(step.build(), step.set(), step.level(), now);
+    }
+
+    /** Whether the shown set is in My builds already; null when there is no set to save. */
+    Boolean shownSaved() {
+        Plans.Build b = shownBuild(0);
+        return b == null ? null : BuildEdits.inMyBuilds(b);
+    }
+
+    /** The Gear panel's Save: the set shown goes into My builds. */
+    void saveShown() {
+        long now = System.currentTimeMillis();
+        Plans.Build b = shownBuild(now);
+        if (b != null && !BuildEdits.inMyBuilds(b)) {
+            menu.flash(L.t("wynnlabs.homev.plan_saved_flash", Plans.save(b, now).name()));
+        }
     }
 
     // ---- the chip and the header's ↗ ----

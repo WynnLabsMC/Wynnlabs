@@ -126,6 +126,19 @@ public final class HomeTab {
         default int alternatives(GuiGraphics g, int y, int right, boolean compact, int mx, int my) {
             return 0;
         }
+
+        /** Whether the milestone's set shown is in My builds; null with no set to save. */
+        default Boolean shownSaved() {
+            return null;
+        }
+
+        /** A small button inside a slot: its click comes before the slot's. */
+        default void corner(int[] rect, String action) {
+        }
+
+        /** Where the choices chip is, for the popup it opens. */
+        default void choicesChip(int[] rect) {
+        }
     }
 
     /** The items you chose: their frames, pills and the stand's part in the archetype's purple. */

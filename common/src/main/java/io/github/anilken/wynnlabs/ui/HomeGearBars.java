@@ -146,6 +146,24 @@ final class HomeGearBars extends HomePart {
         }
     }
 
+    /** The Save for a milestone's set: a word chip centred in {@code w}, or an icon where only that fits. */
+    void saveButton(GuiGraphics g, Host host, boolean saved, int x, int y, int w, int mx, int my) {
+        String label = L.t(saved ? "wynnlabs.homev.plan_saved" : "wynnlabs.homev.plan_save");
+        int full = Ui.iconChipWidth(font, "bookmark", label, false);
+        int bw = full <= w ? full : 16;
+        int bx = x + (w - bw) / 2;
+        String text = full <= w ? label : null;
+        if (saved) {
+            Ui.iconChip(g, font, "bookmark", text, false, bx, y, bw, false, mx, my);
+        } else {
+            Ui.primaryIconChip(g, font, "bookmark", text, bx, y, bw, mx, my);
+        }
+        LayoutCheck.part(g.pose(), bx, y, bw, 14, "planrow", "the milestone's Save button");
+        host.area(bx, y, bw, 14, null, List.of(Component.literal(label).withStyle(ChatFormatting.WHITE),
+                L.c(saved ? "wynnlabs.homev.map_saved_tip" : "wynnlabs.homev.map_save_tip").withStyle(ChatFormatting.GRAY)),
+                saved ? null : "#qmapsave:");
+    }
+
     /**
      * Under the stand: the build score now against the score with the selected milestone's
      * whole set (one bar, gold to now and green on to after), and "3 upgrades: +13% · ≈1.4 LE"

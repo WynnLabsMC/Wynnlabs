@@ -129,6 +129,16 @@ final class HomeHosts {
         }
 
         @Override
+        public void corner(int[] rect, String action) {
+            page.cornerHits.add(new Object[] {rect, action});
+        }
+
+        @Override
+        public void choicesChip(int[] rect) {
+            page.choicesChip(rect);
+        }
+
+        @Override
         public void compare(int[] rect, HomeTab.SlotView s) {
             if (s.gear() != null && s.gear().options() != null && !s.gear().options().isEmpty()) {
                 page.slotHits.add(new Object[] {rect, s.gear(), s.label(), s.worn()});
@@ -138,6 +148,11 @@ final class HomeHosts {
         @Override
         public int levelPills(GuiGraphics g, int y, int right, int room) {
             return page.levels().draw(g, y, right, room, page.levelRows);
+        }
+
+        @Override
+        public Boolean shownSaved() {
+            return page.alts().shownSaved();
         }
 
         @Override

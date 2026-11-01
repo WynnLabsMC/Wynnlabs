@@ -58,6 +58,29 @@ public final class BuildEdits {
         return b.named(name);
     }
 
+    /** A road map milestone's set as a build to save, named after its level and weapon; null with no pieces. */
+    public static Plans.Build ofMilestone(Map<String, Damage.Piece> set, Build.Eval eval, int level, long now) {
+        Map<String, String> items = new java.util.LinkedHashMap<>();
+        for (String slot : Plans.SLOTS) {
+            Damage.Piece p = set.get(slot);
+            if (p != null) {
+                items.put(slot, p.name());
+            }
+        }
+        if (items.isEmpty()) {
+            return null;
+        }
+        String weapon = items.get("WEAPON");
+        String name = weapon == null ? "" : L.t("wynnlabs.choices.history_row", level, weapon);
+        double score = eval == null || eval.result() == null ? 0 : eval.result().objective();
+        return new Plans.Build("p" + now, name, List.of(), null, items, score, level, now, now);
+    }
+
+    /** Whether My builds already holds a build with exactly these pieces. */
+    public static boolean inMyBuilds(Plans.Build b) {
+        return Plans.saved().stream().anyMatch(s -> s.items().equals(b.items()));
+    }
+
     /** A copy to save as a new build: "Name (copy)", a fresh id when saved. */
     public static Plans.Build copyOf(Plans.Build b) {
         return new Plans.Build("", L.t("wynnlabs.edit.copy_name", b.name()), b.locks(), b.tuning(), b.items(), b.score(), b.level(),

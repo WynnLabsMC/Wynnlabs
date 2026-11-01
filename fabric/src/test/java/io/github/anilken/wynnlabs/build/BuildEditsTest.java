@@ -44,6 +44,18 @@ class BuildEditsTest {
         FixtureState.uninstall();
     }
 
+    @Test
+    void aMilestoneSetBecomesABuildOnce() {
+        Damage.Piece w = new Damage.Piece(null, "Covetous Thunder", "Covetous Thunder", io.github.anilken.wynnlabs.model.Slot.RELIK, 40, Map.of(), Map.of(), 0, Map.of(), 0, false);
+        Plans.Build b = BuildEdits.ofMilestone(Map.of("WEAPON", w), null, 44, 1000);
+        assertEquals(Map.of("WEAPON", "Covetous Thunder"), b.items());
+        assertTrue(b.name().contains("Covetous Thunder"));
+        assertFalse(BuildEdits.inMyBuilds(b));
+        Plans.save(b, 1000);
+        assertTrue(BuildEdits.inMyBuilds(b));
+        assertNull(BuildEdits.ofMilestone(Map.of(), null, 44, 1000));
+    }
+
     private static Plans.Build saved() {
         Map<String, String> items = new LinkedHashMap<>();
         items.put("HELMET", "Yume");

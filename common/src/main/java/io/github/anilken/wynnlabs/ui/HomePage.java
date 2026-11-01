@@ -42,6 +42,7 @@ public final class HomePage extends MenuTab {
     void beginFrame() {
         levelRows.clear();
         slotHits.clear();
+        cornerHits.clear();
         cardHits.clear();
         backRect = null;
         filterRects = null;
@@ -51,6 +52,7 @@ public final class HomePage extends MenuTab {
     /** The build window covers the home: its slots and level pills take no click. */
     void underWindow() {
         slotHits.clear();
+        cornerHits.clear();
         levelRows.clear();
     }
 
@@ -110,6 +112,9 @@ public final class HomePage extends MenuTab {
             if (alts != null && alts.open()) {
                 alts.wheel(v);
             }
+            if (choices != null && choices.open()) {
+                choices.wheel(v);
+            }
         }
     };
 
@@ -119,7 +124,8 @@ public final class HomePage extends MenuTab {
     }
 
     private boolean popupOpenImpl() {
-        return goalOpen || stats != null && stats.picker.open() || alts != null && alts.open();
+        return goalOpen || stats != null && stats.picker.open() || alts != null && alts.open()
+                || choices != null && choices.open();
     }
 
     private void drawPopupImpl(GuiGraphics g, int mx, int my, List<int[]> boxes) {
@@ -132,6 +138,10 @@ public final class HomePage extends MenuTab {
             boxes.add(b);
         }
         b = alts != null ? alts.drawList(g, homeHost, mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
+        b = choices != null ? choices.drawList(g, homeHost, mx, my) : null;
         if (b != null) {
             boxes.add(b);
         }
@@ -148,6 +158,9 @@ public final class HomePage extends MenuTab {
         if (alts != null) {
             alts.close();
         }
+        if (choices != null) {
+            choices.close();
+        }
     }
 
     void pickGoal(int i) {
@@ -155,6 +168,9 @@ public final class HomePage extends MenuTab {
     }
 
     private boolean popupClickedImpl(MouseButtonEvent event) {
+        if (choices != null && choices.open()) {
+            return choices.press(event.x(), event.y());  // its scroll bar; a row's own click does the rest
+        }
         if (alts != null && alts.open()) {
             return alts.press(event.x(), event.y());     // its scroll bar; a card's own click picks it
         }
@@ -200,6 +216,12 @@ public final class HomePage extends MenuTab {
         }
         if (stats != null && stats.barClicked(ex, ey)) {
             return true;                       // the stats list's scrollbar: a drag or a page
+        }
+        for (Object[] c : cornerHits) {
+            if (in(ex, ey, (int[]) c[0])) {
+                action((String) c[1], event.button());
+                return true;
+            }
         }
         for (Object[] sh : slotHits) {
             if (in(ex, ey, (int[]) sh[0])) {
@@ -264,6 +286,8 @@ public final class HomePage extends MenuTab {
         new Box("wynnlabs.screen.slot_ring", Slot.RING, 1),
         new Box("wynnlabs.screen.slot_bracelet", Slot.BRACELET, 0), new Box("wynnlabs.screen.slot_necklace", Slot.NECKLACE, 0)};
     final List<int[]> levelRows = new ArrayList<>();   // x, y, w, h, step index
+    /** The Gear slots' lock and ✕, which come before the slot's own click: {int[] rect, action}. */
+    final List<Object[]> cornerHits = new ArrayList<>();
     final List<Object[]> slotHits = new ArrayList<>();  // {int[] rect, Roadmap.Gear, label, worn}
     final List<Object[]> cardHits = new ArrayList<>();  // {int[] rect, ItemData}
     int[] backRect;
@@ -295,6 +319,24 @@ public final class HomePage extends MenuTab {
     private HomeHero hero;
     /** The endgame milestones' other builds, made on first use (no initializer: safe to hot swap in). */
     private HomeAlts alts;
+    /** What you told the map, made on first use (no initializer: safe to hot swap in). */
+    private HomeChoices choices;
+    private int[] choicesChip;
+
+    HomeChoices choices() {
+        if (choices == null) {
+            choices = new HomeChoices();
+        }
+        return choices;
+    }
+
+    void choicesChip(int[] rect) {
+        choicesChip = rect;
+    }
+
+    void openChoices() {
+        choices().openMenu(choicesChip);
+    }
 
     HomeAlts alts() {
         if (alts == null) {
@@ -502,6 +544,9 @@ public final class HomePage extends MenuTab {
         if (alts != null && alts.drag(y)) {
             return true;
         }
+        if (choices != null && choices.drag(y)) {
+            return true;
+        }
         return stats != null && stats.barDragged(y);
     }
 
@@ -509,6 +554,9 @@ public final class HomePage extends MenuTab {
         detailBar.mouseReleased();
         if (alts != null) {
             alts.release();
+        }
+        if (choices != null) {
+            choices.release();
         }
         if (stats != null) {
             stats.barReleased();

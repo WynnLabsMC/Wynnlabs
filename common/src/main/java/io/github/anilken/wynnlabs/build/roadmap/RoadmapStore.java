@@ -54,6 +54,16 @@ final class RoadmapStore {
         if (id == null || id.isEmpty()) {
             return;
         }
+        String text = text(steps, key, level, builtAt);
+        try {
+            Saver.mark(file(id), () -> text);
+        } catch (Throwable t) {
+            // no config folder (tests without the game): kept in memory only
+        }
+    }
+
+    /** A road map as the file holds it. */
+    static String text(List<Roadmap.Step> steps, String key, int level, long builtAt) {
         JsonObject o = new JsonObject();
         o.addProperty("format", FORMAT);
         o.addProperty("key", key);
@@ -62,12 +72,7 @@ final class RoadmapStore {
         JsonArray a = new JsonArray();
         steps.forEach(s -> a.add(step(s)));
         o.add("steps", a);
-        String text = o.toString();
-        try {
-            Saver.mark(file(id), () -> text);
-        } catch (Throwable t) {
-            // no config folder (tests without the game): kept in memory only
-        }
+        return o.toString();
     }
 
     private static JsonObject step(Roadmap.Step s) {
@@ -219,6 +224,21 @@ final class RoadmapStore {
     // ---- reading ----
 
     /** The road map saved for this character, or null when there is none, it is of another format, or broken (kept aside). */
+    /** A road map from the file's text; throws when it is another format or cannot be read. */
+    static Loaded parse(String text) {
+        JsonObject o = JsonParser.parseString(text).getAsJsonObject();
+        if (!o.has("format") || o.get("format").getAsInt() != FORMAT) {
+            throw new IllegalStateException("format " + (o.has("format") ? o.get("format") : "none"));
+        }
+        Map<String, ItemData> byName = new HashMap<>();
+        GameState.current().allGear().forEach(i -> byName.putIfAbsent(i.name(), i));
+        List<Roadmap.Step> steps = new ArrayList<>();
+        for (JsonElement e : o.getAsJsonArray("steps")) {
+            steps.add(step(e.getAsJsonObject(), byName));
+        }
+        return new Loaded(List.copyOf(steps), o.get("key").getAsString(), o.get("level").getAsInt(), o.get("builtAt").getAsLong());
+    }
+
     static Loaded load(String id) {
         if (id == null || id.isEmpty()) {
             return null;
@@ -235,18 +255,9 @@ final class RoadmapStore {
                 return null;
             }
             String text = Files.readString(f, StandardCharsets.UTF_8);
-            JsonObject o = JsonParser.parseString(text).getAsJsonObject();
-            if (!o.has("format") || o.get("format").getAsInt() != FORMAT) {
-                throw new IllegalStateException("format " + (o.has("format") ? o.get("format") : "none"));
-            }
-            Map<String, ItemData> byName = new HashMap<>();
-            GameState.current().allGear().forEach(i -> byName.putIfAbsent(i.name(), i));
-            List<Roadmap.Step> steps = new ArrayList<>();
-            for (JsonElement e : o.getAsJsonArray("steps")) {
-                steps.add(step(e.getAsJsonObject(), byName));
-            }
+            Loaded l = parse(text);
             Saver.known(f, text);
-            return new Loaded(List.copyOf(steps), o.get("key").getAsString(), o.get("level").getAsInt(), o.get("builtAt").getAsLong());
+            return l;
         } catch (Throwable t) {
             System.out.println("[WynnLabs] could not read " + FILE + ", kept as " + FILE + ".broken: " + t);
             try {

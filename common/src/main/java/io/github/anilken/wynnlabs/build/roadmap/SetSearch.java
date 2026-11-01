@@ -667,6 +667,10 @@ final class SetSearch {
                     .append(c.owned().getOrDefault(i.name(), 0)).append(','));
             k.append('}');
         });
+        String choices = io.github.anilken.wynnlabs.build.MapChoices.current().key();
+        if (!choices.isEmpty()) {
+            k.append("|choices:").append(choices);      // what was taken out of the set it started from
+        }
         k.append("|worn:").append(c.worn() == null ? "-" : SetJudge.setKey(c.worn()));
         k.append('|').append(Rules.hash());
         // the scoring model: results an older one chose are not reused

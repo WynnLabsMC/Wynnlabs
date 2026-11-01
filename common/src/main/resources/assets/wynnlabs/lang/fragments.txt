@@ -88,6 +88,8 @@ wynnlabs.road.trace_budget              after "skip: " in the road map trace
 wynnlabs.road.trace_above               after "skip: " in the road map trace
 wynnlabs.road.trace_quest               after "skip: " in the road map trace
 wynnlabs.road.trace_points              after "skip: " in the road map trace
+wynnlabs.road.trace_banned              after "skip: " in the road map trace
+wynnlabs.road.trace_min_level           after "skip: " in the road map trace
 wynnlabs.road.trace_rule_walk           after "skip: " in the road map trace
 wynnlabs.road.trace_rule_speed          after "skip: " in the road map trace
 wynnlabs.road.trace_worn_ring           after "skip: " in the road map trace

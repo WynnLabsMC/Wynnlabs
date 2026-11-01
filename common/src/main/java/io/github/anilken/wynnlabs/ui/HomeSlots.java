@@ -84,6 +84,11 @@ final class HomeSlots extends HomePart {
         return v.mark() == Mark.DONE || !v.showsPlanned() && v.gear() == null;
     }
 
+    /** The piece a slot shows, for its lock and ✕; empty with none. */
+    String choiceName(SlotView v) {
+        return showOf(v).isEmpty() ? "" : shownName(v);
+    }
+
     private static String shownName(SlotView v) {
         return v.showsPlanned() && v.planned() != null ? v.planned().name()
                 : v.gear() != null ? v.gear().info().name()

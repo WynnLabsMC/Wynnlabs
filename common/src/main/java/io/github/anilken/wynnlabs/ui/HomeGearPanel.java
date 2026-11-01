@@ -1,6 +1,7 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.build.Locks;
+import io.github.anilken.wynnlabs.build.MapChoices;
 import io.github.anilken.wynnlabs.core.DevHooks;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.ui.HomeTab.Host;
@@ -47,6 +48,7 @@ final class HomeGearPanel extends HomePart {
     private final HomeTab tab;
     final HomeSlots slots;
     final HomeGearBars bars;
+    private final HomeSlotChoice corners = new HomeSlotChoice();
 
     HomeGearPanel(HomeTab tab) {
         this.tab = tab;
@@ -92,15 +94,20 @@ final class HomeGearPanel extends HomePart {
         // "My builds" and "Choose items" as icons with their counts, left of the level buttons
         int pickW = countW(in.chosen());
         int savedW = countW(in.saved());
+        int choicesW = countW(MapChoices.current().count());
         // the milestone's other builds and the ↗ for the set shown, right of the level pills
         int alts = in.plan() == null ? host.alternatives(g, y, right, compact, mx, my) : 0;
-        int pills = host.levelPills(g, y + 3, right - alts, titleRoom - alts - pickW - savedW - 8);
+        int pills = host.levelPills(g, y + 3, right - alts, titleRoom - alts - pickW - savedW - choicesW - 8 - Theme.SP_2);
         int bx = pills - Theme.SP_3 - pickW;
         if (bx >= tx) {
             pickButton(g, host, bx, y, pickW, in, mx, my);
             bx -= Theme.SP_2 + savedW;
             if (bx >= tx) {
                 savedButton(g, host, bx, y, savedW, in, mx, my);
+                bx -= Theme.SP_2 + choicesW;
+                if (bx >= tx) {
+                    choicesButton(g, host, bx, y, choicesW, mx, my);
+                }
             }
         }
         // the title row's free room, where the plan's buttons fold when the panel has no room for their row
@@ -142,8 +149,11 @@ final class HomeGearPanel extends HomePart {
         }
         int bottom = y + h - PAD - barH - 4;
         int areaH = bottom - top;
+        // a milestone's set can be saved: its Save has the row a plan's buttons have
+        Boolean shownSaved = in.plan() == null ? host.shownSaved() : null;
         if (large && !compact) {
-            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, planRow(in), mx, my);
+            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, in.plan() != null || shownSaved != null, shownSaved, mx, my);
+            corners.draw(g);
             barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
             return;
         }
@@ -171,7 +181,7 @@ final class HomeGearPanel extends HomePart {
         // up that row's height (the slot columns keep theirs), or the buttons fold into the title row
         int figH = areaH;
         boolean planRow = false;
-        if (in.plan() != null && !compact) {
+        if ((in.plan() != null || shownSaved != null) && !compact) {
             int u2 = Math.max(1, Math.min((areaH - PLAN_ROW - 1) / 32, (room - 2 * zoneMin - 1) / 16));
             int zone2 = Math.max(0, Math.min(zoneCap, (room - 16 * u2 - 1) / 2));
             if ((areaH - PLAN_ROW - 1) / 32 >= 1 && room - 2 * zone2 >= 3 * 16 + 6) {
@@ -202,15 +212,18 @@ final class HomeGearPanel extends HomePart {
         tab.standBox[4] = w;
         tab.standBox[5] = areaH;
         for (int i = 0; i < armour.size(); i++) {
+            corners(host, armour.get(i), x + PAD + 1, colY + i * (s + sg), s, in, mx, my);
             slots.slot(g, host, armour.get(i), x + PAD + 1, colY + i * (s + sg), s, true, zone, lines, large);
         }
         for (int i = 0; i < trinkets.size(); i++) {
+            corners(host, trinkets.get(i), x + w - PAD - 1 - s, colY + i * (s + sg), s, in, mx, my);
             slots.slot(g, host, trinkets.get(i), x + w - PAD - 1 - s, colY + i * (s + sg), s, false, zone, lines, large);
         }
         if (weapon != null) {
             // drawn after the figure, so it lies over the hand: the slot centred on the hand's last two units
             int wx = l + 14 * u - s / 2;
             int wy = standY + 19 * u - s / 2;
+            corners(host, weapon, wx, wy, s, in, mx, my);
             slots.weaponSlot(g, host, weapon, wx, wy, s, x + w - edge - zone - 4, bottom, names, large);
         }
         if (in.plan() != null) {
@@ -220,7 +233,14 @@ final class HomeGearPanel extends HomePart {
                 // folded: Save and Edit as icons left of My builds (Remove is the Plan pill's ✕)
                 bars.planButtons(g, host, in, foldRight - (2 * 16 + 3), ty - 3, 2 * 16 + 3, true, mx, my);
             }
+        } else if (shownSaved != null) {
+            if (planRow) {
+                bars.saveButton(g, host, shownSaved, midX, bottom - 14, midW, mx, my);
+            } else if (foldRight - foldLeft >= 16) {
+                bars.saveButton(g, host, shownSaved, foldRight - 16, ty - 3, 16, mx, my);
+            }
         }
+        corners.draw(g);
         barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
     }
 
@@ -236,18 +256,14 @@ final class HomeGearPanel extends HomePart {
         }
     }
 
-    /** Whether the plan's buttons get their own row under the list. */
-    private static boolean planRow(In in) {
-        return in.plan() != null;
-    }
-
     /**
      * The large Home's gear as a list: two columns on one row grid, the armour and the weapon on
      * the left, the accessories on the right, a hairline between them; each row a slot, its name
-     * and source, and its gain in a fixed column at the row's end. The plan's buttons under it.
+     * and source, and its gain in a fixed column at the row's end. The plan's buttons (or a
+     * milestone's Save) under it.
      */
     private void list(GuiGraphics g, Host host, In in, List<SlotView> armour, SlotView weapon, List<SlotView> trinkets,
-            int x, int top, int w, int bottom, boolean planRow, int mx, int my) {
+            int x, int top, int w, int bottom, boolean planRow, Boolean shownSaved, int mx, int my) {
         int s = 24;
         int end = planRow ? bottom - 14 - Theme.SP_4 : bottom;
         int rh = Math.max(s + Theme.SP_2, Math.min(s + Theme.SP_5, (end - top - s) / 4));
@@ -259,9 +275,11 @@ final class HomeGearPanel extends HomePart {
             left.add(weapon);
         }
         for (int i = 0; i < left.size(); i++) {
+            corners(host, left.get(i), x, top + i * rh, s, in, mx, my);
             slots.row(g, host, left.get(i), x, top + i * rh, colW, s, markW, mx, my);
         }
         for (int i = 0; i < trinkets.size(); i++) {
+            corners(host, trinkets.get(i), x + colW + Theme.SP_7, top + i * rh, s, in, mx, my);
             slots.row(g, host, trinkets.get(i), x + colW + Theme.SP_7, top + i * rh, colW, s, markW, mx, my);
         }
         Kit.hair(g, x + colW + Theme.SP_7 / 2, top, 1, 4 * rh + s, Theme.LINE);
@@ -271,6 +289,8 @@ final class HomeGearPanel extends HomePart {
         tab.standBox[3] = 0;
         if (in.plan() != null && planRow) {
             bars.planButtons(g, host, in, x, bottom - 14, w, false, mx, my);
+        } else if (shownSaved != null) {
+            bars.saveButton(g, host, shownSaved, x, bottom - 14, w, mx, my);
         }
     }
 
@@ -304,6 +324,22 @@ final class HomeGearPanel extends HomePart {
         }
         tip.add(L.c("wynnlabs.homev.pick_clear_tip").withStyle(ChatFormatting.DARK_GRAY));
         host.area(x, y, w, 14, null, tip, "#qpick:");
+    }
+
+    /** A slot's lock and ✕: not on a plan of yours, which the map does not make. */
+    private void corners(Host host, SlotView v, int x, int y, int s, In in, int mx, int my) {
+        if (in.plan() == null) {
+            corners.areas(host, slots.choiceName(v), x, y, s, mx, my);
+        }
+    }
+
+    /** The map's choices as an icon chip with their count: opens {@link HomeChoices}. */
+    private void choicesButton(GuiGraphics g, Host host, int x, int y, int w, int mx, int my) {
+        int n = MapChoices.current().count();
+        Ui.iconChip(g, font, "filter", n > 0 ? String.valueOf(n) : null, false, x, y, w, false, mx, my);
+        host.choicesChip(new int[] {x, y, w, 14});
+        host.area(x, y, w, 14, null, List.of(L.c("wynnlabs.choices.title").withStyle(ChatFormatting.WHITE),
+                L.c("wynnlabs.choices.tip").withStyle(ChatFormatting.LIGHT_PURPLE)), "#qchoices:");
     }
 
     /** "My builds" as an icon chip with a bookmark and the count of saved builds. */
