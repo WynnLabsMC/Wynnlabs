@@ -116,7 +116,7 @@ public final class GearTooltip {
         if (!chips.isEmpty()) {
             rows.add(new TipRow.Chips(chips));
         }
-        List<TipRow> footer = footer(data, lines);
+        List<TipRow> footer = footer(data, rolled.powders(), lines);
         if (!footer.isEmpty()) {
             rows.add(new TipRow.Separator());
             rows.addAll(footer);
@@ -360,11 +360,20 @@ public final class GearTooltip {
         return b.toString();
     }
 
-    static List<TipRow> footer(ItemData data, List<Component> lines) {
+    /** "◈ ✹ ✦ 2/3 powder slots": the powders in the item, each in its element's colour, then the slots. */
+    static Component powders(int slots, List<String> applied) {
+        MutableComponent out = Component.literal("◈ ").withStyle(ChatFormatting.GRAY);
+        for (String p : applied) {
+            int i = element(p);
+            out.append(Component.literal(SYMBOLS[i] + " ").withStyle(INKS[i]));
+        }
+        String count = applied.isEmpty() ? String.valueOf(slots) : applied.size() + "/" + slots;
+        return out.append(Component.literal(L.n("wynnlabs.geartip.powder_slots", slots, count)).withStyle(ChatFormatting.GRAY));
+    }
+
+    static List<TipRow> footer(ItemData data, List<String> applied, List<Component> lines) {
         List<TipRow> out = new ArrayList<>(2);
-        Component powders = data.powderSlots() <= 0 ? null
-                : Component.literal("◈ " + L.n("wynnlabs.geartip.powder_slots", data.powderSlots(), data.powderSlots()))
-                        .withStyle(ChatFormatting.GRAY);
+        Component powders = data.powderSlots() <= 0 ? null : powders(data.powderSlots(), applied);
         String p = Prices.text(data.name(), false);
         Component price = p == null ? null
                 : Component.literal("◇ " + L.t("wynnlabs.geartip.tm", BoxTooltip.shortPrice(p))).withStyle(ChatFormatting.YELLOW);
