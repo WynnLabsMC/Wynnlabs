@@ -1,6 +1,7 @@
 package io.github.anilken.wynnlabs.build.roadmap;
 
 import com.google.gson.JsonObject;
+import io.github.anilken.wynnlabs.build.Around;
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Locks;
@@ -468,6 +469,43 @@ public final class Roadmap {
             }
         }
         return out;
+    }
+
+    /**
+     * Whether the road map wears a piece of this name, or a build the Build window shows does:
+     * the plan of today may skip what a later level's build is made of. Never starts a build.
+     */
+    public static boolean plans(String name) {
+        Around.Result shown = Around.result();
+        return wears(cached(), shown == null ? List.of() : shown.builds(), name);
+    }
+
+    static boolean wears(List<Step> steps, List<Candidate> builds, String name) {
+        for (Step s : steps) {
+            for (Gear g : s.gear()) {
+                if (g.info().name().equals(name)) {
+                    return true;
+                }
+            }
+            if (holds(s.build(), name)) {
+                return true;
+            }
+        }
+        for (Candidate c : builds) {
+            if (holds(c.set(), name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean holds(Map<String, Damage.Piece> set, String name) {
+        for (Damage.Piece p : set.values()) {
+            if (p != null && p.name().equals(name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

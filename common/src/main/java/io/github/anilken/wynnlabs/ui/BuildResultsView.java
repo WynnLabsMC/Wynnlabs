@@ -208,6 +208,7 @@ final class BuildResultsView {
     private int icons(GuiGraphics g, BuildWindow.Host host, int x, int y, int s, Map<String, Damage.Piece> set, java.util.Set<String> fixed,
             Map<String, String> worn, int room) {
         int gap = room >= 9 * (s + 2) + 8 * 2 ? 2 : 1;
+        java.util.Set<String> owned = BuildSources.ownedSlots(set, worn);
         int step = s + 2 + gap;
         for (int i = 0; i < Plans.SLOTS.length; i++) {
             String slot = Plans.SLOTS[i];
@@ -225,7 +226,7 @@ final class BuildResultsView {
             ItemStack icon = info == null ? ItemStack.EMPTY : host.icon(info);
             if (!icon.isEmpty()) {
                 renderIcon(g, icon, fx + 1, y, s);
-                host.item(fx, y - 1, s + 2, s + 2, info, icon, itemExtra(name, locked, p.stack() != null));
+                host.item(fx, y - 1, s + 2, s + 2, info, icon, itemExtra(name, locked, owned.contains(slot)));
                 if (locked && win.firstIcon == null) {
                     win.firstIcon = new int[] {fx, y - 1, s + 2, s + 2};
                 }
@@ -248,9 +249,8 @@ final class BuildResultsView {
     }
 
     /** The lines under an item's own tooltip: where it comes from, and "chosen by you" for a chosen one. */
-    private List<Component> itemExtra(String name, boolean locked, boolean ownedStack) {
+    private List<Component> itemExtra(String name, boolean locked, boolean have) {
         List<Component> out = new ArrayList<>();
-        boolean have = ownedStack || BuildSources.haveNames().contains(name) || BuildSources.worn().containsValue(name);
         Object[] src = BuildSources.source(name);
         String where = have ? L.t("wynnlabs.results.have")
                 : src[1] != null ? L.t("wynnlabs.results.market", Prices.fmt((double) src[1])) : (String) src[0];
@@ -348,7 +348,7 @@ final class BuildResultsView {
         if (ly + Type.LABEL.lineHeight > bottom) {
             return ly;
         }
-        java.util.Set<String> have = BuildSources.haveNames();
+        java.util.Set<String> have = BuildSources.ownedSlots(c.set(), worn);
         List<String> slots = new ArrayList<>();
         for (String slot : Plans.SLOTS) {
             Damage.Piece p = c.set().get(slot);
@@ -372,7 +372,7 @@ final class BuildResultsView {
             String slot = slots.get(i);
             Damage.Piece p = c.set().get(slot);
             boolean locked = c.fixed().contains(slot);
-            boolean owned = p.stack() != null || have.contains(p.name());
+            boolean owned = have.contains(slot);
             ItemData info = BuildSources.itemOf(p.name());
             ItemStack icon = info == null ? ItemStack.EMPTY : host.icon(info);
             int sy = ly + (Math.max(s, textH) - s) / 2;
@@ -380,7 +380,7 @@ final class BuildResultsView {
             Kit.slot(g, x, sy, s, 0);
             if (!icon.isEmpty()) {
                 renderIcon(g, icon, x + (s - is) / 2, sy + (s - is) / 2, is);
-                host.item(x, sy, s, s, info, icon, itemExtra(p.name(), locked, p.stack() != null));
+                host.item(x, sy, s, s, info, icon, itemExtra(p.name(), locked, owned));
             }
             int tx = x + s + Theme.SP_2;
             Component nm = Component.literal(Type.BODY.fit(ui.font, p.name(), w - (tx - x) - 12))
