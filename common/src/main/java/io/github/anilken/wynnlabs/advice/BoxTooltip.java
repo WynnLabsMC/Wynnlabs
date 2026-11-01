@@ -117,9 +117,10 @@ public final class BoxTooltip {
             rows.add(new TipRow.Separator());
             for (int i = 0; i < possible.size() && i < MAX_ITEMS; i++) {
                 ItemData info = possible.get(i);
-                // the lowest listing the box window holds now, else the cached typical price
+                // what the box window shows: the lowest listing it holds now, else Wynnventory's
+                // lowest listing of any kind (not the unidentified one, which can be far off)
                 Integer lowest = lowestListed(info.name());
-                String p = lowest != null ? Prices.fmt(lowest) : Prices.text(info.name(), true);
+                String p = lowest != null ? Prices.fmt(lowest) : Prices.text(info.name(), false);
                 Component price = p == null ? Component.literal("?").withStyle(ChatFormatting.DARK_GRAY)
                         : Component.literal(shortPrice(p)).withStyle(ChatFormatting.YELLOW);
                 rows.add(new TipRow.Item(info, info.requirements().level(), price));
