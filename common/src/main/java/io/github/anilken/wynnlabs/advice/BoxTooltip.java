@@ -6,7 +6,9 @@ import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.core.Stamp;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
+import io.github.anilken.wynnlabs.market.Listings;
 import io.github.anilken.wynnlabs.market.Prices;
+import io.github.anilken.wynnlabs.search.BoxMarket;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.ui.TooltipRows;
@@ -115,7 +117,9 @@ public final class BoxTooltip {
             rows.add(new TipRow.Separator());
             for (int i = 0; i < possible.size() && i < MAX_ITEMS; i++) {
                 ItemData info = possible.get(i);
-                String p = Prices.text(info.name(), true);
+                // the lowest listing the box window holds now, else the cached typical price
+                Integer lowest = lowestListed(info.name());
+                String p = lowest != null ? Prices.fmt(lowest) : Prices.text(info.name(), true);
                 Component price = p == null ? Component.literal("?").withStyle(ChatFormatting.DARK_GRAY)
                         : Component.literal(shortPrice(p)).withStyle(ChatFormatting.YELLOW);
                 rows.add(new TipRow.Item(info, info.requirements().level(), price));
@@ -197,6 +201,27 @@ public final class BoxTooltip {
             out.add(c);
         }
         return out;
+    }
+
+    /**
+     * The lowest price among the listings held for {@code name} (what the box window fetched,
+     * never a request of its own), possibly-sold ones left out; null when none are held.
+     */
+    static Integer lowestListed(String name) {
+        if (!Listings.live()) {
+            return null;
+        }
+        BoxMarket.Held h = Listings.held(name);
+        if (h == null) {
+            return null;
+        }
+        Integer lowest = null;
+        for (BoxMarket.Listing l : h.listings()) {
+            if (!l.possiblySold() && (lowest == null || l.price() < lowest)) {
+                lowest = l.price();
+            }
+        }
+        return lowest;
     }
 
     /** The bank line the full tooltip has ("▣ Mage bank p. 3"), its wrapped parts joined; null without one. */
