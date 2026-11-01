@@ -113,6 +113,30 @@ class WynnBuilderExportTest {
     }
 
     @Test
+    void aVersionTheSiteLacksGoesInAsItsNewestOne() {
+        WynnBuilderLink.Build in = new WynnBuilderLink.Build(null, false, List.of(piece(8, "Ascended Immolation", "F6")),
+                List.of(), null, 0, "");
+        WynnBuilderLink.Build out = WynnBuilderLink.decode(WynnBuilderExport.link(in, null));
+        assertEquals("Masterwork Immolation", out.pieces().get(0).name());
+        assertEquals("F6", out.pieces().get(0).powders());
+    }
+
+    @Test
+    void aMissingWeaponTakesOneOfTheClass() throws Exception {
+        Path dir = Fixtures.root().resolve("shaman-44");
+        assumeTrue(Files.exists(dir.resolve("state.json")), "no shaman-44 fixture");
+        FixtureState.load(dir).install("en");
+        WynnBuilderLink.Build in = new WynnBuilderLink.Build(null, false,
+                List.of(new WynnBuilderLink.Piece(8, WynnBuilderLink.Kind.CRAFTED, -1, "My Relik", null, "")), List.of(), null, 0, "");
+        WynnBuilderLink.Build out = WynnBuilderLink.decode(WynnBuilderExport.link(in,
+                new WynnBuilderTree.Tree(Klass.SHAMAN, List.of(), List.of(), Map.of())));
+        assertEquals(1, out.pieces().size());
+        assertEquals(WynnBuilderLink.WEAPON, out.pieces().get(0).slot());
+        assertEquals(io.github.anilken.wynnlabs.model.Slot.RELIK,
+                GameState.current().allGear().filter(i -> i.name().equals(out.pieces().get(0).name())).findFirst().orElseThrow().slot());
+    }
+
+    @Test
     void whatYouWearNow() throws Exception {
         Path dir = Fixtures.root().resolve("shaman-44");
         assumeTrue(Files.exists(dir.resolve("state.json")), "no shaman-44 fixture");

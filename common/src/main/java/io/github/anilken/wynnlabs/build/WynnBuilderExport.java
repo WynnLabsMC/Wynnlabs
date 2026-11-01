@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.WornGear;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
+import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
@@ -20,7 +21,9 @@ import java.util.Optional;
  * WynnBuilder build links written by the mod's own code: the inverse of {@link WynnBuilderLink}
  * (the current form, in the newest data version the mod ships) and {@link WynnBuilderTree}.
  * Items and tomes go by WynnBuilder's ids from {@code wynnbuilder-items.json}; a crafted or
- * custom piece, or a name the table does not have, goes in as an empty slot.
+ * custom piece, or a name the table does not have, goes in as an empty slot. A later version
+ * the site lacks (Ascended Immolation) goes in as the newest one it has, and an empty weapon
+ * slot takes a weapon of the class: the site opens no link without a weapon.
  *
  * <p>Tomes have fixed slots on the site: two weapon, four armour, a guild, a lootrun, two
  * marathon, two mysticism and two expertise tomes, filled in that order by what each name is.
@@ -78,10 +81,14 @@ public final class WynnBuilderExport {
                 }
             }
             int id = p == null ? -1 : itemId(p);
+            String powders = id < 0 ? "" : p.powders();
+            if (id < 0 && slot == WynnBuilderLink.WEAPON && tree != null) {
+                id = standInWeapon(tree.klass());
+            }
             put(bits, 0, 2);
             put(bits, id < 0 || id + 1 >= 1 << w.items() ? 0 : id + 1, w.items());
             if (slot < 4 || slot == WynnBuilderLink.WEAPON) {
-                powders(bits, id < 0 ? "" : p.powders(), w);
+                powders(bits, powders, w);
             }
         }
         tomes(bits, b.tomes(), w);
@@ -332,8 +339,28 @@ public final class WynnBuilderExport {
         if (p.id() >= 0) {
             return p.id();
         }
-        Integer id = p.name() == null ? null : ids().items().get(p.name());
+        Integer id = p.name() == null ? null : idOf(p.name());
         return id == null ? -1 : id;
+    }
+
+    /** A name's id, or that of the newest earlier version the site has: Ascended, Masterwork, the plain one. */
+    private static Integer idOf(String name) {
+        Map<String, Integer> items = ids().items();
+        Integer id = items.get(name);
+        if (id == null && name.startsWith("Ascended ")) {
+            String base = name.substring("Ascended ".length());
+            id = items.get("Masterwork " + base);
+            return id != null ? id : items.get(base);
+        }
+        return id != null || !name.startsWith("Masterwork ") ? id : items.get(name.substring("Masterwork ".length()));
+    }
+
+    /** The lowest weapon of the class the site knows, -1 for none. */
+    private static int standInWeapon(Klass klass) {
+        return GameState.current().allGear()
+                .filter(i -> i.slot() != null && i.slot().isWeapon() && i.slot().klass() == klass && ids().items().containsKey(i.name()))
+                .min(java.util.Comparator.comparingInt(ItemData::level))
+                .map(i -> ids().items().get(i.name())).orElse(-1);
     }
 
     /**
