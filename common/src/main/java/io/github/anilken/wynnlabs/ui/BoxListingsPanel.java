@@ -212,7 +212,7 @@ final class BoxListingsPanel {
         int y = 0;
         for (int i = 0; i < ls.size(); i++) {
             if (i == open && !plain) {
-                y += i > 0 ? Theme.SP_2 : 0;
+                // the open row's line stays where its closed line was: its wash reaches SP_2 up into the gap
                 rowY[i] = y;
                 y += openHeight(ls.get(i)) + Theme.SP_2 + gap();
             } else {
