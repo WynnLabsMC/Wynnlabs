@@ -43,11 +43,21 @@ class GearTooltipTest {
     void setUp() throws Exception {
         state = FixtureState.load(Fixtures.root().resolve("shaman-44"));
         state.install("en");
+        // off by default: the player turns the short gear tooltip on
+        Settings.use(settings(true));
     }
 
     @AfterEach
     void tearDown() {
         FixtureState.uninstall();
+    }
+
+    /** The fixture's settings in English, the short gear tooltip switch as given. */
+    private JsonObject settings(boolean compact) {
+        JsonObject s = state.data.settings().deepCopy();
+        s.addProperty("langOverride", 1);
+        s.addProperty("gearCompactTooltip", compact);
+        return s;
     }
 
     private ItemStack gear(String name) {
@@ -207,9 +217,7 @@ class GearTooltipTest {
         assertTrue(unidIds.stream().allMatch(i -> i.percent() == null));
         assertEquals(ChatFormatting.RED, unidIds.get(3).colour());
 
-        JsonObject off = state.data.settings().deepCopy();
-        off.addProperty("gearCompactTooltip", false);
-        Settings.use(off);
+        Settings.use(settings(false));
         assertNull(GearTooltip.rows(stack, lines, false));
     }
 
