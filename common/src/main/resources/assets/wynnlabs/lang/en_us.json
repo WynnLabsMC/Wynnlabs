@@ -160,6 +160,7 @@
   "wynnlabs.auto.plan_has_better": "The best build runs %s",
   "wynnlabs.auto.plan_runs_no_id": "Your build runs %s here: not worth the ID fee",
   "wynnlabs.auto.plan_skips_unid": "Your build has no use for it: not worth the ID fee",
+  "wynnlabs.auto.plan_wants_unid": "Your build takes it: identify it at the Item Identifier (%s emeralds)",
   "wynnlabs.auto.plan_skips_later": "Your build won't use it",
   "wynnlabs.auto.plan_runs_later": "Your build uses %s here",
   "wynnlabs.auto.skill_change": ". SP: %s",

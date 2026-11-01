@@ -75,6 +75,10 @@ final class GearAdvice {
                 return SellAdvice.sell(gear, fit.rival() == null ? L.t("wynnlabs.auto.plan_skips_unid")
                         : L.t("wynnlabs.auto.plan_runs_no_id", fit.rival()));
             }
+            if (fit != null && fit.wanted()) {
+                // the plan (the road map's pick, a later build) takes it: never "outlevelled, sell"
+                return new Advice.Entry(Verdict.IDENTIFY, L.t("wynnlabs.auto.plan_wants_unid", cost));
+            }
             double potential = GearScore.score(info);
             if (fit == null && now != null && now.name() != null && potential < now.score() - 0.5) {
                 return SellAdvice.sell(gear, L.t("wynnlabs.auto.worn_better_even_identified", now.name()));
