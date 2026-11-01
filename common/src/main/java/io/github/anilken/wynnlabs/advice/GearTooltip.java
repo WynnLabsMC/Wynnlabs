@@ -84,8 +84,29 @@ public final class GearTooltip {
             return null;
         }
         ItemView view = found.get();
-        ItemData data = view.data();
-        ItemView.Rolled rolled = view.rolled(); // null for a piece not identified yet
+        return rows(stack, view.data(), view.rolled(), lines, null);
+    }
+
+    /**
+     * The short tooltip of a piece the menus show by its data alone (a road map pick, a build's
+     * piece: the game holds no instance of it), with {@code extra} lines under the footer and no
+     * Shift hint; null with the setting off or Shift held. Client thread only.
+     */
+    public static List<ClientTooltipComponent> menu(ItemStack stack, ItemData data, List<Component> extra) {
+        if (stack == null || data == null || !Settings.on("gearCompactTooltip")
+                || Minecraft.getInstance().hasShiftDown()) {
+            return null;
+        }
+        return TooltipRows.of(rows(stack, data, null, List.of(), extra), Minecraft.getInstance().font);
+    }
+
+    /**
+     * The rows: header, verdict, base stats, the fixed stats, a rule, the rolled ones (what they
+     * can roll without {@code rolled}), the requirement chips, the footer, then {@code extra}
+     * lines; the Shift hint instead when {@code extra} is null.
+     */
+    static List<TipRow> rows(ItemStack stack, ItemData data, ItemView.Rolled rolled, List<Component> lines,
+            List<Component> extra) {
         List<TipRow> rows = new ArrayList<>();
 
         rows.add(header(stack, data, rolled));
@@ -121,7 +142,17 @@ public final class GearTooltip {
             rows.add(new TipRow.Separator());
             rows.addAll(footer);
         }
-        rows.add(new TipRow.Centred(Component.literal(L.t("wynnlabs.boxtip.shift")).withStyle(ChatFormatting.DARK_GRAY)));
+        if (extra == null) {
+            rows.add(new TipRow.Centred(Component.literal(L.t("wynnlabs.boxtip.shift")).withStyle(ChatFormatting.DARK_GRAY)));
+            return rows;
+        }
+        List<Component> shown = extra.stream().filter(c -> !c.getString().isBlank()).toList();
+        if (!shown.isEmpty()) {
+            rows.add(new TipRow.Separator());
+            for (Component c : shown) {
+                rows.add(new TipRow.Text(c, null));
+            }
+        }
         return rows;
     }
 

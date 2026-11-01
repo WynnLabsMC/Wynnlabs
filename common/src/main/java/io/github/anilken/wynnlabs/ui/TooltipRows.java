@@ -15,10 +15,14 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The game's tooltip parts for the short tooltips' rows ({@link BoxTooltip}, {@link GearTooltip}):
@@ -42,6 +46,8 @@ public final class TooltipRows {
 
     /** Below this, rows that wrap (band, chips, pairs) wrap anyway: the gear tooltip's least width. */
     private static final int MIN_WRAP = 150;
+    /** No wider than this: a text row that needs more goes on as many lines as it takes. */
+    private static final int MAX_W = 190;
     /** The roll bar's width and height. */
     private static final int BAR_W = 40;
     private static final int BAR_H = 5;
@@ -76,11 +82,13 @@ public final class TooltipRows {
         }
         int[] columns = {nameW, levelW};
         int[] idColumns = {idNameW, idValueW, font.width("100%")};
-        // the width the fixed rows need: what the wrapping rows fit into
+        // the width the fixed rows need: what the wrapping rows fit into; a plain text row wider
+        // than MAX_W is wrapped instead of widening the tooltip
         int width = 0;
         for (TipRow r : rows) {
             width = Math.max(width, switch (r) {
-                case TipRow.Text t -> font.width(t.left()) + (t.right() == null ? 0 : GAP + font.width(t.right()));
+                case TipRow.Text t -> t.right() == null ? Math.min(font.width(t.left()), MAX_W)
+                        : font.width(t.left()) + GAP + font.width(t.right());
                 case TipRow.Item it -> ICON + nameW + COL_GAP + levelW + GAP + font.width(it.price());
                 case TipRow.Header h -> HeaderRow.width(h, font);
                 case TipRow.Id id -> IdRow.width(idColumns);
@@ -99,7 +107,15 @@ public final class TooltipRows {
         out.add(new SpaceRow());
         for (TipRow r : rows) {
             switch (r) {
-                case TipRow.Text t -> out.add(new TextRow(t.left(), t.right()));
+                case TipRow.Text t -> {
+                    if (t.right() == null && font.width(t.left()) > width) {
+                        for (Component line : lines(t.left(), width, font)) {
+                            out.add(new TextRow(line, null));
+                        }
+                    } else {
+                        out.add(new TextRow(t.left(), t.right()));
+                    }
+                }
                 case TipRow.Item it -> out.add(new ItemRow(it, columns));
                 case TipRow.Separator s -> out.add(new LineRow());
                 case TipRow.Header h -> out.add(new HeaderRow(h));
@@ -150,6 +166,20 @@ public final class TooltipRows {
             Identifier style = stack == null ? null : stack.get(DataComponents.TOOLTIP_STYLE);
             deferred.wynnlabs$setDeferred(() -> g.renderTooltip(font, rows, x, y, DefaultTooltipPositioner.INSTANCE, style));
         }
+    }
+
+    /** {@code text} broken at spaces into lines no wider than {@code w}, each keeping its colours. */
+    static List<Component> lines(Component text, int w, Font font) {
+        List<Component> out = new ArrayList<>(2);
+        for (FormattedText ft : font.getSplitter().splitLines(text, w, Style.EMPTY)) {
+            MutableComponent line = Component.empty();
+            ft.visit((style, str) -> {
+                line.append(Component.literal(str).withStyle(style));
+                return Optional.empty();
+            }, Style.EMPTY);
+            out.add(line);
+        }
+        return out;
     }
 
     private static Component name(ItemData data) {

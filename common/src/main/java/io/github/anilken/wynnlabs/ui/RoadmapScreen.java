@@ -637,7 +637,21 @@ public final class RoadmapScreen extends Screen {
             if (mx >= hit.x() && mx < hit.x() + hit.w() && my >= hit.y() && my < hit.y() + hit.h()) {
                 List<Component> marked = hit.stack() == null ? null : requirementTooltip(hit.stack());
                 boolean lead = hit.lead() != null && !hit.lead().isEmpty();
-                if (hit.stack() != null && (lead || hit.tip() != null && !hit.tip().isEmpty())) {
+                List<net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent> compact = null;
+                if (hit.stack() != null && iconInfo.get(hit.stack()) != null) {
+                    // the short gear tooltip, the pill's and the pick's lines under it
+                    List<Component> extra = new ArrayList<>();
+                    if (lead) {
+                        extra.addAll(hit.lead());
+                    }
+                    if (hit.tip() != null) {
+                        extra.addAll(hit.tip());
+                    }
+                    compact = io.github.anilken.wynnlabs.advice.GearTooltip.menu(hit.stack(), iconInfo.get(hit.stack()), extra);
+                }
+                if (compact != null) {
+                    TooltipRows.show(g, font, compact, mx, my, hit.stack());
+                } else if (hit.stack() != null && (lead || hit.tip() != null && !hit.tip().isEmpty())) {
                     // an item's own tooltip with lines under it (the build window: where it comes from),
                     // and over it the lines that explain a pill ("Missing · dropped by mobs")
                     List<Component> lines = new ArrayList<>();
