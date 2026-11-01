@@ -111,6 +111,15 @@ class ProfessionPlanTest {
     }
 
     @Test
+    void aSpotCountsOnlyTheNodesAroundIt() {
+        List<ProfessionPlan.Resource> res = List.of(new ProfessionPlan.Resource("Copper", "mining", 1,
+                List.of(Area.point(0, 60, 0), Area.point(60, 60, 0), Area.point(0, 10, 64), Area.point(65, 60, 0), Area.point(5000, 60, 0)),
+                List.of("Copper Ingot")));
+        assertEquals(3, ProfessionPlan.spots(res, "mining", 1, new double[] {0, 0}, 5).get(0).nodes(),
+                "64 blocks across the map, whatever the height; the rest of the world's nodes left out");
+    }
+
+    @Test
     void lastGainIsKeptPerProfession() {
         ProfessionXp.clear();
         assertEquals(0, ProfessionXp.last("mining"));

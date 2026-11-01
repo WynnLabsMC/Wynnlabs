@@ -289,7 +289,7 @@ final class CraftRoadSteps {
         tab.acts.add(new Act(bx, y + (rowH - Ui.BUTTON_H) / 2, bw, Ui.BUTTON_H, () -> pinArea(a, label), null, null));
         String d = Double.isNaN(s.distance()) ? "" : " · " + RoadmapScreen.dist((int) Math.round(s.distance()))
                 + dirName(Compass.direction(a, CraftRoadData.position()));
-        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, s.resource().name() + " · Lv " + s.resource().level(), bx - Theme.SP_4 - tx), tx, y);
+        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, s.resource().name() + " · Lv " + s.resource().level() + " · " + L.n("wynnlabs.plan.spot_nodes", s.nodes()), bx - Theme.SP_4 - tx), tx, y);
         Type.META.draw(g, tab.font, Type.META.fit(tab.font, String.join(", ", s.resource().materials()) + d, bx - Theme.SP_4 - tx), tx,
                 y + Type.LABEL.lineHeight, Theme.INK_3);
         return y + rowH;

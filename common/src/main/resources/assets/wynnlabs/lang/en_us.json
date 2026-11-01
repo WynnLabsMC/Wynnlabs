@@ -1510,6 +1510,7 @@
   "wynnlabs.craft.slot_wasted": "%s: no slot there, wasted",
   "wynnlabs.craft.view_suggest": "Suggestions",
   "wynnlabs.plan.spots": "Nearest gathering spots",
+  "wynnlabs.plan.spot_nodes": "%s node|%s nodes",
   "wynnlabs.plan.gather_xp_none": "Gather once so the planner learns your XP per gather",
   "wynnlabs.plan.gather_xp_only": "Last gather %s XP · XP to next level unknown",
   "wynnlabs.plan.no_spots": "No gathering spots found for your level",
