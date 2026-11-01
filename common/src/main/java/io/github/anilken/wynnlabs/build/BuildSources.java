@@ -69,6 +69,11 @@ public final class BuildSources {
         return haveCounts().keySet();
     }
 
+    /** How many of this name you have in the bag and bank. */
+    public static int haveCount(String name) {
+        return haveCounts().getOrDefault(name, 0);
+    }
+
     /** What you have in the bag and bank, by name and how many; read again each second. */
     private static Map<String, Integer> haveCounts() {
         long now = System.currentTimeMillis();

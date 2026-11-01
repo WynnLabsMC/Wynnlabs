@@ -14,8 +14,10 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static io.github.anilken.wynnlabs.ui.HomeTab.CHOSEN;
 import static io.github.anilken.wynnlabs.ui.HomeTab.CHOSEN_TEXT;
@@ -50,6 +52,42 @@ final class HomeSlots extends HomePart {
 
     /** Whose part the next pill is, for the preview's check. */
     private String partOwner;
+
+    /** The rows whose suggested piece you already have: see {@link #count}. */
+    private final java.util.Set<Integer> inBag = new java.util.HashSet<>();
+
+    /**
+     * Which rows a copy in the bag or bank fills, one copy to a row: a build with the same ring
+     * twice needs two of them. A worn ring sits in the bag too, so its row takes its copy first.
+     */
+    void count(java.util.List<SlotView> views) {
+        inBag.clear();
+        Map<String, Integer> used = new HashMap<>();
+        for (SlotView v : views) {
+            if (wornRow(v) && !showOf(v).isEmpty()) {
+                used.merge(shownName(v), 1, Integer::sum);
+            }
+        }
+        for (SlotView v : views) {
+            if (!wornRow(v) && !showOf(v).isEmpty()) {
+                String name = shownName(v);
+                if (used.getOrDefault(name, 0) < BuildSources.haveCount(name)) {
+                    inBag.add(v.index());
+                    used.merge(name, 1, Integer::sum);
+                }
+            }
+        }
+    }
+
+    private static boolean wornRow(SlotView v) {
+        return v.mark() == Mark.DONE || !v.showsPlanned() && v.gear() == null;
+    }
+
+    private static String shownName(SlotView v) {
+        return v.showsPlanned() && v.planned() != null ? v.planned().name()
+                : v.gear() != null ? v.gear().info().name()
+                : ItemJson.clean(v.worn().getHoverName().getString()).trim();
+    }
 
     /** A slot's pill and name block: the pill, then {@code lines} lines of name under it. */
     static int block(int lines) {
@@ -287,11 +325,8 @@ final class HomeSlots extends HomePart {
         } else if (!show.isEmpty()) {
             // where the shown piece comes from, on the slot's outer top corner; a suggested piece
             // already in the bag or bank shows the bank (the lookups behind both are cached)
-            boolean worn = v.mark() == Mark.DONE || !v.showsPlanned() && v.gear() == null;
-            String name = v.showsPlanned() && v.planned() != null ? v.planned().name()
-                    : v.gear() != null ? v.gear().info().name()
-                    : ItemJson.clean(v.worn().getHoverName().getString()).trim();
-            String icon = !worn && BuildSources.haveNames().contains(name)
+            String name = shownName(v);
+            String icon = inBag.contains(v.index())
                     ? "building-bank" : io.github.anilken.wynnlabs.build.BuildSources.sourceIcon(name);
             // each kind of place its own colour, a light icon on it, so the kind reads at a glance
             if (compact) {
@@ -443,11 +478,8 @@ final class HomeSlots extends HomePart {
         if (v.mark() == Mark.CHOSEN || v.mark() == Mark.DONE_CHOSEN) {
             sourceChip(g, "lock", CHOSEN, L.t("wynnlabs.homev.chosen_pill"), tx, lineTop + Type.BODY.lineHeight, right - tx);
         } else if (!show.isEmpty()) {
-            boolean worn = v.mark() == Mark.DONE || !v.showsPlanned() && v.gear() == null;
-            String name = v.showsPlanned() && v.planned() != null ? v.planned().name()
-                    : v.gear() != null ? v.gear().info().name()
-                    : ItemJson.clean(v.worn().getHoverName().getString()).trim();
-            boolean have = !worn && BuildSources.haveNames().contains(name);
+            String name = shownName(v);
+            boolean have = inBag.contains(v.index());
             String icon = have ? "building-bank" : io.github.anilken.wynnlabs.build.BuildSources.sourceIcon(name);
             String text = have ? L.t("wynnlabs.homev.src_bank") : io.github.anilken.wynnlabs.build.BuildSources.sourceText(name);
             sourceChip(g, icon, 0, text, tx, lineTop + Type.BODY.lineHeight, right - tx);

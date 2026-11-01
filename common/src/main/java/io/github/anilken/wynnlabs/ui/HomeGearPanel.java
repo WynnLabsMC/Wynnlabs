@@ -112,6 +112,7 @@ final class HomeGearPanel extends HomePart {
         SlotView weapon = null;
         int count = 0;
         double gains = 0;
+        slots.count(in.slots());
         for (SlotView s : in.slots()) {
             if (s.index() < 4) {
                 armour.add(s);
