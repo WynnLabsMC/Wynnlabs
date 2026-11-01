@@ -94,8 +94,8 @@ public final class GearTooltip {
             rows.add(band);
         }
         rows.addAll(base(data));
-        // the fixed stats first in the same columns without a bar (five equal skill points fold
-        // into one "+N to all skills" line), a rule, then every rolled identification with its bar
+        // the fixed stats first in the same columns without a bar, a rule, then every rolled
+        // identification with its bar
         List<Roll> fixed = new ArrayList<>();
         List<TipRow> ids = new ArrayList<>();
         for (Roll r : rolled.rolls()) {
@@ -105,14 +105,8 @@ public final class GearTooltip {
                 ids.add(id(r));
             }
         }
-        Component allSkills = allSkills(fixed);
-        if (allSkills != null) {
-            rows.add(new TipRow.Text(allSkills, null));
-        }
         for (Roll r : fixed) {
-            if (allSkills == null || skill(r) == null) {
-                rows.add(id(r));
-            }
+            rows.add(id(r));
         }
         if (!fixed.isEmpty() && !ids.isEmpty()) {
             rows.add(new TipRow.Separator());
@@ -183,26 +177,7 @@ public final class GearTooltip {
      * The stats with one value only, on one line: "+6 to all skills" when the five skills share a
      * value, else "+4 Str · +2 Dex · +10% XP" (skills by their three letters).
      */
-    /** "+6 to all skills" when every skill point is fixed at the same value, else null. */
-    static Component allSkills(List<Roll> fixed) {
-        List<Roll> skills = fixed.stream().filter(r -> skill(r) != null).toList();
-        if (skills.size() != SkillKind.values().length
-                || skills.stream().map(Roll::value).distinct().count() != 1) {
-            return null;
-        }
-        int v = skills.get(0).value();
-        return Component.literal(L.t("wynnlabs.geartip.all_skills", (v > 0 ? "+" : "") + v)).withStyle(ChatFormatting.GRAY);
-    }
 
-    /** The skill a raw skill-point stat ("rawStrength") adds to, else null. */
-    private static SkillKind skill(Roll r) {
-        for (SkillKind k : SkillKind.values()) {
-            if (("raw" + k.displayName()).equals(r.key()) || k.displayName().equals(r.name())) {
-                return k;
-            }
-        }
-        return null;
-    }
 
     /**
      * Where a roll sits between the stat's lowest and highest value, 0-100, the way the game's

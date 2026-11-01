@@ -83,14 +83,15 @@ class GearTooltipTest {
             assertEquals(rows.get(1), bands.get(0));
         }
 
-        // every rolled stat gets a row with a bar; the five fixed skill points share one line
+        // the five fixed skill points first, each its own row without a bar, a rule, then every
+        // rolled stat with its bar
         List<TipRow.Id> ids = all(rows, TipRow.Id.class);
-        assertEquals(3, ids.size());
-        assertEquals("Combat Experience", ids.get(0).name().getString());
-        assertEquals("+6%", ids.get(0).value().getString());
-        assertTrue(ids.stream().allMatch(i -> i.percent() != null));
-        assertTrue(rows.stream().anyMatch(r -> r instanceof TipRow.Text t
-                && t.left().getString().equals("+4 to all skills")));
+        assertEquals(8, ids.size());
+        assertTrue(ids.subList(0, 5).stream().allMatch(i -> i.percent() == null && i.value().getString().equals("+4")));
+        assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(ids.get(4)) + 1));
+        assertEquals("Combat Experience", ids.get(5).name().getString());
+        assertEquals("+6%", ids.get(5).value().getString());
+        assertTrue(ids.subList(5, 8).stream().allMatch(i -> i.percent() != null));
 
         TipRow.Chips chips = all(rows, TipRow.Chips.class).get(0);
         assertEquals(List.of("Lv 38 ✓", "Str 8 ✓", "Dex 8 ✓", "Int 8 ✓", "Def 8 ✓", "Agi 8 ✓"),
