@@ -83,15 +83,14 @@ class GearTooltipTest {
             assertEquals(rows.get(1), bands.get(0));
         }
 
+        // every rolled stat gets a row with a bar; the five fixed skill points share one line
         List<TipRow.Id> ids = all(rows, TipRow.Id.class);
-        assertEquals(GearTooltip.MAX_IDS, ids.size());
-        assertEquals("Strength", ids.get(0).name().getString());
-        assertEquals("+4", ids.get(0).value().getString());
-        assertNull(ids.get(0).percent());       // one value only: no bar
-        assertEquals("Combat Experience", ids.get(5).name().getString());
-        assertEquals("+6%", ids.get(5).value().getString());
+        assertEquals(3, ids.size());
+        assertEquals("Combat Experience", ids.get(0).name().getString());
+        assertEquals("+6%", ids.get(0).value().getString());
+        assertTrue(ids.stream().allMatch(i -> i.percent() != null));
         assertTrue(rows.stream().anyMatch(r -> r instanceof TipRow.Text t
-                && t.left().getString().equals("+2 more identifications")));
+                && t.left().getString().equals("+4 to all skills")));
 
         TipRow.Chips chips = all(rows, TipRow.Chips.class).get(0);
         assertEquals(List.of("Lv 38 ✓", "Str 8 ✓", "Dex 8 ✓", "Int 8 ✓", "Def 8 ✓", "Agi 8 ✓"),
@@ -112,15 +111,22 @@ class GearTooltipTest {
         assertEquals("69%", head.overall().getString());
         assertEquals("2 rerolls", head.rerolls().getString());
         assertEquals("Legendary · Relik · Lv 42", head.sub().getString());
-        assertEquals(6, all(rows, TipRow.Id.class).size());
-        assertTrue(rows.stream().noneMatch(r -> r instanceof TipRow.Text t && t.left().getString().startsWith("+")));
+        assertEquals(3, all(rows, TipRow.Id.class).size());
+        assertEquals("+10 Agi · -8 Def · +10 Int", rows.stream()
+                .filter(r -> r instanceof TipRow.Text t && t.left().getString().startsWith("+"))
+                .map(r -> ((TipRow.Text) r).left().getString()).findFirst().orElse(null));
+        // the base stats sit right under the verdict band: DPS with the attack speed, then the damages
+        TipRow.Pair dps = all(rows, TipRow.Pair.class).get(0);
+        assertEquals("⚔ 270 DPS", dps.left().getString());
+        assertEquals("Fast (2.5 hits/s)", dps.right().getString());
+        assertEquals("❉ 48–60  ❋ 48–60", ((TipRow.Text) rows.get(rows.indexOf(dps) + 1)).left().getString());
         assertEquals(List.of("Lv 42 ✓", "Shaman ✓", "Int 17 ✓", "Agi 17 ✓"),
                 all(rows, TipRow.Chips.class).get(0).chips().stream().map(TipRow.Chip::text).toList());
 
-        List<TipRow.Pair> footer = all(rows, TipRow.Pair.class);
+        List<TipRow.Pair> footer = all(rows, TipRow.Pair.class).subList(1, all(rows, TipRow.Pair.class).size());
         assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(footer.get(0)) - 1));
-        assertEquals("⚔ 96–120 damage", footer.get(0).left().getString());
-        assertEquals("◈ 2 powder slots", footer.get(0).right().getString());
+        assertEquals("◈ 2 powder slots", footer.get(0).left().getString());
+        assertNull(footer.get(0).right());
         TipRow.Pair second = footer.get(footer.size() - 1);
         assertEquals("▣ Shaman bank p. 3", second.right().getString());
         if (second.left() != null) {

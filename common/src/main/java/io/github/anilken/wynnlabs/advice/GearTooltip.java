@@ -23,6 +23,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -36,8 +37,6 @@ public final class GearTooltip {
 
     private GearTooltip() {}
 
-    /** How many identifications the short tooltip lists before "+N more". */
-    static final int MAX_IDS = 6;
 
     /** The rows kept per stack, with what they were built from. */
     private record Built(long until, int stamp, int inSize, List<ClientTooltipComponent> out) {}
@@ -94,14 +93,18 @@ public final class GearTooltip {
         if (band != null) {
             rows.add(band);
         }
-        List<Roll> rolls = rolled.rolls();
-        for (int i = 0; i < rolls.size() && i < MAX_IDS; i++) {
-            rows.add(id(rolls.get(i)));
+        rows.addAll(base(data));
+        // every rolled identification with its bar; the fixed ones (skill points) on one line after
+        List<Roll> fixed = new ArrayList<>();
+        for (Roll r : rolled.rolls()) {
+            if (percent(r) == null) {
+                fixed.add(r);
+            } else {
+                rows.add(id(r));
+            }
         }
-        if (rolls.size() > MAX_IDS) {
-            int more = rolls.size() - MAX_IDS;
-            rows.add(new TipRow.Text(Component.literal(L.n("wynnlabs.geartip.more", more, more))
-                    .withStyle(ChatFormatting.DARK_GRAY), null));
+        if (!fixed.isEmpty()) {
+            rows.add(new TipRow.Text(fixedLine(fixed), null));
         }
         List<TipRow.Chip> chips = chips(data, rolled.marks());
         if (!chips.isEmpty()) {
@@ -162,6 +165,42 @@ public final class GearTooltip {
         String number = r.value() > 0 ? "+" + r.value() : String.valueOf(r.value());
         Component value = Component.literal(L.unit(number, suffix(r.unit()))).withStyle(colour);
         return new TipRow.Id(Component.literal(r.name()).withStyle(ChatFormatting.GRAY), value, p, colour);
+    }
+
+    /**
+     * The stats with one value only, on one line: "+6 to all skills" when the five skills share a
+     * value, else "+4 Str · +2 Dex · +10% XP" (skills by their three letters).
+     */
+    static Component fixedLine(List<Roll> fixed) {
+        List<Roll> skills = fixed.stream().filter(r -> skill(r) != null).toList();
+        MutableComponent out = Component.empty();
+        if (skills.size() == SkillKind.values().length
+                && skills.stream().map(Roll::value).distinct().count() == 1) {
+            int v = skills.get(0).value();
+            out.append(Component.literal(L.t("wynnlabs.geartip.all_skills", (v > 0 ? "+" : "") + v))
+                    .withStyle(ChatFormatting.GRAY));
+            fixed = fixed.stream().filter(r -> skill(r) == null).toList();
+        }
+        for (Roll r : fixed) {
+            String number = r.value() > 0 ? "+" + r.value() : String.valueOf(r.value());
+            SkillKind k = skill(r);
+            String name = k != null ? k.displayName().substring(0, 3) : r.name();
+            if (!out.getSiblings().isEmpty()) {
+                out.append(Component.literal(" · ").withStyle(ChatFormatting.DARK_GRAY));
+            }
+            out.append(Component.literal(L.unit(number, suffix(r.unit())) + " " + name).withStyle(ChatFormatting.GRAY));
+        }
+        return out;
+    }
+
+    /** The skill a raw skill-point stat ("rawStrength") adds to, else null. */
+    private static SkillKind skill(Roll r) {
+        for (SkillKind k : SkillKind.values()) {
+            if (("raw" + k.displayName()).equals(r.key()) || k.displayName().equals(r.name())) {
+                return k;
+            }
+        }
+        return null;
     }
 
     /**
@@ -246,34 +285,108 @@ public final class GearTooltip {
      * Two labelled lines: health (or a weapon's damage) and powder slots; the Trade Market price
      * and the bank line from the full tooltip. A line with nothing on it is left out.
      */
+    /** The elements' symbols and colours as the game writes them; neutral damage in gold. */
+    private static final String[] ELEMENTS = {"NEUTRAL", "EARTH", "THUNDER", "WATER", "FIRE", "AIR"};
+    private static final String[] SYMBOLS = {"✣", "✤", "✦", "❉", "✹", "❋"};
+    private static final ChatFormatting[] INKS = {ChatFormatting.GOLD, ChatFormatting.DARK_GREEN, ChatFormatting.YELLOW,
+            ChatFormatting.AQUA, ChatFormatting.RED, ChatFormatting.WHITE};
+
+    /**
+     * What never rolls, right under the verdict: a weapon's DPS with its attack speed, then its
+     * damage per element; a piece of armour's health with its elemental defences.
+     */
+    static List<TipRow> base(ItemData data) {
+        List<TipRow> out = new ArrayList<>(2);
+        BaseStats base = data.base();
+        if (base == null) {
+            return out;
+        }
+        if (data.slot().isWeapon()) {
+            Component dps = base.averageDps() <= 0 ? null : Component.literal("⚔ ").withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal(L.t("wynnlabs.geartip.dps", base.averageDps())).withStyle(ChatFormatting.GRAY));
+            Component speed = base.attackSpeed().map(sp -> (Component) Component.literal(speed(sp))
+                    .withStyle(ChatFormatting.GRAY)).orElse(null);
+            if (dps != null || speed != null) {
+                out.add(new TipRow.Pair(dps, speed));
+            }
+            MutableComponent dmg = Component.empty();
+            for (BaseStats.Damage d : base.damages()) {
+                int i = element(d.type());
+                if (!dmg.getSiblings().isEmpty()) {
+                    dmg.append(Component.literal("  "));
+                }
+                dmg.append(Component.literal(SYMBOLS[i] + " ").withStyle(INKS[i]))
+                        .append(Component.literal(d.low() + "–" + d.high()).withStyle(ChatFormatting.GRAY));
+            }
+            if (!dmg.getSiblings().isEmpty()) {
+                out.add(new TipRow.Text(dmg, null));
+            }
+        } else {
+            Component health = base.health() == 0 ? null : Component.literal("❤ ").withStyle(ChatFormatting.RED)
+                    .append(Component.literal(L.t("wynnlabs.geartip.health", base.health())).withStyle(ChatFormatting.GRAY));
+            MutableComponent def = Component.empty();
+            for (BaseStats.Defence d : base.defences()) {
+                if (d.value() == 0) {
+                    continue;
+                }
+                int i = element(d.element());
+                if (!def.getSiblings().isEmpty()) {
+                    def.append(Component.literal(" "));
+                }
+                def.append(Component.literal(SYMBOLS[i] + " ").withStyle(INKS[i]))
+                        .append(Component.literal((d.value() > 0 ? "+" : "") + d.value())
+                                .withStyle(d.value() > 0 ? ChatFormatting.GREEN : ChatFormatting.RED));
+            }
+            if (health != null || !def.getSiblings().isEmpty()) {
+                out.add(new TipRow.Pair(health, def.getSiblings().isEmpty() ? null : def));
+            }
+        }
+        return out;
+    }
+
+    private static int element(String name) {
+        for (int i = 0; i < ELEMENTS.length; i++) {
+            if (ELEMENTS[i].equals(name)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    /** Hits per second by attack speed, the game's own figures. */
+    private static final Map<String, String> HITS = Map.of("SUPER_FAST", "4.3", "VERY_FAST", "3.1", "FAST", "2.5",
+            "NORMAL", "2.05", "SLOW", "1.5", "VERY_SLOW", "0.83", "SUPER_SLOW", "0.51");
+
+    /** "VERY_FAST" as the game writes it, with its hits per second: "Very Fast (3.1 hits/s)". */
+    static String speed(String upper) {
+        String hits = HITS.get(upper);
+        return hits == null ? words(upper) : L.t("wynnlabs.geartip.speed", words(upper), hits);
+    }
+
+    /** "VERY_FAST" as the game writes it: "Very Fast". */
+    static String words(String upper) {
+        StringBuilder b = new StringBuilder();
+        for (String w : upper.split("_")) {
+            if (!w.isEmpty()) {
+                b.append(b.isEmpty() ? "" : " ").append(AutoAdvice.nice(w));
+            }
+        }
+        return b.toString();
+    }
+
     static List<TipRow> footer(ItemData data, List<Component> lines) {
         List<TipRow> out = new ArrayList<>(2);
-        Component strength = null;
-        BaseStats base = data.base();
-        if (data.slot().isWeapon() && base != null && !base.damages().isEmpty()) {
-            int low = 0;
-            int high = 0;
-            for (BaseStats.Damage d : base.damages()) {
-                low += d.low();
-                high += d.high();
-            }
-            strength = Component.literal("⚔ ").withStyle(ChatFormatting.GOLD)
-                    .append(Component.literal(L.t("wynnlabs.geartip.damage", low + "–" + high)).withStyle(ChatFormatting.GRAY));
-        } else if (base != null && base.health() != 0) {
-            strength = Component.literal("❤ ").withStyle(ChatFormatting.RED)
-                    .append(Component.literal(L.t("wynnlabs.geartip.health", base.health())).withStyle(ChatFormatting.GRAY));
-        }
         Component powders = data.powderSlots() <= 0 ? null
                 : Component.literal("◈ " + L.n("wynnlabs.geartip.powder_slots", data.powderSlots(), data.powderSlots()))
                         .withStyle(ChatFormatting.GRAY);
-        if (strength != null || powders != null) {
-            out.add(new TipRow.Pair(strength, powders));
-        }
         String p = Prices.text(data.name(), false);
         Component price = p == null ? null
                 : Component.literal("◇ " + L.t("wynnlabs.geartip.tm", BoxTooltip.shortPrice(p))).withStyle(ChatFormatting.YELLOW);
         Component bankLine = BoxTooltip.bank(lines);
         Component bank = bankLine == null ? null : Component.literal(bankLine.getString()).withStyle(ChatFormatting.GRAY);
+        if (powders != null) {
+            out.add(new TipRow.Pair(powders, null));
+        }
         if (price != null || bank != null) {
             out.add(new TipRow.Pair(price, bank));
         }

@@ -10,6 +10,8 @@ import io.github.anilken.wynnlabs.model.ItemData;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.resources.Identifier;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.network.chat.Component;
@@ -126,10 +128,12 @@ public final class TooltipRows {
      * with the game's background and positioner (and so the menu scale and the tooltip size
      * setting). A tooltip already waiting is left in place, as the game leaves it.
      */
-    public static void show(GuiGraphics g, Font font, List<ClientTooltipComponent> rows, int x, int y) {
+    public static void show(GuiGraphics g, Font font, List<ClientTooltipComponent> rows, int x, int y, ItemStack stack) {
         var deferred = (GuiGraphicsAccessor) g;
         if (deferred.wynnlabs$deferred() == null) {
-            deferred.wynnlabs$setDeferred(() -> g.renderTooltip(font, rows, x, y, DefaultTooltipPositioner.INSTANCE, null));
+            // the stack's own tooltip style: the rarity-coloured frame Wynncraft's pack gives it
+            Identifier style = stack == null ? null : stack.get(DataComponents.TOOLTIP_STYLE);
+            deferred.wynnlabs$setDeferred(() -> g.renderTooltip(font, rows, x, y, DefaultTooltipPositioner.INSTANCE, style));
         }
     }
 

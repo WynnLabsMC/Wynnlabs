@@ -105,7 +105,7 @@ public final class WynntilsEvents {
             }
             if (compact != null) {
                 TooltipRows.show(event.getGuiGraphics(), Minecraft.getInstance().font, compact,
-                        event.getMouseX(), event.getMouseY());
+                        event.getMouseX(), event.getMouseY(), event.getItemStack());
                 event.setCanceled(true);
                 Perf.end("tooltip.wynntils", t);
                 return;
