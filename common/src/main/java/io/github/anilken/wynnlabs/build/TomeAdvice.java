@@ -89,7 +89,7 @@ public final class TomeAdvice {
     }
 
     /** The game marks a tome's twins with a sign after the name. */
-    static String plain(String name) {
+    public static String plain(String name) {
         return name.replace("֎", "").trim();
     }
 

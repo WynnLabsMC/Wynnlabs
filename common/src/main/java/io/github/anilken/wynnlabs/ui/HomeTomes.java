@@ -2,7 +2,11 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.build.TomeAdvice;
 import io.github.anilken.wynnlabs.core.L;
+import io.github.anilken.wynnlabs.endgame.ItemIcons;
 import io.github.anilken.wynnlabs.game.GameState;
+import io.github.anilken.wynnlabs.model.Klass;
+import io.github.anilken.wynnlabs.model.PoolItem;
+import io.github.anilken.wynnlabs.model.Tier;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,20 +14,28 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
- * The tomes that suit the build shown, in one popup over the Gear panel's Tomes chip: grouped by
- * slot, each with what it adds and where it drops, what the model cannot score at the end. Nothing
- * here changes the build. A class of its own made on first use (safe to hot swap in).
+ * The tomes that suit the build shown, in one popup over the Gear panel's Tomes chip: slot by
+ * slot, each with its picture and what it adds, what the model cannot score at the end. Where it
+ * drops and which slot it takes are in its tooltip, and copies of a tome share a row. Nothing here
+ * changes the build. A class of its own made on first use (safe to hot swap in).
  */
 final class HomeTomes {
 
-    private static final int W = 380;
-    private static final int ROW_H = Type.BODY.lineHeight + Theme.SP_2;
+    private static final int W = 270;
+    private static final int ICON = 12;
+    private static final int ROW_H = ICON + Theme.SP_2;
     private static final int GAIN_W = 42;
-    private static final int SOURCE_W = 100;
+    private static final int TICK = 10;
+
+    /** A row of the list: {@code n} copies of a tome, adding {@code gain} together. */
+    private record Line(TomeAdvice.Row row, int n, double gain) {}
 
     private boolean open;
     private int[] at;
@@ -74,8 +86,13 @@ final class HomeTomes {
         return String.format(Locale.ROOT, "+%.1f%%", gain * 100);
     }
 
-    private static int block(int rows) {
-        return Type.LABEL.lineHeight + Theme.SP_1 + rows * ROW_H + Theme.SP_2;
+    /** Slot by slot, the copies of a tome in one row (the same tome, owned or not, stays apart). */
+    private static List<Line> lines(List<TomeAdvice.Row> rows) {
+        Map<String, Line> out = new LinkedHashMap<>();
+        rows.stream().sorted(Comparator.comparing(r -> r.tome().kind())).forEach(r ->
+                out.merge(r.tome().name() + "|" + r.owned() + "|" + r.counted(), new Line(r, 1, r.gain()),
+                        (a, b) -> new Line(a.row(), a.n() + 1, a.gain() + b.gain())));
+        return new ArrayList<>(out.values());
     }
 
     int[] drawList(GuiGraphics g, HomeTab.Host host, TomeAdvice.Advice advice, int mx, int my) {
@@ -85,13 +102,11 @@ final class HomeTomes {
         }
         Font font = UiFont.get();
         boolean known = GameState.current().tomesKnown();
-        int content = Type.BODY.lineHeight + Theme.SP_3;
-        for (TomeAdvice.Kind k : TomeAdvice.Kind.values()) {
-            int n = count(advice.rows(), k);
-            content += n > 0 ? block(n) : 0;
-        }
-        content += advice.unscored().isEmpty() ? 0 : block(advice.unscored().size());
-        content += known ? 0 : Type.META.lineHeight + Theme.SP_1;
+        List<Line> rows = lines(advice.rows());
+        List<Line> unscored = lines(advice.unscored());
+        int content = Type.BODY.lineHeight + Theme.SP_2 + rows.size() * ROW_H;
+        content += unscored.isEmpty() ? 0 : Theme.SP_1 + Type.LABEL.lineHeight + Theme.SP_1 + unscored.size() * ROW_H;
+        content += known ? 0 : Theme.SP_1 + Type.META.lineHeight;
         var mc = net.minecraft.client.Minecraft.getInstance();
         int sw = mc.screen == null ? 10_000 : mc.screen.width;
         int sh = mc.screen == null ? 10_000 : mc.screen.height;
@@ -112,27 +127,20 @@ final class HomeTomes {
         Type.BODY.draw(g, font, L.t("wynnlabs.tomes.title"), x, y, Theme.INK);
         String total = percent(advice.total());
         Type.BODY.draw(g, font, total, x + rw - font.width(total), y, Theme.GOOD);
-        y += Type.BODY.lineHeight + Theme.SP_3;
-        for (TomeAdvice.Kind k : TomeAdvice.Kind.values()) {
-            if (count(advice.rows(), k) > 0) {
-                y = title(g, font, L.t("wynnlabs.tomes.kind." + k.name().toLowerCase(Locale.ROOT)), x, y);
-                for (TomeAdvice.Row r : advice.rows()) {
-                    if (r.tome().kind() == k) {
-                        y = row(g, font, host, r, x, y, rw, top, bottom);
-                    }
-                }
-                y += Theme.SP_2;
-            }
+        y += Type.BODY.lineHeight + Theme.SP_2;
+        for (Line l : rows) {
+            y = row(g, font, host, l, x, y, rw, top, bottom);
         }
-        if (!advice.unscored().isEmpty()) {
-            y = title(g, font, L.t("wynnlabs.tomes.unscored"), x, y);
-            for (TomeAdvice.Row r : advice.unscored()) {
-                y = row(g, font, host, r, x, y, rw, top, bottom);
+        if (!unscored.isEmpty()) {
+            y += Theme.SP_1;
+            Type.LABEL.draw(g, font, L.t("wynnlabs.tomes.unscored"), x, y, Theme.INK_2);
+            y += Type.LABEL.lineHeight + Theme.SP_1;
+            for (Line l : unscored) {
+                y = row(g, font, host, l, x, y, rw, top, bottom);
             }
-            y += Theme.SP_2;
         }
         if (!known) {
-            Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.tomes.unknown"), rw), x, y, Theme.INK_2);
+            Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.tomes.unknown"), rw), x, y + Theme.SP_1, Theme.INK_2);
         }
         g.disableScissor();
         if (scrolls) {
@@ -144,30 +152,21 @@ final class HomeTomes {
         return b;
     }
 
-    private static int count(List<TomeAdvice.Row> rows, TomeAdvice.Kind k) {
-        return (int) rows.stream().filter(r -> r.tome().kind() == k).count();
-    }
-
-    private static int title(GuiGraphics g, Font font, String text, int x, int y) {
-        Type.LABEL.draw(g, font, text, x, y, Theme.INK_2);
-        return y + Type.LABEL.lineHeight + Theme.SP_1;
-    }
-
-    private static int row(GuiGraphics g, Font font, HomeTab.Host host, TomeAdvice.Row r, int x, int y, int w, int top, int bottom) {
-        int tick = 10;
-        if (r.owned()) {
-            Art.icon(g, "check", x, y + 1, 8, Theme.GOOD);
-        }
-        String gain = r.counted() ? L.t("wynnlabs.tomes.counted") : Double.isNaN(r.gain()) ? "" : percent(r.gain());
-        String source = r.tome().source().isEmpty() ? L.t("wynnlabs.tomes.no_source") : r.tome().source();
-        if (r.owned()) {
-            source = L.t("wynnlabs.tomes.owned");
-        }
+    private static int row(GuiGraphics g, Font font, HomeTab.Host host, Line l, int x, int y, int w, int top, int bottom) {
+        TomeAdvice.Row r = l.row();
+        ItemIcons.draw(g, new PoolItem(TomeAdvice.plain(r.tome().name()), "TomeItem", Tier.NORMAL, r.tome().kind().name() + "_TOME", 1),
+                Klass.NONE, x, y, ICON, false);
+        String gain = r.counted() ? L.t("wynnlabs.tomes.counted") : Double.isNaN(l.gain()) ? "" : percent(l.gain());
+        int textY = y + (ICON - Type.BODY.lineHeight) / 2 + 1;
+        int nameX = x + ICON + Theme.SP_2;
         int gainX = x + w - GAIN_W;
-        int sourceX = gainX - SOURCE_W - Theme.SP_2;
-        Type.BODY.draw(g, font, Type.BODY.fit(font, r.tome().name(), sourceX - Theme.SP_2 - x - tick), x + tick, y, Theme.INK);
-        Type.META.draw(g, font, Type.META.fit(font, source, SOURCE_W), sourceX, y + 1, Theme.INK_2);
-        Type.BODY.draw(g, font, gain, x + w - font.width(gain), y, r.counted() ? Theme.INK_2 : Theme.GOOD);
+        String copies = l.n() > 1 ? " x" + l.n() : "";
+        int room = gainX - Theme.SP_2 - nameX - (r.owned() ? TICK : 0) - font.width(copies);
+        Type.BODY.draw(g, font, Type.BODY.fit(font, r.tome().name(), room) + copies, nameX, textY, Theme.INK);
+        if (r.owned()) {
+            Art.icon(g, "check", gainX - TICK, y + 2, 8, Theme.GOOD);
+        }
+        Type.BODY.draw(g, font, gain, x + w - font.width(gain), textY, r.counted() ? Theme.INK_2 : Theme.GOOD);
         if (y >= top && y + ROW_H <= bottom) {
             host.area(x, y, w, ROW_H, null, tip(r), null);
         }
@@ -179,9 +178,10 @@ final class HomeTomes {
         out.add(Component.literal(r.tome().name()).withStyle(ChatFormatting.WHITE));
         MutableComponent line = L.c("wynnlabs.tomes.level_tip", r.tome().level());
         out.add(line.withStyle(ChatFormatting.GRAY));
-        if (!r.tome().source().isEmpty()) {
-            out.add(Component.literal(r.tome().source()).withStyle(ChatFormatting.GRAY));
-        }
+        out.add(L.c("wynnlabs.tomes.kind." + r.tome().kind().name().toLowerCase(Locale.ROOT)).withStyle(ChatFormatting.GRAY));
+        out.add((r.owned() ? L.c("wynnlabs.tomes.owned")
+                : r.tome().source().isEmpty() ? L.c("wynnlabs.tomes.no_source")
+                : Component.literal(r.tome().source())).withStyle(ChatFormatting.GRAY));
         return out;
     }
 }
