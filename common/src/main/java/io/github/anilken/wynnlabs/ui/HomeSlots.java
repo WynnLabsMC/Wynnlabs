@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.endgame.ItemIcons;
 import io.github.anilken.wynnlabs.game.ItemJson;
+import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.Slot;
 import io.github.anilken.wynnlabs.ui.HomeTab.Host;
 import io.github.anilken.wynnlabs.ui.HomeTab.Mark;
@@ -340,9 +341,23 @@ final class HomeSlots extends HomePart {
         int o = (s - is) / 2;
         if (!show.isEmpty()) {
             item(g, show, sx + o, sy + o, large);
+            levelTag(g, v, sx, sy, s);
         } else if (v.type() != null) {
             WynnTex.draw(g, "wynn/gui/slot/" + v.type().name().toLowerCase(Locale.ROOT), sx + o, sy + o, is, is);
         }
+    }
+
+    /** The shown piece's level on a dark tag along the slot's bottom edge; nothing for a piece the item data lacks. */
+    private void levelTag(GuiGraphics g, SlotView v, int x, int y, int s) {
+        ItemData info = BuildSources.itemOf(shownName(v));
+        if (info == null) {
+            return;
+        }
+        String level = String.valueOf(info.level());
+        int w = Type.MICRO.width(font, level) + 2 * Theme.SP_1;
+        int top = y + s - Type.MICRO.lineHeight;
+        Art.box(g, x + (s - w) / 2, top, w, Type.MICRO.lineHeight, 2, 0xCC2A2118, 0);
+        Type.MICRO.draw(g, font, level, x + (s - w) / 2 + Theme.SP_1, top, Theme.CREAM);
     }
 
     /** What a slot shows: a plan's piece to get or a chosen one, else the upgrade, else what you wear. */
@@ -467,6 +482,7 @@ final class HomeSlots extends HomePart {
         int o = (s - 16) / 2;
         if (!show.isEmpty()) {
             item(g, show, x + o, y + o, false);
+            levelTag(g, v, x, y, s);
         } else if (v.type() != null) {
             WynnTex.draw(g, "wynn/gui/slot/" + v.type().name().toLowerCase(Locale.ROOT), x + o, y + o, 16, 16);
         }
