@@ -127,6 +127,11 @@ public final class HomeTab {
             return 0;
         }
 
+        /** Whether the milestone's set shown is in My builds; null with no set to save. */
+        default Boolean shownSaved() {
+            return null;
+        }
+
         /** A small button inside a slot: its click comes before the slot's. */
         default void corner(int[] rect, String action) {
         }

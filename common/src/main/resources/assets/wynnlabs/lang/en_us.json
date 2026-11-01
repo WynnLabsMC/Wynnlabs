@@ -2224,6 +2224,8 @@
   "wynnlabs.homev.plan_undo_tip": "Restore the plan",
   "wynnlabs.homev.plan_save": "Save",
   "wynnlabs.homev.plan_saved": "Saved ✓",
+  "wynnlabs.homev.map_save_tip": "Save the build shown here to My builds",
+  "wynnlabs.homev.map_saved_tip": "This build is already in My builds",
   "wynnlabs.homev.plan_save_tip": "Save this plan to My builds",
   "wynnlabs.homev.plan_saved_tip": "Already in My builds: click to update that copy",
   "wynnlabs.homev.plan_edit": "Edit",

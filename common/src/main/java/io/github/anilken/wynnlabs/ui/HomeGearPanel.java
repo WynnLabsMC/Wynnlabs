@@ -149,8 +149,10 @@ final class HomeGearPanel extends HomePart {
         }
         int bottom = y + h - PAD - barH - 4;
         int areaH = bottom - top;
+        // a milestone's set can be saved: its Save has the row a plan's buttons have
+        Boolean shownSaved = in.plan() == null ? host.shownSaved() : null;
         if (large && !compact) {
-            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, planRow(in), mx, my);
+            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, in.plan() != null || shownSaved != null, shownSaved, mx, my);
             corners.draw(g);
             barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
             return;
@@ -179,7 +181,7 @@ final class HomeGearPanel extends HomePart {
         // up that row's height (the slot columns keep theirs), or the buttons fold into the title row
         int figH = areaH;
         boolean planRow = false;
-        if (in.plan() != null && !compact) {
+        if ((in.plan() != null || shownSaved != null) && !compact) {
             int u2 = Math.max(1, Math.min((areaH - PLAN_ROW - 1) / 32, (room - 2 * zoneMin - 1) / 16));
             int zone2 = Math.max(0, Math.min(zoneCap, (room - 16 * u2 - 1) / 2));
             if ((areaH - PLAN_ROW - 1) / 32 >= 1 && room - 2 * zone2 >= 3 * 16 + 6) {
@@ -231,6 +233,12 @@ final class HomeGearPanel extends HomePart {
                 // folded: Save and Edit as icons left of My builds (Remove is the Plan pill's ✕)
                 bars.planButtons(g, host, in, foldRight - (2 * 16 + 3), ty - 3, 2 * 16 + 3, true, mx, my);
             }
+        } else if (shownSaved != null) {
+            if (planRow) {
+                bars.saveButton(g, host, shownSaved, midX, bottom - 14, midW, mx, my);
+            } else if (foldRight - foldLeft >= 16) {
+                bars.saveButton(g, host, shownSaved, foldRight - 16, ty - 3, 16, mx, my);
+            }
         }
         corners.draw(g);
         barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
@@ -248,18 +256,14 @@ final class HomeGearPanel extends HomePart {
         }
     }
 
-    /** Whether the plan's buttons get their own row under the list. */
-    private static boolean planRow(In in) {
-        return in.plan() != null;
-    }
-
     /**
      * The large Home's gear as a list: two columns on one row grid, the armour and the weapon on
      * the left, the accessories on the right, a hairline between them; each row a slot, its name
-     * and source, and its gain in a fixed column at the row's end. The plan's buttons under it.
+     * and source, and its gain in a fixed column at the row's end. The plan's buttons (or a
+     * milestone's Save) under it.
      */
     private void list(GuiGraphics g, Host host, In in, List<SlotView> armour, SlotView weapon, List<SlotView> trinkets,
-            int x, int top, int w, int bottom, boolean planRow, int mx, int my) {
+            int x, int top, int w, int bottom, boolean planRow, Boolean shownSaved, int mx, int my) {
         int s = 24;
         int end = planRow ? bottom - 14 - Theme.SP_4 : bottom;
         int rh = Math.max(s + Theme.SP_2, Math.min(s + Theme.SP_5, (end - top - s) / 4));
@@ -285,6 +289,8 @@ final class HomeGearPanel extends HomePart {
         tab.standBox[3] = 0;
         if (in.plan() != null && planRow) {
             bars.planButtons(g, host, in, x, bottom - 14, w, false, mx, my);
+        } else if (shownSaved != null) {
+            bars.saveButton(g, host, shownSaved, x, bottom - 14, w, mx, my);
         }
     }
 

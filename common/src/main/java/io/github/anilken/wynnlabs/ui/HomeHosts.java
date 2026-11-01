@@ -151,6 +151,11 @@ final class HomeHosts {
         }
 
         @Override
+        public Boolean shownSaved() {
+            return page.alts().shownSaved();
+        }
+
+        @Override
         public int alternatives(GuiGraphics g, int y, int right, boolean compact, int mx, int my) {
             return page.alts().chip(g, UiFont.get(), this, y, right, compact, mx, my);
         }

@@ -2224,6 +2224,8 @@
   "wynnlabs.homev.plan_undo_tip": "Planı olduğu gibi geri getir",
   "wynnlabs.homev.plan_save": "Kaydet",
   "wynnlabs.homev.plan_saved": "Kaydedildi ✓",
+  "wynnlabs.homev.map_save_tip": "Burada görünen build'i My builds'e kaydet",
+  "wynnlabs.homev.map_saved_tip": "Bu build zaten My builds'te",
   "wynnlabs.homev.plan_save_tip": "Bu planı Build'lerim'e kaydet",
   "wynnlabs.homev.plan_saved_tip": "Build'lerim'de var: tıklayınca o kopya güncellenir",
   "wynnlabs.homev.plan_edit": "Düzenle",

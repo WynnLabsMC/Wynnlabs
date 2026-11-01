@@ -66,6 +66,8 @@ final class HomeActions {
             if (kept != null) {
                 menu.flash(L.t(was ? "wynnlabs.homev.plan_updated" : "wynnlabs.homev.plan_saved_flash", kept.name()));
             }
+        } else if (c.startsWith("#qmapsave:")) {
+            page.alts().saveShown();
         } else if (c.startsWith("#qplanedit:")) {
             BuildWindow.INSTANCE.editPlan(Plans.current());
         } else if (c.startsWith("#qplanundo:")) {
