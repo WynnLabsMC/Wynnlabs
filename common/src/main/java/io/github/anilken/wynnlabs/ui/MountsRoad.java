@@ -8,6 +8,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * The Mounts tab's Road map: the totals for the picked standard (LOW ~700, HIGH 1000+) and type,
@@ -229,7 +230,7 @@ final class MountsRoad {
         Type.META.draw(g, font(), Type.META.fit(font(), foot, room), in, cy, goal ? Theme.WARN : Theme.INK_2);
     }
 
-    /** The generation your best unfinished mount belongs to (0 with none). */
+    /** The generation your best mount belongs to (0 with none). */
     static int currentGeneration(List<RoadMap.Generation> gens, List<MountsModel.Owned> owned) {
         int best = 0;
         for (int i = 0; i < gens.size(); i++) {
@@ -245,6 +246,11 @@ final class MountsRoad {
         int lo = i == 0 ? 0 : gens.get(i).parentPotential().low();
         int hi = i + 1 < gens.size() ? gens.get(i + 1).parentPotential().low() : Integer.MAX_VALUE;
         return owned.stream().filter(o -> o.mount().potential() >= lo && o.mount().potential() < hi).toList();
+    }
+
+    /** The mounts still short of their goal, whatever their generation: a fresh one bought later still eats. */
+    static List<MountsModel.Owned> unfinished(List<MountsModel.Owned> owned, Predicate<MountsModel.Owned> done) {
+        return owned.stream().filter(done.negate()).toList();
     }
 
     // ---- input ----

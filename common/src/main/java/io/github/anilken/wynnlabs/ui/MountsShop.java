@@ -11,8 +11,8 @@ import java.util.Map;
 import java.util.function.ToIntFunction;
 
 /**
- * The road map's shopping list: the foods every mount of the generation you work on still needs
- * (the owned ones not yet at their goal and the fresh ones still to buy), summed. Each owned mount
+ * The road map's shopping list: the foods your mounts still need (every owned one not yet at its
+ * goal, of any generation, and the fresh ones still to buy), summed. Each owned mount
  * counts its own plan (the exact one when calculated, else the estimate), made from its stats with
  * its trough's foods already eaten, so what is queued is never bought twice. What the bank holds
  * is taken off when the player lets it.
@@ -110,8 +110,8 @@ final class MountsShop {
     }
 
     /**
-     * The mounts of the generation you work on that still eat: the owned ones short of their goal
-     * with their own plans, and the fresh ones to buy with the generation's estimate. Without a
+     * The mounts that still eat: the owned ones short of their goal with their own plans, and the
+     * fresh ones to buy with the first generation's estimate. Without a
      * road map yet, only the mount the page works on ({@code fallback}, its plan).
      */
     static List<Feeding> generation(MountsModel model, RoadMap.Plan plan, MountsModel.Owned cur, FeedPlan fallback, int toBuy) {
@@ -122,11 +122,9 @@ final class MountsShop {
         List<MountsModel.Owned> owned = model.owned(model.type());
         int i = MountsRoad.currentGeneration(gens, owned);
         List<Feeding> out = new ArrayList<>();
-        for (MountsModel.Owned o : MountsRoad.inGeneration(gens, i, owned)) {
+        // done, or done once its trough is eaten
+        for (MountsModel.Owned o : MountsRoad.unfinished(owned, x -> model.goalFor(x).reachedBy(x.mount().queue().applyTo(x.mount().stats())))) {
             var m = o.mount();
-            if (model.goalFor(o).reachedBy(m.queue().applyTo(m.stats()))) {
-                continue;                               // done, or done once its trough is eaten
-            }
             FeedPlan p = model.feed(o).plan();
             if (p != null) {
                 out.add(new Feeding(m.name(), p));

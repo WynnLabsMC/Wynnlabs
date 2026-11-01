@@ -99,20 +99,16 @@ final class MountsGroups {
         return pick(groups);
     }
 
-    /** The mounts of the generation the road map works on now that are still short of their goal. */
+    /** Your mounts still short of their goal, of any generation. */
     static List<Member> members(MountsModel model, RoadMap.Plan plan) {
         List<RoadMap.Generation> gens = plan == null ? List.of() : plan.generations();
         if (gens.isEmpty()) {
             return List.of();
         }
         List<MountsModel.Owned> owned = model.owned(model.type());
-        int i = MountsRoad.currentGeneration(gens, owned);
         List<Member> out = new ArrayList<>();
-        for (MountsModel.Owned o : MountsRoad.inGeneration(gens, i, owned)) {
+        for (MountsModel.Owned o : MountsRoad.unfinished(owned, x -> model.goalFor(x).reachedBy(x.mount().queue().applyTo(x.mount().stats())))) {
             var m = o.mount();
-            if (model.goalFor(o).reachedBy(m.queue().applyTo(m.stats()))) {
-                continue;
-            }
             long timer = m.queue().pending().isEmpty() ? 0 : Math.max(0, m.queue().secondsLeft());
             out.add(new Member(o.read().key() + "#" + o.row() + "#" + out.size(), m.name(), o.row(), timer, model.feed(o).plan(), o));
         }

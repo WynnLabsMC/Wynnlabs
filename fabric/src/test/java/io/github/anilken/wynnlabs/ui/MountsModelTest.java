@@ -109,6 +109,13 @@ class MountsModelTest {
     }
 
     @Test
+    void anUnfinishedMountOfAnEarlierGenerationStillCounts() {
+        MountsModel.Owned bred = new MountsModel.Owned(null, null, null, 0, 1);
+        MountsModel.Owned fresh = new MountsModel.Owned(null, null, null, 0, 2);
+        assertEquals(List.of(fresh), MountsRoad.unfinished(List.of(bred, fresh), o -> o == bred));
+    }
+
+    @Test
     void identicalMountsShareOneChipAndTheOneThatCanActIsShown() {
         FeedPlan plan = fresh("x").plan();
         FeedPlan later = MountsModel.advanced(plan, 1);
