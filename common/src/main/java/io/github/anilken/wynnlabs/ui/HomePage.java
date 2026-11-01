@@ -115,6 +115,9 @@ public final class HomePage extends MenuTab {
             if (choices != null && choices.open()) {
                 choices.wheel(v);
             }
+            if (tomes != null && tomes.open()) {
+                tomes.wheel(v);
+            }
         }
     };
 
@@ -125,7 +128,9 @@ public final class HomePage extends MenuTab {
 
     private boolean popupOpenImpl() {
         return goalOpen || stats != null && stats.picker.open() || alts != null && alts.open()
-                || choices != null && choices.open();
+                || choices != null && choices.open()
+                || tomes != null && tomes.open()
+                || aspects != null && aspects.open();
     }
 
     private void drawPopupImpl(GuiGraphics g, int mx, int my, List<int[]> boxes) {
@@ -145,6 +150,14 @@ public final class HomePage extends MenuTab {
         if (b != null) {
             boxes.add(b);
         }
+        b = tomes != null && tomes.open() ? tomes.drawList(g, homeHost, alts().shownTomes(), mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
+        b = aspects != null && aspects.open() ? aspects.drawList(g, homeHost, mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
         if (boxes.isEmpty()) {
             closePopupImpl();
         }
@@ -161,6 +174,12 @@ public final class HomePage extends MenuTab {
         if (choices != null) {
             choices.close();
         }
+        if (tomes != null) {
+            tomes.close();
+        }
+        if (aspects != null) {
+            aspects.close();
+        }
     }
 
     void pickGoal(int i) {
@@ -170,6 +189,9 @@ public final class HomePage extends MenuTab {
     private boolean popupClickedImpl(MouseButtonEvent event) {
         if (choices != null && choices.open()) {
             return choices.press(event.x(), event.y());  // its scroll bar; a row's own click does the rest
+        }
+        if (tomes != null && tomes.open()) {
+            return tomes.press(event.x(), event.y());
         }
         if (alts != null && alts.open()) {
             return alts.press(event.x(), event.y());     // its scroll bar; a card's own click picks it
@@ -336,6 +358,42 @@ public final class HomePage extends MenuTab {
 
     void openChoices() {
         choices().openMenu(choicesChip);
+    }
+
+    /** The tomes for the build shown, made on first use (no initializer: safe to hot swap in). */
+    private HomeTomes tomes;
+    private int[] tomesChip;
+
+    void tomesChip(int[] rect) {
+        tomesChip = rect;
+    }
+
+    /** The aspects for the abilities, made on first use (no initializer: safe to hot swap in). */
+    private HomeAspects aspects;
+    private int[] aspectsChip;
+
+    void aspectsChip(int[] rect) {
+        aspectsChip = rect;
+    }
+
+    void openAspects() {
+        if (aspects == null) {
+            aspects = new HomeAspects();
+        }
+        if (tomes != null) {
+            tomes.close();
+        }
+        aspects.openMenu(aspectsChip);
+    }
+
+    void openTomes() {
+        if (tomes == null) {
+            tomes = new HomeTomes();
+        }
+        if (aspects != null) {
+            aspects.close();
+        }
+        tomes.openMenu(tomesChip);
     }
 
     HomeAlts alts() {
@@ -547,6 +605,9 @@ public final class HomePage extends MenuTab {
         if (choices != null && choices.drag(y)) {
             return true;
         }
+        if (tomes != null && tomes.drag(y)) {
+            return true;
+        }
         return stats != null && stats.barDragged(y);
     }
 
@@ -557,6 +618,9 @@ public final class HomePage extends MenuTab {
         }
         if (choices != null) {
             choices.release();
+        }
+        if (tomes != null) {
+            tomes.release();
         }
         if (stats != null) {
             stats.barReleased();

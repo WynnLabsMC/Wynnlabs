@@ -2,7 +2,10 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Plans;
+import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.BuildEdits;
+import io.github.anilken.wynnlabs.build.TomeAdvice;
+import io.github.anilken.wynnlabs.build.TreeModel;
 import io.github.anilken.wynnlabs.build.WynnBuilderExport;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.L;
@@ -157,6 +160,22 @@ final class HomeAlts {
         if (b != null && !BuildEdits.inMyBuilds(b)) {
             menu.flash(L.t("wynnlabs.homev.plan_saved_flash", Plans.save(b, now).name()));
         }
+    }
+
+    /** The tomes for the build shown: a plan's, or the milestone's set; null with neither or too low a level. */
+    TomeAdvice.Advice shownTomes() {
+        Build.Plan plan = Build.plan();
+        TreeModel.Overlay tree = plan == null ? null : plan.tree();
+        Plans.Build mine = Plans.current();
+        if (mine != null) {
+            return TomeAdvice.forPlan(mine, tree);
+        }
+        int i = menu.selected;
+        if (i <= 0 || i >= menu.steps.size()) {
+            return null;
+        }
+        Roadmap.Step step = view(menu.steps, i).get(i);
+        return TomeAdvice.forSet(step.build(), step.set(), step.level(), tree);
     }
 
     // ---- the chip and the header's ↗ ----

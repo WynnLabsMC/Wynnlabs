@@ -139,6 +139,19 @@ public final class HomeTab {
         /** Where the choices chip is, for the popup it opens. */
         default void choicesChip(int[] rect) {
         }
+
+        /** The tomes for the build shown; null with none to show. */
+        default io.github.anilken.wynnlabs.build.TomeAdvice.Advice shownTomes() {
+            return null;
+        }
+
+        /** Where the Tomes chip is, for the popup it opens. */
+        default void tomesChip(int[] rect) {
+        }
+
+        /** Where the Aspects chip is, for the popup it opens. */
+        default void aspectsChip(int[] rect) {
+        }
     }
 
     /** The items you chose: their frames, pills and the stand's part in the archetype's purple. */
