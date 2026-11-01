@@ -56,6 +56,8 @@ public final class AiLink {
             new Endpoint("/ground", "items on the ground around you (?r=12)", "wynnlabs.ai.ep_ground", "world"),
             new Endpoint("/vault", "every bank page you opened, with verdicts and what to sell", "wynnlabs.ai.ep_vault", "bank"),
             new Endpoint("/prices", "Trade Market prices the mod knows", "wynnlabs.ai.ep_prices", "bank"),
+            new Endpoint("/prices/history", "one item's daily Trade Market prices over 14 days (?item=Idol)",
+                    "wynnlabs.ai.ep_history", "bank"),
             new Endpoint("/", "this list", "wynnlabs.ai.ep_index", "mod"),
             new Endpoint("/settings", "the mod's settings", "wynnlabs.ai.ep_settings", "mod"),
             new Endpoint("/perf", "what each part of the mod costs a frame (?reset=1 starts over)", "wynnlabs.ai.ep_perf", "mod"),

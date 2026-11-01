@@ -58,6 +58,31 @@ public final class Art {
         g.blitSprite(RenderPipelines.GUI_TEXTURED, sprite(set + name), x, y, size, size, colour);
     }
 
+    /**
+     * A straight line {@code t} units thick from (x0, y0) to (x1, y1), drawn left to right as one
+     * fill per column that spans the column's rise, so steep parts stay joined.
+     */
+    static void line(GuiGraphics g, int x0, int y0, int x1, int y1, int t, int colour) {
+        if (x1 < x0) {
+            int tx = x0;
+            x0 = x1;
+            x1 = tx;
+            int ty = y0;
+            y0 = y1;
+            y1 = ty;
+        }
+        if (x1 == x0) {
+            g.fill(x0, Math.min(y0, y1), x0 + t, Math.max(y0, y1) + t, colour);
+            return;
+        }
+        int prev = y0;
+        for (int x = x0; x <= x1; x++) {
+            int y = y0 + Math.round((y1 - y0) * (float) (x - x0) / (x1 - x0));
+            g.fill(x, Math.min(prev, y), x + t, Math.max(prev, y) + t, colour);
+            prev = y;
+        }
+    }
+
     /** An icon on a rounded square of its own colour family, like the web mock-up. */
     static void iconTile(GuiGraphics g, String name, int x, int y, int size, int bg, int fg) {
         box(g, x, y, size, size, Math.max(3, size / 4), bg, 0);

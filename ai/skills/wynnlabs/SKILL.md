@@ -35,6 +35,7 @@ curl -s http://127.0.0.1:47591/            # every endpoint with one line each
 | `/discoveries` | every secret discovery in the order the player chose: done (Wynntils or a hand tick), minimum level, region, distance, requirements met or not, wiki link |
 | `/vault` | every bank page the player opened, with verdicts and what to sell |
 | `/prices` | Trade Market prices the mod knows |
+| `/prices/history?item=<name>` | one item's daily Trade Market prices over 14 days (median, lowest, listings seen) with a summary; `{"status":"pending"}` means ask again in a few seconds |
 | `/characters` | every character seen: class, level, goal |
 | `/rules` | the rules behind the mod's own verdicts |
 | `/advice` | verdicts written by an assistant |
