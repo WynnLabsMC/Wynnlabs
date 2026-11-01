@@ -32,6 +32,8 @@ final class BoxListingsPanel {
     private static final int BAR_W = 32;
     /** The chevron's column at the row's right end, kept for every row so price and age never move. */
     private static final int CHEV = Ui.CHIP_H + 2 + Theme.SP_2;
+    /** How far a row's wash reaches left of the row, so the gutter dot (at SP_3, 3 wide) sits inside it. */
+    private static final int WASH_L = Theme.SP_3 + Theme.SP_1;
 
     /** Between two rows: SP_3, SP_4 in a small window so the ▾ buttons are not packed. */
     private int gap() {
@@ -273,9 +275,10 @@ final class BoxListingsPanel {
         int w = rowW;
         int washH = rowY[i + 1] - rowY[i] - gap() + (opened ? Theme.SP_2 : 0);
         if (opened) {
-            Kit.rowLit(g, x - Theme.SP_2, y - Theme.SP_2, w + 2 * Theme.SP_2, washH);
-        } else if (i == sel || BoxChips.in(mx, my, x - Theme.SP_2, y - Theme.SP_1, w + 2 * Theme.SP_2, LINE + Theme.SP_2) && my < top + listH) {
-            Art.box(g, x - Theme.SP_2, y - Theme.SP_1, w + 2 * Theme.SP_2, LINE + Theme.SP_2, 4, Theme.CARD_HOVER, 0);
+            Kit.rowLit(g, x - WASH_L, y - Theme.SP_2, w + WASH_L + Theme.SP_2, washH);
+        } else if (i == sel || BoxChips.in(mx, my, x - WASH_L, y - Theme.SP_2, w + WASH_L + Theme.SP_2, LINE + Theme.SP_2) && my < top + listH) {
+            // the same box as an open row's: SP_2 above the line, down to its bottom, the gutter dot inside
+            Art.box(g, x - WASH_L, y - Theme.SP_2, w + WASH_L + Theme.SP_2, LINE + Theme.SP_2, 4, Theme.CARD_HOVER, 0);
         }
         // the chevron at the right end: ▾ to open, ▴ to close
         int cx0 = x + w - (Ui.CHIP_H + 2);
