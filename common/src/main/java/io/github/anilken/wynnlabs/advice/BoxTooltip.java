@@ -117,10 +117,10 @@ public final class BoxTooltip {
             rows.add(new TipRow.Separator());
             for (int i = 0; i < possible.size() && i < MAX_ITEMS; i++) {
                 ItemData info = possible.get(i);
-                // what the verdict values it at: listed unidentified, as a revealed box is sold;
-                // the lowest such listing the box window holds now, else Wynnventory's figure
+                // what the box window shows: the lowest listing it holds now, else Wynnventory's
+                // lowest listing of any kind (not the unidentified one, which can be far off)
                 Integer lowest = lowestListed(info.name());
-                String p = lowest != null ? Prices.fmt(lowest) : Prices.text(info.name(), true);
+                String p = lowest != null ? Prices.fmt(lowest) : Prices.text(info.name(), false);
                 Component price = p == null ? Component.literal("?").withStyle(ChatFormatting.DARK_GRAY)
                         : Component.literal(shortPrice(p)).withStyle(ChatFormatting.YELLOW);
                 rows.add(new TipRow.Item(info, info.requirements().level(), price));
@@ -205,8 +205,8 @@ public final class BoxTooltip {
     }
 
     /**
-     * The lowest price among the unidentified listings held for {@code name} (what the box
-     * window fetched, never a request of its own), possibly-sold ones left out; null when none.
+     * The lowest price among the listings held for {@code name} (what the box window fetched,
+     * never a request of its own), possibly-sold ones left out; null when none are held.
      */
     static Integer lowestListed(String name) {
         if (!Listings.live()) {
@@ -218,7 +218,7 @@ public final class BoxTooltip {
         }
         Integer lowest = null;
         for (BoxMarket.Listing l : h.listings()) {
-            if (l.unidentified() && !l.possiblySold() && (lowest == null || l.price() < lowest)) {
+            if (!l.possiblySold() && (lowest == null || l.price() < lowest)) {
                 lowest = l.price();
             }
         }
