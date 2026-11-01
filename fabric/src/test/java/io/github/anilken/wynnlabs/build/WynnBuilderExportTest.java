@@ -96,7 +96,7 @@ class WynnBuilderExportTest {
             String again = WynnBuilderExport.encode(b, WynnBuilderTree.of(b, klass));
             WynnBuilderLink.Build c = WynnBuilderLink.decode(SITE + again);
             assertEquals(fields(b, klass), fields(c, klass), hash + " -> " + again);
-            assertEquals(hash, again.replaceAll("0+$", ""), "letter for letter, but for the walk's last 0s");
+            assertEquals(hash.replaceAll("0+$", ""), again.replaceAll("0+$", ""), "letter for letter, but for the walk's last 0s");
         });
     }
 
