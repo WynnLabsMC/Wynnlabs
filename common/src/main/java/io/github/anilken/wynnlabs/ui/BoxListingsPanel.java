@@ -121,7 +121,8 @@ final class BoxListingsPanel {
         listHeight = listH;
         Entry item = ItemIndex.get().byName(r.name());
         List<Component> tip = new ArrayList<>();
-        g.enableScissor(x - Theme.SP_1, top - Theme.SP_1, x + w, top + listH);
+        // the scissor starts where the first row's wash does (SP_2 above its line), so hover is not cut at the top
+        g.enableScissor(x - Theme.SP_1, top - Theme.SP_2, x + w, top + listH);
         for (int i = 0; i < ls.size(); i++) {
             int ry = top - scroll + rowY[i];
             int rh = rowY[i + 1] - rowY[i];
