@@ -155,7 +155,7 @@ class GearTooltipTest {
     }
 
     @Test
-    void aBoxAnUnidentifiedPieceShiftOrTheSettingOffKeepTheFullTooltip() {
+    void aBoxShiftOrTheSettingOffKeepTheFullTooltipAnUnidentifiedPieceShowsRanges() {
         ItemStack stack = gear("Warsong");
         List<Component> lines = List.of(stack.getHoverName());
         assertNull(GearTooltip.rows(stack, lines, true));
@@ -168,7 +168,19 @@ class GearTooltipTest {
         ItemView unid = new ItemView(v.kind(), v.type(), v.plain(), v.name(), v.level(), v.professions(), v.data(), null,
                 v.crafted(), v.box(), v.qualityTier(), v.powder(), v.potion(), v.dungeonKey(), v.skillPoint(),
                 v.crystalCount(), v.abilityName());
-        assertNull(GearTooltip.rows(state.stackOf("Warsong", unid), lines, false));
+        // not identified yet: the ranges each stat can roll, the fixed ones first, no overall
+        List<TipRow> unidRows = GearTooltip.rows(state.stackOf("Warsong", unid), lines, false);
+        assertNotNull(unidRows);
+        TipRow.Header unidHead = (TipRow.Header) unidRows.get(0);
+        assertNull(unidHead.overall());
+        assertEquals("Legendary \u00b7 Ring \u00b7 Lv 33 \u00b7 Unidentified", unidHead.sub().getString());
+        List<TipRow.Id> unidIds = all(unidRows, TipRow.Id.class);
+        assertEquals(List.of("Dexterity", "Strength", "Main Attack Damage", "Mana Regen", "Spell Damage"),
+                unidIds.stream().map(i -> i.name().getString()).toList());
+        assertEquals(List.of("+2", "+2", "+2% to +8%", "-5/5s to -3/5s", "+2% to +8%"),
+                unidIds.stream().map(i -> i.value().getString()).toList());
+        assertTrue(unidIds.stream().allMatch(i -> i.percent() == null));
+        assertEquals(ChatFormatting.RED, unidIds.get(3).colour());
 
         JsonObject off = state.data.settings().deepCopy();
         off.addProperty("gearCompactTooltip", false);

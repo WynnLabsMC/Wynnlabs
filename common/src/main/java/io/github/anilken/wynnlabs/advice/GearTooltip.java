@@ -80,12 +80,12 @@ public final class GearTooltip {
             return null;
         }
         Optional<ItemView> found = GameState.current().view(stack);
-        if (found.isEmpty() || !found.get().isGear() || found.get().rolled() == null || found.get().data() == null) {
+        if (found.isEmpty() || !found.get().isGear() || found.get().data() == null) {
             return null;
         }
         ItemView view = found.get();
         ItemData data = view.data();
-        ItemView.Rolled rolled = view.rolled();
+        ItemView.Rolled rolled = view.rolled(); // null for a piece not identified yet
         List<TipRow> rows = new ArrayList<>();
 
         rows.add(header(stack, data, rolled));
@@ -95,28 +95,28 @@ public final class GearTooltip {
         }
         rows.addAll(base(data));
         // the fixed stats first in the same columns without a bar, a rule, then every rolled
-        // identification with its bar
-        List<Roll> fixed = new ArrayList<>();
+        // identification with its bar; an unidentified piece lists what each stat can roll
+        List<TipRow> fixed = new ArrayList<>();
         List<TipRow> ids = new ArrayList<>();
-        for (Roll r : rolled.rolls()) {
-            if (percent(r) == null) {
-                fixed.add(r);
-            } else {
-                ids.add(id(r));
+        if (rolled == null) {
+            for (StatRange s : data.stats()) {
+                (s.fixed() ? fixed : ids).add(range(s));
+            }
+        } else {
+            for (Roll r : rolled.rolls()) {
+                (percent(r) == null ? fixed : ids).add(id(r));
             }
         }
-        for (Roll r : fixed) {
-            rows.add(id(r));
-        }
+        rows.addAll(fixed);
         if (!fixed.isEmpty() && !ids.isEmpty()) {
             rows.add(new TipRow.Separator());
         }
         rows.addAll(ids);
-        List<TipRow.Chip> chips = chips(data, rolled.marks());
+        List<TipRow.Chip> chips = chips(data, rolled == null ? null : rolled.marks());
         if (!chips.isEmpty()) {
             rows.add(new TipRow.Chips(chips));
         }
-        List<TipRow> footer = footer(data, rolled.powders(), lines);
+        List<TipRow> footer = footer(data, rolled == null ? List.of() : rolled.powders(), lines);
         if (!footer.isEmpty()) {
             rows.add(new TipRow.Separator());
             rows.addAll(footer);
@@ -128,12 +128,13 @@ public final class GearTooltip {
     /** Icon, name and overall roll; tier · type · level and the rerolls under them. */
     private static TipRow.Header header(ItemStack stack, ItemData data, ItemView.Rolled rolled) {
         Component name = Component.literal(data.name()).withStyle(data.tier().colour(), ChatFormatting.BOLD);
-        Component overall = !rolled.hasOverall() ? null
+        Component overall = rolled == null || !rolled.hasOverall() ? null
                 : Component.literal(L.t("wynnlabs.box.pct", Math.round(rolled.overallPercent())))
                         .withStyle(quality(rolled.overallPercent()), ChatFormatting.BOLD);
         String sub = AutoAdvice.nice(data.tier().name()) + " · " + AutoAdvice.nice(data.slot().name()).replace('_', ' ')
-                + " · " + L.t("wynnlabs.geartip.level", data.level());
-        Component rerolls = rolled.rerolls() <= 0 ? null
+                + " · " + L.t("wynnlabs.geartip.level", data.level())
+                + (rolled == null ? " · " + L.t("wynnlabs.geartip.unidentified") : "");
+        Component rerolls = rolled == null || rolled.rerolls() <= 0 ? null
                 : Component.literal(L.n("wynnlabs.box.rerolls", rolled.rerolls(), rolled.rerolls()))
                         .withStyle(ChatFormatting.DARK_GRAY);
         return new TipRow.Header(stack, name, overall, Component.literal(sub).withStyle(ChatFormatting.DARK_GRAY), rerolls);
@@ -184,6 +185,22 @@ public final class GearTooltip {
      * overall % counts it (a negative stat closer to zero is the better roll); flipped for a stat
      * where less is better. Null for a stat with one value only or an unknown range.
      */
+    /** What a stat of an unidentified piece can roll: "+3% to +13%", one number when fixed. */
+    static TipRow.Id range(StatRange s) {
+        String suffix = suffix(s.unit());
+        boolean good = (s.max() > 0) != s.inverted();
+        ChatFormatting colour = s.max() == 0 && s.min() == 0 ? ChatFormatting.GRAY
+                : good ? ChatFormatting.GREEN : ChatFormatting.RED;
+        String value = s.fixed() ? L.unit(signed(s.min()), suffix)
+                : L.t("wynnlabs.geartip.range", L.unit(signed(s.min()), suffix), L.unit(signed(s.max()), suffix));
+        return new TipRow.Id(Component.literal(s.name()).withStyle(ChatFormatting.GRAY),
+                Component.literal(value).withStyle(colour), null, colour);
+    }
+
+    private static String signed(int v) {
+        return v > 0 ? "+" + v : String.valueOf(v);
+    }
+
     static Double percent(Roll r) {
         StatRange range = r.range();
         if (range == null || range.fixed()) {

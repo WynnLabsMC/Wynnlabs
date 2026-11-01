@@ -100,6 +100,8 @@
   "wynnlabs.geartip.level": "Lv %s",
   "wynnlabs.geartip.health": "%s health",
   "wynnlabs.geartip.dps": "%s DPS",
+  "wynnlabs.geartip.unidentified": "Unidentified",
+  "wynnlabs.geartip.range": "%s to %s",
   "wynnlabs.geartip.speed": "%s (%s hits/s)",
   "wynnlabs.geartip.powder_slots": "%s powder slot|%s powder slots",
   "wynnlabs.geartip.tm": "Trade Market %s",
