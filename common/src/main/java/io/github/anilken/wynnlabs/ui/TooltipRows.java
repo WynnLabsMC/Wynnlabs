@@ -348,7 +348,7 @@ public final class TooltipRows {
         @Override
         public void renderImage(Font font, int x, int y, int width, int height, GuiGraphics g) {
             int top = y + 2;
-            int bottom = y + height - 3;
+            int bottom = y + getHeight(font) - 3; // height is the whole tooltip's, not this band's
             g.fill(x, top, x + width, bottom, 0x30000000 | rgb);
             g.fill(x, top, x + 2, bottom, 0xFF000000 | rgb);
             int ty = top + 3;

@@ -94,7 +94,8 @@ public final class GearTooltip {
             rows.add(band);
         }
         rows.addAll(base(data));
-        // every rolled identification with its bar; the fixed ones (skill points) on one line after
+        // every rolled identification with its bar, then the fixed ones in the same columns without
+        // a bar; five equal skill points fold into one "+N to all skills" line
         List<Roll> fixed = new ArrayList<>();
         for (Roll r : rolled.rolls()) {
             if (percent(r) == null) {
@@ -103,8 +104,14 @@ public final class GearTooltip {
                 rows.add(id(r));
             }
         }
-        if (!fixed.isEmpty()) {
-            rows.add(new TipRow.Text(fixedLine(fixed), null));
+        Component allSkills = allSkills(fixed);
+        for (Roll r : fixed) {
+            if (allSkills == null || skill(r) == null) {
+                rows.add(id(r));
+            }
+        }
+        if (allSkills != null) {
+            rows.add(new TipRow.Text(allSkills, null));
         }
         List<TipRow.Chip> chips = chips(data, rolled.marks());
         if (!chips.isEmpty()) {
@@ -171,26 +178,15 @@ public final class GearTooltip {
      * The stats with one value only, on one line: "+6 to all skills" when the five skills share a
      * value, else "+4 Str · +2 Dex · +10% XP" (skills by their three letters).
      */
-    static Component fixedLine(List<Roll> fixed) {
+    /** "+6 to all skills" when every skill point is fixed at the same value, else null. */
+    static Component allSkills(List<Roll> fixed) {
         List<Roll> skills = fixed.stream().filter(r -> skill(r) != null).toList();
-        MutableComponent out = Component.empty();
-        if (skills.size() == SkillKind.values().length
-                && skills.stream().map(Roll::value).distinct().count() == 1) {
-            int v = skills.get(0).value();
-            out.append(Component.literal(L.t("wynnlabs.geartip.all_skills", (v > 0 ? "+" : "") + v))
-                    .withStyle(ChatFormatting.GRAY));
-            fixed = fixed.stream().filter(r -> skill(r) == null).toList();
+        if (skills.size() != SkillKind.values().length
+                || skills.stream().map(Roll::value).distinct().count() != 1) {
+            return null;
         }
-        for (Roll r : fixed) {
-            String number = r.value() > 0 ? "+" + r.value() : String.valueOf(r.value());
-            SkillKind k = skill(r);
-            String name = k != null ? k.displayName().substring(0, 3) : r.name();
-            if (!out.getSiblings().isEmpty()) {
-                out.append(Component.literal(" · ").withStyle(ChatFormatting.DARK_GRAY));
-            }
-            out.append(Component.literal(L.unit(number, suffix(r.unit())) + " " + name).withStyle(ChatFormatting.GRAY));
-        }
-        return out;
+        int v = skills.get(0).value();
+        return Component.literal(L.t("wynnlabs.geartip.all_skills", (v > 0 ? "+" : "") + v)).withStyle(ChatFormatting.GRAY);
     }
 
     /** The skill a raw skill-point stat ("rawStrength") adds to, else null. */
@@ -302,12 +298,19 @@ public final class GearTooltip {
             return out;
         }
         if (data.slot().isWeapon()) {
-            Component dps = base.averageDps() <= 0 ? null : Component.literal("⚔ ").withStyle(ChatFormatting.GOLD)
-                    .append(Component.literal(L.t("wynnlabs.geartip.dps", base.averageDps())).withStyle(ChatFormatting.GRAY));
-            Component speed = base.attackSpeed().map(sp -> (Component) Component.literal(speed(sp))
-                    .withStyle(ChatFormatting.GRAY)).orElse(null);
-            if (dps != null || speed != null) {
-                out.add(new TipRow.Pair(dps, speed));
+            MutableComponent dps = Component.empty();
+            if (base.averageDps() > 0) {
+                dps.append(Component.literal("⚔ ").withStyle(ChatFormatting.GOLD))
+                        .append(Component.literal(L.t("wynnlabs.geartip.dps", base.averageDps())).withStyle(ChatFormatting.GRAY));
+            }
+            base.attackSpeed().ifPresent(sp -> {
+                if (!dps.getSiblings().isEmpty()) {
+                    dps.append(Component.literal(" · ").withStyle(ChatFormatting.DARK_GRAY));
+                }
+                dps.append(Component.literal(speed(sp)).withStyle(ChatFormatting.GRAY));
+            });
+            if (!dps.getSiblings().isEmpty()) {
+                out.add(new TipRow.Text(dps, null));
             }
             MutableComponent dmg = Component.empty();
             for (BaseStats.Damage d : base.damages()) {
@@ -337,8 +340,11 @@ public final class GearTooltip {
                         .append(Component.literal((d.value() > 0 ? "+" : "") + d.value())
                                 .withStyle(d.value() > 0 ? ChatFormatting.GREEN : ChatFormatting.RED));
             }
-            if (health != null || !def.getSiblings().isEmpty()) {
-                out.add(new TipRow.Pair(health, def.getSiblings().isEmpty() ? null : def));
+            if (health != null) {
+                out.add(new TipRow.Text(health, null));
+            }
+            if (!def.getSiblings().isEmpty()) {
+                out.add(new TipRow.Text(def, null));
             }
         }
         return out;

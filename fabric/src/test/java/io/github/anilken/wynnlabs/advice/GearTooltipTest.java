@@ -111,19 +111,22 @@ class GearTooltipTest {
         assertEquals("69%", head.overall().getString());
         assertEquals("2 rerolls", head.rerolls().getString());
         assertEquals("Legendary · Relik · Lv 42", head.sub().getString());
-        assertEquals(3, all(rows, TipRow.Id.class).size());
-        assertEquals("+10 Agi · -8 Def · +10 Int", rows.stream()
-                .filter(r -> r instanceof TipRow.Text t && t.left().getString().startsWith("+"))
-                .map(r -> ((TipRow.Text) r).left().getString()).findFirst().orElse(null));
+        List<TipRow.Id> ids = all(rows, TipRow.Id.class);
+        assertEquals(6, ids.size());
+        assertEquals(3, ids.stream().filter(i -> i.percent() != null).count());
+        // the fixed skill points follow in the same columns, without a bar
+        assertEquals(List.of("Intelligence", "Defence", "Agility"), ids.subList(3, 6).stream().map(i -> i.name().getString()).toList());
+        assertEquals(List.of("+10", "-8", "+10"), ids.subList(3, 6).stream().map(i -> i.value().getString()).toList());
+        assertTrue(ids.subList(3, 6).stream().allMatch(i -> i.percent() == null));
         // the base stats sit right under the verdict band: DPS with the attack speed, then the damages
-        TipRow.Pair dps = all(rows, TipRow.Pair.class).get(0);
-        assertEquals("⚔ 270 DPS", dps.left().getString());
-        assertEquals("Fast (2.5 hits/s)", dps.right().getString());
-        assertEquals("❉ 48–60  ❋ 48–60", ((TipRow.Text) rows.get(rows.indexOf(dps) + 1)).left().getString());
+        int dps = rows.indexOf(all(rows, TipRow.Text.class).stream()
+                .filter(t -> t.left().getString().startsWith("⚔")).findFirst().orElseThrow());
+        assertEquals("⚔ 270 DPS · Fast (2.5 hits/s)", ((TipRow.Text) rows.get(dps)).left().getString());
+        assertEquals("❉ 48–60  ❋ 48–60", ((TipRow.Text) rows.get(dps + 1)).left().getString());
         assertEquals(List.of("Lv 42 ✓", "Shaman ✓", "Int 17 ✓", "Agi 17 ✓"),
                 all(rows, TipRow.Chips.class).get(0).chips().stream().map(TipRow.Chip::text).toList());
 
-        List<TipRow.Pair> footer = all(rows, TipRow.Pair.class).subList(1, all(rows, TipRow.Pair.class).size());
+        List<TipRow.Pair> footer = all(rows, TipRow.Pair.class);
         assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(footer.get(0)) - 1));
         assertEquals("◈ 2 powder slots", footer.get(0).left().getString());
         assertNull(footer.get(0).right());
