@@ -30,7 +30,7 @@ final class HomeLevels extends MenuPaint {
      * The level a milestone's whole set is wearable at: its highest piece. A milestone at 120
      * often brings Lv 105 pieces, so its tab reads 105 or so, not 120.
      */
-    static int wearAt(Roadmap.Step s) {
+    private static int wearAt(Roadmap.Step s) {
         int hi = 0;
         for (Damage.Piece p : s.build().values()) {
             if (p != null) {
@@ -43,38 +43,19 @@ final class HomeLevels extends MenuPaint {
         return hi == 0 ? s.level() : hi;
     }
 
-    /**
-     * The milestones with a tab: one is left out when its set is wearable already (the now tab
-     * has it) or the next one's is wearable as early (its picks were there already, only better
-     * chosen), so the tabs climb one level each. One with other builds stays: its tab is the only
-     * way to them, even when its pick is the set you can wear now.
-     */
+    /** The milestones with a tab: every one the map has after Now. */
     List<Integer> shown() {
-        return shown(menu.steps);
-    }
-
-    static List<Integer> shown(List<Roadmap.Step> steps) {
         List<Integer> out = new ArrayList<>();
-        int now = steps.isEmpty() ? 0 : wearAt(steps.get(0));
-        for (int i = 1; i < steps.size(); i++) {
-            int at = wearAt(steps.get(i));
-            // wearable already: the now tab has it; a later set as early: that one is better
-            if (!hasBuilds(steps.get(i)) && (at <= now || i + 1 < steps.size() && wearAt(steps.get(i + 1)) <= at)) {
-                continue;
-            }
+        for (int i = 1; i < menu.steps.size(); i++) {
             out.add(i);
         }
         return out;
     }
 
-    private static boolean hasBuilds(Roadmap.Step s) {
-        return s.alternatives() != null && s.alternatives().size() > 1;
-    }
-
-    /** The level on milestone {@code i}'s tab: its set's, or its own when the Now tab wears that set too. */
+    /** The level on milestone {@code i}'s tab: its set's, or its own when the tab before wears that set too. */
     static int tabLevel(List<Roadmap.Step> steps, int i) {
         int at = wearAt(steps.get(i));
-        return at > wearAt(steps.get(0)) ? at : steps.get(i).level();
+        return at > wearAt(steps.get(i - 1)) ? at : steps.get(i).level();
     }
 
     /** How many milestone buttons the level row shows this frame (LEVEL_WINDOW where they fit). */
@@ -88,18 +69,6 @@ final class HomeLevels extends MenuPaint {
     int draw(GuiGraphics g, int y, int right, int room, List<int[]> levelRows) {
         List<Integer> shown = shown();
         int pos = shown.indexOf(menu.selected);
-        if (menu.selected > 0 && pos < 0 && !shown.isEmpty()) {
-            // a hidden milestone: the next shown one has a set as early and better
-            int to = shown.get(shown.size() - 1);
-            for (int i : shown) {
-                if (i >= menu.selected) {
-                    to = i;
-                    break;
-                }
-            }
-            menu.selected = to;
-            pos = shown.indexOf(menu.selected);
-        }
         levelWindow = LEVEL_WINDOW;
         // with a plan, its pill first: "Plan · Now · Lv 68 · 80 …"
         Plans.Build plan = Plans.current();
