@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.advice;
 
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
+import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.market.Shopping;
 import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.Slot;
@@ -10,8 +11,8 @@ import io.github.anilken.wynnlabs.model.Slot;
  * Whether the build plan would take a piece you have not identified yet (a box's outcome, or
  * a revealed piece with stats "?"): every roll at its best, swapped into the plan's build, it
  * must clear the gain the plan asks of any swap ({@link Build#gainThreshold}). The shopping
- * list's own picks count as wanted too. The same source the identified piece is judged by, so
- * a box is not identified for a piece the plan then tells you to sell.
+ * list's own picks count as wanted too, and so does what the road map or the Build window's
+ * results wear later. The same source the identified piece is judged by, so a box is not identified for a piece the plan then tells you to sell.
  */
 final class PlanFit {
 
@@ -57,7 +58,7 @@ final class PlanFit {
                 wanted |= (v / base - 1) * 100 >= need;
             }
         }
-        if (Shopping.find(info.name()) != null) {
+        if (Shopping.find(info.name()) != null || Roadmap.plans(info.name())) {
             return new Fit(true, rival);
         }
         return judged ? new Fit(wanted, rival) : null;

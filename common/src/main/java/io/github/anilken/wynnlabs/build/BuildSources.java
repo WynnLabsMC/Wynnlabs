@@ -61,29 +61,71 @@ public final class BuildSources {
         return INFO.computeIfAbsent(name, n -> GameState.current().allGear().filter(i -> i.name().equals(n)).findFirst()).orElse(null);
     }
 
-    private static java.util.Set<String> haveCache = java.util.Set.of();
+    private static Map<String, Integer> haveCache = Map.of();
     private static long haveAt;
 
-    /** Names of what you have in the bag and bank; read again each second. */
+    /** Names of what you have in the bag and bank. */
     public static java.util.Set<String> haveNames() {
+        return haveCounts().keySet();
+    }
+
+    /** How many of this name you have in the bag and bank. */
+    public static int haveCount(String name) {
+        return haveCounts().getOrDefault(name, 0);
+    }
+
+    /** What you have in the bag and bank, by name and how many; read again each second. */
+    private static Map<String, Integer> haveCounts() {
         long now = System.currentTimeMillis();
         if (now - haveAt < 1000) {
             return haveCache;
         }
         haveAt = now;
-        java.util.Set<String> out = new java.util.HashSet<>();
+        Map<String, Integer> out = new java.util.HashMap<>();
         haveCache = out;
         try {
             for (ItemStack s : GameState.current().inventory()) {
                 if (!s.isEmpty()) {
-                    out.add(ItemJson.clean(s.getHoverName().getString()).trim());
+                    out.merge(ItemJson.clean(s.getHoverName().getString()).trim(), s.getCount(), Integer::sum);
                 }
             }
             for (Vault.Group gr : Vault.groups()) {
-                out.add(gr.name());
+                out.merge(gr.name(), gr.total(), Integer::sum);
             }
         } catch (Throwable ignored) {
             // what was read
+        }
+        return out;
+    }
+
+    /** The slots of a build you already have a piece for: see {@link #ownedSlots(Map, Map, Map)}. */
+    public static java.util.Set<String> ownedSlots(Map<String, Damage.Piece> set, Map<String, String> worn) {
+        return ownedSlots(set, worn, haveCounts());
+    }
+
+    /**
+     * One copy fills one slot: a build with the same ring twice needs two of them. What is worn
+     * where the build keeps it takes its copy first, as a worn ring also sits in the bag.
+     */
+    static java.util.Set<String> ownedSlots(Map<String, Damage.Piece> set, Map<String, String> worn, Map<String, Integer> have) {
+        Map<String, Integer> left = new java.util.HashMap<>(have);
+        java.util.Set<String> out = new java.util.HashSet<>();
+        for (String slot : Plans.SLOTS) {
+            Damage.Piece p = set.get(slot);
+            if (p != null && p.name().equals(worn.get(slot))) {
+                out.add(slot);
+                left.merge(p.name(), -1, Integer::sum);
+            }
+        }
+        for (String slot : Plans.SLOTS) {
+            Damage.Piece p = set.get(slot);
+            if (p == null || out.contains(slot)) {
+                continue;
+            }
+            if (p.stack() != null || left.getOrDefault(p.name(), 0) > 0) {
+                out.add(slot);
+                left.merge(p.name(), -1, Integer::sum);
+            }
         }
         return out;
     }
