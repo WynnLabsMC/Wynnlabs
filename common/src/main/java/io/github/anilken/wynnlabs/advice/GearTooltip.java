@@ -94,25 +94,30 @@ public final class GearTooltip {
             rows.add(band);
         }
         rows.addAll(base(data));
-        // every rolled identification with its bar, then the fixed ones in the same columns without
-        // a bar; five equal skill points fold into one "+N to all skills" line
+        // the fixed stats first in the same columns without a bar (five equal skill points fold
+        // into one "+N to all skills" line), a rule, then every rolled identification with its bar
         List<Roll> fixed = new ArrayList<>();
+        List<TipRow> ids = new ArrayList<>();
         for (Roll r : rolled.rolls()) {
             if (percent(r) == null) {
                 fixed.add(r);
             } else {
-                rows.add(id(r));
+                ids.add(id(r));
             }
         }
         Component allSkills = allSkills(fixed);
+        if (allSkills != null) {
+            rows.add(new TipRow.Text(allSkills, null));
+        }
         for (Roll r : fixed) {
             if (allSkills == null || skill(r) == null) {
                 rows.add(id(r));
             }
         }
-        if (allSkills != null) {
-            rows.add(new TipRow.Text(allSkills, null));
+        if (!fixed.isEmpty() && !ids.isEmpty()) {
+            rows.add(new TipRow.Separator());
         }
+        rows.addAll(ids);
         List<TipRow.Chip> chips = chips(data, rolled.marks());
         if (!chips.isEmpty()) {
             rows.add(new TipRow.Chips(chips));

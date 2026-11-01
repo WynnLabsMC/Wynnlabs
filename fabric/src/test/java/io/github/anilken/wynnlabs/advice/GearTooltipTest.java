@@ -113,11 +113,13 @@ class GearTooltipTest {
         assertEquals("Legendary · Relik · Lv 42", head.sub().getString());
         List<TipRow.Id> ids = all(rows, TipRow.Id.class);
         assertEquals(6, ids.size());
-        assertEquals(3, ids.stream().filter(i -> i.percent() != null).count());
-        // the fixed skill points follow in the same columns, without a bar
-        assertEquals(List.of("Intelligence", "Defence", "Agility"), ids.subList(3, 6).stream().map(i -> i.name().getString()).toList());
-        assertEquals(List.of("+10", "-8", "+10"), ids.subList(3, 6).stream().map(i -> i.value().getString()).toList());
-        assertTrue(ids.subList(3, 6).stream().allMatch(i -> i.percent() == null));
+        // the fixed skill points come first in the same columns, without a bar, then a rule
+        assertEquals(List.of("Intelligence", "Defence", "Agility"), ids.subList(0, 3).stream().map(i -> i.name().getString()).toList());
+        assertEquals(List.of("+10", "-8", "+10"), ids.subList(0, 3).stream().map(i -> i.value().getString()).toList());
+        assertTrue(ids.subList(0, 3).stream().allMatch(i -> i.percent() == null));
+        assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(ids.get(2)) + 1));
+        assertSame(ids.get(3), rows.get(rows.indexOf(ids.get(2)) + 2));
+        assertTrue(ids.subList(3, 6).stream().allMatch(i -> i.percent() != null));
         // the base stats sit right under the verdict band: DPS with the attack speed, then the damages
         int dps = rows.indexOf(all(rows, TipRow.Text.class).stream()
                 .filter(t -> t.left().getString().startsWith("⚔")).findFirst().orElseThrow());
