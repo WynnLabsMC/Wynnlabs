@@ -212,7 +212,7 @@
   "wynnlabs.auto.box_identify_wear": "Item Identifier'da tanımla (~%s): %s giyebilirsin · %s/%s drop sana uygun",
   "wynnlabs.auto.box_reveal_market": "Önce Trade Market'te aç (~%s), sonra listele · Beklenen ~%s",
   "wynnlabs.auto.box_reveal_no_price": "Önce Trade Market'te aç (~%s), sonra listele · Fiyat yok",
-  "wynnlabs.auto.box_reveal_some": "Trade Market'te aç (~%s): %s alt sınırını (%s) geçiyor, kalanı Blacksmith'e",
+  "wynnlabs.auto.box_reveal_some": "Trade Market'te aç (~%s): %s çıkarsa listele (alt sınırın %s üstünde), başka bir şey çıkarsa Blacksmith'e sat",
   "wynnlabs.auto.box_blacksmith_fee": "Blacksmith'e sat: beklenen ~%s, ~%s açma ücretini karşılamaz",
   "wynnlabs.auto.box_blacksmith_small": "Blacksmith'e sat: Trade Market'te eline sadece ~%s geçer, alt sınırın (%s) altında",
   "wynnlabs.auto.box_blacksmith_cheap": "Blacksmith'e sat: Trade Market'te sadece ~%s eder, alt sınırın (%s) altında",
