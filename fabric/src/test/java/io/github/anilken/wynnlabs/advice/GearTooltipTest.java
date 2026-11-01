@@ -104,7 +104,8 @@ class GearTooltipTest {
     @Test
     void theWeightedRollsFromTheFullTooltipFollowTheIdentifications() {
         ItemStack stack = gear("Heavensent");
-        List<Component> lines = List.of(stack.getHoverName(), Component.literal("+6% Combat Experience"),
+        List<Component> lines = List.of(stack.getHoverName(), Component.literal("Heavensent [69.0%]"),
+                Component.literal("Combat Experience [+6%] [30.0%]"),
                 Component.empty(), Component.literal("\u2696 Nori"), Component.literal("Main Scale [26.8%]"),
                 Component.literal("Riftwalker Scale [41.6%]"), Component.empty(), Component.literal("\u2696 Wynnpool"),
                 Component.literal("Arcanist Scale [96.5%]"), Component.empty());

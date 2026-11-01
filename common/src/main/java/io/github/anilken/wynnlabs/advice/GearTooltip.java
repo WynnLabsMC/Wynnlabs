@@ -223,8 +223,11 @@ public final class GearTooltip {
      * overall % counts it (a negative stat closer to zero is the better roll); flipped for a stat
      * where less is better. Null for a stat with one value only or an unknown range.
      */
-    /** A weighted roll line as Wynntils adds them: "Main Scale [26.8%]". */
-    private static final Pattern SCALE = Pattern.compile("(.+?)\\s*\\[\\s*(\\d+(?:\\.\\d+)?)%\\s*]");
+    /**
+     * A weighted roll line as Wynntils adds them: "Main Scale [26.8%]"; the item's own
+     * identification lines ("Mana Regen [+5/5s] [50.0%]") are not scales.
+     */
+    private static final Pattern SCALE = Pattern.compile("(\\S.*?Scale)\\s*\\[\\s*(\\d+(?:\\.\\d+)?)%\\s*]");
 
     /**
      * The weighted rolls Wynntils adds from Nori and Wynnpool, taken from the full tooltip:
