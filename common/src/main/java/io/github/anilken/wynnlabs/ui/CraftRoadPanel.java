@@ -338,7 +338,7 @@ final class CraftRoadPanel extends CraftPanel {
     }
 
     static String minutes(long ms) {
-        return ms < 0 ? "?" : Math.max(1, Math.round(ms / 60000.0)) + " dk";
+        return ms < 0 ? "?" : Math.max(1, Math.round(ms / 60000.0)) + " " + L.t("wynnlabs.today.u_minutes");
     }
 
     /** "Malzeme: Topla / Al / Karışık" and the totals; returns the y under them. */

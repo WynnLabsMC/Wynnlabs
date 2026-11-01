@@ -38,8 +38,14 @@ public final class ProfessionPlan {
     /** A gathering resource: its name ("Copper"), profession ("mining"), level, nodes and the materials it gives. */
     public record Resource(String name, String profession, int level, List<Area> nodes, List<String> materials) {}
 
-    /** A resource's nearest node to the player and how far it is (NaN when the position is unknown). */
-    public record Spot(Resource resource, Area node, double distance) {}
+    /** How far from a spot's node (blocks) other nodes still count as the same spot. */
+    private static final int SPOT_RADIUS = 64;
+
+    /**
+     * A resource's nearest node to the player, how far it is (NaN when the position is unknown)
+     * and how many of its nodes are at that spot, the node itself included.
+     */
+    public record Spot(Resource resource, Area node, double distance, int nodes) {}
 
     private ProfessionPlan() {}
 
@@ -204,7 +210,9 @@ public final class ProfessionPlan {
                     bestD = d;
                 }
             }
-            out.add(new Spot(r, best, bestD));
+            double[] at = {best.x(), best.z()};
+            int here = (int) r.nodes().stream().filter(a -> Compass.distance(a, at) <= SPOT_RADIUS).count();
+            out.add(new Spot(r, best, bestD, here));
         }
         out.sort(Comparator.comparingInt((Spot s) -> -s.resource().level())
                 .thenComparingDouble(s -> Double.isNaN(s.distance()) ? Double.MAX_VALUE : s.distance())

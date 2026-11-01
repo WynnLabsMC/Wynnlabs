@@ -1510,6 +1510,7 @@
   "wynnlabs.craft.slot_wasted": "%s: orada slot yok, boşa gider",
   "wynnlabs.craft.view_suggest": "Öneriler",
   "wynnlabs.plan.spots": "En yakın toplama noktaları",
+  "wynnlabs.plan.spot_nodes": "%s node",
   "wynnlabs.plan.gather_xp_none": "Bir kez topla, planlayıcı toplama başına XP'ni öğrensin",
   "wynnlabs.plan.gather_xp_only": "Son toplama %s XP · Sonraki level XP'si bilinmiyor",
   "wynnlabs.plan.no_spots": "Level'ına uygun toplama noktası bulunamadı",
