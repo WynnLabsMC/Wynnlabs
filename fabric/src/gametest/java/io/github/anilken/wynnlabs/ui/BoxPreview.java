@@ -184,6 +184,25 @@ public class BoxPreview implements FabricClientGameTest {
             });
             ctx.waitTicks(5);
             shot(ctx, out, "box-window-item-few");
+            // only unidentified listings, with the history strip over them (and its chart), at scales 3 and 4
+            ctx.runOnClient(mc -> cannedHistory("Canopy"));
+            ctx.waitTicks(3);
+            shot(ctx, out, "box-window-item-few-history");
+            ctx.runOnClient(mc -> ((BoxScreen) mc.screen).right.chartOpen = true);
+            ctx.waitTicks(3);
+            shot(ctx, out, "box-window-item-few-history-chart");
+            ctx.runOnClient(mc -> {
+                ((BoxScreen) mc.screen).right.chartOpen = false;
+                mc.options.guiScale().set(4);
+                mc.resizeDisplay();
+            });
+            ctx.waitTicks(5);
+            shot(ctx, out, "box-window-item-few-history-gui4");
+            ctx.runOnClient(mc -> {
+                mc.options.guiScale().set(3);
+                mc.resizeDisplay();
+                clearHistory();
+            });
             ctx.runOnClient(mc -> {
                 canned("Accursed Effigy", 1, "listings-effigy.json");
                 BoxMarket.Item effigy = new BoxMarket.Item("Accursed Effigy", Slot.UNKNOWN, Tier.NORMAL, 76, Klass.NONE, 0, true);
@@ -192,6 +211,11 @@ public class BoxPreview implements FabricClientGameTest {
             });
             ctx.waitTicks(5);
             shot(ctx, out, "box-window-material");
+            // the one-line table under the history strip
+            ctx.runOnClient(mc -> cannedHistory("Accursed Effigy"));
+            ctx.waitTicks(3);
+            shot(ctx, out, "box-window-material-history");
+            ctx.runOnClient(mc -> clearHistory());
             for (int scale : new int[] {2, 4}) {
                 ctx.runOnClient(mc -> {
                     mc.options.guiScale().set(scale);

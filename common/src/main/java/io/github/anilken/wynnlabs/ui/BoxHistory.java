@@ -41,7 +41,14 @@ final class BoxHistory {
 
     // ---- the chart ----
 
-    /** The chart and its dates in {@code w} from {@code y}, {@code chartH} tall; returns the bottom. */
+    /** The listings-seen bars' greatest height. */
+    static final int BAR_H = 8;
+
+    /**
+     * The chart in {@code w} from {@code y}, top to bottom: the line area ({@code chartH} tall),
+     * SP_1, the listings-seen bars ({@link #BAR_H}) on the axis, SP_1, the dates. Nothing overlaps.
+     * Returns the bottom.
+     */
     static int chart(BoxScreen s, GuiGraphics g, History.Series h, int x, int y, int w, int chartH) {
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
@@ -64,20 +71,20 @@ final class BoxHistory {
         LocalDate first = h.days().get(0).date();
         LocalDate last = h.days().get(h.days().size() - 1).date();
         long span = ChronoUnit.DAYS.between(first, last);
-        int barMax = chartH / 4;
         int lineTop = y + Type.META.lineHeight / 2;
-        int lineBot = y + chartH - barMax - Theme.SP_2;
-        // the listings seen, faint, along the bottom
+        int lineBot = y + chartH - Type.META.lineHeight / 2;
+        int axis = y + chartH + Theme.SP_1 + BAR_H;
+        // the listings seen, faint, in their own band under the line area
         int bw = span == 0 ? 4 : Math.max(1, (int) (pw / (span + 1)) - 1);
         for (History.Day d : h.days()) {
             if (d.count() <= 0 || maxCount == 0) {
                 continue;
             }
-            int bh = Math.max(1, Math.round(barMax * (float) d.count() / maxCount));
+            int bh = Math.max(1, Math.round(BAR_H * (float) d.count() / maxCount));
             int bx = Math.max(px, Math.min(px + pw - bw, xOf(d.date(), first, span, px, pw) - bw / 2));
-            g.fill(bx, y + chartH - bh, bx + bw, y + chartH, BAR);
+            g.fill(bx, axis - bh, bx + bw, axis, BAR);
         }
-        Kit.hair(g, px, y + chartH, pw, 1, Theme.LINE);
+        Kit.hair(g, px, axis, pw, 1, Theme.LINE);
         // the max and min lines with their prices at the left
         int yMax = yOf(max, min, max, lineTop, lineBot);
         int yMin = yOf(min, min, max, lineTop, lineBot);
@@ -103,7 +110,7 @@ final class BoxHistory {
             prevX = dx;
             prevY = dy;
         }
-        int dateY = y + chartH + 1 + Theme.SP_1;
+        int dateY = axis + 1 + Theme.SP_1;
         Type.META.draw(g, s.font(), date(first), px, dateY, Theme.INK_3);
         if (span > 0) {
             Type.META.drawRight(g, s.font(), date(last), px + pw, dateY, Theme.INK_3);
@@ -111,9 +118,9 @@ final class BoxHistory {
         return dateY + Type.META.lineHeight;
     }
 
-    /** The chart's height besides {@code chartH}: the axis and the dates. */
+    /** The chart's height besides its line area: the bars with SP_1 above, the axis, SP_1 and the dates. */
     static int chartExtra() {
-        return 1 + Theme.SP_1 + Type.META.lineHeight;
+        return Theme.SP_1 + BAR_H + 1 + Theme.SP_1 + Type.META.lineHeight;
     }
 
     private static int xOf(LocalDate d, LocalDate first, long span, int px, int pw) {

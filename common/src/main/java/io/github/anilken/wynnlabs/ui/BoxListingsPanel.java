@@ -181,16 +181,17 @@ final class BoxListingsPanel {
         }
         int sx = x + Theme.SP_3;
         int sw = w - ScrollBar.W - Theme.SP_3 - Theme.SP_3 - Theme.SP_2;
-        top += BoxHistory.strip(s, g, hs, chartOpen, sx, top, sw, mx, my, () -> chartOpen = !chartOpen) + Theme.SP_2;
+        // a row's wash reaches SP_2 above it and the rows' clip SP_1: the gap keeps both off the strip
+        top += BoxHistory.strip(s, g, hs, chartOpen, sx, top, sw, mx, my, () -> chartOpen = !chartOpen) + gap() + Theme.SP_1;
         if (chartOpen) {
             // the chart and its numbers take what they need; the rows scroll in what is left. When
-            // not even one row would stay in view: the numbers go, then the chart shrinks (to 28),
+            // not even one row would stay in view: the numbers go, then the chart shrinks (to 24),
             // then it goes too
             int cells = BoxHistory.cellsHeight(sw) + Theme.SP_3;
             int room = bottom - top - (LINE + gap()) - Theme.SP_1 - BoxHistory.chartExtra() - Theme.SP_3;
-            boolean withCells = room - cells >= 28;
-            int chartH = Math.min(s.compact ? 48 : 64, withCells ? room - cells : room);
-            if (chartH >= 28) {
+            boolean withCells = room - cells >= 24;
+            int chartH = Math.min(s.compact ? 38 : 52, withCells ? room - cells : room);
+            if (chartH >= 24) {
                 top = BoxHistory.chart(s, g, hs, sx, top + Theme.SP_1, sw, chartH) + Theme.SP_3;
                 if (withCells) {
                     top = BoxHistory.cells(s, g, hs, sx, top, sw) + Theme.SP_3;
@@ -424,8 +425,8 @@ final class BoxListingsPanel {
         }
         // always shown: the title, the numbers and Refresh; then, while they fit, the chart at full
         // height, the "no listings" line and the steps. Dropped in this order: the steps, the line,
-        // the chart's height down to 28, the chart.
-        int pref = s.compact ? 60 : 84;
+        // the chart's line area down to 24, the chart.
+        int pref = s.compact ? 48 : 70;
         int base = Theme.SP_4 + Type.LABEL.lineHeight + Theme.SP_3 + BoxHistory.cellsHeight(cw)
                 + (refresh ? Theme.SP_3 + Ui.SMALL_H : 0) + Theme.SP_2;
         int chartFixed = BoxHistory.chartExtra() + Theme.SP_4;
@@ -445,7 +446,7 @@ final class BoxListingsPanel {
         int cy = y + Theme.SP_4;
         Type.LABEL.draw(g, s.font(), Type.LABEL.fit(s.font(), L.t("wynnlabs.box.history_title", History.DAYS), cw), cx, cy, Theme.INK);
         cy += Type.LABEL.lineHeight + Theme.SP_3;
-        if (chartH >= 28) {
+        if (chartH >= 24) {
             cy = BoxHistory.chart(s, g, hs, cx, cy, cw, chartH) + Theme.SP_4;
         }
         cy = BoxHistory.cells(s, g, hs, cx, cy, cw);
