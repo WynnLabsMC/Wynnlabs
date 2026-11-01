@@ -118,7 +118,12 @@ public final class GearTooltip {
         if (band != null) {
             rows.add(band);
         }
-        rows.addAll(base(data));
+        rows.add(new TipRow.Separator());
+        List<TipRow> base = base(data);
+        if (!base.isEmpty()) {
+            rows.addAll(base);
+            rows.add(new TipRow.Separator());
+        }
         // the fixed stats first in the same columns without a bar, a rule, then every rolled
         // identification with its bar; an unidentified piece lists what each stat can roll
         List<TipRow> fixed = new ArrayList<>();
@@ -144,6 +149,9 @@ public final class GearTooltip {
         }
         List<TipRow.Chip> chips = chips(data, rolled == null ? null : rolled.marks());
         if (!chips.isEmpty()) {
+            if (!(rows.get(rows.size() - 1) instanceof TipRow.Separator)) {
+                rows.add(new TipRow.Separator());
+            }
             rows.add(new TipRow.Chips(chips));
         }
         List<TipRow> footer = footer(data, rolled == null ? List.of() : rolled.powders(), lines);

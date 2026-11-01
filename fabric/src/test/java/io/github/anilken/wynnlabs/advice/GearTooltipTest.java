@@ -178,8 +178,13 @@ class GearTooltipTest {
                 .filter(t -> t.left().getString().startsWith("⚔")).findFirst().orElseThrow());
         assertEquals("⚔ 270 DPS · Fast (2.5 hits/s)", ((TipRow.Text) rows.get(dps)).left().getString());
         assertEquals("❉ 48–60  ❋ 48–60", ((TipRow.Text) rows.get(dps + 1)).left().getString());
+        // a rule under the header and one under the base stats
+        assertInstanceOf(TipRow.Separator.class, rows.get(dps - 1));
+        assertInstanceOf(TipRow.Separator.class, rows.get(dps + 2));
+        TipRow.Chips reqs = all(rows, TipRow.Chips.class).get(0);
         assertEquals(List.of("Lv 42 ✓", "Shaman ✓", "Int 17 ✓", "Agi 17 ✓"),
-                all(rows, TipRow.Chips.class).get(0).chips().stream().map(TipRow.Chip::text).toList());
+                reqs.chips().stream().map(TipRow.Chip::text).toList());
+        assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(reqs) - 1));
 
         List<TipRow.Pair> footer = all(rows, TipRow.Pair.class);
         assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(footer.get(0)) - 1));
