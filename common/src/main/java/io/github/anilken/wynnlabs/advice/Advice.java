@@ -498,6 +498,7 @@ public final class Advice {
         String wantsPrefix = L.t("wynnlabs.advice.also_wants", "").strip();
         int sinceHead = 99;
         int reds = 0;
+        boolean redKept = false;                // the line before was a red one that stayed
         int dropped = 0;
         for (Component c : out) {
             String t = c.getString();
@@ -512,7 +513,8 @@ public final class Advice {
                 keep = true;
                 sinceHead = 0;
             } else if (red) {
-                keep = reds++ == 0;
+                // the first red block (a wrapped "Can't equip" is several lines) stays whole
+                keep = redKept || reds++ == 0;
             } else if (t.startsWith("◆ ") || t.startsWith("▣ ") || (!wantsPrefix.isEmpty() && t.startsWith(wantsPrefix))) {
                 keep = true;
             } else if (t.startsWith("   ") && !shortList.isEmpty()
@@ -521,6 +523,7 @@ public final class Advice {
             } else {
                 keep = ++sinceHead <= 2;
             }
+            redKept = keep && red;
             if (keep) {
                 shortList.add(c);
             } else if (!t.isEmpty()) {

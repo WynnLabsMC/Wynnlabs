@@ -2889,6 +2889,7 @@
   "wynnlabs.mounts.place_buy_at": "Al · %s",
   "wynnlabs.mounts.card_estimate": "Tahmin",
   "wynnlabs.mounts.card_running": "Hesaplanıyor…",
+  "wynnlabs.mounts.card_states": "%s durum",
   "wynnlabs.mounts.card_done": "%s hesaplandı",
   "wynnlabs.mounts.card_stale": "Binek değişti",
   "wynnlabs.mounts.tip_gain": "Satır %s · %s: %s",

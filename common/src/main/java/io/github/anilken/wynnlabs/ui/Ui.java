@@ -238,6 +238,15 @@ final class Ui {
     static final int NOTICE_PAD = Theme.SP_3;
 
     /** A notice's height for {@code lines} lines of text: its padding and the BODY line height. */
+    /** A running text ("Calculating...") with its dots coming and going by the clock; as it is in the previews. */
+    static String busy(String text) {
+        if (!text.endsWith("…") || MountsModel.previewView != null || MountsModel.previewRoad != null) {
+            return text;
+        }
+        int n = (int) (System.currentTimeMillis() / 350 % 4);
+        return text.substring(0, text.length() - 1) + ".".repeat(n);
+    }
+
     static int noticeHeight(int lines) {
         return 2 * NOTICE_PAD + Math.max(1, lines) * Type.BODY.lineHeight;
     }
