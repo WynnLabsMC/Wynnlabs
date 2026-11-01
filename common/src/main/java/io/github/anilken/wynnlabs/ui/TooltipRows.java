@@ -95,7 +95,8 @@ public final class TooltipRows {
         if (wraps) {
             width = Math.max(width, MIN_WRAP);
         }
-        List<ClientTooltipComponent> out = new ArrayList<>(rows.size());
+        List<ClientTooltipComponent> out = new ArrayList<>(rows.size() + 2);
+        out.add(new SpaceRow());
         for (TipRow r : rows) {
             switch (r) {
                 case TipRow.Text t -> out.add(new TextRow(t.left(), t.right()));
@@ -119,7 +120,21 @@ public final class TooltipRows {
                 }
             }
         }
+        out.add(new SpaceRow());
         return out;
+    }
+
+    /** A little air between the frame and the first and last rows. */
+    private static final class SpaceRow implements ClientTooltipComponent {
+        @Override
+        public int getHeight(Font font) {
+            return 2;
+        }
+
+        @Override
+        public int getWidth(Font font) {
+            return 0;
+        }
     }
 
     /**
