@@ -52,7 +52,8 @@ final class FeedWorker {
     }
 
     private static synchronized void start() {
-        if (thread != null) {
+        // a thread that died (anything escaping the loop) is replaced: its jobs would wait for ever
+        if (thread != null && thread.isAlive()) {
             return;
         }
         Thread t = new Thread(FeedWorker::loop, "WynnLabs mount planner");
@@ -68,11 +69,11 @@ final class FeedWorker {
             try {
                 task = QUEUE.take();
             } catch (InterruptedException e) {
-                return;
+                continue;                       // an interrupt must not end the one planner thread
             }
-            sliceStartNs = System.nanoTime();
-            sliceStartCpu = cpu();
             try {
+                sliceStartNs = System.nanoTime();
+                sliceStartCpu = cpu();
                 task.run().run();
             } catch (Throwable t) {
                 System.out.println("[WynnLabs] mount planner job failed: " + t);

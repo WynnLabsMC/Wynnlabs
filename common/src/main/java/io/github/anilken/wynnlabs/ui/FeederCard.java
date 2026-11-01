@@ -173,7 +173,8 @@ final class FeederCard {
         // the plan: where it stands, and its button (never started by itself)
         MountsModel.FeedView v = model.feed(o);
         String state = switch (v.state()) {
-            case RUNNING -> L.t("wynnlabs.mounts.card_running");
+            case RUNNING -> Ui.busy(L.t("wynnlabs.mounts.card_running")) + " · "
+                    + L.t("wynnlabs.mounts.card_states", String.format(java.util.Locale.ROOT, "%,d", v.explored()));
             case CACHED -> L.t("wynnlabs.mounts.card_done", MenuPaint.ago(v.savedAt()));
             case STALE -> L.t("wynnlabs.mounts.card_stale");
             default -> L.t("wynnlabs.mounts.card_estimate");

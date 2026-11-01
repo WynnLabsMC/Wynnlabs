@@ -2889,6 +2889,7 @@
   "wynnlabs.mounts.place_buy_at": "Buy · %s",
   "wynnlabs.mounts.card_estimate": "Estimate",
   "wynnlabs.mounts.card_running": "Calculating…",
+  "wynnlabs.mounts.card_states": "%s states",
   "wynnlabs.mounts.card_done": "Calculated %s",
   "wynnlabs.mounts.card_stale": "Mount changed",
   "wynnlabs.mounts.tip_gain": "Row %s · %s: %s",

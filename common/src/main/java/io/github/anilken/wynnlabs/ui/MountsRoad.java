@@ -41,7 +41,7 @@ final class MountsRoad {
         MountsModel.Pending<RoadMap.Plan> p = tab.model.road();
         RoadMap.Plan plan = p.value();
         if (plan == null) {
-            String msg = p.running() ? L.t("wynnlabs.mounts.planning") : L.t("wynnlabs.mounts.plan_failed", p.error());
+            String msg = p.running() ? Ui.busy(L.t("wynnlabs.mounts.planning")) : L.t("wynnlabs.mounts.plan_failed", p.error());
             int[][] hit = new int[1][];
             cy += Ui.notice(g, font(), p.running() ? Ui.Level.INFO : Ui.Level.WARNING, List.of(msg), null, x, cy, w,
                     Ui.noticeHeight(2), mx, my, hit) + Theme.SP_4;
