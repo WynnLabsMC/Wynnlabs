@@ -102,6 +102,30 @@ class GearTooltipTest {
     }
 
     @Test
+    void theWeightedRollsFromTheFullTooltipFollowTheIdentifications() {
+        ItemStack stack = gear("Heavensent");
+        List<Component> lines = List.of(stack.getHoverName(), Component.literal("+6% Combat Experience"),
+                Component.empty(), Component.literal("\u2696 Nori"), Component.literal("Main Scale [26.8%]"),
+                Component.literal("Riftwalker Scale [41.6%]"), Component.empty(), Component.literal("\u2696 Wynnpool"),
+                Component.literal("Arcanist Scale [96.5%]"), Component.empty());
+        List<TipRow> rows = GearTooltip.rows(stack, lines, false);
+        assertNotNull(rows);
+        List<TipRow.Id> ids = all(rows, TipRow.Id.class);
+        List<TipRow.Id> scales = ids.subList(ids.size() - 3, ids.size());
+        assertEquals(List.of("Main Scale", "Riftwalker Scale", "Arcanist Scale"),
+                scales.stream().map(i -> i.name().getString()).toList());
+        assertEquals(List.of("26.8%", "41.6%", "96.5%"), scales.stream().map(i -> i.value().getString()).toList());
+        assertEquals(List.of(ChatFormatting.RED, ChatFormatting.GOLD, ChatFormatting.AQUA),
+                scales.stream().map(TipRow.Id::colour).toList());
+        int nori = rows.indexOf(scales.get(0)) - 1;
+        assertEquals("\u2696 Nori", ((TipRow.Text) rows.get(nori)).left().getString());
+        assertInstanceOf(TipRow.Separator.class, rows.get(nori - 1));
+        assertEquals("\u2696 Wynnpool", ((TipRow.Text) rows.get(rows.indexOf(scales.get(2)) - 1)).left().getString());
+        // without such lines, nothing is added
+        assertEquals(List.of(), GearTooltip.scales(List.of(stack.getHoverName())));
+    }
+
+    @Test
     void aWeaponShowsRerollsClassDamageAndPowderSlots() {
         ItemStack stack = gear("Heavensent");
         List<Component> lines = List.of(stack.getHoverName(),

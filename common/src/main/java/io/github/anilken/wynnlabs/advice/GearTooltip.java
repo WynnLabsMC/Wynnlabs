@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The short tooltip of an identified gear piece (setting {@code gearCompactTooltip}): the icon,
@@ -133,6 +135,11 @@ public final class GearTooltip {
             rows.add(new TipRow.Separator());
         }
         rows.addAll(ids);
+        List<TipRow> scales = scales(lines);
+        if (!scales.isEmpty()) {
+            rows.add(new TipRow.Separator());
+            rows.addAll(scales);
+        }
         List<TipRow.Chip> chips = chips(data, rolled == null ? null : rolled.marks());
         if (!chips.isEmpty()) {
             rows.add(new TipRow.Chips(chips));
@@ -216,6 +223,35 @@ public final class GearTooltip {
      * overall % counts it (a negative stat closer to zero is the better roll); flipped for a stat
      * where less is better. Null for a stat with one value only or an unknown range.
      */
+    /** A weighted roll line as Wynntils adds them: "Main Scale [26.8%]". */
+    private static final Pattern SCALE = Pattern.compile("(.+?)\\s*\\[\\s*(\\d+(?:\\.\\d+)?)%\\s*]");
+
+    /**
+     * The weighted rolls Wynntils adds from Nori and Wynnpool, taken from the full tooltip:
+     * each source's name as a line, its scales as rows coloured by their percentage.
+     */
+    static List<TipRow> scales(List<Component> lines) {
+        List<TipRow> out = new ArrayList<>();
+        String source = null;
+        for (Component c : lines) {
+            String s = c.getString().strip();
+            Matcher m = SCALE.matcher(s);
+            if (m.matches()) {
+                if (source != null) {
+                    out.add(new TipRow.Text(Component.literal(source).withStyle(ChatFormatting.DARK_GRAY), null));
+                    source = null;
+                }
+                double pct = Double.parseDouble(m.group(2));
+                ChatFormatting colour = quality(pct);
+                out.add(new TipRow.Id(Component.literal(m.group(1).strip()).withStyle(ChatFormatting.GRAY),
+                        Component.literal(m.group(2) + "%").withStyle(colour), null, colour));
+            } else {
+                source = s.isEmpty() ? null : s;
+            }
+        }
+        return out;
+    }
+
     /** What a stat of an unidentified piece can roll: "+3% to +13%", one number when fixed. */
     static TipRow.Id range(StatRange s) {
         String suffix = suffix(s.unit());
