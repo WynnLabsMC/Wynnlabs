@@ -293,6 +293,10 @@ public final class TooltipListener {
         if (e.verdict() == Verdict.SELL && e.note() != null) {
             String place = Advice.sellPlace(e);
             where = "Blacksmith".equals(place) ? "hammer" : "Trade Market".equals(place) ? "shopping-cart" : null;
+            // the tooltip already says SELL, so the slot names the place instead: BS / TM
+            if (where != null) {
+                word = L.t("hammer".equals(where) ? "wynnlabs.badge.sell_blacksmith" : "wynnlabs.badge.sell_market");
+            }
         }
         int colour = 0xFF000000 | ("shopping-cart".equals(where) ? 0xFFC23A : e.verdict().rgb());
         int tw = font.width(word);

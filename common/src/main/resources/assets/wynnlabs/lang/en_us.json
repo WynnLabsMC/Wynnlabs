@@ -1344,6 +1344,8 @@
   "wynnlabs.badge.price": "PRICE",
   "wynnlabs.badge.reroll": "ROLL",
   "wynnlabs.badge.sell": "SELL",
+  "wynnlabs.badge.sell_blacksmith": "BS",
+  "wynnlabs.badge.sell_market": "TM",
   "wynnlabs.badge.skip": "SKIP",
   "wynnlabs.badge.keep": "KEEP",
   "wynnlabs.badge.buy_later": "LATER",
