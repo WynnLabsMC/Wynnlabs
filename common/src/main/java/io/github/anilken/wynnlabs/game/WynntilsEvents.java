@@ -25,6 +25,7 @@ import com.wynntils.models.raid.raids.RaidKind;
 import com.wynntils.models.raid.type.RaidInfo;
 import com.wynntils.models.spells.event.SpellEvent;
 import com.wynntils.models.spells.type.SpellFailureReason;
+import io.github.anilken.wynnlabs.advice.BoxTooltip;
 import io.github.anilken.wynnlabs.advice.TooltipListener;
 import io.github.anilken.wynnlabs.coach.Coach;
 import io.github.anilken.wynnlabs.core.Perf;
@@ -34,7 +35,10 @@ import io.github.anilken.wynnlabs.endgame.RaidLog;
 import io.github.anilken.wynnlabs.model.RaidRun;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.ui.MenuTooltips;
+import io.github.anilken.wynnlabs.ui.TooltipRows;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.EventPriority;
@@ -84,10 +88,26 @@ public final class WynntilsEvents {
         }
     }
 
-    /** Advice and prices under the final tooltip: lowest priority, so they go under everything else. */
+    /**
+     * Advice and prices under the final tooltip: lowest priority, so they go under everything else.
+     * An unidentified box shows its short tooltip instead ({@link BoxTooltip}): this one is
+     * cancelled and the short one is drawn in its place, the way the game draws tooltips.
+     */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void onTooltip(ItemTooltipRenderEvent.Pre event) {
         long t = Perf.start();
+        try {
+            List<ClientTooltipComponent> compact = BoxTooltip.compact(event.getItemStack(), event.getTooltips());
+            if (compact != null) {
+                TooltipRows.show(event.getGuiGraphics(), Minecraft.getInstance().font, compact,
+                        event.getMouseX(), event.getMouseY());
+                event.setCanceled(true);
+                Perf.end("tooltip.wynntils", t);
+                return;
+            }
+        } catch (Throwable ignored) {
+            // the short box tooltip failed: the full one below
+        }
         try {
             List<Component> out = TooltipListener.onTooltip(event.getItemStack(), event.getTooltips());
             if (out != null) {

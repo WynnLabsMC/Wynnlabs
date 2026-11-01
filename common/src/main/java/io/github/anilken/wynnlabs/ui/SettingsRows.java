@@ -162,6 +162,7 @@ final class SettingsRows {
                 p.head("wynnlabs.settings.sec_in_tooltips");
                 p.row("switch", "tooltipPrice");
                 p.row("switch", "boxPrices");
+                p.row("switch", "boxCompactTooltip");
                 p.head("wynnlabs.settings.sec_live");
                 p.row("switch", "priceApi");
                 p.child("keynote", "key", "priceApi");
