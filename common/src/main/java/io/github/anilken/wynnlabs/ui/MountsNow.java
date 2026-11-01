@@ -410,6 +410,9 @@ final class MountsNow {
             banked.forEach((k, v) -> names.add(k.name() + " ×" + v));
             String line = L.t("wynnlabs.mounts.from_bank", String.join(", ", names));
             Type.META.draw(g, font(), Type.META.fit(font(), line, w), x, cy + Theme.SP_1, Theme.GOOD);
+            List<Component> tip = new ArrayList<>();
+            names.forEach(n -> tip.add(Component.literal(n).withStyle(ChatFormatting.GRAY)));
+            tab.tip(x, cy, w, Type.META.lineHeight + Theme.SP_1, tip);
         }
     }
 

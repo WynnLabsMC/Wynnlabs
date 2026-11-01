@@ -2804,7 +2804,7 @@
   "wynnlabs.mounts.shop_new": "%s new (to buy)",
   "wynnlabs.mounts.no_price": "No market price seen yet",
   "wynnlabs.mounts.price_each": "%s each, lowest listing",
-  "wynnlabs.mounts.from_bank": "Already have (bag, banks, other characters): %s",
+  "wynnlabs.mounts.from_bank": "Already have: %s",
   "wynnlabs.mounts.compass_to": "Compass › %s",
   "wynnlabs.mounts.compass_enclosure": "Compass to enclosure",
   "wynnlabs.mounts.unlocks": "Unlocks",
