@@ -121,8 +121,8 @@ public final class WynnBuilderTree {
     /**
      * What {@link #of} reads back, as '0'/'1': the aspects (a flag, then per slot a used flag, the
      * id and tier − 1; only those the class's list names, by name or a name ending in it), then
-     * the walk with the nodes in {@code nodes} taken, up to its last 1 as the site writes it. A node
-     * no taken parent reaches is left out.
+     * the whole walk with the nodes in {@code nodes} taken, its last 0s too: the site gives up the
+     * whole tree when its reader runs out of bits. A node no taken parent reaches is left out.
      * Null when data version {@code version} has no tree for the class.
      */
     static String bits(String version, Klass klass, java.util.Collection<String> nodes, List<Aspect> aspects) {
@@ -164,13 +164,8 @@ public final class WynnBuilderTree {
             }
         }
         java.util.Set<String> taken = new java.util.HashSet<>(nodes == null ? List.of() : nodes);
-        int walk = out.length();
         write(root, tree, children, new boolean[tree.size()], taken, out);
-        int end = out.length();
-        while (end > walk && out.charAt(end - 1) == '0') {
-            end--;                              // the site ends the walk on its last 1: the reader takes the rest as 0
-        }
-        return out.substring(0, end);
+        return out.toString();
     }
 
     private static void write(int head, List<Node> tree, List<List<Integer>> children, boolean[] met, java.util.Set<String> taken,
