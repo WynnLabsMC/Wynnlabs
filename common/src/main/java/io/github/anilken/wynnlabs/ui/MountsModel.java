@@ -432,6 +432,16 @@ final class MountsModel {
         }
     }
 
+    /** Where a material with stock outside the bag is: "In the bank", or the other character's inventory when only that holds it. */
+    static String kept(Material m, String inBank) {
+        try {
+            Vault.Group g = Vault.find(m.name());
+            return g != null && Vault.isBag(g.first().page()) ? Vault.bankName(g.first().page()) : inBank;
+        } catch (Throwable t) {
+            return inBank;
+        }
+    }
+
     /** A fresh Wyvern at the Mount Merchant: 1,536 emeralds (24 EB), read from its tooltip in game. */
     static final int WYVERN_PRICE = 1536;
 

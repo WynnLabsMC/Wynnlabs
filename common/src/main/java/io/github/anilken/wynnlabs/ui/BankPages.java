@@ -31,8 +31,8 @@ final class BankPages {
     String query = "";
     BankIndex.Kind kind;
     Tier tier;
-    /** Account, this character's, the others' banks shown. */
-    final boolean[] banks = {true, true, true};
+    /** Account, this character's, the others' banks and the others' bags shown. */
+    final boolean[] banks = {true, true, true, true};
     boolean fullFirst;
 
     /** The layout: the banks' pages, one sorted list, or every item in one grid; kept in the settings. */

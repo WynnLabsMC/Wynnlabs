@@ -193,7 +193,7 @@ final class MountsNow {
                     Material mat = s.material();
                     int bank = opt.useBank ? MountsModel.inBank(mat) : 0;
                     double price = MountsModel.price(mat);
-                    String note = bank > 0 ? L.t("wynnlabs.mounts.in_bank") : price >= 0 ? L.t("wynnlabs.mounts.buy_at", MountsText.em(price)) : "";
+                    String note = bank > 0 ? MountsModel.kept(mat, L.t("wynnlabs.mounts.in_bank")) : price >= 0 ? L.t("wynnlabs.mounts.buy_at", MountsText.em(price)) : "";
                     String say = L.t(s.swap() ? "wynnlabs.mounts.say_swap" : "wynnlabs.mounts.say_feed", mat.name(), m.name());
                     out.add(new Step(null, mat.name(), mat.name(), L.t("wynnlabs.mounts.lv", mat.level()), note, bank > 0 ? Theme.GOOD : Theme.INK_2,
                             s.durationSec(), say, stats.gainsFrom(mat)));

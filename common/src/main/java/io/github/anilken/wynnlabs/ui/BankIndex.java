@@ -45,8 +45,8 @@ final class BankIndex {
         }
     }
 
-    /** Which bank a page is in: the account's, this character's, or another character's. */
-    enum Bank { ACCOUNT, MINE, OTHER }
+    /** Which bank a page is in: the account's, this character's, another character's, or another character's bag. */
+    enum Bank { ACCOUNT, MINE, OTHER, BAG }
 
     /** One stack in a page: what to draw, its mark (0: none) and whether it shows "?". */
     record Item(Vault.Stored st, Vault.Group group, ItemStack stack, Kind kind, Tier tier, int mark, boolean unknown, String hay) {}
@@ -55,6 +55,10 @@ final class BankIndex {
     record Page(String key, Bank bank, String bankId, int number, Map<Integer, Item> slots, int used, boolean read) {
 
         String name() {
+            if (bank == Bank.BAG) {
+                List<Vault.Stored> stacks = Vault.page(key);
+                return stacks.isEmpty() ? "" : L.t("wynnlabs.bank.page_seen", MenuPaint.ago(stacks.get(0).seen()));
+            }
             return L.t(bank == Bank.ACCOUNT ? "wynnlabs.bank.page_account" : "wynnlabs.bank.page_char", number);
         }
     }
@@ -121,9 +125,11 @@ final class BankIndex {
         Map<String, List<Page>> banks = new LinkedHashMap<>();
         Map<String, Bank> kinds = new HashMap<>();
         int read = 0;
-        for (String key : Vault.pageKeys()) {
+        List<String> keys = new ArrayList<>(Vault.pageKeys());
+        keys.addAll(Vault.bagKeys());
+        for (String key : keys) {
             String id = bankId(key);
-            Bank bank = key.startsWith("acct:") ? Bank.ACCOUNT : Vault.reachable(key) ? Bank.MINE : Bank.OTHER;
+            Bank bank = key.startsWith("acct:") ? Bank.ACCOUNT : Vault.isBag(key) ? Bank.BAG : Vault.reachable(key) ? Bank.MINE : Bank.OTHER;
             kinds.put(id, bank);
             Map<Integer, Item> slots = new HashMap<>();
             List<Vault.Stored> stacks = Vault.page(key);
@@ -194,13 +200,14 @@ final class BankIndex {
         return switch (bank) {
             case ACCOUNT -> L.t("wynnlabs.bank.group_account");
             case MINE -> L.t("wynnlabs.bank.group_mine");
-            case OTHER -> pages.isEmpty() ? L.t("wynnlabs.vault.bank_other_character") : Vault.bankName(pages.get(0).key());
+            case OTHER, BAG -> pages.isEmpty() ? L.t("wynnlabs.vault.bank_other_character") : Vault.bankName(pages.get(0).key());
         };
     }
 
-    /** "acct", or "char:" and the character's id. */
+    /** "acct", or "char:" or "bag:" and the character's id. */
     static String bankId(String key) {
-        return key.startsWith("char:") && key.indexOf(':', 5) > 0 ? key.substring(0, key.indexOf(':', 5)) : "acct";
+        int id = key.indexOf(':') + 1;
+        return !key.startsWith("acct:") && key.indexOf(':', id) > 0 ? key.substring(0, key.indexOf(':', id)) : "acct";
     }
 
     private static Item item(Vault.Stored st, Vault.Group gr, Set<String> sell) {
