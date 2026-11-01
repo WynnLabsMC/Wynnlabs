@@ -212,6 +212,7 @@
   "wynnlabs.auto.box_identify_wear": "Identify it at the Item Identifier (~%s): you could equip %s · %s/%s outcomes fit you",
   "wynnlabs.auto.box_reveal_market": "Reveal it at the Trade Market (~%s), then list it · Expected ~%s",
   "wynnlabs.auto.box_reveal_no_price": "Reveal it at the Trade Market (~%s), then list it · No prices yet",
+  "wynnlabs.auto.box_reveal_some": "Reveal it at the Trade Market (~%s): list it if it turns out to be %s (over your %s minimum), otherwise sell it to the Blacksmith",
   "wynnlabs.auto.box_blacksmith_fee": "Sell it to the Blacksmith: ~%s expected won't cover the ~%s reveal fee",
   "wynnlabs.auto.box_blacksmith_small": "Sell it to the Blacksmith: it only nets ~%s on the Trade Market, under your %s minimum",
   "wynnlabs.auto.box_blacksmith_cheap": "Sell it to the Blacksmith: it's only worth ~%s on the Trade Market, below your %s minimum",

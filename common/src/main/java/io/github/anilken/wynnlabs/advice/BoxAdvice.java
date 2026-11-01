@@ -55,6 +55,9 @@ final class BoxAdvice {
             case UNTRADABLE -> new Advice.Entry(Verdict.SELL, L.t("wynnlabs.auto.sell_untradable", why));
             case REVEAL_MARKET -> AutoAdvice.market(new Advice.Entry(Verdict.SELL, v.expected() == null
                     ? L.t("wynnlabs.auto.box_reveal_no_price", cost) + tail
+                    : !c.above().isEmpty()
+                    ? L.t("wynnlabs.auto.box_reveal_some", cost, String.join(", ", c.above()),
+                            Prices.fmt(SellAdvice.minMarketPrice())) + unpriced(v) + tail
                     : L.t("wynnlabs.auto.box_reveal_market", cost, Prices.fmt(v.expected())) + unpriced(v) + tail),
                     v.net() == null ? Double.NaN : v.net());
             case BLACKSMITH -> new Advice.Entry(Verdict.SELL, v.expected() == null
