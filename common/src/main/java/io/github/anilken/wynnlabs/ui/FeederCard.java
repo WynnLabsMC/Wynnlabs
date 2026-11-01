@@ -159,7 +159,7 @@ final class FeederCard {
             if (src == MountsShop.Source.BAG) {
                 place = L.t("wynnlabs.mounts.place_bag");
             } else if (src == MountsShop.Source.BANK) {
-                place = L.t("wynnlabs.mounts.place_bank");
+                place = MountsModel.kept(next, L.t("wynnlabs.mounts.place_bank"));
             } else {
                 double p = MountsModel.price(next);
                 place = p < 0 ? L.t("wynnlabs.mounts.place_buy") : L.t("wynnlabs.mounts.place_buy_at", MountsText.em(p));

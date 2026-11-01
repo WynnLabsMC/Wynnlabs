@@ -193,7 +193,7 @@ final class MountsNow {
                     Material mat = s.material();
                     int bank = opt.useBank ? MountsModel.inBank(mat) : 0;
                     double price = MountsModel.price(mat);
-                    String note = bank > 0 ? L.t("wynnlabs.mounts.in_bank") : price >= 0 ? L.t("wynnlabs.mounts.buy_at", MountsText.em(price)) : "";
+                    String note = bank > 0 ? MountsModel.kept(mat, L.t("wynnlabs.mounts.in_bank")) : price >= 0 ? L.t("wynnlabs.mounts.buy_at", MountsText.em(price)) : "";
                     String say = L.t(s.swap() ? "wynnlabs.mounts.say_swap" : "wynnlabs.mounts.say_feed", mat.name(), m.name());
                     out.add(new Step(null, mat.name(), mat.name(), L.t("wynnlabs.mounts.lv", mat.level()), note, bank > 0 ? Theme.GOOD : Theme.INK_2,
                             s.durationSec(), say, stats.gainsFrom(mat)));
@@ -406,10 +406,20 @@ final class MountsNow {
             cy += rowH + Theme.SP_2;
         }
         if (!banked.isEmpty() && cy + Type.META.lineHeight <= end) {
-            List<String> names = new ArrayList<>();
-            banked.forEach((k, v) -> names.add(k.name() + " ×" + v));
-            String line = L.t("wynnlabs.mounts.from_bank", String.join(", ", names));
-            Type.META.draw(g, font(), Type.META.fit(font(), line, w), x, cy + Theme.SP_1, Theme.GOOD);
+            // each with where it is: the character holding it is the one to go to
+            Type.META.draw(g, font(), L.t("wynnlabs.mounts.from_bank"), x, cy + Theme.SP_1, Theme.GOOD);
+            int ly = cy + Theme.SP_1 + Type.META.lineHeight;
+            List<Component> tip = new ArrayList<>();
+            int rowsTop = cy;
+            for (var e : banked.entrySet()) {
+                String line = e.getKey().name() + " ×" + e.getValue() + " · " + MountsModel.heldAt(e.getKey());
+                tip.add(Component.literal(line).withStyle(ChatFormatting.GRAY));
+                if (ly + Type.META.lineHeight <= end) {
+                    Type.META.draw(g, font(), Type.META.fit(font(), line, w), x, ly, Theme.INK_2);
+                    ly += Type.META.lineHeight;
+                }
+            }
+            tab.tip(x, rowsTop, w, ly - rowsTop, tip);
         }
     }
 

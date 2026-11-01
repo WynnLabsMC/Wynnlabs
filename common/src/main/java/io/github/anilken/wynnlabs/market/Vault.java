@@ -200,6 +200,16 @@ public final class Vault {
 
     /** One bank stack as stored: its name, count, kind and the rules' verdict right now. */
     private static Stored read(ItemStack stack, String key, long now, String by, int slot) {
+        return read(stack, key, now, by, slot, true);
+    }
+
+    /** One stack of a character's bag, for {@link Bags}: what it is, never a verdict to sell it. */
+    static Stored readBag(ItemStack stack, String key, long now, int slot) {
+        encodeBudget = Integer.MAX_VALUE;       // a bag is read only when it changes
+        return read(stack, key, now, null, slot, false);
+    }
+
+    private static Stored read(ItemStack stack, String key, long now, String by, int slot, boolean judge) {
         var parsed = GameState.current().view(stack);      // Wynntils in the game, the recording in the preview
         String name = nameOf(stack);
         if (name == null) {
@@ -214,8 +224,10 @@ public final class Vault {
                 ? String.join(",", parsed.get().professions()) : "";
         // kept before the Trade Market's order limit: MarketSlots ranks what is kept, and a
         // verdict cut by the limit would never count again
-        Advice.Entry e = AutoAdvice.uncapped(stack);
-        READ_AT.put(stack, key + "#" + slot);
+        Advice.Entry e = judge ? AutoAdvice.uncapped(stack) : null;
+        if (judge) {
+            READ_AT.put(stack, key + "#" + slot);
+        }
         // a box: its type, tier and levels, to tell boxes apart and list what can come out
         ItemView.Box b = parsed.isPresent() && parsed.get().isBox() ? parsed.get().box() : null;
         String box = b != null
@@ -402,14 +414,60 @@ public final class Vault {
     public static List<String> pageKeys() {
         load();
         List<String> keys = new ArrayList<>(PAGES.keySet());
+        keys.removeIf(Vault::isBag);
         keys.sort(java.util.Comparator.comparingInt((String k) -> k.startsWith("acct:") ? 0 : reachable(k) ? 1 : 2)
                 .thenComparing(k -> k.startsWith("char:") ? k.substring(0, k.indexOf(':', 5)) : "")
                 .thenComparingInt(Vault::pageNumber));
         return keys;
     }
 
+    /** Every other character's saved bag; this character's is the live inventory. */
+    public static List<String> bagKeys() {
+        load();
+        List<String> keys = new ArrayList<>();
+        PAGES.keySet().forEach(k -> {
+            if (isBag(k) && !ownBag(k)) {
+                keys.add(k);
+            }
+        });
+        java.util.Collections.sort(keys);
+        return keys;
+    }
+
     /** Between a saved page key's bank and its number: "acct:Account Bank p. 3". */
     private static final String PAGE = " p. ";
+    /** A character's bag, kept like a bank page: "bag:<id>:Inventory p. 1" ({@link Bags}). */
+    private static final String BAG = "bag:";
+
+    static String bagKey(String id) {
+        return BAG + id + ":Inventory" + PAGE + 1;
+    }
+
+    public static boolean isBag(String key) {
+        return key.startsWith(BAG);
+    }
+
+    private static boolean ownBag(String key) {
+        return key.startsWith(BAG + Profile.id() + ":");
+    }
+
+    /** The bags as loaded or read, for {@link Bags} to save. */
+    static Map<String, List<Stored>> bags() {
+        Map<String, List<Stored>> out = new LinkedHashMap<>();
+        PAGES.forEach((k, v) -> {
+            if (isBag(k)) {
+                out.put(k, v);
+            }
+        });
+        return out;
+    }
+
+    /** A character's bag as read now; not written to vault.json, which stays the banks alone. */
+    static void putBag(String key, List<Stored> items) {
+        load();
+        PAGES.put(key, items);
+        version++;
+    }
 
     public static int pageNumber(String key) {
         try {
@@ -427,8 +485,12 @@ public final class Vault {
         if (key.startsWith("char:" + Profile.id() + ":")) {
             return L.t("wynnlabs.vault.bank_character");
         }
-        String id = key.length() > 5 && key.indexOf(':', 5) > 0 ? key.substring(5, key.indexOf(':', 5)) : "";
+        int from = key.indexOf(':') + 1;
+        String id = key.length() > from && key.indexOf(':', from) > 0 ? key.substring(from, key.indexOf(':', from)) : "";
         String cls = classOf(id);
+        if (isBag(key)) {
+            return cls == null ? L.t("wynnlabs.vault.bag_other_character") : L.t("wynnlabs.vault.bag_other", AutoAdvice.nice(cls));
+        }
         return cls == null ? L.t("wynnlabs.vault.bank_other_character")
                 : L.t("wynnlabs.vault.bank_other", AutoAdvice.nice(cls));
     }
@@ -543,13 +605,11 @@ public final class Vault {
     }
 
     public static int count() {
-        load();
-        return PAGES.values().stream().mapToInt(List::size).sum();
+        return pageKeys().stream().mapToInt(k -> PAGES.get(k).size()).sum();
     }
 
     public static int pages() {
-        load();
-        return PAGES.size();
+        return pageKeys().size();
     }
 
     /** True for the account bank and this character's own bank: the ones you can open now. */
@@ -560,7 +620,7 @@ public final class Vault {
     /** "Account p. 3", "Character p. 1", or "Mage bank p. 2" for another character's bank. */
     public static String label(String key) {
         // the key itself keeps " p. N" in every language (saved data); only the shown label changes
-        return key.contains(PAGE) ? L.t("wynnlabs.vault.page_label", bankName(key),
+        return key.contains(PAGE) && !isBag(key) ? L.t("wynnlabs.vault.page_label", bankName(key),
                 key.substring(key.lastIndexOf(PAGE) + PAGE.length())) : bankName(key);
     }
 
@@ -620,7 +680,11 @@ public final class Vault {
             return groupsCache;
         }
         Map<String, List<Stored>> by = new LinkedHashMap<>();
-        PAGES.forEach((k, list) -> list.forEach(s -> by.computeIfAbsent(s.key(), n -> new ArrayList<>()).add(s)));
+        PAGES.forEach((k, list) -> {
+            if (!ownBag(k)) {                   // this character's bag is the live inventory, counted there
+                list.forEach(s -> by.computeIfAbsent(s.key(), n -> new ArrayList<>()).add(s));
+            }
+        });
         List<Group> out = new ArrayList<>();
         by.forEach((n, l) -> {
             l.sort((a, b) -> Boolean.compare(reachable(b.page()), reachable(a.page())));
@@ -887,6 +951,23 @@ public final class Vault {
         return j.has(k) && !j.get(k).isJsonNull() ? j.get(k).getAsString() : null;
     }
 
+    /** One saved page's stacks. */
+    static List<Stored> pageOf(String key, JsonArray saved) {
+        List<Stored> l = new ArrayList<>();
+        saved.forEach(el -> {
+            var j = el.getAsJsonObject();
+            boolean gear = !j.has("gear") || j.get("gear").getAsBoolean();
+            l.add(new Stored(clean(j.get("name").getAsString()), j.get("level").getAsInt(), key,
+                    j.get("seen").getAsLong(), j.has("count") ? j.get("count").getAsInt() : 1, gear,
+                    Objects.requireNonNullElse(str(j, "kind"), gear ? "gear" : "unknown"),
+                    str(j, "verdict") == null ? null : Verdict.of(str(j, "verdict")).name(), str(j, "note"), str(j, "noteLang"),
+                    str(j, "by"), Objects.requireNonNullElse(str(j, "prof"), ""),
+                    j.has("slot") ? j.get("slot").getAsInt() : -1, j.has("item") ? j.get("item").toString() : null,
+                    str(j, "box")));
+        });
+        return l;
+    }
+
     private static void load() {
         if (loaded) {
             return;
@@ -915,21 +996,7 @@ public final class Vault {
                     renamed = true;
                 }
             }
-            o.entrySet().forEach(e -> {
-                List<Stored> l = new ArrayList<>();
-                e.getValue().getAsJsonArray().forEach(el -> {
-                    var j = el.getAsJsonObject();
-                    boolean gear = !j.has("gear") || j.get("gear").getAsBoolean();
-                    l.add(new Stored(clean(j.get("name").getAsString()), j.get("level").getAsInt(), e.getKey(),
-                            j.get("seen").getAsLong(), j.has("count") ? j.get("count").getAsInt() : 1, gear,
-                            Objects.requireNonNullElse(str(j, "kind"), gear ? "gear" : "unknown"),
-                            str(j, "verdict") == null ? null : Verdict.of(str(j, "verdict")).name(), str(j, "note"), str(j, "noteLang"),
-                            str(j, "by"), Objects.requireNonNullElse(str(j, "prof"), ""),
-                            j.has("slot") ? j.get("slot").getAsInt() : -1, j.has("item") ? j.get("item").toString() : null,
-                            str(j, "box")));
-                });
-                PAGES.put(e.getKey(), l);
-            });
+            o.entrySet().forEach(e -> PAGES.put(e.getKey(), pageOf(e.getKey(), e.getValue().getAsJsonArray())));
             Path fix2 = file().resolveSibling("vault-fix-charpage");
             if (!Files.exists(fix2)) {
                 // character banks with one page were saved under the account bank's last page
@@ -941,43 +1008,52 @@ public final class Vault {
             }
         } catch (Exception e) {
             System.out.println("[WynnLabs] could not read vault.json: " + e);
+        } finally {
+            Bags.load(PAGES);
         }
+    }
+
+    /** One page as saved. */
+    static JsonArray savedPage(List<Stored> page) {
+        JsonArray a = new JsonArray();
+        page.forEach(st -> {
+            JsonObject j = new JsonObject();
+            j.addProperty("name", st.name());
+            j.addProperty("level", st.level());
+            j.addProperty("seen", st.seen());
+            j.addProperty("count", st.count());
+            j.addProperty("gear", st.gear());
+            j.addProperty("kind", st.kind());
+            if (st.verdict() != null) {
+                j.addProperty("verdict", st.verdict());
+                j.addProperty("note", st.note());
+                if (st.noteLang() != null) {
+                    j.addProperty("noteLang", st.noteLang());
+                }
+                j.addProperty("by", st.by());
+            }
+            if (st.prof() != null && !st.prof().isEmpty()) {
+                j.addProperty("prof", st.prof());
+            }
+            j.addProperty("slot", st.slot());
+            if (st.box() != null) {
+                j.addProperty("box", st.box());
+            }
+            if (st.item() != null) {
+                j.add("item", JsonParser.parseString(st.item()));
+            }
+            a.add(j);
+        });
+        return a;
     }
 
     private static void save() {
         try {
             JsonObject o = new JsonObject();
             PAGES.forEach((k, v) -> {
-                JsonArray a = new JsonArray();
-                v.forEach(st -> {
-                    JsonObject j = new JsonObject();
-                    j.addProperty("name", st.name());
-                    j.addProperty("level", st.level());
-                    j.addProperty("seen", st.seen());
-                    j.addProperty("count", st.count());
-                    j.addProperty("gear", st.gear());
-                    j.addProperty("kind", st.kind());
-                    if (st.verdict() != null) {
-                        j.addProperty("verdict", st.verdict());
-                        j.addProperty("note", st.note());
-                        if (st.noteLang() != null) {
-                            j.addProperty("noteLang", st.noteLang());
-                        }
-                        j.addProperty("by", st.by());
-                    }
-                    if (st.prof() != null && !st.prof().isEmpty()) {
-                        j.addProperty("prof", st.prof());
-                    }
-                    j.addProperty("slot", st.slot());
-                    if (st.box() != null) {
-                        j.addProperty("box", st.box());
-                    }
-                    if (st.item() != null) {
-                        j.add("item", JsonParser.parseString(st.item()));
-                    }
-                    a.add(j);
-                });
-                o.add(k, a);
+                if (!isBag(k)) {
+                    o.add(k, savedPage(v));
+                }
             });
             Files.createDirectories(file().getParent());
             Files.writeString(file(), o.toString());
@@ -992,6 +1068,9 @@ public final class Vault {
         JsonObject o = new JsonObject();
         JsonObject pages = new JsonObject();
         PAGES.forEach((k, v) -> {
+            if (ownBag(k)) {
+                return;
+            }
             JsonArray a = new JsonArray();
             v.forEach(s -> {
                 JsonObject j = new JsonObject();

@@ -148,6 +148,7 @@ final class BankMenus {
             case ACCOUNT -> "wynnlabs.bank.group_account";
             case MINE -> "wynnlabs.bank.group_mine";
             case OTHER -> "wynnlabs.bank.group_other";
+            case BAG -> "wynnlabs.bank.group_bag";
         });
     }
 

@@ -185,6 +185,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.SellSummary", SellSummary::onTick));
         platform.onEndTick(Perf.tick("tick.XpMeter", XpMeter::onTick));
         platform.onEndTick(Perf.tick("tick.Vault", Vault::onTick));
+        platform.onEndTick(Perf.tick("tick.Bags", io.github.anilken.wynnlabs.market.Bags::onTick));
         platform.onEndTick(Perf.tick("tick.MountBook", io.github.anilken.wynnlabs.mounts.MountBook::onTick));
         // the mount panel's ridden mount, and its refresh (only with the panel and its refresh on)
         platform.onEndTick(Perf.tick("tick.RideWatch", io.github.anilken.wynnlabs.mounts.RideWatch::onTick));
