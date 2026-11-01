@@ -434,8 +434,12 @@ public final class Prices {
      */
     public static String text(String name, boolean unidentified) {
         Price p = GameState.current().price(name);
-        if (p == null) {
+        if (p == null || System.currentTimeMillis() - p.seen() >= MAX_AGE) {
+            // none, or older than an hour (a saved one can be days old): ask again, the old
+            // one shown meanwhile; request() itself skips what is fresh or was just asked
             GameState.current().requestPrices(java.util.List.of(name));
+        }
+        if (p == null) {
             return null;
         }
         Double low = unidentified && p.unidTypical() != null ? p.unidTypical() : p.typical();
