@@ -215,6 +215,34 @@ public final class MenuWatcher {
         }
     }
 
+    /**
+     * With a loot chest (a lootrun or flying chest too) open, asks for the prices of every
+     * piece its boxes can hold, so they are priced before the player hovers them; the request
+     * itself skips what is fresh or already asked.
+     */
+    private static void priceChestBoxes(AbstractContainerScreen<?> screen, Minecraft mc) {
+        io.github.anilken.wynnlabs.model.MenuKind menu = Wyn.container();
+        if (menu == null || menu.type() == null || !menu.type().contains("Chest")) {
+            return;
+        }
+        List<String> names = new ArrayList<>();
+        GameState state = GameState.current();
+        for (Slot slot : screen.getMenu().slots) {
+            if (slot.container == mc.player.getInventory() || slot.getItem().isEmpty()) {
+                continue;
+            }
+            Optional<ItemView> item = state.view(slot.getItem());
+            if (item.isPresent() && item.get().isBox() && item.get().box() != null) {
+                for (var info : state.possibleGears(item.get().box())) {
+                    names.add(info.name());
+                }
+            }
+        }
+        if (!names.isEmpty()) {
+            state.requestPrices(names);
+        }
+    }
+
     public static void onTick(Minecraft mc) {
         if (++tick % 40 == 0) {
             try {
@@ -241,6 +269,11 @@ public final class MenuWatcher {
         }
         try {
             TomeMemory.capture();               // the equipped tomes, when the Mastery Tomes menu is open
+        } catch (Throwable ignored) {
+            // reading a menu must never break the game
+        }
+        try {
+            priceChestBoxes(screen, mc);        // a loot chest's boxes are priced without hovering them
         } catch (Throwable ignored) {
             // reading a menu must never break the game
         }
