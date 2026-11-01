@@ -152,6 +152,14 @@ public final class FixtureState implements GameState {
         return out;
     }
 
+    /** A new stack named {@code name} that reads as {@code view}: a made-up item for a test. */
+    public ItemStack stackOf(String name, ItemView view) {
+        ItemStack s = new ItemStack(Items.PAPER);
+        s.set(DataComponents.CUSTOM_NAME, Component.literal(name));
+        views.put(s, view);
+        return s;
+    }
+
     public List<BankItem> bank() {
         return bank;
     }

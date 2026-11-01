@@ -106,6 +106,8 @@ final class SettingsRows {
                 p.row("switch", "sellSummary");
                 p.head("wynnlabs.settings.sec_tooltip");
                 p.row("multi", "extras");
+                p.row("switch", "gearCompactTooltip");
+                p.row("switch", "boxCompactTooltip");
                 p.row("step", "menuTooltipScale");
                 p.head("wynnlabs.settings.sec_bag");
                 p.row("multi", "slotGlow");
@@ -162,7 +164,6 @@ final class SettingsRows {
                 p.head("wynnlabs.settings.sec_in_tooltips");
                 p.row("switch", "tooltipPrice");
                 p.row("switch", "boxPrices");
-                p.row("switch", "boxCompactTooltip");
                 p.head("wynnlabs.settings.sec_live");
                 p.row("switch", "priceApi");
                 p.child("keynote", "key", "priceApi");

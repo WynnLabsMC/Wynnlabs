@@ -26,6 +26,7 @@ import com.wynntils.models.raid.type.RaidInfo;
 import com.wynntils.models.spells.event.SpellEvent;
 import com.wynntils.models.spells.type.SpellFailureReason;
 import io.github.anilken.wynnlabs.advice.BoxTooltip;
+import io.github.anilken.wynnlabs.advice.GearTooltip;
 import io.github.anilken.wynnlabs.advice.TooltipListener;
 import io.github.anilken.wynnlabs.coach.Coach;
 import io.github.anilken.wynnlabs.core.Perf;
@@ -90,7 +91,8 @@ public final class WynntilsEvents {
 
     /**
      * Advice and prices under the final tooltip: lowest priority, so they go under everything else.
-     * An unidentified box shows its short tooltip instead ({@link BoxTooltip}): this one is
+     * An unidentified box or an identified gear piece shows its short tooltip instead
+     * ({@link BoxTooltip}, {@link GearTooltip}): this one is
      * cancelled and the short one is drawn in its place, the way the game draws tooltips.
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -98,15 +100,18 @@ public final class WynntilsEvents {
         long t = Perf.start();
         try {
             List<ClientTooltipComponent> compact = BoxTooltip.compact(event.getItemStack(), event.getTooltips());
+            if (compact == null) {
+                compact = GearTooltip.compact(event.getItemStack(), event.getTooltips());
+            }
             if (compact != null) {
                 TooltipRows.show(event.getGuiGraphics(), Minecraft.getInstance().font, compact,
-                        event.getMouseX(), event.getMouseY());
+                        event.getMouseX(), event.getMouseY(), event.getItemStack());
                 event.setCanceled(true);
                 Perf.end("tooltip.wynntils", t);
                 return;
             }
         } catch (Throwable ignored) {
-            // the short box tooltip failed: the full one below
+            // the short tooltip failed: the full one below
         }
         try {
             List<Component> out = TooltipListener.onTooltip(event.getItemStack(), event.getTooltips());
