@@ -37,6 +37,6 @@ class AiStepsTest {
             assertEquals(true, e.write() || AiLink.GROUPS.contains(e.group()), e.path());
         }
         assertEquals(3, AiLink.ENDPOINTS.stream().filter(AiLink.Endpoint::write).count());
-        assertEquals(26, AiLink.ENDPOINTS.stream().filter(e -> !e.write()).count(), "the 20 read routes before and the 9 missing, less the 3 writes");
+        assertEquals(27, AiLink.ENDPOINTS.stream().filter(e -> !e.write()).count(), "the 20 read routes before and the 9 missing, less the 3 writes, plus /prices/history");
     }
 }

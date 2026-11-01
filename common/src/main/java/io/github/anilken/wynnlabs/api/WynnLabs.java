@@ -634,6 +634,15 @@ public final class WynnLabs {
                 case "/grind" -> send(ex, 200, onGameThread(Grind::json));
                 case "/discoveries" -> send(ex, 200, onGameThread(Discoveries::json));
                 case "/prices" -> send(ex, 200, Prices.json());
+                case "/prices/history" -> {
+                    // ?item=Idol: the daily prices Wynnventory keeps; {"status":"pending"} while being asked
+                    String item = java.net.URLDecoder.decode(query(ex).getOrDefault("item", ""), java.nio.charset.StandardCharsets.UTF_8).strip();
+                    if (item.isEmpty()) {
+                        send(ex, 400, error("add ?item=<item name>"));
+                    } else {
+                        send(ex, 200, io.github.anilken.wynnlabs.market.History.json(item));
+                    }
+                }
                 case "/build" -> send(ex, 200, Build.json());
                 case "/damage" -> send(ex, 200, onGameThread(DamageReport::json));
                 case "/settings" -> send(ex, 200, Settings.json());

@@ -1,6 +1,7 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
+import io.github.anilken.wynnlabs.market.History;
 import io.github.anilken.wynnlabs.market.Listings;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.search.BoxMarket;
@@ -52,6 +53,9 @@ final class BoxListingsPanel {
     private int listHeight;
     private int rowX;
     private int rowW;
+    /** The item whose price history was asked for (once per item shown), and whether its chart is open over the rows. */
+    private String historyFor;
+    boolean chartOpen;
 
     BoxListingsPanel(BoxScreen s) {
         this.s = s;
@@ -75,6 +79,14 @@ final class BoxListingsPanel {
             shownFor = key;
             reset();
         }
+        if (!r.name().equals(historyFor)) {
+            // the shown item's price history: asked once when it is shown, never per frame
+            historyFor = r.name();
+            chartOpen = false;
+            if (r.item().tradable()) {
+                History.request(r.name());
+            }
+        }
         boolean plain = !s.rolled();
         BoxChips.use(r.name());
         int top = y;
@@ -86,6 +98,8 @@ final class BoxListingsPanel {
             empty(g, r, x, top, w, y + h - top, mx, my);
             return;
         }
+        // the "N more" button stays under the list: the chart leaves room for it and one row
+        top = historyStrip(g, r, x, top, w, y + h - (r.hasMore() ? Theme.SP_3 + Ui.CHIP_H : 0), mx, my);
         if (plain) {
             BoxPlainRows.header(s, g, x, top, w - ScrollBar.W - Theme.SP_3);
             top += BoxPlainRows.HEAD;
@@ -154,6 +168,36 @@ final class BoxListingsPanel {
         int hy = y + Type.LABEL.lineHeight + Theme.SP_1;
         Kit.hair(g, x, hy, right + Theme.SP_2 - x, 1, Theme.LINE);
         return hy + 1 + Theme.SP_3;
+    }
+
+    /**
+     * The price history strip over the rows, and its chart under it while open; returns where the
+     * rows start. Nothing while no history is held for the item.
+     */
+    private int historyStrip(GuiGraphics g, BoxMarket.Row r, int x, int top, int w, int bottom, int mx, int my) {
+        History.Series hs = History.of(r.name());
+        if (hs == null || !hs.drawable()) {
+            return top;
+        }
+        int sx = x + Theme.SP_3;
+        int sw = w - ScrollBar.W - Theme.SP_3 - Theme.SP_3 - Theme.SP_2;
+        top += BoxHistory.strip(s, g, hs, chartOpen, sx, top, sw, mx, my, () -> chartOpen = !chartOpen) + Theme.SP_2;
+        if (chartOpen) {
+            // the chart and its numbers take what they need; the rows scroll in what is left. When
+            // not even one row would stay in view: the numbers go, then the chart shrinks (to 28),
+            // then it goes too
+            int cells = BoxHistory.cellsHeight(sw) + Theme.SP_3;
+            int room = bottom - top - (LINE + gap()) - Theme.SP_1 - BoxHistory.chartExtra() - Theme.SP_3;
+            boolean withCells = room - cells >= 28;
+            int chartH = Math.min(s.compact ? 48 : 64, withCells ? room - cells : room);
+            if (chartH >= 28) {
+                top = BoxHistory.chart(s, g, hs, sx, top + Theme.SP_1, sw, chartH) + Theme.SP_3;
+                if (withCells) {
+                    top = BoxHistory.cells(s, g, hs, sx, top, sw) + Theme.SP_3;
+                }
+            }
+        }
+        return top;
     }
 
     /** Every row's top from the list's top; the open row is taller and has SP_2 more around it. */
@@ -344,6 +388,8 @@ final class BoxListingsPanel {
         } else if (r.state() == BoxMarket.State.UNTRADABLE) {
             icon = "tag";
             title = L.t("wynnlabs.box.untradable");
+        } else if (historyEmpty(g, r, x, y, w, h, mx, my)) {
+            return;
         } else {
             icon = "tag";
             title = L.t("wynnlabs.box.none_title");
@@ -357,6 +403,81 @@ final class BoxListingsPanel {
         }
         String note = r.pastPrice() != null && Listings.live() ? L.t("wynnlabs.box.last_price", "~" + Prices.fmt(r.pastPrice())) : null;
         paneEmpty(g, icon, title, note, steps, action != null, x, y, w, h, mx, my);
+    }
+
+    /**
+     * No listing now but a price history is held: its title, the chart, the four numbers, "No
+     * listings right now", the steps while they fit and Refresh. False (nothing drawn) without one.
+     */
+    private boolean historyEmpty(GuiGraphics g, BoxMarket.Row r, int x, int y, int w, int h, int mx, int my) {
+        History.Series hs = History.of(r.name());
+        if (hs == null || !hs.drawable()) {
+            return false;
+        }
+        int cx = x + Theme.SP_3;
+        int cw = w - ScrollBar.W - Theme.SP_3 - Theme.SP_3 - Theme.SP_2;
+        boolean refresh = s.canRefresh();
+        List<String> steps = new ArrayList<>();
+        steps.add(L.t("wynnlabs.box.none_step1"));
+        if (s.box != null) {
+            steps.add(L.t("wynnlabs.box.none_step2"));
+        }
+        // always shown: the title, the numbers and Refresh; then, while they fit, the chart at full
+        // height, the "no listings" line and the steps. Dropped in this order: the steps, the line,
+        // the chart's height down to 28, the chart.
+        int pref = s.compact ? 60 : 84;
+        int base = Theme.SP_4 + Type.LABEL.lineHeight + Theme.SP_3 + BoxHistory.cellsHeight(cw)
+                + (refresh ? Theme.SP_3 + Ui.SMALL_H : 0) + Theme.SP_2;
+        int chartFixed = BoxHistory.chartExtra() + Theme.SP_4;
+        int noneH = Theme.SP_4 + Type.META.lineHeight;
+        boolean showNone = true;
+        int avail = h - base - chartFixed - noneH - stepsHeight(steps.size());
+        while (!steps.isEmpty() && avail < pref) {
+            steps.remove(steps.size() - 1);
+            avail = h - base - chartFixed - noneH - stepsHeight(steps.size());
+        }
+        if (avail < pref) {
+            showNone = false;
+            avail = h - base - chartFixed;
+        }
+        int chartH = Math.min(pref, avail);
+        g.enableScissor(x - Theme.SP_1, y, x + w, y + h);
+        int cy = y + Theme.SP_4;
+        Type.LABEL.draw(g, s.font(), Type.LABEL.fit(s.font(), L.t("wynnlabs.box.history_title", History.DAYS), cw), cx, cy, Theme.INK);
+        cy += Type.LABEL.lineHeight + Theme.SP_3;
+        if (chartH >= 28) {
+            cy = BoxHistory.chart(s, g, hs, cx, cy, cw, chartH) + Theme.SP_4;
+        }
+        cy = BoxHistory.cells(s, g, hs, cx, cy, cw);
+        int mid = cx + cw / 2;
+        if (showNone) {
+            cy += Theme.SP_4;
+            String none = Type.META.fit(s.font(), L.t("wynnlabs.box.history_none"), cw);
+            Type.META.draw(g, s.font(), none, mid - Type.META.width(s.font(), none) / 2, cy, Theme.INK_2);
+            cy += Type.META.lineHeight;
+        }
+        if (!steps.isEmpty()) {
+            cy += Theme.SP_1;
+            for (int i = 0; i < steps.size(); i++) {
+                String st = Type.META.fit(s.font(), (steps.size() > 1 ? (i + 1) + "  " : "") + steps.get(i), cw);
+                Type.META.draw(g, s.font(), st, mid - Type.META.width(s.font(), st) / 2, cy, Theme.INK_3);
+                cy += Type.META.lineHeight + Theme.SP_1;
+            }
+        }
+        if (refresh && cy + Theme.SP_3 + Ui.SMALL_H <= y + h) {
+            // never drawn cut off at the pane's bottom
+            cy += Theme.SP_3;
+            String label = L.t("wynnlabs.box.refresh");
+            int bw = Type.BODY.width(s.font(), label) + 2 * Theme.SP_4;
+            Ui.small(g, s.font(), label, mid - bw / 2, cy, bw, mx, my);
+            s.hit(mid - bw / 2, cy, bw, Ui.SMALL_H, s::refresh);
+        }
+        g.disableScissor();
+        return true;
+    }
+
+    private static int stepsHeight(int n) {
+        return n == 0 ? 0 : Theme.SP_1 + n * (Type.META.lineHeight + Theme.SP_1);
     }
 
     /**

@@ -791,6 +791,71 @@ public final class Prices {
         return true;
     }
 
+    /**
+     * The gate for price history ({@link History}): the same opt-in as live listings (the
+     * Wynnventory mod installed, {@code priceApi} on), but no key, since that route needs none.
+     */
+    static boolean historyReady() {
+        return installed() && Settings.on("priceApi");
+    }
+
+    /**
+     * For the box window ({@link History}): one item's daily price history on the listings worker
+     * with the same one-per-second pace. True when it will be fetched: queued now, or already waiting.
+     */
+    static boolean queueHistory(String name) {
+        if (!historyReady()) {
+            return false;
+        }
+        String token = "H:" + name;
+        if (!QUEUED.add(token)) {
+            return true;
+        }
+        LISTINGS_PENDING.incrementAndGet();
+        LISTINGS_FETCHER.submit(() -> {
+            try {
+                fetchHistory(name);
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                System.out.println("[WynnLabs] price history of " + name + " failed: " + e.getClass().getSimpleName());
+            } finally {
+                QUEUED.remove(token);
+                LISTINGS_PENDING.decrementAndGet();
+            }
+        });
+        return true;
+    }
+
+    /**
+     * Wynnventory's /api/trademarket/history for one item: 404 is an answer (no history), a rate
+     * limit, a server error or a timeout is none, and the item is asked again later.
+     */
+    private static void fetchHistory(String name) throws Exception {
+        boolean ok = false;
+        try {
+            String q = java.net.URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
+            var req = java.net.http.HttpRequest.newBuilder(
+                            java.net.URI.create("https://www.wynnventory.com/api/trademarket/history/" + q + "?days=" + History.DAYS))
+                    .timeout(java.time.Duration.ofSeconds(20))
+                    .GET().build();
+            var res = HTTP.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() == 404) {
+                History.accept(name, new JsonArray());
+                ok = true;
+            } else if (res.statusCode() == 200) {
+                var body = GSON.fromJson(res.body(), com.google.gson.JsonElement.class);
+                if (body != null && body.isJsonArray()) {
+                    History.accept(name, body.getAsJsonArray());
+                    ok = true;
+                }
+            }
+        } finally {
+            if (!ok) {
+                History.failed(name, System.currentTimeMillis());
+            }
+        }
+    }
+
     /** When a listing was seen, in epoch millis; 0 when unknown. */
     static long seenAt(JsonObject l) {
         try {

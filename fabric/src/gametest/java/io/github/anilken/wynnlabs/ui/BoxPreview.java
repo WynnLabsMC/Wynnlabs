@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
 import io.github.anilken.wynnlabs.game.Wyn;
+import io.github.anilken.wynnlabs.market.History;
 import io.github.anilken.wynnlabs.market.Listings;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Klass;
@@ -64,6 +65,7 @@ public class BoxPreview implements FabricClientGameTest {
                 canned("Atoll", 1, "listings-atoll-p1.json");
                 canned("Canopy", 1, "listings-canopy.json");
                 live(false);
+                historyQuiet();
             });
             ctx.waitFor(mc -> !"loading".equals(io.github.anilken.wynnlabs.search.ItemIndex.get().missing()), 20 * 60);
             ItemView.Box box = new ItemView.Box(Slot.LEGGINGS, Tier.UNIQUE, 66, 70);
@@ -91,6 +93,23 @@ public class BoxPreview implements FabricClientGameTest {
             });
             ctx.waitTicks(3);
             shot(ctx, out, "box-window-none");
+            // no listing now, but the daily prices Wynnventory keeps: the chart instead of the empty state
+            ctx.runOnClient(mc -> cannedHistory("Flame Beaters"));
+            ctx.waitTicks(3);
+            shot(ctx, out, "box-window-none-history");
+            ctx.runOnClient(mc -> {
+                cannedHistory("Atoll");
+                ((BoxScreen) mc.screen).selected = "Atoll";
+            });
+            ctx.waitTicks(3);
+            shot(ctx, out, "box-window-history-strip");
+            ctx.runOnClient(mc -> ((BoxScreen) mc.screen).right.chartOpen = true);
+            ctx.waitTicks(3);
+            shot(ctx, out, "box-window-history-chart");
+            ctx.runOnClient(mc -> {
+                ((BoxScreen) mc.screen).right.chartOpen = false;
+                clearHistory();                         // the shots after these stay as they were
+            });
             ctx.runOnClient(mc -> ((BoxScreen) mc.screen).selected = "Ironclad");
             ctx.waitTicks(3);
             shot(ctx, out, "box-window-loading");
@@ -274,6 +293,52 @@ public class BoxPreview implements FabricClientGameTest {
         if (!opened.startsWith("search tab true, query 'Atoll'") || !"BoxScreen".equals(back)) {
             throw new AssertionError("Ara'da aç: " + opened + " / Esc: " + back);
         }
+    }
+
+    /** The recorded Idol history (read on Oct 31, 2026) as {@code name}'s, put in the store; never saved. */
+    private static void cannedHistory(String name) {
+        try {
+            String text = Files.readString(Fixtures.root().resolve("wynnventory").resolve("history-idol.json"), StandardCharsets.UTF_8);
+            Method parse = History.class.getDeclaredMethod("parse", String.class, com.google.gson.JsonArray.class);
+            parse.setAccessible(true);
+            History.Series s = (History.Series) parse.invoke(null, "Idol", new Gson().fromJson(text, com.google.gson.JsonArray.class));
+            Method put = History.class.getDeclaredMethod("put", String.class, History.Series.class);
+            put.setAccessible(true);
+            put.invoke(null, name, new History.Series(s.days(), java.time.Instant.parse("2026-10-31T12:00:00Z").toEpochMilli()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /** Nothing held, and history.json not read. */
+    private static void clearHistory() {
+        try {
+            Method m = History.class.getDeclaredMethod("clear");
+            m.setAccessible(true);
+            m.invoke(null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /** Price history is never asked for in the previews: a sender that is never live, and an empty store. */
+    private static void historyQuiet() {
+        try {
+            Field f = History.class.getDeclaredField("sender");
+            f.setAccessible(true);
+            Class<?> type = f.getType();
+            Object sender = Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
+                    (proxy, method, args) -> switch (method.getName()) {
+                        case "live", "queue" -> false;
+                        case "hashCode" -> 0;
+                        case "equals" -> proxy == args[0];
+                        default -> "preview";
+                    });
+            f.set(null, sender);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        clearHistory();
     }
 
     /** An answer with no listing in it: the item is not on the market now. */
