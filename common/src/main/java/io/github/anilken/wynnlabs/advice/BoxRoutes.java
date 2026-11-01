@@ -53,7 +53,16 @@ final class BoxRoutes {
     record Value(int outcomes, int priced, Double expected, int costLow, int costHigh, double cost,
             List<String> unpriced, Double net) {}
 
-    record Choice(Route route, Value value, String wearable) {}
+    /**
+     * {@code above}: when only some priced outcomes reach the player's Trade Market minimum, the
+     * ones that do (the rest go to the Blacksmith once revealed); empty when all or none do.
+     */
+    record Choice(Route route, Value value, String wearable, List<String> above) {
+
+        Choice(Route route, Value value, String wearable) {
+            this(route, value, wearable, List.of());
+        }
+    }
 
     static Value value(List<Outcome> outcomes, double taxPercent) {
         int priced = 0;
@@ -90,9 +99,11 @@ final class BoxRoutes {
     /**
      * The way to go: the Item Identifier when you would wear an outcome; the Blacksmith when
      * nothing in it trades; else the Trade Market when revealing and listing leaves at least
-     * {@code minProfit} emeralds over the fee and its expected price reaches {@code minPrice} (the
-     * player's "sell on the Trade Market from"), the Blacksmith otherwise. Without any price,
-     * {@code valuable} (a tier that sells well) picks the Trade Market, else the Blacksmith.
+     * {@code minProfit} emeralds over the fee, counting only the outcomes whose price reaches
+     * {@code minPrice} (the player's "sell on the Trade Market from"; the others fetch nothing
+     * there, the Blacksmith takes them), the Blacksmith otherwise. One 4 LE outcome among six
+     * cheap ones still pays for a 55 E reveal. Without any price, {@code valuable} (a tier that
+     * sells well) picks the Trade Market, else the Blacksmith.
      */
     static Choice choose(List<Outcome> outcomes, double taxPercent, double minProfit, boolean valuable) {
         return choose(outcomes, taxPercent, minProfit, 0, valuable);
@@ -117,7 +128,26 @@ final class BoxRoutes {
         if (v.net() == null) {
             return new Choice(valuable ? Route.REVEAL_MARKET : Route.BLACKSMITH, v, null);
         }
-        return new Choice(v.net() >= minProfit && v.expected() >= minPrice ? Route.REVEAL_MARKET : Route.BLACKSMITH, v, null);
+        // only the outcomes that clear the minimum sell on the market; the rest are worth 0 there
+        List<String> above = new ArrayList<>();
+        double sum = 0;
+        boolean below = false;
+        for (Outcome o : outcomes) {
+            if (!o.tradable() || o.price() == null) {
+                continue;
+            }
+            if (o.price() >= minPrice) {
+                above.add(o.name());
+                sum += o.price();
+            } else {
+                below = true;
+            }
+        }
+        double net = sum / v.priced() * (1 - taxPercent / 100.0) - v.cost();
+        if (net < minProfit) {
+            return new Choice(Route.BLACKSMITH, v, null);
+        }
+        return new Choice(Route.REVEAL_MARKET, v, null, below ? List.copyOf(above) : List.of());
     }
 
     /** "76 E", or "76-79 E" when the fee depends on which level the item inside is. */

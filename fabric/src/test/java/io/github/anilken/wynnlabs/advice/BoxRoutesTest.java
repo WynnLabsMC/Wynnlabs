@@ -92,6 +92,25 @@ class BoxRoutesTest {
     }
 
     @Test
+    void oneOutcomeOverTheMinimumStillPaysForTheReveal() {
+        // the Lv. 101-105 unique spear from the player's screenshot: six cheap outcomes and
+        // Worthless Heirloom at 4.1 LE, with "sell on the Trade Market from" at 2 LE. The mean
+        // (~1.1 LE) is under the minimum, but a 55 E reveal buys a 1-in-7 shot at 4.1 LE
+        List<BoxRoutes.Outcome> outs = List.of(
+                o("Violent Spark", 54, 49.0 * 64), o("Imagination", 55, 42.0 * 64),
+                o("Sinistra Lance", 55, 11.0 * 64), o("Buried Glory", 55, 8.0 * 64),
+                o("Stalwart Peacekeeper", 55, 33.0 * 64), o("Susurrus", 55, 1.5 * 4096),
+                o("Worthless Heirloom", 55, 4.1 * 4096));
+        BoxRoutes.Choice c = BoxRoutes.choose(outs, FEE, MIN_PROFIT, 2 * 4096, false);
+        assertEquals(BoxRoutes.Route.REVEAL_MARKET, c.route());
+        assertEquals(List.of("Worthless Heirloom"), c.above());
+        // with the minimum at 0 every outcome sells there: nothing to single out
+        assertTrue(BoxRoutes.choose(outs, FEE, MIN_PROFIT, false).above().isEmpty());
+        // a minimum nothing reaches: the Blacksmith, as before
+        assertEquals(BoxRoutes.Route.BLACKSMITH, BoxRoutes.choose(outs, FEE, MIN_PROFIT, 5 * 4096, false).route());
+    }
+
+    @Test
     void aWearableOutcomeGoesToTheItemIdentifier() {
         List<BoxRoutes.Outcome> outs = new java.util.ArrayList<>(rareChest());
         outs.set(3, new BoxRoutes.Outcome("Masochist", 77, 46.0 * 64, true, true));
