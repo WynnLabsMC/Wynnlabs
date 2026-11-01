@@ -400,12 +400,26 @@ public final class Prices {
 
     // ---- direct lookups with the player's own Wynnventory key -----------------------------
 
+    /** The most price lookups in flight at once: one as a rule, {@code rules.chestPriceThreads} (5) with a loot chest open. */
+    private static final int MAX_LANES = 8;
     private static final java.util.concurrent.ExecutorService FETCHER =
-            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            java.util.concurrent.Executors.newFixedThreadPool(MAX_LANES, r -> {
                 Thread t = new Thread(r, "wynninv-prices");
                 t.setDaemon(true);
                 return t;
             });
+    private static final java.util.concurrent.atomic.AtomicInteger IN_FLIGHT = new java.util.concurrent.atomic.AtomicInteger();
+    private static volatile int lanes = 1;
+
+    /**
+     * How many lookups may run side by side now: one, or the rule's count while a loot chest
+     * (a lootrun or flying chest too) is open, so the boxes in it are priced before it closes.
+     */
+    private static int lanes() {
+        io.github.anilken.wynnlabs.model.MenuKind menu = io.github.anilken.wynnlabs.game.Wyn.container();
+        boolean chest = menu != null && menu.type() != null && menu.type().contains("Chest");
+        return chest ? Math.max(1, Math.min(MAX_LANES, (int) Rules.num("chestPriceThreads", 5))) : 1;
+    }
     /**
      * The market window's listing requests: their own worker, so a window the player has open
      * never waits behind the bag's background price lookups; those wait while any is pending.
@@ -434,8 +448,12 @@ public final class Prices {
      */
     public static String text(String name, boolean unidentified) {
         Price p = GameState.current().price(name);
-        if (p == null) {
+        if (p == null || System.currentTimeMillis() - p.seen() >= MAX_AGE) {
+            // none, or older than an hour (a saved one can be days old): ask again, the old
+            // one shown meanwhile; request() itself skips what is fresh or was just asked
             GameState.current().requestPrices(java.util.List.of(name));
+        }
+        if (p == null) {
             return null;
         }
         Double low = unidentified && p.unidTypical() != null ? p.unidTypical() : p.typical();
@@ -617,6 +635,7 @@ public final class Prices {
             load();
         }
         long now = System.currentTimeMillis();
+        lanes = lanes();
         for (String name : names) {
             Price p = PRICES.get(name);
             Long missed = MISSES.get(name);
@@ -625,19 +644,38 @@ public final class Prices {
                 continue;
             }
             FETCHER.submit(() -> {
+                boolean running = false;
                 try {
-                    // the window's listings go first: one request a second in all
-                    while (LISTINGS_PENDING.get() > 0) {
-                        Thread.sleep(250);
+                    // the window's listings go first; then one request a second per lane
+                    while (LISTINGS_PENDING.get() > 0 || !enter()) {
+                        Thread.sleep(100);
                     }
+                    running = true;
                     fetch(name, k, 1);
                     Thread.sleep(1000);
                 } catch (Exception e) {
                     System.out.println("[WynnLabs] price of " + name + " failed: " + e);
                 } finally {
                     QUEUED.remove(name);
+                    if (running) {
+                        IN_FLIGHT.decrementAndGet();
+                    }
                 }
             });
+        }
+    }
+
+    /** Takes a lane when one is free under the current count; false to wait. */
+    private static boolean enter() {
+        int limit = lanes;
+        while (true) {
+            int n = IN_FLIGHT.get();
+            if (n >= limit) {
+                return false;
+            }
+            if (IN_FLIGHT.compareAndSet(n, n + 1)) {
+                return true;
+            }
         }
     }
 

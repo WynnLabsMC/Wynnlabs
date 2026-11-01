@@ -65,6 +65,7 @@ public final class Rules {
               },
               "rerollBelowPercent": 30,
               "boxListingsMinutes": 5,
+              "chestPriceThreads": 5,
               "boxHighRoll": 80,
               "roadmap": {"targets": [], "targetNote": "topluluk önerisi", "keepBonusPercent": 1},
               "model": {

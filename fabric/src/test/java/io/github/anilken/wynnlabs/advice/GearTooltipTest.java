@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
+import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Roll;
 import io.github.anilken.wynnlabs.model.SkillKind;
@@ -137,6 +138,39 @@ class GearTooltipTest {
     }
 
     @Test
+    void aMenuPickHasNoVerdictAndIsNotCalledUnidentifiedItsLinesFollowTheFooter() {
+        ItemStack stack = gear("Warsong");
+        ItemData data = state.view(stack).orElseThrow().data();
+        List<Component> extra = List.of(Component.literal("From: mob drop"), Component.empty(),
+                Component.literal("+2.7% over your current gear"));
+        List<TipRow> rows = GearTooltip.rows(stack, data, null, List.of(), extra);
+        assertEquals("Legendary · Ring · Lv 33", ((TipRow.Header) rows.get(0)).sub().getString());
+        assertTrue(all(rows, TipRow.Band.class).isEmpty());
+        assertTrue(all(rows, TipRow.Centred.class).isEmpty());
+        List<TipRow.Text> texts = all(rows, TipRow.Text.class);
+        assertEquals("From: mob drop", texts.get(texts.size() - 2).left().getString());
+        assertEquals("+2.7% over your current gear", texts.get(texts.size() - 1).left().getString());
+        assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(texts.get(texts.size() - 2)) - 1));
+    }
+
+    @Test
+    void aTradeMarketListingKeepsItsPriceBlock() {
+        ItemStack stack = gear("Heavensent");
+        Component head = Component.literal(" Price").withStyle(ChatFormatting.GOLD);
+        Component one = Component.literal("371,261² (1stx 28.84LE)").withStyle(ChatFormatting.WHITE);
+        List<Component> lines = List.of(stack.getHoverName(), Component.empty(), head, one,
+                Component.literal("Left-Click to Buy").withStyle(ChatFormatting.GREEN));
+        List<TipRow> rows = GearTooltip.rows(stack, lines, false);
+        List<TipRow.Text> texts = all(rows, TipRow.Text.class);
+        int at = texts.indexOf(new TipRow.Text(head, null));
+        assertTrue(at >= 0, "the Price: line");
+        assertEquals(one, texts.get(at + 1).left());
+        assertTrue(texts.stream().noneMatch(t -> t.left().getString().equals("Left-Click to Buy")));
+        assertEquals(List.of(head, one), BoxTooltip.listing(lines));
+        assertEquals(List.of(), BoxTooltip.listing(List.of(stack.getHoverName())));
+    }
+
+    @Test
     void aWeaponShowsRerollsClassDamageAndPowderSlots() {
         ItemStack stack = gear("Heavensent");
         List<Component> lines = List.of(stack.getHoverName(),
@@ -161,8 +195,13 @@ class GearTooltipTest {
                 .filter(t -> t.left().getString().startsWith("⚔")).findFirst().orElseThrow());
         assertEquals("⚔ 270 DPS · Fast (2.5 hits/s)", ((TipRow.Text) rows.get(dps)).left().getString());
         assertEquals("❉ 48–60  ❋ 48–60", ((TipRow.Text) rows.get(dps + 1)).left().getString());
+        // a rule under the header and one under the base stats
+        assertInstanceOf(TipRow.Separator.class, rows.get(dps - 1));
+        assertInstanceOf(TipRow.Separator.class, rows.get(dps + 2));
+        TipRow.Chips reqs = all(rows, TipRow.Chips.class).get(0);
         assertEquals(List.of("Lv 42 ✓", "Shaman ✓", "Int 17 ✓", "Agi 17 ✓"),
-                all(rows, TipRow.Chips.class).get(0).chips().stream().map(TipRow.Chip::text).toList());
+                reqs.chips().stream().map(TipRow.Chip::text).toList());
+        assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(reqs) - 1));
 
         List<TipRow.Pair> footer = all(rows, TipRow.Pair.class);
         assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(footer.get(0)) - 1));

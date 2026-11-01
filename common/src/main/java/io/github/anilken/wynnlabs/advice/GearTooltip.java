@@ -111,12 +111,19 @@ public final class GearTooltip {
             List<Component> extra) {
         List<TipRow> rows = new ArrayList<>();
 
-        rows.add(header(stack, data, rolled));
-        TipRow.Band band = band(stack);
+        // a menu pick (extra lines) is not a piece in hand: no verdict, not "unidentified"
+        boolean pick = extra != null;
+        rows.add(header(stack, data, rolled, pick));
+        TipRow.Band band = pick ? null : band(stack);
         if (band != null) {
             rows.add(band);
         }
-        rows.addAll(base(data));
+        rows.add(new TipRow.Separator());
+        List<TipRow> base = base(data);
+        if (!base.isEmpty()) {
+            rows.addAll(base);
+            rows.add(new TipRow.Separator());
+        }
         // the fixed stats first in the same columns without a bar, a rule, then every rolled
         // identification with its bar; an unidentified piece lists what each stat can roll
         List<TipRow> fixed = new ArrayList<>();
@@ -142,6 +149,9 @@ public final class GearTooltip {
         }
         List<TipRow.Chip> chips = chips(data, rolled == null ? null : rolled.marks());
         if (!chips.isEmpty()) {
+            if (!(rows.get(rows.size() - 1) instanceof TipRow.Separator)) {
+                rows.add(new TipRow.Separator());
+            }
             rows.add(new TipRow.Chips(chips));
         }
         List<TipRow> footer = footer(data, rolled == null ? List.of() : rolled.powders(), lines);
@@ -164,14 +174,14 @@ public final class GearTooltip {
     }
 
     /** Icon, name and overall roll; tier · type · level and the rerolls under them. */
-    private static TipRow.Header header(ItemStack stack, ItemData data, ItemView.Rolled rolled) {
+    private static TipRow.Header header(ItemStack stack, ItemData data, ItemView.Rolled rolled, boolean pick) {
         Component name = Component.literal(data.name()).withStyle(data.tier().colour(), ChatFormatting.BOLD);
         Component overall = rolled == null || !rolled.hasOverall() ? null
                 : Component.literal(L.t("wynnlabs.box.pct", Math.round(rolled.overallPercent())))
                         .withStyle(quality(rolled.overallPercent()), ChatFormatting.BOLD);
         String sub = AutoAdvice.nice(data.tier().name()) + " · " + AutoAdvice.nice(data.slot().name()).replace('_', ' ')
                 + " · " + L.t("wynnlabs.geartip.level", data.level())
-                + (rolled == null ? " · " + L.t("wynnlabs.geartip.unidentified") : "");
+                + (rolled == null && !pick ? " · " + L.t("wynnlabs.geartip.unidentified") : "");
         Component rerolls = rolled == null || rolled.rerolls() <= 0 ? null
                 : Component.literal(L.n("wynnlabs.box.rerolls", rolled.rerolls(), rolled.rerolls()))
                         .withStyle(ChatFormatting.DARK_GRAY);
@@ -468,6 +478,10 @@ public final class GearTooltip {
         Component bank = bankLine == null ? null : Component.literal(bankLine.getString()).withStyle(ChatFormatting.GRAY);
         if (powders != null) {
             out.add(new TipRow.Pair(powders, null));
+        }
+        // in the Trade Market: this listing's own price first
+        for (Component c : BoxTooltip.listing(lines)) {
+            out.add(new TipRow.Text(c, null));
         }
         if (price != null || bank != null) {
             out.add(new TipRow.Pair(price, bank));

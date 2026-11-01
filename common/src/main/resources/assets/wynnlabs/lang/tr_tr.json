@@ -160,6 +160,7 @@
   "wynnlabs.auto.plan_has_better": "En iyi build'de %s var",
   "wynnlabs.auto.plan_runs_no_id": "Build'in burada %s kullanıyor: ID ücretine değmez",
   "wynnlabs.auto.plan_skips_unid": "Build'inin işine yaramıyor: ID ücretine değmez",
+  "wynnlabs.auto.plan_wants_unid": "Build'in bunu kullanıyor: Item Identifier'da tanımlat (%s emerald)",
   "wynnlabs.auto.plan_skips_later": "Build'inde işe yaramaz",
   "wynnlabs.auto.plan_runs_later": "Build'in burada %s kullanıyor",
   "wynnlabs.auto.skill_change": ". SP: %s",
