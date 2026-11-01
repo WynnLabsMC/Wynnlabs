@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.advice.AutoAdvice;
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Locks;
+import io.github.anilken.wynnlabs.build.MapChoices;
 import io.github.anilken.wynnlabs.build.Tomes;
 import io.github.anilken.wynnlabs.build.TreeModel;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap.Candidate;
@@ -60,6 +61,11 @@ final class MilestonePlanner {
     private final String forId;                 // a switch mid-build must not publish this map
     private final List<ItemData> lockedAll;
     private final Locks.Problem problem0;
+    /** What you told the map (MapChoices), read once for the run; none for the Build window's searches. */
+    private final MapChoices.Choice choice;
+    /** Your kept pieces, and those held so far: from the first milestone that can wear each. */
+    private final List<ItemData> keptAll;
+    private final List<ItemData> keptHeld = new ArrayList<>();
     /** The level the map starts at: yours, or the highest chosen item's when they fit together there. */
     final int level;
     final long budget;
@@ -74,8 +80,9 @@ final class MilestonePlanner {
     final Map<Slot, Double> best;
     final List<String> preferred;
     private final List<Integer> levels;
-    /** Candidates per slot type, once for the run. */
-    final Map<Slot, List<ItemData>> cands;
+    /** Candidates per slot type, once for the run; {@link #cands} leaves out what the level filter refuses at the milestone. */
+    private final Map<Slot, List<ItemData>> candsAll;
+    Map<Slot, List<ItemData>> cands;
     private final Map<String, Integer> abilities;
     private final TreeModel.Run treeRun;
     /** Your real tome points per skill, read once for the run ({@link Tomes}). */
@@ -126,6 +133,8 @@ final class MilestonePlanner {
         this.job = job;
         this.state = state;
         forId = state.characterId();
+        choice = in.equals(Roadmap.Inputs.PLAIN) ? MapChoices.current() : MapChoices.Choice.NONE;
+        keptAll = Locks.resolve(state, choice.kept());
         // The items you chose (Locks), at any level: a set around a piece above your level is
         // planned for the level it needs (the highest chosen item's), which then sets the skill
         // points and the other slots' candidates. Pieces that cannot be worn together there:
@@ -186,6 +195,7 @@ final class MilestonePlanner {
         // Lv 60 Stronghold, Photon and Lightshow the chained map wears there (11 % behind it)
         int window = (int) Rules.sub("shopping", "milestoneWindow", 20);
         Map<Slot, List<ItemData>> cands = new EnumMap<>(Slot.class);
+        List<String> banned = choice.banned();
         state.allGear().forEach(info -> {
             Slot t = info.slot();
             int lv = info.requirements().level();
@@ -213,8 +223,13 @@ final class MilestonePlanner {
                 RoadmapTrace.skip(level, t, info, "wynnlabs.road.trace_rule_speed", info.base().attackSpeed().get());
                 return;
             }
+            if (banned.contains(info.name())) {
+                RoadmapTrace.skip(level, t, info, "wynnlabs.road.trace_banned");
+                return;
+            }
             cands.computeIfAbsent(t, k -> new ArrayList<>()).add(info);
         });
+        this.candsAll = cands;
         this.cands = cands;
 
         abilities = state.abilityPlan();
@@ -266,7 +281,7 @@ final class MilestonePlanner {
         if (!locked.isEmpty()) {
             Roadmap.phase(3);
         }
-        lockRows = locked.isEmpty() ? List.of() : lockIn(locked, baseline, placed, fixed, level);
+        lockRows = new ArrayList<>(locked.isEmpty() ? List.of() : lockIn(locked, baseline, placed, fixed, level));
         ringFixed = fixed.contains("RING1") || fixed.contains("RING2");
         if (job == null) {
             Roadmap.progressTotal = levels.size();
@@ -295,7 +310,12 @@ final class MilestonePlanner {
         if (memo != null) {
             memo.clear();                       // the spreads of the last milestone's level are never asked again
         }
+        List<Gear> keptRows = applyChoices(m);
+        lockRows.addAll(keptRows);
         MilestonePicks ms = new MilestonePicks(this, m, steps.isEmpty());
+        if (!steps.isEmpty()) {
+            ms.gear.addAll(keptRows);
+        }
         int earned = ms.earned;
         for (Slot t : slots) {
             if (lockedKinds.contains(t.isWeapon() ? Slot.WEAPON : t)) {
@@ -403,6 +423,74 @@ final class MilestonePlanner {
         }
     }
 
+    /**
+     * Your choices as of milestone {@code m}: the level filter's candidates, the kept pieces this
+     * milestone can wear held in their slots like chosen items, and what the set may no longer
+     * wear taken out of it. Returns the rows of the pieces held from here on.
+     */
+    private List<Gear> applyChoices(int m) {
+        cands = candsAll;
+        if (choice.minLevel() > 0 && m >= choice.minLevel()) {
+            cands = new EnumMap<>(Slot.class);
+            candsAll.forEach((t, l) -> cands.put(t, l.stream().filter(i -> !refused(i, t, m)).toList()));
+        }
+        List<ItemData> held = new ArrayList<>();
+        for (ItemData info : keptAll) {
+            List<ItemData> with = new ArrayList<>(locked);
+            with.addAll(keptHeld);
+            with.add(info);
+            Slot k = Locks.kind(info);
+            if (info.level() <= m && !keptHeld.contains(info) && !locked.contains(info) && !lockedKinds.contains(k)
+                    && Locks.problem(with, m) == null) {
+                keptHeld.add(info);
+                held.add(info);
+                if (k != Slot.RING || with.stream().filter(i -> Locks.kind(i) == Slot.RING).count() >= Locks.RINGS) {
+                    lockedKinds.add(k);
+                }
+            }
+        }
+        List<Gear> rows = held.isEmpty() ? List.of() : lockIn(held, baseline, placed, fixed, m);
+        ringFixed = fixed.contains("RING1") || fixed.contains("RING2");
+        if (baseline != null) {
+            clearRefused(m);
+        }
+        return rows;
+    }
+
+    private boolean refused(ItemData info, Slot t, int m) {
+        if (!choice.refuses(info.name(), info.level(), m)) {
+            return false;
+        }
+        RoadmapTrace.skip(m, t, info, "wynnlabs.road.trace_min_level", choice.minLevel());
+        return true;
+    }
+
+    /**
+     * Takes what you refused out of the set: what you wear would otherwise stay wherever nothing
+     * beats it. A slot stays empty for the search to fill, but a set needs a weapon to score, so
+     * the weapon goes to the highest one that can be worn.
+     */
+    private void clearRefused(int m) {
+        Damage.Piece weapon = baseline.get("WEAPON");
+        boolean swap = weapon != null && !fixed.contains("WEAPON") && choice.refuses(weapon.name(), weapon.level(), m);
+        baseline.entrySet().removeIf(e -> e.getValue() != null && !e.getKey().equals("WEAPON")
+                && !fixed.contains(e.getKey()) && choice.refuses(e.getValue().name(), e.getValue().level(), m));
+        if (!swap) {
+            return;
+        }
+        int earned = Math.max(0, (Math.min(m, 101) - 1) * 2);
+        List<ItemData> weapons = new ArrayList<>(cands.getOrDefault(slots.get(0), List.of()));
+        weapons.sort(java.util.Comparator.comparingInt(ItemData::level).reversed());
+        for (ItemData info : weapons) {
+            Map<String, Damage.Piece> trial = new LinkedHashMap<>(baseline);
+            trial.put("WEAPON", OwnedGear.pieceOf(info));
+            if (info.level() <= m && Build.allocate(trial, m, earned) != null) {
+                baseline.putAll(trial);
+                return;
+            }
+        }
+    }
+
     /** Community targets (rules.roadmap.targets): e.g. the Adventurer's set at 26-29. */
     private void addTargets(int m, List<Gear> gear) {
         for (String name : Rules.list("roadmap", "targets")) {
@@ -411,7 +499,7 @@ final class MilestonePlanner {
                 continue;
             }
             int lv = info.requirements().level();
-            if (lv <= prev || lv > m || lockedKinds.contains(Locks.kind(info)) || fixed.contains(Build.slotOf(info.slot(), 0))
+            if (lv <= prev || lv > m || choice.refuses(name, lv, m) || lockedKinds.contains(Locks.kind(info)) || fixed.contains(Build.slotOf(info.slot(), 0))
                     || !affordable.test(info)) {
                 continue;                           // a chosen item holds the slot, or over the budget
             }
@@ -552,7 +640,7 @@ final class MilestonePlanner {
             if (Locks.kind(info) == Slot.RING && baseline != null) {
                 for (String s : new String[] {"RING1", "RING2"}) {
                     Damage.Piece p = baseline.get(s);
-                    if (!slotOf.containsValue(s) && p != null && p.name().equals(info.name())) {
+                    if (!slotOf.containsValue(s) && !fixed.contains(s) && p != null && p.name().equals(info.name())) {
                         slotOf.put(i, s);
                         break;
                     }
@@ -565,7 +653,7 @@ final class MilestonePlanner {
                 continue;
             }
             Slot k = Locks.kind(info);
-            String s = k == Slot.WEAPON ? "WEAPON" : k == Slot.RING ? (slotOf.containsValue("RING1") ? "RING2" : "RING1")
+            String s = k == Slot.WEAPON ? "WEAPON" : k == Slot.RING ? (slotOf.containsValue("RING1") || fixed.contains("RING1") ? "RING2" : "RING1")
                     : Build.slotOf(k, 0);
             if (s != null) {
                 slotOf.put(i, s);

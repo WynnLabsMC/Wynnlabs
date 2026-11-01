@@ -23,7 +23,27 @@ final class HomeActions {
 
     /** A home {@code #q} action (the build line, the plan, the goal, the road map, powders, archetype, a place to mark). */
     void run(String c, int button) {
-        if (c.startsWith("#qadvice:")) {
+        if (c.startsWith("#qchoices:")) {
+            page.openChoices();
+        } else if (c.startsWith("#qkeep:")) {
+            String name = c.substring("#qkeep:".length());
+            io.github.anilken.wynnlabs.build.MapChoices.toggleKeep(name);
+            menu.flash(L.t(io.github.anilken.wynnlabs.build.MapChoices.current().kept().contains(name)
+                    ? "wynnlabs.choices.kept_on" : "wynnlabs.choices.kept_off", name));
+            menu.rebuildMap();
+        } else if (c.startsWith("#qban:")) {
+            String name = c.substring("#qban:".length());
+            io.github.anilken.wynnlabs.build.MapChoices.toggleBan(name);
+            menu.flash(L.t(io.github.anilken.wynnlabs.build.MapChoices.current().banned().contains(name)
+                    ? "wynnlabs.choices.ban_on" : "wynnlabs.choices.ban_off", name));
+            menu.rebuildMap();
+        } else if (c.startsWith("#qminlv:")) {
+            io.github.anilken.wynnlabs.build.MapChoices.setMinLevel(Integer.parseInt(c.substring("#qminlv:".length())));
+            menu.rebuildMap();
+        } else if (c.startsWith("#qhist:")) {
+            boolean back = io.github.anilken.wynnlabs.build.roadmap.Roadmap.restore(Long.parseLong(c.substring("#qhist:".length())));
+            menu.flash(L.t(back ? "wynnlabs.choices.restored" : "wynnlabs.choices.restore_busy"));
+        } else if (c.startsWith("#qadvice:")) {
             Rules.setAdviceHere(true);
             menu.rebuildMap();
         } else if (c.startsWith("#qpick:")) {

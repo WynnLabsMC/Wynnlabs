@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.build.Around;
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.Locks;
+import io.github.anilken.wynnlabs.build.MapChoices;
 import io.github.anilken.wynnlabs.build.TreeModel;
 import io.github.anilken.wynnlabs.build.Tuning;
 import io.github.anilken.wynnlabs.core.L;
@@ -693,7 +694,13 @@ public final class Roadmap {
         // the day it was built: a switch to English left "mob'lardan düşer" on the rows. A map an
         // older scoring model made is out of date too
         return state.characterId() + ":" + state.level() + ":" + L.code() + ":" + Rules.hash() + ":"
-                + plan.toString().hashCode() + ":m" + BeamCache.modelVersion() + ":v" + mapVersion();
+                + plan.toString().hashCode() + choices() + ":m" + BeamCache.modelVersion() + ":v" + mapVersion();
+    }
+
+    /** What {@link #key} takes from your choices: nothing with none, so a saved map stays current. */
+    private static String choices() {
+        String c = MapChoices.current().key();
+        return c.isEmpty() ? "" : ":c" + c.hashCode();
     }
 
     private static void refresh() {
@@ -817,6 +824,45 @@ public final class Roadmap {
         }
     }
 
+    /**
+     * Brings back a map the history kept ({@link RoadmapHistory}), as it was: nothing is searched
+     * again, and the map it replaces goes into the history. False during a build, whose result
+     * would replace it at once, or when the map is gone.
+     */
+    public static synchronized boolean restore(long builtAt) {
+        String id = GameState.current().characterId();
+        RoadmapStore.Loaded l = building ? null : RoadmapHistory.read(id, builtAt);
+        if (l == null) {
+            return false;
+        }
+        RoadmapHistory.remove(id, builtAt);
+        if (id.equals(lastFor)) {
+            RoadmapHistory.push(id, lastSteps, cachedKey, lastLevel, lastBuilt);
+        }
+        lastSteps = l.steps();
+        lastFor = id;
+        lastBuilt = l.builtAt();
+        lastLevel = l.level();
+        cachedKey = l.key();
+        lastFromFile = true;
+        loadedFor = id;
+        staleKey = null;
+        RoadmapStore.save(id, l.steps(), l.key(), l.level(), l.builtAt());
+        version++;
+        return true;
+    }
+
+    /** Whether two maps wear the same pieces on the same milestones. */
+    static boolean samePicks(List<Step> a, List<Step> b) {
+        return a.stream().map(Roadmap::picks).toList().equals(b.stream().map(Roadmap::picks).toList());
+    }
+
+    private static String picks(Step s) {
+        StringBuilder out = new StringBuilder().append(s.level());
+        s.build().forEach((slot, p) -> out.append('|').append(slot).append(':').append(p == null ? "" : p.name()));
+        return out.toString();
+    }
+
     /** The road map for the J menu: built as it always was (nothing chosen, no tuning), kept and saved for the character. */
     public static List<Step> build() {
         return build(null);
@@ -832,6 +878,9 @@ public final class Roadmap {
         }
         if (!c.forId().equals(GameState.current().characterId())) {
             return c.steps();                       // built for the character you just left
+        }
+        if (c.forId().equals(lastFor) && !samePicks(lastSteps, c.steps())) {
+            RoadmapHistory.push(lastFor, lastSteps, cachedKey, lastLevel, lastBuilt);
         }
         lastSteps = c.steps();
         lastBuilt = GameState.current().now();
