@@ -2804,7 +2804,7 @@
   "wynnlabs.mounts.shop_new": "%s yeni (alınacak)",
   "wynnlabs.mounts.no_price": "Henüz pazar fiyatı görülmedi",
   "wynnlabs.mounts.price_each": "Tanesi %s, en düşük ilan",
-  "wynnlabs.mounts.from_bank": "Elinde var: %s",
+  "wynnlabs.mounts.from_bank": "Elinde var:",
   "wynnlabs.mounts.compass_to": "Pusula › %s",
   "wynnlabs.mounts.compass_enclosure": "Kafese pusula",
   "wynnlabs.mounts.unlocks": "Açılanlar",

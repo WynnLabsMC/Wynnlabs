@@ -406,13 +406,20 @@ final class MountsNow {
             cy += rowH + Theme.SP_2;
         }
         if (!banked.isEmpty() && cy + Type.META.lineHeight <= end) {
-            List<String> names = new ArrayList<>();
-            banked.forEach((k, v) -> names.add(k.name() + " ×" + v));
-            String line = L.t("wynnlabs.mounts.from_bank", String.join(", ", names));
-            Type.META.draw(g, font(), Type.META.fit(font(), line, w), x, cy + Theme.SP_1, Theme.GOOD);
+            // each with where it is: the character holding it is the one to go to
+            Type.META.draw(g, font(), L.t("wynnlabs.mounts.from_bank"), x, cy + Theme.SP_1, Theme.GOOD);
+            int ly = cy + Theme.SP_1 + Type.META.lineHeight;
             List<Component> tip = new ArrayList<>();
-            names.forEach(n -> tip.add(Component.literal(n).withStyle(ChatFormatting.GRAY)));
-            tab.tip(x, cy, w, Type.META.lineHeight + Theme.SP_1, tip);
+            int rowsTop = cy;
+            for (var e : banked.entrySet()) {
+                String line = e.getKey().name() + " ×" + e.getValue() + " · " + MountsModel.heldAt(e.getKey());
+                tip.add(Component.literal(line).withStyle(ChatFormatting.GRAY));
+                if (ly + Type.META.lineHeight <= end) {
+                    Type.META.draw(g, font(), Type.META.fit(font(), line, w), x, ly, Theme.INK_2);
+                    ly += Type.META.lineHeight;
+                }
+            }
+            tab.tip(x, rowsTop, w, ly - rowsTop, tip);
         }
     }
 

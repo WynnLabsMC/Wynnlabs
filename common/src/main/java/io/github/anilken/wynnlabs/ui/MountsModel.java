@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.ui;
 
 import com.google.gson.Gson;
 import io.github.anilken.wynnlabs.core.Dirs;
+import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Saver;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -440,6 +441,23 @@ final class MountsModel {
         } catch (Throwable t) {
             return inBank;
         }
+    }
+
+    /** Everywhere a material is: this bag, then the saved places with their counts ("Mage inventory (16), Account p. 3"). */
+    static String heldAt(Material m) {
+        List<String> at = new ArrayList<>();
+        if (FeederOverlay.bagCount(m) > 0) {
+            at.add(L.t("wynnlabs.mounts.place_bag"));
+        }
+        try {
+            Vault.Group g = Vault.find(m.name());
+            if (g != null) {
+                at.add(Vault.where(g));
+            }
+        } catch (Throwable t) {
+            // what the bag says
+        }
+        return String.join(", ", at);
     }
 
     /** A fresh Wyvern at the Mount Merchant: 1,536 emeralds (24 EB), read from its tooltip in game. */
