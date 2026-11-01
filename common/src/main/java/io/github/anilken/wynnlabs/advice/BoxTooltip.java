@@ -103,6 +103,9 @@ public final class BoxTooltip {
         if (bank != null) {
             middle.add(new TipRow.Text(bank, null));
         }
+        for (Component c : listing(lines)) {
+            middle.add(new TipRow.Text(c, null));
+        }
         if (!middle.isEmpty()) {
             rows.add(new TipRow.Separator());
             rows.addAll(middle);
@@ -168,6 +171,32 @@ public final class BoxTooltip {
             e = AutoAdvice.cached(stack);
         }
         return e == null || e.verdict() == null || e.verdict() == Verdict.NOTE ? null : e;
+    }
+
+    /**
+     * A Trade Market listing's own price block from the full tooltip: the "Price" line (an icon
+     * before it) and the amount lines under it ("371,261€ (1stx 28.84LE)", with Wynntils'
+     * conversion), as they are, up to the click hint; empty elsewhere.
+     */
+    static List<Component> listing(List<Component> lines) {
+        List<Component> out = new ArrayList<>();
+        boolean in = false;
+        for (Component c : lines) {
+            String t = c.getString().strip();
+            if (!in) {
+                String word = t.replaceAll("[^\\p{L}]", "");
+                if (word.equals("Price") || word.equals("Fiyat")) {
+                    in = true;
+                    out.add(c);
+                }
+                continue;
+            }
+            if (t.isEmpty() || !t.matches(".*\\d.*") || t.contains("Click")) {
+                break;
+            }
+            out.add(c);
+        }
+        return out;
     }
 
     /** The bank line the full tooltip has ("▣ Mage bank p. 3"), its wrapped parts joined; null without one. */

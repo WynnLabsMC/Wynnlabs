@@ -154,6 +154,23 @@ class GearTooltipTest {
     }
 
     @Test
+    void aTradeMarketListingKeepsItsPriceBlock() {
+        ItemStack stack = gear("Heavensent");
+        Component head = Component.literal(" Price").withStyle(ChatFormatting.GOLD);
+        Component one = Component.literal("371,261² (1stx 28.84LE)").withStyle(ChatFormatting.WHITE);
+        List<Component> lines = List.of(stack.getHoverName(), Component.empty(), head, one,
+                Component.literal("Left-Click to Buy").withStyle(ChatFormatting.GREEN));
+        List<TipRow> rows = GearTooltip.rows(stack, lines, false);
+        List<TipRow.Text> texts = all(rows, TipRow.Text.class);
+        int at = texts.indexOf(new TipRow.Text(head, null));
+        assertTrue(at >= 0, "the Price: line");
+        assertEquals(one, texts.get(at + 1).left());
+        assertTrue(texts.stream().noneMatch(t -> t.left().getString().equals("Left-Click to Buy")));
+        assertEquals(List.of(head, one), BoxTooltip.listing(lines));
+        assertEquals(List.of(), BoxTooltip.listing(List.of(stack.getHoverName())));
+    }
+
+    @Test
     void aWeaponShowsRerollsClassDamageAndPowderSlots() {
         ItemStack stack = gear("Heavensent");
         List<Component> lines = List.of(stack.getHoverName(),

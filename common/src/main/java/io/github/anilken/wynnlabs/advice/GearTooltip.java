@@ -479,6 +479,10 @@ public final class GearTooltip {
         if (powders != null) {
             out.add(new TipRow.Pair(powders, null));
         }
+        // in the Trade Market: this listing's own price first
+        for (Component c : BoxTooltip.listing(lines)) {
+            out.add(new TipRow.Text(c, null));
+        }
         if (price != null || bank != null) {
             out.add(new TipRow.Pair(price, bank));
         }
