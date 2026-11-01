@@ -167,18 +167,51 @@ final class HomeGearBars extends HomePart {
                 L.c("wynnlabs.tomes.tip").withStyle(ChatFormatting.GRAY)), "#qtomes:");
     }
 
+    /** The Aspects chip's width in {@code w}; 0 with no aspects to show. */
+    private int aspectsWidth(int w) {
+        if (HomeAspects.shown().isEmpty()) {
+            return 0;
+        }
+        int full = Ui.iconChipWidth(font, "sparkles", L.t("wynnlabs.aspects.chip"), false);
+        return full <= w ? full : 16;
+    }
+
+    /** The chips' width together in {@code w}. */
+    private int chipsWidth(TomeAdvice.Advice a, int w) {
+        int tw = tomesWidth(a, w);
+        int aw = aspectsWidth(w - tw - Theme.SP_2);
+        return aw == 0 ? tw : tw + Theme.SP_2 + aw;
+    }
+
+    /** The Tomes chip, then the Aspects chip that opens {@link HomeAspects}, with {@code w} from their width's call. */
+    private void chips(GuiGraphics g, Host host, TomeAdvice.Advice a, int x, int y, int w, int mx, int my) {
+        int tw = tomesWidth(a, w);
+        tomesChip(g, host, a, x, y, tw, mx, my);
+        int aw = aspectsWidth(w - tw - Theme.SP_2);
+        if (aw > 0) {
+            int ax = x + tw + Theme.SP_2;
+            String label = L.t("wynnlabs.aspects.chip");
+            Ui.iconChip(g, font, "sparkles", aw > 16 ? label : null, false, ax, y, aw, false, mx, my);
+            LayoutCheck.part(g.pose(), ax, y, aw, 14, "planrow", "the Aspects chip");
+            host.aspectsChip(new int[] {ax, y, aw, 14});
+            host.area(ax, y, aw, 14, null, List.of(Component.literal(label).withStyle(ChatFormatting.WHITE),
+                    L.c("wynnlabs.aspects.tip").withStyle(ChatFormatting.GRAY)), "#qaspects:");
+        }
+    }
+
     /** A plan's buttons and the Tomes chip, the two centred together in {@code w}. */
     void planRow(GuiGraphics g, Host host, In in, TomeAdvice.Advice a, int x, int y, int w, int mx, int my) {
         if (a == null) {
             planButtons(g, host, in, x, y, w, false, mx, my);
             return;
         }
-        int tw = tomesWidth(a, w / 3);
+        int limit = w / 2;
+        int tw = chipsWidth(a, limit);
         int room = w - tw - Theme.SP_2;
         int pw = Math.min(room, planButtonsWidth(room));
         int left = x + (w - pw - Theme.SP_2 - tw) / 2;
         planButtons(g, host, in, left, y, pw, false, mx, my);
-        tomesChip(g, host, a, left + pw + Theme.SP_2, y, tw, mx, my);
+        chips(g, host, a, left + pw + Theme.SP_2, y, limit, mx, my);
     }
 
     private int planButtonsWidth(int w) {
@@ -196,13 +229,14 @@ final class HomeGearBars extends HomePart {
             saveButton(g, host, saved, x, y, w, mx, my);
             return;
         }
-        int tw = tomesWidth(a, w / 2);
+        int limit = 2 * w / 3;
+        int tw = chipsWidth(a, limit);
         int room = w - tw - Theme.SP_2;
         int sw = Math.min(room, Ui.iconChipWidth(font, "bookmark", L.t(saved ? "wynnlabs.homev.plan_saved" : "wynnlabs.homev.plan_save"), false));
         sw = sw < 16 ? 16 : sw;
         int left = x + (w - sw - Theme.SP_2 - tw) / 2;
         saveButton(g, host, saved, left, y, sw, mx, my);
-        tomesChip(g, host, a, left + sw + Theme.SP_2, y, tw, mx, my);
+        chips(g, host, a, left + sw + Theme.SP_2, y, limit, mx, my);
     }
 
     /** The Save for a milestone's set: a word chip centred in {@code w}, or an icon where only that fits. */

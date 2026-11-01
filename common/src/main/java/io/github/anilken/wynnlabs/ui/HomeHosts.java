@@ -149,6 +149,11 @@ final class HomeHosts {
         }
 
         @Override
+        public void aspectsChip(int[] rect) {
+            page.aspectsChip(rect);
+        }
+
+        @Override
         public void compare(int[] rect, HomeTab.SlotView s) {
             if (s.gear() != null && s.gear().options() != null && !s.gear().options().isEmpty()) {
                 page.slotHits.add(new Object[] {rect, s.gear(), s.label(), s.worn()});

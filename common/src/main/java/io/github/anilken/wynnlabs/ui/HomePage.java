@@ -129,7 +129,8 @@ public final class HomePage extends MenuTab {
     private boolean popupOpenImpl() {
         return goalOpen || stats != null && stats.picker.open() || alts != null && alts.open()
                 || choices != null && choices.open()
-                || tomes != null && tomes.open();
+                || tomes != null && tomes.open()
+                || aspects != null && aspects.open();
     }
 
     private void drawPopupImpl(GuiGraphics g, int mx, int my, List<int[]> boxes) {
@@ -153,6 +154,10 @@ public final class HomePage extends MenuTab {
         if (b != null) {
             boxes.add(b);
         }
+        b = aspects != null && aspects.open() ? aspects.drawList(g, homeHost, mx, my) : null;
+        if (b != null) {
+            boxes.add(b);
+        }
         if (boxes.isEmpty()) {
             closePopupImpl();
         }
@@ -171,6 +176,9 @@ public final class HomePage extends MenuTab {
         }
         if (tomes != null) {
             tomes.close();
+        }
+        if (aspects != null) {
+            aspects.close();
         }
     }
 
@@ -360,9 +368,30 @@ public final class HomePage extends MenuTab {
         tomesChip = rect;
     }
 
+    /** The aspects for the abilities, made on first use (no initializer: safe to hot swap in). */
+    private HomeAspects aspects;
+    private int[] aspectsChip;
+
+    void aspectsChip(int[] rect) {
+        aspectsChip = rect;
+    }
+
+    void openAspects() {
+        if (aspects == null) {
+            aspects = new HomeAspects();
+        }
+        if (tomes != null) {
+            tomes.close();
+        }
+        aspects.openMenu(aspectsChip);
+    }
+
     void openTomes() {
         if (tomes == null) {
             tomes = new HomeTomes();
+        }
+        if (aspects != null) {
+            aspects.close();
         }
         tomes.openMenu(tomesChip);
     }

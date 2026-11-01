@@ -27,6 +27,8 @@ final class HomeActions {
             page.openChoices();
         } else if (c.startsWith("#qtomes:")) {
             page.openTomes();
+        } else if (c.startsWith("#qaspects:")) {
+            page.openAspects();
         } else if (c.startsWith("#qkeep:")) {
             String name = c.substring("#qkeep:".length());
             io.github.anilken.wynnlabs.build.MapChoices.toggleKeep(name);

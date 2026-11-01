@@ -148,6 +148,10 @@ public final class HomeTab {
         /** Where the Tomes chip is, for the popup it opens. */
         default void tomesChip(int[] rect) {
         }
+
+        /** Where the Aspects chip is, for the popup it opens. */
+        default void aspectsChip(int[] rect) {
+        }
     }
 
     /** The items you chose: their frames, pills and the stand's part in the archetype's purple. */
