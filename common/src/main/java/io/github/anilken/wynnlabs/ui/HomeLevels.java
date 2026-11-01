@@ -43,23 +43,19 @@ final class HomeLevels extends MenuPaint {
         return hi == 0 ? s.level() : hi;
     }
 
-    /**
-     * The milestones with a tab: one is left out when its set is wearable already (the now tab
-     * has it) or the next one's is wearable as early (its picks were there already, only better
-     * chosen), so the tabs climb one level each.
-     */
+    /** The milestones with a tab: every one the map has after Now. */
     List<Integer> shown() {
         List<Integer> out = new ArrayList<>();
-        int now = menu.steps.isEmpty() ? 0 : wearAt(menu.steps.get(0));
         for (int i = 1; i < menu.steps.size(); i++) {
-            int at = wearAt(menu.steps.get(i));
-            // wearable already: the now tab has it; a later set as early: that one is better
-            if (at <= now || i + 1 < menu.steps.size() && wearAt(menu.steps.get(i + 1)) <= at) {
-                continue;
-            }
             out.add(i);
         }
         return out;
+    }
+
+    /** The level on milestone {@code i}'s tab: its set's, or its own when the tab before wears that set too. */
+    static int tabLevel(List<Roadmap.Step> steps, int i) {
+        int at = wearAt(steps.get(i));
+        return at > wearAt(steps.get(i - 1)) ? at : steps.get(i).level();
     }
 
     /** How many milestone buttons the level row shows this frame (LEVEL_WINDOW where they fit). */
@@ -73,18 +69,6 @@ final class HomeLevels extends MenuPaint {
     int draw(GuiGraphics g, int y, int right, int room, List<int[]> levelRows) {
         List<Integer> shown = shown();
         int pos = shown.indexOf(menu.selected);
-        if (menu.selected > 0 && pos < 0 && !shown.isEmpty()) {
-            // a hidden milestone: the next shown one has a set as early and better
-            int to = shown.get(shown.size() - 1);
-            for (int i : shown) {
-                if (i >= menu.selected) {
-                    to = i;
-                    break;
-                }
-            }
-            menu.selected = to;
-            pos = shown.indexOf(menu.selected);
-        }
         levelWindow = LEVEL_WINDOW;
         // with a plan, its pill first: "Plan · Now · Lv 68 · 80 …"
         Plans.Build plan = Plans.current();
@@ -177,7 +161,7 @@ final class HomeLevels extends MenuPaint {
     }
 
     private String pillText(int i, int firstShown) {
-        return i < 0 ? "" : i == 0 ? L.t("wynnlabs.home.now_short") : (i == firstShown ? "Lv " : "") + wearAt(menu.steps.get(i));
+        return i < 0 ? "" : i == 0 ? L.t("wynnlabs.home.now_short") : (i == firstShown ? "Lv " : "") + tabLevel(menu.steps, i);
     }
 
     private int pillsWidth(List<int[]> order, List<Integer> shown) {
