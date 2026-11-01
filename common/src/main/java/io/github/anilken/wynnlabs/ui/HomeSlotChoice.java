@@ -40,6 +40,8 @@ final class HomeSlotChoice {
                     List.of(L.c(kept ? "wynnlabs.choices.unkeep" : "wynnlabs.choices.keep").withStyle(ChatFormatting.WHITE)), "#qkeep:" + name);
             host.area(ban[0], ban[1], ban[2], ban[3], null,
                     List.of(L.c("wynnlabs.choices.ban").withStyle(ChatFormatting.WHITE)), "#qban:" + name);
+            // no item tooltip on the picture, it would cover the buttons: the name beside it has it
+            host.area(x, y, s, s, null, null, null);
         }
         if (hover || kept) {
             pending.add(new Pending(x, y, s, mx, my, hover, kept));
