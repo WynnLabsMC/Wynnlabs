@@ -4,11 +4,15 @@ import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.market.History;
 import io.github.anilken.wynnlabs.market.Prices;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -46,10 +50,11 @@ final class BoxHistory {
 
     /**
      * The chart in {@code w} from {@code y}, top to bottom: the line area ({@code chartH} tall),
-     * SP_1, the listings-seen bars ({@link #BAR_H}) on the axis, SP_1, the dates. Nothing overlaps.
+     * SP_1, the listings-seen bars ({@link #BAR_H}) on the axis, SP_2, the dates. Nothing overlaps.
+     * Hovering a day's column lights it and tells its date, median, range and listings seen.
      * Returns the bottom.
      */
-    static int chart(BoxScreen s, GuiGraphics g, History.Series h, int x, int y, int w, int chartH) {
+    static int chart(BoxScreen s, GuiGraphics g, History.Series h, int x, int y, int w, int chartH, int mx, int my) {
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
         int maxCount = 0;
@@ -74,6 +79,20 @@ final class BoxHistory {
         int lineTop = y + Type.META.lineHeight / 2;
         int lineBot = y + chartH - Type.META.lineHeight / 2;
         int axis = y + chartH + Theme.SP_1 + BAR_H;
+        int dateY = axis + 1 + Theme.SP_2;
+        int bottom = dateY + Type.META.lineHeight;
+        // the day under the mouse: the nearest column while the mouse is over the chart
+        History.Day hover = null;
+        if (BoxChips.in(mx, my, px, y, pw, bottom - y)) {
+            int best = Integer.MAX_VALUE;
+            for (History.Day d : h.days()) {
+                int dist = Math.abs(xOf(d.date(), first, span, px, pw) - mx);
+                if (dist < best) {
+                    best = dist;
+                    hover = d;
+                }
+            }
+        }
         // the listings seen, faint, in their own band under the line area
         int bw = span == 0 ? 4 : Math.max(1, (int) (pw / (span + 1)) - 1);
         for (History.Day d : h.days()) {
@@ -82,7 +101,11 @@ final class BoxHistory {
             }
             int bh = Math.max(1, Math.round(BAR_H * (float) d.count() / maxCount));
             int bx = Math.max(px, Math.min(px + pw - bw, xOf(d.date(), first, span, px, pw) - bw / 2));
-            g.fill(bx, axis - bh, bx + bw, axis, BAR);
+            g.fill(bx, axis - bh, bx + bw, axis, d == hover ? Theme.INK_3 : BAR);
+        }
+        if (hover != null) {
+            int hx = xOf(hover.date(), first, span, px, pw);
+            Kit.hair(g, hx, lineTop, 1, axis - lineTop, GRID);
         }
         Kit.hair(g, px, axis, pw, 1, Theme.LINE);
         // the max and min lines with their prices at the left
@@ -106,21 +129,38 @@ final class BoxHistory {
             if (prevX != Integer.MIN_VALUE) {
                 Art.line(g, prevX, prevY, dx, dy, 1, Theme.PRICE);
             }
-            g.fill(dx - 1, dy - 1, dx + 2, dy + 2, Theme.PRICE);
+            int r = d == hover ? 2 : 1;
+            g.fill(dx - r, dy - r, dx + r + 1, dy + r + 1, Theme.PRICE);
             prevX = dx;
             prevY = dy;
         }
-        int dateY = axis + 1 + Theme.SP_1;
         Type.META.draw(g, s.font(), date(first), px, dateY, Theme.INK_3);
         if (span > 0) {
             Type.META.drawRight(g, s.font(), date(last), px + pw, dateY, Theme.INK_3);
         }
-        return dateY + Type.META.lineHeight;
+        if (hover != null) {
+            s.tip(dayTip(hover));
+        }
+        return bottom;
     }
 
-    /** The chart's height besides its line area: the bars with SP_1 above, the axis, SP_1 and the dates. */
+    /** A day's tooltip: its date, median, lowest to highest and the listings seen. */
+    static List<Component> dayTip(History.Day d) {
+        List<Component> t = new ArrayList<>();
+        t.add(Component.literal(date(d.date())));
+        if (d.p50() != null) {
+            t.add(Component.literal(L.t("wynnlabs.box.history_day_median", price(d.p50()))).withStyle(ChatFormatting.GRAY));
+        }
+        if (d.lowest() != null && d.highest() != null && !d.lowest().equals(d.highest())) {
+            t.add(Component.literal(L.t("wynnlabs.box.history_day_range", price(d.lowest()), price(d.highest()))).withStyle(ChatFormatting.GRAY));
+        }
+        t.add(Component.literal(L.n("wynnlabs.box.history_day_seen", d.count(), d.count())).withStyle(ChatFormatting.GRAY));
+        return t;
+    }
+
+    /** The chart's height besides its line area: the bars with SP_1 above, the axis, SP_2 and the dates. */
     static int chartExtra() {
-        return Theme.SP_1 + BAR_H + 1 + Theme.SP_1 + Type.META.lineHeight;
+        return Theme.SP_1 + BAR_H + 1 + Theme.SP_2 + Type.META.lineHeight;
     }
 
     private static int xOf(LocalDate d, LocalDate first, long span, int px, int pw) {
@@ -240,7 +280,7 @@ final class BoxHistory {
             Type.META.drawRight(g, s.font(), weekText, right, ty, weekInk);
             int tw = Type.META.width(s.font(), weekText);
             if (!weekText.equals(weekFull) && BoxChips.in(mx, my, right - tw, y, tw, STRIP_H)) {
-                s.tip(java.util.List.of(net.minecraft.network.chat.Component.literal(weekFull)));
+                s.tip(List.of(Component.literal(weekFull)));
             }
         }
         s.hit(x - Theme.SP_2, y, w + 2 * Theme.SP_2, STRIP_H, toggle);

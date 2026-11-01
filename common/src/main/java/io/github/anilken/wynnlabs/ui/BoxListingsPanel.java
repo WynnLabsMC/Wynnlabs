@@ -195,7 +195,7 @@ final class BoxListingsPanel {
             boolean withCells = room - cells >= 24;
             int chartH = Math.min(s.compact ? 38 : 52, withCells ? room - cells : room);
             if (chartH >= 24) {
-                top = BoxHistory.chart(s, g, hs, sx, top + Theme.SP_1, sw, chartH) + Theme.SP_3;
+                top = BoxHistory.chart(s, g, hs, sx, top + Theme.SP_1, sw, chartH, mx, my) + Theme.SP_3;
                 if (withCells) {
                     top = BoxHistory.cells(s, g, hs, sx, top, sw) + Theme.SP_3;
                 }
@@ -451,7 +451,7 @@ final class BoxListingsPanel {
         Type.LABEL.draw(g, s.font(), Type.LABEL.fit(s.font(), L.t("wynnlabs.box.history_title", History.DAYS), cw), cx, cy, Theme.INK);
         cy += Type.LABEL.lineHeight + Theme.SP_3;
         if (chartH >= 24) {
-            cy = BoxHistory.chart(s, g, hs, cx, cy, cw, chartH) + Theme.SP_4;
+            cy = BoxHistory.chart(s, g, hs, cx, cy, cw, chartH, mx, my) + Theme.SP_4;
         }
         cy = BoxHistory.cells(s, g, hs, cx, cy, cw);
         int mid = cx + cw / 2;
