@@ -25,6 +25,8 @@ final class HomeActions {
     void run(String c, int button) {
         if (c.startsWith("#qchoices:")) {
             page.openChoices();
+        } else if (c.startsWith("#qtomes:")) {
+            page.openTomes();
         } else if (c.startsWith("#qkeep:")) {
             String name = c.substring("#qkeep:".length());
             io.github.anilken.wynnlabs.build.MapChoices.toggleKeep(name);

@@ -190,3 +190,6 @@ wynnlabs.rules.this_character     "this character" inside the rules' notice ("Th
 wynnlabs.settings.all_on          "all on" after "Default: " in a row's tooltip
 wynnlabs.alt.to_go                      "7.1 STX to go" after " · " on an endgame build card
 wynnlabs.alt.no_price                   "no price yet" after " · " on an endgame build card
+wynnlabs.tomes.counted
+wynnlabs.tomes.no_source
+wynnlabs.tomes.owned

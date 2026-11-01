@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.build.Locks;
 import io.github.anilken.wynnlabs.build.MapChoices;
+import io.github.anilken.wynnlabs.build.TomeAdvice;
 import io.github.anilken.wynnlabs.core.DevHooks;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.ui.HomeTab.Host;
@@ -151,8 +152,9 @@ final class HomeGearPanel extends HomePart {
         int areaH = bottom - top;
         // a milestone's set can be saved: its Save has the row a plan's buttons have
         Boolean shownSaved = in.plan() == null ? host.shownSaved() : null;
+        TomeAdvice.Advice tomes = compact ? null : host.shownTomes();
         if (large && !compact) {
-            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, in.plan() != null || shownSaved != null, shownSaved, mx, my);
+            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, in.plan() != null || shownSaved != null, shownSaved, tomes, mx, my);
             corners.draw(g);
             barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
             return;
@@ -228,14 +230,14 @@ final class HomeGearPanel extends HomePart {
         }
         if (in.plan() != null) {
             if (planRow) {
-                bars.planButtons(g, host, in, midX, bottom - 14, midW, false, mx, my);
+                bars.planRow(g, host, in, tomes, midX, bottom - 14, midW, mx, my);
             } else if (foldRight - foldLeft >= 2 * 16 + 3) {
                 // folded: Save and Edit as icons left of My builds (Remove is the Plan pill's ✕)
                 bars.planButtons(g, host, in, foldRight - (2 * 16 + 3), ty - 3, 2 * 16 + 3, true, mx, my);
             }
         } else if (shownSaved != null) {
             if (planRow) {
-                bars.saveButton(g, host, shownSaved, midX, bottom - 14, midW, mx, my);
+                bars.mapRow(g, host, shownSaved, tomes, midX, bottom - 14, midW, mx, my);
             } else if (foldRight - foldLeft >= 16) {
                 bars.saveButton(g, host, shownSaved, foldRight - 16, ty - 3, 16, mx, my);
             }
@@ -263,7 +265,7 @@ final class HomeGearPanel extends HomePart {
      * milestone's Save) under it.
      */
     private void list(GuiGraphics g, Host host, In in, List<SlotView> armour, SlotView weapon, List<SlotView> trinkets,
-            int x, int top, int w, int bottom, boolean planRow, Boolean shownSaved, int mx, int my) {
+            int x, int top, int w, int bottom, boolean planRow, Boolean shownSaved, TomeAdvice.Advice tomes, int mx, int my) {
         int s = 24;
         int end = planRow ? bottom - 14 - Theme.SP_4 : bottom;
         int rh = Math.max(s + Theme.SP_2, Math.min(s + Theme.SP_5, (end - top - s) / 4));
@@ -288,9 +290,9 @@ final class HomeGearPanel extends HomePart {
         tab.standBox[2] = 0;
         tab.standBox[3] = 0;
         if (in.plan() != null && planRow) {
-            bars.planButtons(g, host, in, x, bottom - 14, w, false, mx, my);
+            bars.planRow(g, host, in, tomes, x, bottom - 14, w, mx, my);
         } else if (shownSaved != null) {
-            bars.saveButton(g, host, shownSaved, x, bottom - 14, w, mx, my);
+            bars.mapRow(g, host, shownSaved, tomes, x, bottom - 14, w, mx, my);
         }
     }
 

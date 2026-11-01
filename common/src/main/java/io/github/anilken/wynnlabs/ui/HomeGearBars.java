@@ -1,6 +1,7 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.build.Plans;
+import io.github.anilken.wynnlabs.build.TomeAdvice;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -144,6 +145,64 @@ final class HomeGearBars extends HomePart {
             host.area(bx, y, bw, 14, null, tip, b[i][2]);
             bx += bw + 3;
         }
+    }
+
+    /** The Tomes chip's width: its word and gain, or only its icon where {@code w} is too little. */
+    int tomesWidth(TomeAdvice.Advice a, int w) {
+        int full = Ui.iconChipWidth(font, "script", tomesLabel(a), false);
+        return full <= w ? full : 16;
+    }
+
+    private static String tomesLabel(TomeAdvice.Advice a) {
+        return L.t("wynnlabs.tomes.chip", HomeTomes.percent(a.total()));
+    }
+
+    /** The chip that opens {@link HomeTomes}, {@code bw} from {@link #tomesWidth}. */
+    void tomesChip(GuiGraphics g, Host host, TomeAdvice.Advice a, int x, int y, int bw, int mx, int my) {
+        String label = tomesLabel(a);
+        Ui.iconChip(g, font, "script", bw > 16 ? label : null, false, x, y, bw, false, mx, my);
+        LayoutCheck.part(g.pose(), x, y, bw, 14, "planrow", "the Tomes chip");
+        host.tomesChip(new int[] {x, y, bw, 14});
+        host.area(x, y, bw, 14, null, List.of(Component.literal(label).withStyle(ChatFormatting.WHITE),
+                L.c("wynnlabs.tomes.tip").withStyle(ChatFormatting.GRAY)), "#qtomes:");
+    }
+
+    /** A plan's buttons and the Tomes chip, the two centred together in {@code w}. */
+    void planRow(GuiGraphics g, Host host, In in, TomeAdvice.Advice a, int x, int y, int w, int mx, int my) {
+        if (a == null) {
+            planButtons(g, host, in, x, y, w, false, mx, my);
+            return;
+        }
+        int tw = tomesWidth(a, w / 3);
+        int room = w - tw - Theme.SP_2;
+        int pw = Math.min(room, planButtonsWidth(room));
+        int left = x + (w - pw - Theme.SP_2 - tw) / 2;
+        planButtons(g, host, in, left, y, pw, false, mx, my);
+        tomesChip(g, host, a, left + pw + Theme.SP_2, y, tw, mx, my);
+    }
+
+    private int planButtonsWidth(int w) {
+        int full = 2 * 3;
+        for (String[] b : new String[][] {{"bookmark", "wynnlabs.homev.plan_saved"}, {"edit", "wynnlabs.homev.plan_edit"},
+                {"x", "wynnlabs.homev.plan_remove"}}) {
+            full += Ui.iconChipWidth(font, b[0], L.t(b[1]), false);
+        }
+        return full <= w ? full : 3 * 16 + 2 * 3;
+    }
+
+    /** A milestone's Save and the Tomes chip, the two centred together in {@code w}. */
+    void mapRow(GuiGraphics g, Host host, boolean saved, TomeAdvice.Advice a, int x, int y, int w, int mx, int my) {
+        if (a == null) {
+            saveButton(g, host, saved, x, y, w, mx, my);
+            return;
+        }
+        int tw = tomesWidth(a, w / 2);
+        int room = w - tw - Theme.SP_2;
+        int sw = Math.min(room, Ui.iconChipWidth(font, "bookmark", L.t(saved ? "wynnlabs.homev.plan_saved" : "wynnlabs.homev.plan_save"), false));
+        sw = sw < 16 ? 16 : sw;
+        int left = x + (w - sw - Theme.SP_2 - tw) / 2;
+        saveButton(g, host, saved, left, y, sw, mx, my);
+        tomesChip(g, host, a, left + sw + Theme.SP_2, y, tw, mx, my);
     }
 
     /** The Save for a milestone's set: a word chip centred in {@code w}, or an icon where only that fits. */
