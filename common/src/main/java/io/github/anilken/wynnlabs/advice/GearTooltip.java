@@ -111,8 +111,10 @@ public final class GearTooltip {
             List<Component> extra) {
         List<TipRow> rows = new ArrayList<>();
 
-        rows.add(header(stack, data, rolled));
-        TipRow.Band band = band(stack);
+        // a menu pick (extra lines) is not a piece in hand: no verdict, not "unidentified"
+        boolean pick = extra != null;
+        rows.add(header(stack, data, rolled, pick));
+        TipRow.Band band = pick ? null : band(stack);
         if (band != null) {
             rows.add(band);
         }
@@ -164,14 +166,14 @@ public final class GearTooltip {
     }
 
     /** Icon, name and overall roll; tier · type · level and the rerolls under them. */
-    private static TipRow.Header header(ItemStack stack, ItemData data, ItemView.Rolled rolled) {
+    private static TipRow.Header header(ItemStack stack, ItemData data, ItemView.Rolled rolled, boolean pick) {
         Component name = Component.literal(data.name()).withStyle(data.tier().colour(), ChatFormatting.BOLD);
         Component overall = rolled == null || !rolled.hasOverall() ? null
                 : Component.literal(L.t("wynnlabs.box.pct", Math.round(rolled.overallPercent())))
                         .withStyle(quality(rolled.overallPercent()), ChatFormatting.BOLD);
         String sub = AutoAdvice.nice(data.tier().name()) + " · " + AutoAdvice.nice(data.slot().name()).replace('_', ' ')
                 + " · " + L.t("wynnlabs.geartip.level", data.level())
-                + (rolled == null ? " · " + L.t("wynnlabs.geartip.unidentified") : "");
+                + (rolled == null && !pick ? " · " + L.t("wynnlabs.geartip.unidentified") : "");
         Component rerolls = rolled == null || rolled.rerolls() <= 0 ? null
                 : Component.literal(L.n("wynnlabs.box.rerolls", rolled.rerolls(), rolled.rerolls()))
                         .withStyle(ChatFormatting.DARK_GRAY);

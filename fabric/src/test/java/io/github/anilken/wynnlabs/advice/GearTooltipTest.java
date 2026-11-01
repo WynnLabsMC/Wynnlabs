@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.FixtureState;
 import io.github.anilken.wynnlabs.game.Fixtures;
+import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Roll;
 import io.github.anilken.wynnlabs.model.SkillKind;
@@ -134,6 +135,22 @@ class GearTooltipTest {
         assertEquals("\u2696 Wynnpool", ((TipRow.Text) rows.get(rows.indexOf(scales.get(2)) - 1)).left().getString());
         // without such lines, nothing is added
         assertEquals(List.of(), GearTooltip.scales(List.of(stack.getHoverName())));
+    }
+
+    @Test
+    void aMenuPickHasNoVerdictAndIsNotCalledUnidentifiedItsLinesFollowTheFooter() {
+        ItemStack stack = gear("Warsong");
+        ItemData data = state.view(stack).orElseThrow().data();
+        List<Component> extra = List.of(Component.literal("From: mob drop"), Component.empty(),
+                Component.literal("+2.7% over your current gear"));
+        List<TipRow> rows = GearTooltip.rows(stack, data, null, List.of(), extra);
+        assertEquals("Legendary · Ring · Lv 33", ((TipRow.Header) rows.get(0)).sub().getString());
+        assertTrue(all(rows, TipRow.Band.class).isEmpty());
+        assertTrue(all(rows, TipRow.Centred.class).isEmpty());
+        List<TipRow.Text> texts = all(rows, TipRow.Text.class);
+        assertEquals("From: mob drop", texts.get(texts.size() - 2).left().getString());
+        assertEquals("+2.7% over your current gear", texts.get(texts.size() - 1).left().getString());
+        assertInstanceOf(TipRow.Separator.class, rows.get(rows.indexOf(texts.get(texts.size() - 2)) - 1));
     }
 
     @Test
