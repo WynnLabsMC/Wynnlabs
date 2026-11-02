@@ -218,6 +218,8 @@ public final class GuideLine {
     private static volatile Track track;
     /** Riding or gliding: the straight line through the air (faint while a ground route is shown). */
     private static volatile boolean airLine;
+    /** Riding or gliding with no ground under the player: why ({@code /guide}); null otherwise. */
+    private static volatile String groundWhy;
     /** Riding or gliding: where the ground route starts, under the player (null: no ground there, or on foot). */
     private static volatile int[] groundStart;
     /** The target the shown ground path was routed for (null: only the straight line so far). */
@@ -400,7 +402,10 @@ public final class GuideLine {
                 start = new int[] {px, py, pz};
             } else {
                 // the ground under the mount, however far down: where to land and walk on
-                start = GuidePath.surface(walkable(level), px, pz, py, heights(level).height(px, pz), level.getMinY());
+                int top = heights(level).height(px, pz);
+                start = GuidePath.surface(walkable(level), px, pz, py, top, level.getMinY());
+                groundWhy = start != null ? null : top == UNKNOWN ? "the player's column is not loaded"
+                        : "no spot to stand on below the player (feet " + py + ", column top " + top + ")";
             }
             airLine = t != null && air;
             groundStart = air ? start : null;
@@ -470,6 +475,7 @@ public final class GuideLine {
         int[] gs = groundStart;
         if (gs == null || !air) {
             o.add("groundStart", null);
+            o.addProperty("groundWhy", air ? groundWhy : null);
         } else {
             JsonArray a = new JsonArray();
             for (int v : gs) {
@@ -604,6 +610,30 @@ public final class GuideLine {
         boolean on = !failed && mc.player != null && mc.level != null
                 && Settings.on("guideLine") && Settings.on("guideMinimap");
         Path g = on ? ground : NO_PATH;
+        Player p = mc.player;
+        Target t = target;
+        if (on && g.points().isEmpty() && t != null && airLine && airborne(p)) {
+            // riding or gliding with no ground route yet: the straight line, all faint, so the map
+            // still shows the way; re-sent as the player moves
+            mapShown = null;
+            List<double[]> line = new ArrayList<>();
+            double dx = t.x() - p.getX();
+            double dz = t.z() - p.getZ();
+            double len = Math.hypot(dx, dz);
+            int n = Math.max(1, (int) Math.ceil(len / MAP_STEP));
+            for (int i = 0; i <= n; i++) {
+                double k = (double) i / n;
+                line.add(new double[] {p.getX() + dx * k, p.getY(), p.getZ() + dz * k});
+            }
+            int[] keepAir = mapPoints(line, MAP_STEP, MAP_MAX);
+            List<int[]> air = new ArrayList<>(keepAir.length);
+            for (int i : keepAir) {
+                double[] q = line.get(i);
+                air.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
+            }
+            Wyn.showGuideRoute(air, 0, BODY);
+            return;
+        }
         if (g == mapShown) {
             return;
         }
