@@ -4,11 +4,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.Wyn;
-import io.github.anilken.wynnlabs.model.MenuKind;
 import io.github.anilken.wynnlabs.model.Pin;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -98,13 +96,8 @@ public final class GuideLine {
     private static final Path NO_PATH = new Path(List.of(), null, 0);
     /** The straight guess past the route is drawn at this share of the opacity, still. */
     private static final float TAIL_ALPHA = 1 / 3f;
-    /** Pins this close to the player (flat, and in height) go when a chest is opened. */
-    private static final double CHEST_RADIUS = 5;
-    private static final double CHEST_HEIGHT = 4;
 
     private static int tick;
-    /** A chest's window was open last tick. */
-    private static boolean chestOpen;
     private static boolean failed;
     private static volatile Target target;
     /** The ground path drawn; replaced (never changed) by the tick or the route thread. */
@@ -217,7 +210,6 @@ public final class GuideLine {
 
     /** Every {@link #EVERY} ticks: the target, and when a ground path is wanted, its search. */
     public static void onTick(Minecraft mc) {
-        chestCheck(mc);
         if (++tick % EVERY != 0) {
             return;
         }
@@ -271,38 +263,6 @@ public final class GuideLine {
             clear();
             System.out.println("[WynnLabs] guide line failed, off until restart: " + e);
         }
-    }
-
-    /**
-     * When a chest is opened (a loot chest, a reward chest), the waypoints next to the player go
-     * from the map: the one being led to is done. Whatever the guideLine setting.
-     */
-    private static void chestCheck(Minecraft mc) {
-        boolean open = false;
-        try {
-            if (mc.player != null && mc.screen instanceof AbstractContainerScreen<?>) {
-                MenuKind kind = Wyn.container();
-                open = kind != null && kind.type().endsWith("ChestContainer");
-            }
-            if (open && !chestOpen) {
-                var pins = Wyn.waypoints();
-                if (pins != null) {
-                    for (Pin m : pins.all()) {
-                        double dx = m.x() + 0.5 - mc.player.getX();
-                        double dz = m.z() + 0.5 - mc.player.getZ();
-                        if (dx * dx + dz * dz <= CHEST_RADIUS * CHEST_RADIUS
-                                && Math.abs(m.y() - mc.player.getY()) <= CHEST_HEIGHT) {
-                            Waypoints.remove(pins, m);
-                            target = null;
-                            ground = NO_PATH;
-                        }
-                    }
-                }
-            }
-        } catch (Throwable ignored) {
-            // the map pins must never break the tick
-        }
-        chestOpen = open;
     }
 
     private static void clear() {
