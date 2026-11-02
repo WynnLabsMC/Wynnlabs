@@ -63,6 +63,30 @@ class CaveMapTest {
     }
 
     @Test
+    void theCompletionBannerInChatMarksTheCaveDoneAtOnce() {
+        CaveMap.reset();
+        List<String> told = new java.util.ArrayList<>();
+        CaveMap.onDone = told::add;
+        // one message: the banner, the name, then the rewards
+        CaveMap.onText("§a[Cave Completed]\n§eDetlas Salt Mine\n\n§d- Rewards:\n§d- §7+300 Experience Points\n§d- §7+1 §eSpiked Cleats", 1000);
+        assertEquals(List.of("Detlas Salt Mine"), told);
+        assertTrue(CaveMap.isDone("Detlas Salt Mine", CaveMap.doneNames(List.of(), List.of())));
+        // the banner and the name as separate messages, within a moment
+        CaveMap.onText("[Cave Completed]", 5000);
+        CaveMap.onText("- Rewards:", 5100);
+        CaveMap.onText("Hill Hovel", 5200);
+        assertEquals(List.of("Detlas Salt Mine", "Hill Hovel"), told);
+        // too long after a banner, a line is only chat
+        CaveMap.onText("[Cave Completed]", 9000);
+        CaveMap.onText("Wolf Den", 13000);
+        assertFalse(CaveMap.isDone("Wolf Den", CaveMap.doneNames(List.of(), List.of())));
+        // the same cave again is told once
+        CaveMap.onText("[Cave Completed] Detlas Salt Mine", 20000);
+        assertEquals(2, told.size());
+        CaveMap.reset();
+    }
+
+    @Test
     void coloursAreWhiteAndDimmed() {
         // both colours are white and below full alpha, so a finished cave reads as faded next to the
         // untouched ones

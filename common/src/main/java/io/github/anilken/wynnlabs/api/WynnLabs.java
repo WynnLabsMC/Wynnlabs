@@ -174,6 +174,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
         platform.onEndTick(Perf.tick("tick.AutoAdvice", WornGear::snapshotArmour));
         platform.onGameMessage(QuestBook::onChat);
+        platform.onGameMessage(io.github.anilken.wynnlabs.quests.CaveMap::onChat);
         platform.onGameMessage(DeathCoach::onChat);
         platform.onEndTick(Perf.tick("tick.DeathCoach", DeathCoach::onTick));
         platform.onEndTick(Perf.tick("tick.Today", Today::onTick));
