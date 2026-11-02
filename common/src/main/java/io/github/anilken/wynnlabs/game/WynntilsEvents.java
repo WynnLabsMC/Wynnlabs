@@ -106,12 +106,18 @@ public final class WynntilsEvents {
             if (compact != null) {
                 TooltipRows.show(event.getGuiGraphics(), Minecraft.getInstance().font, compact,
                         event.getMouseX(), event.getMouseY(), event.getItemStack());
+                io.github.anilken.wynnlabs.ui.PriceBox.keepForOurs();   // Wynnventory's price box, beside ours
                 event.setCanceled(true);
                 Perf.end("tooltip.wynntils", t);
                 return;
             }
         } catch (Throwable ignored) {
             // the short tooltip failed: the full one below
+        }
+        try {
+            io.github.anilken.wynnlabs.ui.PriceBox.release();     // the full tooltip: Wynnventory draws its box itself
+        } catch (Throwable ignored) {
+            // the box is lost for this frame
         }
         try {
             List<Component> out = TooltipListener.onTooltip(event.getItemStack(), event.getTooltips());

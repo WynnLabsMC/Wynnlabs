@@ -59,10 +59,12 @@ public final class MenuTooltips {
             return POSITIONER;
         }
         float s = wanted();
-        if (s >= 1f) {
+        // at full size the game and Wynntils place it, unless Wynnventory's price box is on the
+        // screen: then ours places it (the same way), so it can keep out from under the box
+        if (s >= 1f && !PriceBox.fresh() && !PriceBox.waiting()) {
             return null;
         }
-        POSITIONER.begin(g, s, wynntils > 0 ? wynntils : 1f, 0);
+        POSITIONER.begin(g, Math.min(s, 1f), wynntils > 0 ? wynntils : 1f, 0);
         return POSITIONER;
     }
 
@@ -180,6 +182,7 @@ public final class MenuTooltips {
             place(screenW, screenH, mouseX, mouseY, w, h, t, gap, at);
             // Wynnventory's price box stands beside where the game's tooltip would be: out from under it
             at[0] = PriceBox.avoid(at[0], at[1], w * t, h * t, mouseX, gap, EDGE * t, screenW);
+            PriceBox.placed(at[0], at[1], w * t, h * t);          // the box taken from Wynnventory goes beside it
             pos.set(Math.round(at[0] / t), Math.round(at[1] / t));
             double gs = grid > 0 ? grid : Minecraft.getInstance().getWindow().getGuiScale();
             var pose = g.pose();
@@ -192,11 +195,15 @@ public final class MenuTooltips {
         }
 
         void end(GuiGraphics g) {
-            if (pushed && g != null && g == this.g) {
+            boolean drawn = pushed && g != null && g == this.g;
+            if (drawn) {
                 g.pose().popMatrix();
             }
             pushed = false;
             this.g = null;
+            if (drawn) {
+                PriceBox.drawBeside(g);                 // after ours, in the same layer
+            }
         }
     }
 }

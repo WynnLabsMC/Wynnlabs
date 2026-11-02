@@ -30,6 +30,21 @@ class PriceBoxTest {
     }
 
     @Test
+    void theBoxGoesRightOfOurTooltipElseLeftLevelWithItsTop() {
+        // ours at 100,50 drawn 120 x 80 on a 640 x 360 screen; a 100 x 60 box
+        float[] r = PriceBox.beside(100, 50, 120, 80, 100, 60, 640, 360);
+        assertEquals(100 + 120 + 4 + 18 + 4, r[0]);           // text starts after the gap and its own frame
+        assertEquals(50, r[1]);
+        assertEquals(1f, r[2]);
+        // no room on the right: to the left
+        float[] l = PriceBox.beside(500, 50, 120, 80, 100, 60, 640, 360);
+        assertEquals(500 - 4 - 18 - 108 + 4, l[0]);
+        // a tall box shrinks to the screen's height, as Wynnventory's does
+        float[] t = PriceBox.beside(100, 50, 120, 80, 100, 600, 640, 360);
+        assertEquals(360 / 610f, t[2], 1e-4);
+    }
+
+    @Test
     void withNowhereToGoItStays() {
         int[] wide = {0, 0, 640, 360};
         assertEquals(52, PriceBox.avoid(wide, 0, 52, 90, 100, 60, 40, 12, 4, 640));
