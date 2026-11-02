@@ -407,6 +407,10 @@ class WorldRouteTest {
         g.gates(WorldGates.parse("{\"lines\": [" + loop + "], "
                 + "\"corridors\": [{\"name\": \"Road\", \"from\": [6, 10], \"to\": [22, 10]}]}"));
         assertTrue(g.plan(0, 2, 5, 2, 1000, 1000).reached());
+        // any number of walls is read
+        WorldGates three = WorldGates.parse("{\"lines\": [" + loop + ", [[0, 0], [4, 4]], [[40, 0], [40, 8], [36, 8]]]}");
+        assertEquals(3, three.lines());
+        assertEquals(7, three.segments());
         // a gate on the wall is a door: crossing allowed within 8 blocks of it
         g.gates(WorldGates.parse("{\"lines\": [" + loop + "], \"gates\": [{\"name\": \"Door\", \"x\": 14, \"z\": 10}]}"));
         assertTrue(g.plan(0, 2, 5, 2, 1000, 1000).reached());
