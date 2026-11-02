@@ -75,8 +75,10 @@ public final class GuideLine {
     private static final int EVERY = 10;
     /** Ticks between two route searches. */
     private static final int ROUTE_EVERY = 20;
-    /** At most this many spots looked at in one route search. */
-    private static final int BUDGET = 20_000;
+    /** At most this many spots looked at in one route search, ... */
+    private static final int BUDGET = 150_000;
+    /** ... and at most this long, in milliseconds. */
+    private static final long SEARCH_MILLIS = 400;
     /** A step through a door or gate costs this much of a plain one. */
     private static final double DOOR = 1.5;
     /** A block at most this tall (a flower pot) is stepped over at the feet. */
@@ -300,6 +302,15 @@ public final class GuideLine {
             o.add("target", j);
         }
         Player p = Minecraft.getInstance().player;
+        if (p == null) {
+            o.add("player", null);
+        } else {
+            JsonArray me = new JsonArray();
+            me.add(p.getX());
+            me.add(p.getY());
+            me.add(p.getZ());
+            o.add("player", me);
+        }
         o.addProperty("mode", t == null || p == null ? "none" : airLine && airborne(p) ? "air" : "ground");
         o.addProperty("routed", routed != null && routed.equals(t));
         o.addProperty("points", ground.points().size());
@@ -323,6 +334,7 @@ public final class GuideLine {
             j.addProperty("box", s.box());
             j.addProperty("budget", s.budget());
             j.addProperty("millis", s.millis());
+            j.addProperty("expandedPerMs", s.millis() == 0 ? s.expanded() : (double) s.expanded() / s.millis());
             o.add("search", j);
         }
         o.addProperty("error", lastError);
@@ -352,7 +364,7 @@ public final class GuideLine {
             int tz = (int) Math.floor(t.z());
             int ty = GuidePath.feet(w, tx, tz, (int) Math.floor(t.y()));
             long t0 = System.nanoTime();
-            GuidePath.Route r = GuidePath.find(w, sx, sy, sz, tx, ty, tz, box, BUDGET);
+            GuidePath.Route r = GuidePath.find(w, sx, sy, sz, tx, ty, tz, box, BUDGET, SEARCH_MILLIS);
             long millis = (System.nanoTime() - t0) / 1_000_000;
             lastSearch = r == null ? new Search(false, 0, 0, null, box, BUDGET, millis)
                     : new Search(r.reached(), r.nodes().size(), r.expanded(), r.nodes().get(r.nodes().size() - 1),

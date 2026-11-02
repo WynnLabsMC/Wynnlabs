@@ -1,10 +1,10 @@
 package io.github.anilken.wynnlabs.ui;
 
+import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
+
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.PriorityQueue;
 
 /**
@@ -24,10 +24,14 @@ final class GuidePath {
     static final double REACH = 1.5;
     /** ... and this close in feet height, so a chest up a tower is not reached from the floor under it. */
     static final int REACH_Y = 2;
-    /** A block of height difference weighs this much in the distance estimate. */
+    /** A block of height difference weighs this much in the distance estimate, ... */
     static final double H_Y = 0.6;
-    /** Deepest step down (no fall damage in Wynncraft): off a roof or ledge to the ground. */
-    static final int DROP = 24;
+    /** ... and a whole block, counted in full, when the target is more than this far above or below. */
+    static final int STEEP = 6;
+    /** Deepest step down (no fall damage in Wynncraft): off a roof, a balcony or a ledge to the ground. */
+    static final int DROP = 40;
+    /** The clock is read once every this many spots looked at. */
+    private static final int CLOCK_EVERY = 512;
     /** A step down deeper than a walk (3) costs this much more a block, so stairs still win. */
     static final double DROP_COST = 0.15;
     /** A step onto a road or stair costs this much of a plain one, so routes keep to roads. */
@@ -67,6 +71,13 @@ final class GuidePath {
     record Route(List<int[]> nodes, boolean reached, int expanded) {}
 
     private record Node(int x, int y, int z, double g, double f, Node parent) {}
+
+    /** What one search aims at: the target's feet and how height weighs in the estimate. */
+    private record Goal(int tx, int ty, int tz, boolean steep) {
+        double h(int x, int y, int z) {
+            return GuidePath.h(x, y, z, tx, ty, tz, steep);
+        }
+    }
 
     private static final int[][] MOVES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
     private static final double DIAG = Math.sqrt(2);
@@ -122,25 +133,35 @@ final class GuidePath {
      * estimate puts nearest, height included, so it climbs toward the right floor.
      */
     static Route find(Walkable w, int sx, int sy, int sz, int tx, int ty, int tz, int box, int budget) {
+        return find(w, sx, sy, sz, tx, ty, tz, box, budget, Long.MAX_VALUE);
+    }
+
+    /** {@link #find}, also stopping after {@code maxMillis} of wall-clock time. */
+    static Route find(Walkable w, int sx, int sy, int sz, int tx, int ty, int tz, int box, int budget, long maxMillis) {
         int y0 = w.stand(sx, sz, sy);
         if (y0 == NONE) {
             return null;
         }
+        long deadline = maxMillis == Long.MAX_VALUE ? Long.MAX_VALUE : System.nanoTime() + maxMillis * 1_000_000;
+        Goal goal = new Goal(tx, ty, tz, Math.abs(y0 - ty) > STEEP);
         PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f(), b.f()));
-        Map<Long, Double> best = new HashMap<>();
-        Node start = new Node(sx, y0, sz, 0, H_WEIGHT * h(sx, y0, sz, tx, ty, tz), null);
+        Long2DoubleOpenHashMap best = new Long2DoubleOpenHashMap(Math.min(budget, 1 << 16));
+        best.defaultReturnValue(Double.POSITIVE_INFINITY);
+        Node start = new Node(sx, y0, sz, 0, H_WEIGHT * goal.h(sx, y0, sz), null);
         open.add(start);
         best.put(key(sx, y0, sz), 0.0);
         Node nearest = start;
-        double nearestH = h(sx, y0, sz, tx, ty, tz);
+        double nearestH = goal.h(sx, y0, sz);
         int expanded = 0;
         while (!open.isEmpty() && expanded < budget) {
+            if (expanded % CLOCK_EVERY == 0 && expanded > 0 && System.nanoTime() > deadline) {
+                break;
+            }
             Node n = open.poll();
-            Double known = best.get(key(n.x(), n.y(), n.z()));
-            if (known != null && known < n.g()) {
+            if (best.get(key(n.x(), n.y(), n.z())) < n.g()) {
                 continue;                               // a shorter way here was already taken
             }
-            double hn = h(n.x(), n.y(), n.z(), tx, ty, tz);
+            double hn = goal.h(n.x(), n.y(), n.z());
             if (hn < nearestH) {
                 nearest = n;
                 nearestH = hn;
@@ -167,25 +188,24 @@ final class GuidePath {
                 int drop = n.y() - ny;
                 double g = n.g() + (diagonal ? DIAG : 1) * w.cost(nx, ny, nz) + (ny > n.y() ? 0.5 : 0)
                         + (drop > 3 ? DROP_COST * drop : 0);
-                push(open, best, n, nx, ny, nz, g, tx, ty, tz);
+                push(open, best, n, nx, ny, nz, g, goal);
             }
             for (int dy = -1; dy <= 1; dy += 2) {
                 int ny = w.climb(n.x(), n.z(), n.y(), dy);
                 if (ny != NONE) {
-                    push(open, best, n, n.x(), ny, n.z(), n.g() + (dy > 0 ? 1.5 : 1), tx, ty, tz);
+                    push(open, best, n, n.x(), ny, n.z(), n.g() + (dy > 0 ? 1.5 : 1), goal);
                 }
             }
         }
         return new Route(trace(nearest), false, expanded);
     }
 
-    private static void push(PriorityQueue<Node> open, Map<Long, Double> best, Node from,
-                             int x, int y, int z, double g, int tx, int ty, int tz) {
+    private static void push(PriorityQueue<Node> open, Long2DoubleOpenHashMap best, Node from,
+                             int x, int y, int z, double g, Goal goal) {
         long k = key(x, y, z);
-        Double old = best.get(k);
-        if (old == null || g < old) {
+        if (g < best.get(k)) {
             best.put(k, g);
-            open.add(new Node(x, y, z, g, g + H_WEIGHT * h(x, y, z, tx, ty, tz), from));
+            open.add(new Node(x, y, z, g, g + H_WEIGHT * goal.h(x, y, z), from));
         }
     }
 
@@ -286,13 +306,17 @@ final class GuidePath {
     /**
      * Octile distance (the walking length with diagonal steps and no obstacles) plus {@link #H_Y} a
      * block of height beyond what that walk can climb or descend anyway (a stair or slope covers a
-     * block of height a step), so a stair down is not judged worse than jumping off.
+     * block of height a step), so a stair down is not judged worse than jumping off. With
+     * {@code steep} (the target far above or below, a cliff city) a block of height counts as much
+     * as a block closer: the larger of the two, so the spot right above the target is not taken
+     * for near, and a stair (closer and lower at once) is not counted twice against a drop.
      */
-    static double h(int x, int y, int z, int tx, int ty, int tz) {
+    static double h(int x, int y, int z, int tx, int ty, int tz, boolean steep) {
         int dx = Math.abs(tx - x);
         int dz = Math.abs(tz - z);
         double walk = Math.max(dx, dz) + (DIAG - 1) * Math.min(dx, dz);
-        return walk + H_Y * Math.max(0, Math.abs(ty - y) - walk);
+        int dy = Math.abs(ty - y);
+        return steep ? Math.max(walk, dy) : walk + H_Y * Math.max(0, dy - walk);
     }
 
     private static double flat(int x, int z, int tx, int tz) {

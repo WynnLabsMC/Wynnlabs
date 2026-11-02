@@ -355,6 +355,46 @@ class GuidePathTest {
         steps(g, r.nodes());
     }
 
+    @Test
+    void aLadderDownATenDeepShaftIsFound() {
+        // a floor at 74 over the whole 10 x 10 square, a tunnel at 64 along z 0..2 under it, and a
+        // shaft at (5, 5) down to the tunnel with a ladder from 73 to 64
+        House h = new House();
+        h.spots.clear();
+        for (int x = 0; x < 10; x++) {
+            for (int z = 0; z < 10; z++) {
+                if (x != 5 || z != 5) {
+                    h.spots.add(x + "," + 74 + "," + z);
+                }
+                if (z <= 2) {
+                    h.spots.add(x + "," + 64 + "," + z);
+                }
+            }
+        }
+        h.spots.add("5,64,3");
+        h.spots.add("5,64,4");
+        for (int y = 64; y <= 73; y++) {
+            h.ladder.add("5," + y + ",5");
+        }
+        GuidePath.Route r = GuidePath.find(h, 1, 74, 8, 8, 64, 1, 64, 150_000);
+        assertTrue(r.reached());
+        assertEquals(64, r.nodes().get(r.nodes().size() - 1)[1]);
+        assertTrue(r.nodes().stream().anyMatch(n -> n[0] == 5 && n[2] == 5 && n[1] == 68));
+    }
+
+    @Test
+    void theSearchStopsWhenItsTimeIsUp() {
+        // a big open square and a walled-in target: with no time at all it stops at the first clock check
+        Grid g = new Grid(64, 400);
+        for (int i = 390; i < 400; i++) {
+            g.h[i][390] = N;
+            g.h[390][i] = N;
+        }
+        GuidePath.Route r = GuidePath.find(g, 10, 64, 10, 395, 64, 395, 192, 150_000, 0);
+        assertFalse(r.reached());
+        assertEquals(512, r.expanded());
+    }
+
     /** Every step of a route goes to a neighbouring column the grid allows from the last height. */
     private static void steps(Grid g, List<int[]> nodes) {
         for (int i = 1; i < nodes.size(); i++) {
