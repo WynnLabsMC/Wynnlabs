@@ -54,10 +54,12 @@ import java.util.concurrent.TimeUnit;
  * the loaded area is first planned over the coarse map of the walkable world ({@link WorldRoute}),
  * so the way round a mountain or out of a sealed canyon is known before its chunks load: the
  * block-level route aims at the farthest waypoint of that corridor inside the loaded area, and past
- * it the corridor is drawn faint on the map's heights instead of a straight line. While riding or gliding it is a straight line to the target; when the target
- * is well above or below the mount (a cliff city a wyvern cannot reach) and there is ground just
- * under the player, the ground route from there is drawn instead, so the player sees where to
- * land and walk. Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
+ * it the corridor is drawn faint on the map's heights instead of a straight line. While riding or
+ * gliding there is also a straight line through the air to the target, and the ground route is
+ * searched the same way from the ground under the player (the highest spot to stand on in their
+ * column, however far down: {@link GuidePath#surface}); where there is one it is the main line and
+ * the air line is drawn faint, so the player sees where to land and walk (a cliff city a wyvern
+ * cannot reach). Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
  * path is laid on the ground every 2 ticks; each frame only moves the dashes along it and draws.
  * Drawing only: nothing is sent to the server.
  */
@@ -93,12 +95,8 @@ public final class GuideLine {
     private static final double DISC = 0.8;
     /** The first blocks from the player fade in over this length. */
     static final double FADE = 1.5;
-    /** Mounted with the target this much higher or lower: the ground route from below is drawn instead. */
-    private static final double HIGH = 8;
-    /** Where a rider can land: ground at most this far below, ... */
-    private static final int LAND_DEPTH = 6;
-    /** ... in the column under them or up to this many columns away. */
-    private static final int LAND_REACH = 3;
+    /** Riding or gliding with a ground route shown: the air line's share of the opacity. */
+    private static final float AIR_DIM = 0.3f;
     /** Height of the pillar at the end of the path. */
     private static final float PILLAR = 6f;
     /** Light cyan for the glow, pillar and disc; the chevrons go from {@link #TAIL} to white at the tip. */
@@ -215,8 +213,10 @@ public final class GuideLine {
     private static volatile Path ground = NO_PATH;
     /** The dashes' stretch of the ground path, from the player's feet; rebuilt every 2 ticks (null: none). */
     private static volatile Track track;
-    /** Riding or gliding with no ground route to show: the straight line through the air. */
+    /** Riding or gliding: the straight line through the air (faint while a ground route is shown). */
     private static volatile boolean airLine;
+    /** Riding or gliding: where the ground route starts, under the player (null: no ground there, or on foot). */
+    private static volatile int[] groundStart;
     /** The target the shown ground path was routed for (null: only the straight line so far). */
     private static volatile Target routed;
     /** One thread for route searches; a new request replaces one still waiting. */
@@ -369,13 +369,7 @@ public final class GuideLine {
             var pins = Wyn.waypoints();
             List<Pin> all = pins == null ? List.of() : pins.all();
             int box = Math.max(32, Math.min(256, mc.options.getEffectiveRenderDistance() * 16));
-            List<Target> cands;
-            if (airborne(p)) {
-                Target one = pick(all, p.getX(), p.getZ());
-                cands = one == null ? List.of() : List.of(one);
-            } else {
-                cands = candidates(all, p.getX(), p.getZ(), box);
-            }
+            List<Target> cands = candidates(all, p.getX(), p.getZ(), box);
             boolean changed = !cands.equals(candidates);
             if (changed) {
                 // a new set of pins: lead to the nearest until a route says otherwise
@@ -388,16 +382,18 @@ public final class GuideLine {
             int px = (int) Math.floor(p.getX());
             int py = (int) Math.floor(p.getY() + 0.01);
             int pz = (int) Math.floor(p.getZ());
+            boolean air = airborne(p);
             int[] start = null;
             if (t == null) {
                 // nothing to lead to
-            } else if (!airborne(p)) {
+            } else if (!air) {
                 start = new int[] {px, py, pz};
-            } else if (Math.abs(t.y() - p.getY()) > HIGH) {
-                // the ground just under the mount: where to land and walk on
-                start = GuidePath.below(walkable(level), px, pz, py, LAND_DEPTH, LAND_REACH);
+            } else {
+                // the ground under the mount, however far down: where to land and walk on
+                start = GuidePath.surface(walkable(level), px, pz, py, heights(level).height(px, pz), level.getMinY());
             }
-            airLine = t != null && start == null && airborne(p);
+            airLine = t != null && air;
+            groundStart = air ? start : null;
             if (start == null) {
                 ground = NO_PATH;
                 routed = null;
@@ -406,7 +402,11 @@ public final class GuideLine {
             int sx = start[0];
             int sy = start[1];
             int sz = start[2];
-            if (changed || routed == null) {
+            if (air && changed) {
+                // in the air the air line leads until a ground route is found
+                ground = NO_PATH;
+                routed = null;
+            } else if (!air && (changed || routed == null)) {
                 // the straight line at once; the route replaces it when found
                 List<double[]> line = sample(sx + 0.5, sy, sz + 0.5, t.x(), t.z(), STEP, CAP, heights(level));
                 ground = new Path(List.copyOf(line), line.get(line.size() - 1), line.size());
@@ -454,7 +454,19 @@ public final class GuideLine {
             me.add(p.getZ());
             o.add("player", me);
         }
-        o.addProperty("mode", t == null || p == null ? "none" : airLine && airborne(p) ? "air" : "ground");
+        boolean air = t != null && p != null && airLine && airborne(p);
+        o.addProperty("mode", t == null || p == null ? "none" : air && routed != null ? "air+ground" : air ? "air" : "ground");
+        // riding or gliding: where the ground route starts, under the player (null: no ground there)
+        int[] gs = groundStart;
+        if (gs == null || !air) {
+            o.add("groundStart", null);
+        } else {
+            JsonArray a = new JsonArray();
+            for (int v : gs) {
+                a.add(v);
+            }
+            o.add("groundStart", a);
+        }
         o.addProperty("routed", routed != null && routed.equals(t));
         o.addProperty("points", ground.points().size());
         Search s = lastSearch;
@@ -574,6 +586,7 @@ public final class GuideLine {
 
     private static void clear() {
         target = null;
+        groundStart = null;
         track = null;
         candidates = List.of();
         ground = NO_PATH;
@@ -1085,6 +1098,8 @@ public final class GuideLine {
             float glow = pulse(seconds);
             VertexConsumer quads = buffers.getBuffer(RenderTypes.debugQuads());
             if (airLine && airborne(p)) {
+                // faint under a ground route, so that reads as the main line
+                float dim = routed != null && ground.points().size() >= 2 ? AIR_DIM : 1f;
                 double dx = t.x() - me.x;
                 double dy = t.y() + 1 - me.y;
                 double dz = t.z() - me.z;
@@ -1093,10 +1108,10 @@ public final class GuideLine {
                 double len = dist * k;
                 Track air = new Track(new double[] {0, len}, new double[] {me.x, me.x + dx * k},
                         new double[] {me.y, me.y + dy * k}, new double[] {me.z, me.z + dz * k}, dist);
-                chevrons(pose, quads, c, air, seconds, false, glow, 0);
+                chevrons(pose, quads, c, air, seconds, false, glow * dim, 0);
                 if (k == 1) {
                     Beams.draw(pose, quads, (float) (t.x() - c.x), (float) (t.y() + 1 - c.y), (float) (t.z() - c.z),
-                            PILLAR, BODY, 1f);
+                            PILLAR, BODY, dim);
                 }
             }
             Track tr = track;

@@ -301,15 +301,50 @@ class GuidePathTest {
         assertEquals(90, GuidePath.feet(h, 2, 2, 90));     // nothing within 4: the pin height
     }
 
+    /**
+     * A plateau (x 0-9, feet 70), a canyon (x 10-14, floor feet 30) with a stone arch over its
+     * north end (y 90-91, z 6-7) and its east wall (x 15-23, feet 70); column (20, 3) not loaded.
+     */
+    private static GuideDump canyon() {
+        GuideDumps.World w = new GuideDumps.World(24, 128, 8, GuideTerrain.AIR)
+                .fill(0, 0, 0, 9, 69, 7, GuideTerrain.SOLID)
+                .fill(10, 0, 0, 14, 29, 7, GuideTerrain.SOLID)
+                .fill(15, 0, 0, 23, 69, 7, GuideTerrain.SOLID)
+                .fill(10, 90, 6, 14, 91, 7, GuideTerrain.SOLID)
+                .fill(20, 0, 3, 20, 127, 3, GuideTerrain.UNKNOWN);
+        return w.dump(0, 70, 0, 12, 29, 0);
+    }
+
+    /** The ground route's start for a rider at feet (x, y, z) over {@link #canyon}. */
+    private static int[] surface(GuideDump d, int x, int y, int z) {
+        return GuidePath.surface(GuideDumps.walkable(d), x, z, y, d.ground().height(x, z), 0);
+    }
+
     @Test
-    void aRiderLandsOnGroundJustBelowOrNearby() {
-        Grid g = new Grid(64);
-        assertTrue(Arrays.equals(new int[] {5, 64, 5}, GuidePath.below(g, 5, 5, 68, 6, 3)));
-        assertNull(GuidePath.below(g, 5, 5, 80, 6, 3));    // flying high: no ground near
-        g.h[5][5] = N;
-        g.h[4][5] = N;
-        int[] land = GuidePath.below(g, 5, 5, 66, 6, 3);
-        assertTrue(land != null && Math.max(Math.abs(land[0] - 5), Math.abs(land[2] - 5)) == 1);
+    void aRiderHighAboveAPlateauStartsOnThePlateau() {
+        assertArrayEquals(new int[] {5, 70, 3}, surface(canyon(), 5, 110, 3));
+    }
+
+    @Test
+    void aRiderOverACanyonStartsOnItsFloorHoweverFarDown() {
+        GuideDump d = canyon();
+        int[] s = surface(d, 12, 110, 3);
+        assertArrayEquals(new int[] {12, 30, 3}, s);       // 80 down, past any drop limit
+        // and the ground route runs from there as on foot
+        GuidePath.Route r = GuidePath.find(GuideDumps.walkable(d), s[0], s[1], s[2], 12, 30, 0, 64, 10_000);
+        assertTrue(r.reached());
+    }
+
+    @Test
+    void aRiderUnderAnArchStartsBelowThemNotOnTheArch() {
+        GuideDump d = canyon();
+        assertArrayEquals(new int[] {12, 92, 6}, surface(d, 12, 110, 6));   // over it: on its top
+        assertArrayEquals(new int[] {12, 30, 6}, surface(d, 12, 85, 6));    // under it: the floor
+    }
+
+    @Test
+    void aRiderOverAColumnNotLoadedHasNoGroundStart() {
+        assertNull(surface(canyon(), 20, 110, 3));
     }
 
     @Test

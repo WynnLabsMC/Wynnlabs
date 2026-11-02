@@ -169,25 +169,21 @@ final class GuidePath {
     }
 
     /**
-     * The first standable spot at most {@code depth} blocks below feet height {@code y}, in column
-     * (x, z) or, failing that, in the columns up to {@code reach} away (nearest ring first); null with
-     * none. Where a rider can land.
+     * The ground under a rider at feet height {@code y} in column (x, z): the highest standable spot
+     * there at or below {@code y}, looked for from the column's height {@code top} (the heightmap's
+     * first free block, {@link GuideLine#UNKNOWN} where not loaded) or from {@code y} when that is
+     * lower (gliding under an arch), down to {@code floor}, however deep; null with none. Where the
+     * ground route starts while riding or gliding.
      */
-    static int[] below(Walkable w, int x, int z, int y, int depth, int reach) {
-        for (int r = 0; r <= reach; r++) {
-            for (int dx = -r; dx <= r; dx++) {
-                for (int dz = -r; dz <= r; dz++) {
-                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
-                        continue;
-                    }
-                    // stand(fromY) looks from fromY + 1 down to fromY - 3: y .. y-4, then on down
-                    for (int from = y - 1; from + 1 >= y - depth; from -= 4) {
-                        int f = w.stand(x + dx, z + dz, from);
-                        if (f != NONE && f <= y && f >= y - depth) {
-                            return new int[] {x + dx, f, z + dz};
-                        }
-                    }
-                }
+    static int[] surface(Walkable w, int x, int z, int y, int top, int floor) {
+        if (top == GuideLine.UNKNOWN) {
+            return null;
+        }
+        // stand(fromY) looks from fromY + 1 down to fromY - 3, then down an open column
+        for (int from = Math.min(top, y) - 1; from + 1 >= floor; from -= 4) {
+            int f = w.stand(x, z, from);
+            if (f != NONE) {
+                return new int[] {x, f, z};
             }
         }
         return null;
