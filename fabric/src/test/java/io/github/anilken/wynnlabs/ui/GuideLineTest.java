@@ -156,4 +156,15 @@ class GuideLineTest {
         int half = GuideLine.mix(0x000000, 0xFFFFFF, 0.5f);
         assertEquals(0x80, half >> 16 & 0xFF);
     }
+    @Test
+    void theCorridorTailStopsAtTheCap() {
+        List<double[]> pts = List.of(new double[] {4, 64, 0}, new double[] {8, 64, 0}, new double[] {12, 64, 0},
+                new double[] {16, 64, 0});
+        List<double[]> out = GuideLine.upTo(pts, new double[] {0, 64, 0}, 10);
+        assertEquals(2, out.size());
+        assertEquals(8, out.get(1)[0], E);
+        assertEquals(4, GuideLine.upTo(pts, new double[] {0, 64, 0}, 100).size());
+        assertTrue(GuideLine.upTo(pts, new double[] {0, 64, 0}, 1).isEmpty());
+    }
+
 }
