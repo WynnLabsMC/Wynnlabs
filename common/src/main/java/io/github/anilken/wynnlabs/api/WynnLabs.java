@@ -675,7 +675,30 @@ public final class WynnLabs {
                 }
                 case "/questplan" -> send(ex, 200, onGameThread(QuestAdvisor::json));
                 case "/deaths" -> send(ex, 200, onGameThread(DeathCoach::json));
-                case "/guide" -> send(ex, 200, onGameThread(io.github.anilken.wynnlabs.ui.GuideLine::json));
+                case "/guide" -> {
+                    java.util.Map<String, String> q = query(ex);
+                    if (!"1".equals(q.get("dump"))) {
+                        send(ex, 200, onGameThread(io.github.anilken.wynnlabs.ui.GuideLine::json));
+                        return;
+                    }
+                    // ?dump=1[&r=64&h=24]: the terrain around the player as block codes, for an offline test
+                    int flat = intParam(q, "r", io.github.anilken.wynnlabs.ui.GuideLine.DUMP_FLAT, 8, 256);
+                    int up = intParam(q, "h", io.github.anilken.wynnlabs.ui.GuideLine.DUMP_UP, 4, 128);
+                    JsonObject d = onGameThread(() -> io.github.anilken.wynnlabs.ui.GuideLine.dump(flat, up));
+                    if (d == null) {
+                        send(ex, 409, error("no player in a world"));
+                        return;
+                    }
+                    java.nio.file.Path f = Dirs.config().resolve("guide-dump.json");
+                    byte[] bytes = d.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    java.nio.file.Files.createDirectories(f.getParent());
+                    java.nio.file.Files.write(f, bytes);
+                    JsonObject o = new JsonObject();
+                    o.addProperty("written", f.toString());
+                    o.addProperty("bytes", bytes.length);
+                    o.add("size", d.get("size"));
+                    send(ex, 200, o);
+                }
                 case "/vault" -> send(ex, 200, onGameThread(Vault::json));
                 case "/ground" -> {
                     String q = ex.getRequestURI().getQuery();
@@ -746,6 +769,15 @@ public final class WynnLabs {
             }
         }
         return out;
+    }
+
+    /** A whole-number query parameter within [min, max], {@code def} when missing or not a number. */
+    private static int intParam(java.util.Map<String, String> q, String name, int def, int min, int max) {
+        try {
+            return Math.max(min, Math.min(max, Integer.parseInt(q.getOrDefault(name, String.valueOf(def)))));
+        } catch (NumberFormatException e) {
+            return def;
+        }
     }
 
     /** The next frame as PNG bytes, taken on the render thread (the same capture as F2, not saved). */
