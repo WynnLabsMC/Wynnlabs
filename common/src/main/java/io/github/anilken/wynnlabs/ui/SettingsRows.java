@@ -100,6 +100,7 @@ final class SettingsRows {
                 p.row("switch", "crowdMode");
                 p.row("step", "crowdRadius");
                 p.row("switch", "guideLine");
+                p.child("switch", "guideMinimap", "guideLine");
                 p.row("multi", "warnings");
                 p.row("multi", "chat");
             }

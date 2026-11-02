@@ -1710,6 +1710,16 @@ public final class Wyn {
         return guard(Feature.WAYPOINTS, () -> SearchMarks.show(marks), false);
     }
 
+    /**
+     * Draws the guide line's route on Wynntils' minimap and world map in place of the one shown
+     * before (empty clears it): our own marker provider, registered once, with one small dot a
+     * point {x, y, z}; the dots from {@code faintFrom} on are faint. Map only: no waypoint, beacon
+     * or compass. False when unavailable.
+     */
+    public static boolean showGuideRoute(List<int[]> points, int faintFrom, int rgb) {
+        return guard(Feature.WAYPOINTS, () -> GuideRoute.show(points, faintFrom, rgb), false);
+    }
+
     /** A Wynntils map icon: its texture and size, to draw as it is (nothing copied). */
     public record PoiIcon(net.minecraft.resources.Identifier id, int w, int h) {}
 
@@ -1879,6 +1889,106 @@ public final class Wyn {
         @Override
         public String getName() {
             return mark.label();
+        }
+    }
+
+    /**
+     * The guide route on Wynntils' minimap and world map: a marker provider with points of
+     * interest only (no world markers). Wynntils' minimap draws no map-data paths, so the route is
+     * a trail of dots, which also turn with a rotating minimap.
+     */
+    private static final class GuideRoute
+            implements com.wynntils.models.marker.type.MarkerProvider<com.wynntils.services.map.pois.Poi> {
+        private static GuideRoute registered;
+        private static volatile boolean broken;
+        private volatile List<com.wynntils.services.map.pois.Poi> pois = List.of();
+
+        static boolean show(List<int[]> points, int faintFrom, int rgb) {
+            if (registered == null) {
+                if (points.isEmpty()) {
+                    return true;                    // nothing shown yet, nothing to clear
+                }
+                registered = new GuideRoute();
+                Models.Marker.registerMarkerProvider(registered);
+            }
+            List<com.wynntils.services.map.pois.Poi> out = new ArrayList<>(points.size());
+            for (int i = 0; i < points.size(); i++) {
+                int[] p = points.get(i);
+                int argb = (i < faintFrom ? 0xE0 : 0x70) << 24 | rgb & 0xFFFFFF;
+                out.add(new RouteDot(new com.wynntils.utils.mc.type.PoiLocation(p[0], p[1], p[2]), argb));
+            }
+            registered.pois = List.copyOf(out);
+            return true;
+        }
+
+        @Override
+        public java.util.stream.Stream<com.wynntils.models.marker.type.MarkerInfo> getMarkerInfos() {
+            return java.util.stream.Stream.empty();
+        }
+
+        @Override
+        public java.util.stream.Stream<com.wynntils.services.map.pois.Poi> getPois() {
+            return pois.stream();
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return !pois.isEmpty();
+        }
+    }
+
+    /**
+     * One dot of the guide route, 2 pixels square at any zoom. It has no size to hover or click,
+     * so it never takes the mouse from a pin under it. A failure in our drawing turns the dots
+     * off and never reaches Wynntils' screen.
+     */
+    private record RouteDot(com.wynntils.utils.mc.type.PoiLocation location, int argb)
+            implements com.wynntils.services.map.pois.Poi {
+
+        @Override
+        public com.wynntils.utils.mc.type.PoiLocation getLocation() {
+            return location;
+        }
+
+        @Override
+        public com.wynntils.services.map.type.DisplayPriority getDisplayPriority() {
+            return com.wynntils.services.map.type.DisplayPriority.LOWEST;
+        }
+
+        @Override
+        public boolean hasStaticLocation() {
+            return true;
+        }
+
+        @Override
+        public void renderAt(net.minecraft.client.gui.GuiGraphics g, float x, float z, boolean hovered, float scale,
+                float zoomRenderScale, float zoomLevel, boolean showLabels) {
+            if (GuideRoute.broken) {
+                return;
+            }
+            try {
+                int cx = Math.round(x);
+                int cz = Math.round(z);
+                g.fill(cx - 1, cz - 1, cx + 1, cz + 1, argb);
+            } catch (Throwable t) {
+                GuideRoute.broken = true;           // the map and the guide line keep working
+                System.out.println("[WynnLabs] guide route on the map is off: " + t);
+            }
+        }
+
+        @Override
+        public int getWidth(float zoomRenderScale, float scale) {
+            return 0;
+        }
+
+        @Override
+        public int getHeight(float zoomRenderScale, float scale) {
+            return 0;
+        }
+
+        @Override
+        public String getName() {
+            return "Wynn Labs guide route";
         }
     }
 
