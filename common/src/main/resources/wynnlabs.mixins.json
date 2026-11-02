@@ -21,7 +21,8 @@
     "PowerupLayerAccessor",
     "PowerupSpriteAccessor",
     "CrowdEntityMixin",
-    "CrowdParticleMixin"
+    "CrowdParticleMixin",
+    "PriceBoxMixin"
   ],
   "injectors": {
     "defaultRequire": 1
