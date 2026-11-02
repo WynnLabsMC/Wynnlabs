@@ -24,8 +24,9 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -75,10 +76,16 @@ public final class GuideLine {
     private static final int EVERY = 10;
     /** Ticks between two route searches. */
     private static final int ROUTE_EVERY = 20;
-    /** At most this many spots looked at in one route search, ... */
+    /** At most this many spots looked at in one round of route searches, ... */
     private static final int BUDGET = 150_000;
-    /** ... and at most this long, in milliseconds. */
-    private static final long SEARCH_MILLIS = 400;
+    /** ... at most this many for one candidate pin, so the nearest cannot use them all, ... */
+    private static final int EACH = 60_000;
+    /** ... and at most this long for the round, in milliseconds. */
+    private static final long SEARCH_MILLIS = 600;
+    /** On foot, up to this many of our pins (nearest first, within the search box) are tried. */
+    private static final int CANDIDATES = 4;
+    /** A candidate that could not be reached is not searched again while the player stays this close. */
+    private static final double RETRY = 8;
     /** A step through a door or gate costs this much of a plain one. */
     private static final double DOOR = 1.5;
     /** A block at most this tall (a flower pot) is stepped over at the feet. */
@@ -118,6 +125,17 @@ public final class GuideLine {
     private static volatile String lastError;
     private static boolean failed;
     private static volatile Target target;
+    /** The pins the line may lead to, nearest first; a new list starts a new {@link #generation}. */
+    private static volatile List<Target> candidates = List.of();
+    private static volatile int generation;
+    /** The last round's candidates as searched, and the one led to, for /guide. */
+    private static volatile GuidePath.Choice lastChoice;
+    private static volatile List<Target> lastCandidates = List.of();
+    /** A failed search kept: where the player stood and the route found then. */
+    private record Failed(int x, int y, int z, GuidePath.Route route) {}
+    /** Failed searches by target spot (route thread only), dropped when the pins on the map change. */
+    private static final Map<Long, Failed> FAILED = new HashMap<>();
+    private static int failedFor;
     /** The ground path drawn; replaced (never changed) by the tick or the route thread. */
     private static volatile Path ground = NO_PATH;
     /** Riding or gliding with no ground route to show: the straight line through the air. */
@@ -226,6 +244,30 @@ public final class GuideLine {
         return best == null ? null : new Target(best.x() + 0.5, best.y(), best.z() + 0.5, best.name(), bestOurs);
     }
 
+    /**
+     * The pins to try on foot: ours within {@code box} blocks (flat), nearest first, at most
+     * {@link #CANDIDATES}; with none of ours near, the one {@link #pick} would lead to.
+     */
+    static List<Target> candidates(List<Pin> pins, double px, double pz, int box) {
+        List<Pin> ours = new ArrayList<>();
+        for (Pin p : pins) {
+            if (Waypoints.ours(p) && Math.abs(p.x() + 0.5 - px) <= box && Math.abs(p.z() + 0.5 - pz) <= box) {
+                ours.add(p);
+            }
+        }
+        if (ours.isEmpty()) {
+            Target t = pick(pins, px, pz);
+            return t == null ? List.of() : List.of(t);
+        }
+        ours.sort(java.util.Comparator.comparingDouble(p -> sq(p.x() + 0.5 - px) + sq(p.z() + 0.5 - pz)));
+        List<Target> out = new ArrayList<>();
+        for (int i = 0; i < Math.min(CANDIDATES, ours.size()); i++) {
+            Pin p = ours.get(i);
+            out.add(new Target(p.x() + 0.5, p.y(), p.z() + 0.5, p.name(), true));
+        }
+        return List.copyOf(out);
+    }
+
     /** Every {@link #EVERY} ticks: the target, and when a ground path is wanted, its search. */
     public static void onTick(Minecraft mc) {
         if (++tick % EVERY != 0) {
@@ -239,9 +281,23 @@ public final class GuideLine {
         }
         try {
             var pins = Wyn.waypoints();
-            Target t = pins == null ? null : pick(pins.all(), p.getX(), p.getZ());
-            boolean changed = !Objects.equals(t, target);
-            target = t;
+            List<Pin> all = pins == null ? List.of() : pins.all();
+            int box = Math.max(32, Math.min(256, mc.options.getEffectiveRenderDistance() * 16));
+            List<Target> cands;
+            if (airborne(p)) {
+                Target one = pick(all, p.getX(), p.getZ());
+                cands = one == null ? List.of() : List.of(one);
+            } else {
+                cands = candidates(all, p.getX(), p.getZ(), box);
+            }
+            boolean changed = !cands.equals(candidates);
+            if (changed) {
+                // a new set of pins: lead to the nearest until a route says otherwise
+                candidates = cands;
+                generation++;
+                target = cands.isEmpty() ? null : cands.get(0);
+            }
+            Target t = target;
             ClientLevel level = mc.level;
             int px = (int) Math.floor(p.getX());
             int py = (int) Math.floor(p.getY() + 0.01);
@@ -273,8 +329,9 @@ public final class GuideLine {
                 if (changed) {
                     routed = null;
                 }
-                int box = Math.max(32, Math.min(256, mc.options.getEffectiveRenderDistance() * 16));
-                ROUTER.execute(() -> route(level, t, sx, sy, sz, box));
+                int gen = generation;
+                int pinsNow = all.hashCode();
+                ROUTER.execute(() -> route(level, cands, gen, pinsNow, sx, sy, sz, box));
             }
         } catch (Throwable e) {
             failed = true;
@@ -337,12 +394,39 @@ public final class GuideLine {
             j.addProperty("expandedPerMs", s.millis() == 0 ? s.expanded() : (double) s.expanded() / s.millis());
             o.add("search", j);
         }
+        // the candidate pins of the last round: which were searched, how far each got, which one leads
+        GuidePath.Choice c = lastChoice;
+        List<Target> cands = lastCandidates;
+        JsonArray list = new JsonArray();
+        for (int i = 0; i < cands.size(); i++) {
+            Target ct = cands.get(i);
+            JsonObject j = new JsonObject();
+            j.addProperty("label", ct.label());
+            j.addProperty("x", ct.x());
+            j.addProperty("y", ct.y());
+            j.addProperty("z", ct.z());
+            GuidePath.Try tr = c != null && i < c.tried().size() ? c.tried().get(i) : null;
+            j.addProperty("tried", tr != null);
+            if (tr != null) {
+                j.addProperty("reached", tr.route().reached());
+                j.addProperty("expanded", tr.route().expanded());
+                j.addProperty("cached", tr.cached());
+            }
+            list.add(j);
+        }
+        o.add("candidates", list);
+        if (c == null) {
+            o.add("leadsTo", null);
+        } else {
+            o.addProperty("leadsTo", c.chosen());
+        }
         o.addProperty("error", lastError);
         return o;
     }
 
     private static void clear() {
         target = null;
+        candidates = List.of();
         ground = NO_PATH;
         routed = null;
     }
@@ -354,24 +438,50 @@ public final class GuideLine {
     }
 
     /**
-     * On the route thread: the walking route to the target, smoothed, then straight on to the
-     * target from where it stops. Kept only while the target is still the same.
+     * On the route thread: the walking route to the first candidate that can be reached (the
+     * nearest when none can), smoothed, then straight on to that target from where it stops. Kept
+     * only while the candidates are still the same.
      */
-    private static void route(ClientLevel level, Target t, int sx, int sy, int sz, int box) {
+    private static void route(ClientLevel level, List<Target> cands, int gen, int pinsNow,
+                              int sx, int sy, int sz, int box) {
         try {
+            if (pinsNow != failedFor) {
+                FAILED.clear();
+                failedFor = pinsNow;
+            }
             GuidePath.Walkable w = walkable(level);
-            int tx = (int) Math.floor(t.x());
-            int tz = (int) Math.floor(t.z());
-            int ty = GuidePath.feet(w, tx, tz, (int) Math.floor(t.y()));
+            List<int[]> goals = new ArrayList<>();
+            for (Target t : cands) {
+                int tx = (int) Math.floor(t.x());
+                int tz = (int) Math.floor(t.z());
+                goals.add(new int[] {tx, GuidePath.feet(w, tx, tz, (int) Math.floor(t.y())), tz});
+            }
             long t0 = System.nanoTime();
-            GuidePath.Route r = GuidePath.find(w, sx, sy, sz, tx, ty, tz, box, BUDGET, SEARCH_MILLIS);
+            GuidePath.Choice c = GuidePath.findFirst(w, sx, sy, sz, goals, box, EACH, BUDGET, SEARCH_MILLIS, i -> {
+                Failed f = FAILED.get(spot(goals.get(i)));
+                boolean near = f != null && sq(f.x() - sx) + sq(f.y() - sy) + sq(f.z() - sz) <= RETRY * RETRY;
+                return near ? f.route() : null;
+            });
             long millis = (System.nanoTime() - t0) / 1_000_000;
-            lastSearch = r == null ? new Search(false, 0, 0, null, box, BUDGET, millis)
-                    : new Search(r.reached(), r.nodes().size(), r.expanded(), r.nodes().get(r.nodes().size() - 1),
-                            box, BUDGET, millis);
-            if (r == null || r.nodes().size() < 2 || !t.equals(target)) {
+            lastChoice = c;
+            lastCandidates = cands;
+            if (c == null) {
+                lastSearch = new Search(false, 0, 0, null, box, BUDGET, millis);
                 return;                                 // the straight line stays
             }
+            for (GuidePath.Try tr : c.tried()) {
+                if (!tr.cached() && !tr.route().reached()) {
+                    FAILED.put(spot(goals.get(tr.index())), new Failed(sx, sy, sz, tr.route()));
+                }
+            }
+            GuidePath.Route r = c.route();
+            int expanded = c.tried().stream().filter(tr -> !tr.cached()).mapToInt(tr -> tr.route().expanded()).sum();
+            lastSearch = new Search(r.reached(), r.nodes().size(), expanded, r.nodes().get(r.nodes().size() - 1),
+                    box, BUDGET, millis);
+            if (r.nodes().size() < 2 || gen != generation) {
+                return;
+            }
+            Target t = cands.get(c.chosen());
             List<double[]> pts = new ArrayList<>(GuidePath.points(w, GuidePath.smooth(w, r.nodes(), 24), LIFT));
             double[] end = pts.get(pts.size() - 1);
             double walked = Math.hypot(end[0] - sx, end[2] - sz);
@@ -380,7 +490,8 @@ public final class GuideLine {
                 List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
                 pts.addAll(rest.subList(1, rest.size()));
             }
-            if (t.equals(target)) {
+            if (gen == generation) {
+                target = t;
                 ground = new Path(List.copyOf(pts), end, tail);
                 routed = t;
             }
@@ -388,6 +499,10 @@ public final class GuideLine {
             // a failed search leaves the straight line; the next one tries again
             lastError = e.toString();
         }
+    }
+
+    private static long spot(int[] g) {
+        return ((long) (g[0] & 0x3FFFFFF) << 38) | ((long) (g[2] & 0x3FFFFFF) << 12) | (g[1] & 0xFFF);
     }
 
     /** Columns the player can step to, read from loaded chunks only (an unloaded one has none). */

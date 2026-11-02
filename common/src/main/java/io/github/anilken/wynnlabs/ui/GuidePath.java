@@ -70,6 +70,22 @@ final class GuidePath {
     /** A route's spots {x, feetY, z}, start first, whether it ends at the target, and how many spots the search looked at. */
     record Route(List<int[]> nodes, boolean reached, int expanded) {}
 
+    /** One candidate's search in {@link #findFirst}: its index, its route, and whether that came from an earlier search. */
+    record Try(int index, Route route, boolean cached) {}
+
+    /** The candidates searched in order, and the one led to: the first reached, else the nearest (0). */
+    record Choice(int chosen, List<Try> tried) {
+        Route route() {
+            return tried.get(chosen).route();
+        }
+    }
+
+    /** A candidate's failed route that still holds (the player has not moved far), or null to search again. */
+    @FunctionalInterface
+    interface Known {
+        Route failed(int index);
+    }
+
     private record Node(int x, int y, int z, double g, double f, Node parent) {}
 
     /** What one search aims at: the target's feet and how height weighs in the estimate. */
@@ -198,6 +214,41 @@ final class GuidePath {
             }
         }
         return new Route(trace(nearest), false, expanded);
+    }
+
+    /**
+     * Several targets {x, feetY, z}, nearest first: each is searched in turn, at most {@code each}
+     * spots, all of them together at most {@code total} spots and {@code maxMillis}; the first one
+     * reached is led to. A target behind rock (a chest under a city whose way in lies outside the
+     * loaded area) does not hold the line when another one can be walked to. With none reached the
+     * nearest's partial route is kept. Null when the start has no ground or nothing was searched.
+     */
+    static Choice findFirst(Walkable w, int sx, int sy, int sz, List<int[]> goals, int box,
+                            int each, int total, long maxMillis, Known known) {
+        long deadline = System.nanoTime() + maxMillis * 1_000_000;
+        int left = total;
+        List<Try> tried = new ArrayList<>();
+        for (int i = 0; i < goals.size(); i++) {
+            Route r = known == null ? null : known.failed(i);
+            boolean cached = r != null;
+            if (!cached) {
+                long ms = (deadline - System.nanoTime()) / 1_000_000;
+                if (left <= 0 || ms <= 0) {
+                    break;
+                }
+                int[] g = goals.get(i);
+                r = find(w, sx, sy, sz, g[0], g[1], g[2], box, Math.min(each, left), ms);
+                if (r == null) {
+                    return null;
+                }
+                left -= r.expanded();
+            }
+            tried.add(new Try(i, r, cached));
+            if (r.reached()) {
+                return new Choice(i, tried);
+            }
+        }
+        return tried.isEmpty() ? null : new Choice(0, tried);
     }
 
     private static void push(PriorityQueue<Node> open, Long2DoubleOpenHashMap best, Node from,

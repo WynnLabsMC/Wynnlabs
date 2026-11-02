@@ -395,6 +395,64 @@ class GuidePathTest {
         assertEquals(512, r.expanded());
     }
 
+    /** A grid with a target at (8, 10) sealed in rock and an open one at (18, 10). */
+    private static Grid sealedAndOpen() {
+        Grid g = new Grid(64);
+        for (int x = 7; x <= 9; x++) {
+            for (int z = 9; z <= 11; z++) {
+                if (x != 8 || z != 10) {
+                    g.h[x][z] = N;
+                }
+            }
+        }
+        return g;
+    }
+
+    @Test
+    void aSealedNearTargetGivesWayToAnOpenOne() {
+        Grid g = sealedAndOpen();
+        List<int[]> goals = List.of(new int[] {8, 64, 10}, new int[] {18, 64, 10});
+        GuidePath.Choice c = GuidePath.findFirst(g, 2, 64, 10, goals, 64, 60_000, 150_000, 600, null);
+        assertEquals(1, c.chosen());
+        assertTrue(c.route().reached());
+        assertFalse(c.tried().get(0).route().reached());
+        int[] end = c.route().nodes().get(c.route().nodes().size() - 1);
+        assertTrue(Math.hypot(end[0] - 18, end[2] - 10) <= GuidePath.REACH);
+    }
+
+    @Test
+    void withNoneReachedTheNearestsPartialRouteIsKept() {
+        Grid g = sealedAndOpen();
+        for (int x = 17; x <= 19; x++) {                  // the open one walled in too
+            for (int z = 9; z <= 11; z++) {
+                g.h[x][z] = N;
+            }
+        }
+        List<int[]> goals = List.of(new int[] {8, 64, 10}, new int[] {18, 64, 10});
+        GuidePath.Choice c = GuidePath.findFirst(g, 2, 64, 10, goals, 64, 60_000, 150_000, 600, null);
+        assertEquals(0, c.chosen());
+        assertEquals(2, c.tried().size());
+        assertFalse(c.route().reached());
+    }
+
+    @Test
+    void eachCandidateKeepsToItsShareAndAKnownFailureIsNotSearchedAgain() {
+        Grid g = new Grid(64, 400);
+        for (int i = 390; i < 400; i++) {                  // a walled-in far corner
+            g.h[i][390] = N;
+            g.h[390][i] = N;
+        }
+        List<int[]> goals = List.of(new int[] {395, 64, 395}, new int[] {30, 64, 10});
+        GuidePath.Choice c = GuidePath.findFirst(g, 10, 64, 10, goals, 192, 5_000, 150_000, 10_000, null);
+        assertEquals(5_000, c.tried().get(0).route().expanded());
+        assertEquals(1, c.chosen());
+        GuidePath.Route old = c.tried().get(0).route();
+        GuidePath.Choice again = GuidePath.findFirst(g, 10, 64, 10, goals, 192, 5_000, 150_000, 10_000,
+                i -> i == 0 ? old : null);
+        assertTrue(again.tried().get(0).cached());
+        assertEquals(1, again.chosen());
+    }
+
     /** Every step of a route goes to a neighbouring column the grid allows from the last height. */
     private static void steps(Grid g, List<int[]> nodes) {
         for (int i = 1; i < nodes.size(); i++) {
