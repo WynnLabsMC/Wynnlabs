@@ -446,6 +446,47 @@ final class Pieces {
     }
 
 
+    /**
+     * A crafted piece made from a recipe ({@link io.github.anilken.wynnlabs.crafting.Craft#craft}),
+     * every range at its middle as for a piece from the item data: its identifications, the
+     * recipe's skill requirements, health for armour, and for a weapon its neutral damage at its
+     * attack speed's hits a second. {@code powders} as a WynnBuilder link writes them ("T6T6E7"),
+     * empty for none; {@code key} tells it from other pieces.
+     */
+    static Piece crafted(io.github.anilken.wynnlabs.crafting.Craft.Result r, io.github.anilken.wynnlabs.crafting.Craft.Speed speed,
+                         String name, Slot slot, String key, String powders) {
+        Map<String, Double> stats = new HashMap<>();
+        r.ids().forEach((id, range) -> stats.merge(id, range.mean(), Double::sum));
+        Map<SkillKind, Integer> reqs = new java.util.EnumMap<>(SkillKind.class);
+        for (SkillKind k : SkillKind.values()) {
+            if (k.ordinal() < r.requirements().length && r.requirements()[k.ordinal()] > 0) {
+                reqs.put(k, r.requirements()[k.ordinal()]);
+            }
+        }
+        double dps = 0;
+        double health = r.health() == null ? 0 : r.health().mean();
+        Map<String, Double> sh = normalise(Map.of());
+        boolean weapon = slot != null && slot.isWeapon();
+        if (weapon) {
+            String a = speed.name();
+            int tier = (int) tierOf(a);
+            stats.put(FEEL, feel(a));
+            stats.put(TIER, (double) tier);
+            dps = r.damage() == null ? 0 : r.damage().mean() * HITS[tier];
+        }
+        List<Powder> ps = powders == null ? List.of() : linkPowders(powders);
+        if (!ps.isEmpty()) {
+            if (weapon) {
+                Powdered out = powdered(ps, dps, sh, stats);
+                dps = out.dps();
+                sh = out.shares();
+            } else {
+                health += powderHealth(ps);
+            }
+        }
+        return new Piece(null, key, name, slot, r.level(), stats, reqs, dps, sh, health, true);
+    }
+
     /** A piece's base elemental defences ("Earth Defence 100") into its stats, under {@link #defKey}. */
     private static void addDefences(Map<String, Double> stats, io.github.anilken.wynnlabs.model.BaseStats base) {
         if (base == null || base.defences() == null) {

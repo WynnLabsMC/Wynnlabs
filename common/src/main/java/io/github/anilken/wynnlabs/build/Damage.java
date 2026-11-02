@@ -195,6 +195,12 @@ public final class Damage {
         return Pieces.piece(item, key, stack);
     }
 
+    /** A crafted piece from a recipe's numbers, every range at its middle, with a link's powders ("T6T6E7", empty for none). */
+    public static Piece crafted(io.github.anilken.wynnlabs.crafting.Craft.Result r, io.github.anilken.wynnlabs.crafting.Craft.Speed speed,
+                                String name, Slot slot, String key, String powders) {
+        return Pieces.crafted(r, speed, name, slot, key, powders);
+    }
+
     /** The stat key of a piece's own (base) defence in element {@code el}, before the % IDs. */
     static String defKey(String el) {
         return "_def:" + el;
