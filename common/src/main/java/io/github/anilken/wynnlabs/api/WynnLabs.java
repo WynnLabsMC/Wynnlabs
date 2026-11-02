@@ -328,7 +328,7 @@ public final class WynnLabs {
                     continue;
                 }
                 // Shift with the menu key: crowd mode on or off instead
-                if (net.minecraft.client.gui.screens.Screen.hasShiftDown()) {
+                if (io.github.anilken.wynnlabs.ui.CrowdMode.shiftDown(client)) {
                     io.github.anilken.wynnlabs.ui.CrowdMode.flip(client);
                     continue;
                 }

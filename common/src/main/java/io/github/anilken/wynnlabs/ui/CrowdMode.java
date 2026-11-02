@@ -38,6 +38,13 @@ public final class CrowdMode {
     /** The root display of every labelled stack → true to hide it (another player's summon). */
     private static volatile Map<Integer, Boolean> bodies = Map.of();
 
+    /** Whether a Shift key is held now. */
+    public static boolean shiftDown(Minecraft client) {
+        var w = client.getWindow();
+        return com.mojang.blaze3d.platform.InputConstants.isKeyDown(w, org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SHIFT)
+                || com.mojang.blaze3d.platform.InputConstants.isKeyDown(w, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT);
+    }
+
     /** Flips the switch (Shift with the menu key), telling on the action bar. */
     public static void flip(Minecraft client) {
         Settings.toggle("crowdMode");
