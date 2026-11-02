@@ -56,15 +56,15 @@ class SettingsSnapshotTest {
     @Test
     void steppedNumbersStartAtTheirDefault() {
         Settings.use(new JsonObject());
-        assertEquals(85, Settings.stepValue("menuTooltipScale"), "menu tooltips start at 85%");
-        int[] options = Settings.STEPS.get("menuTooltipScale");
-        assertEquals(100, options[options.length - 1], "100% (as the game draws them) is a choice");
-        assertTrue(java.util.Arrays.stream(options).anyMatch(o -> o == 85), "the default is a choice");
+        assertEquals(100, Settings.stepValue("powerupLabelSize"), "powerup labels start at 100%");
+        int[] options = Settings.STEPS.get("powerupLabelSize");
+        assertEquals(150, options[options.length - 1], "150% is a choice");
+        assertTrue(java.util.Arrays.stream(options).anyMatch(o -> o == 100), "the default is a choice");
 
         JsonObject o = new JsonObject();
-        o.addProperty("menuTooltipScale", 70);
+        o.addProperty("powerupLabelSize", 75);
         Settings.use(o);
-        assertEquals(70, Settings.stepValue("menuTooltipScale"));
+        assertEquals(75, Settings.stepValue("powerupLabelSize"));
     }
 
     @Test
