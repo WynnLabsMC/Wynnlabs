@@ -87,11 +87,12 @@ public final class Settings {
         STEP_FORMAT.put("menuTooltipScale", "wynnlabs.settings.percent");
         STEP_DEFAULT.put("menuTooltipScale", 85);
         DESC.put("menuTooltipScale", "wynnlabs.setting_desc.menuTooltipScale");
-        // crowd mode: how far from you spell effects, particles and damage numbers are still drawn
-        STEPS.put("crowdRadius", new int[] {2, 3, 4, 6, 8, 12});
+        // crowd mode: how far from you spell effects and particles are still drawn; 0 draws none
+        STEPS.put("crowdRadius", new int[] {0, 2, 3, 4, 6, 8, 12});
         STEP_LABELS.put("crowdRadius", "wynnlabs.setting.crowdRadius");
         STEP_FORMAT.put("crowdRadius", "wynnlabs.settings.blocks");
-        STEP_DEFAULT.put("crowdRadius", 4);
+        STEP_ZERO.put("crowdRadius", "wynnlabs.settings.crowd_none");
+        STEP_DEFAULT.put("crowdRadius", 0);
         DESC.put("crowdRadius", "wynnlabs.setting_desc.crowdRadius");
         STEPS.put("powerupLabelSize", new int[] {75, 100, 125, 150});
         STEP_LABELS.put("powerupLabelSize", "wynnlabs.setting.powerupLabelSize");

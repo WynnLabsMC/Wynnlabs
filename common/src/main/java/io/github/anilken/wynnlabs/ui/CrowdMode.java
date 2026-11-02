@@ -4,6 +4,8 @@ import io.github.anilken.wynnlabs.core.Settings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.BoatItem;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -12,11 +14,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Crowd mode: in a packed fight only your own effects are drawn. Other players' summons
+ * Crowd mode: in a packed fight the spell effects are not drawn. Other players' summons
  * (totems, puppets, effigies, birds, mob totems: text labels "Name's Puppet" with the item
- * display under them) are never drawn; the spell effects Wynncraft draws as item displays
- * ("Oak Boat" models), the particles, and the damage numbers farther than the radius are left
- * out. Nothing the game sends is changed, only what is drawn.
+ * display under them) are never drawn, your own stay; the spell effects Wynncraft draws as
+ * item displays ("Oak Boat" models) and the particles are left out beyond the radius, all of
+ * them at radius 0; damage numbers farther than the radius (four blocks at 0) go too. Nothing
+ * the game sends is changed, only what is drawn.
  */
 public final class CrowdMode {
 
@@ -28,9 +31,11 @@ public final class CrowdMode {
     private static final Pattern NUMBER = Pattern.compile("^[\\d,.\\s\\p{Co}\\x{D0000}-\\x{DFFFF}]+$");
 
     private static volatile boolean on;
-    private static volatile double radiusSq = 16;
-    /** Where other players' summon labels stood last tick: their bodies sit under them. */
+    private static volatile int radius;
+    private static volatile double radiusSq;
+    /** Where other players' summon labels stood last tick, and where yours did: bodies sit under them. */
     private static volatile List<Vec3> summons = List.of();
+    private static volatile List<Vec3> mine = List.of();
     private static volatile String me = "";
 
     /** Once a tick: the switch, the radius and where the others' summons are. */
@@ -40,22 +45,33 @@ public final class CrowdMode {
             summons = List.of();
             return;
         }
-        int r = Settings.number("crowdRadius", 4);
-        radiusSq = (double) r * r;
+        radius = Settings.number("crowdRadius", 0);
+        radiusSq = (double) radius * radius;
         me = mc.getUser().getName();
-        List<Vec3> found = new ArrayList<>();
+        List<Vec3> others = new ArrayList<>();
+        List<Vec3> own = new ArrayList<>();
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (e instanceof Display.TextDisplay t && othersSummon(t.getText().getString())) {
-                found.add(e.position());
+            if (e instanceof Display.TextDisplay t) {
+                String owner = owner(t.getText().getString());
+                if (owner != null) {
+                    (owner.equalsIgnoreCase(me) ? own : others).add(e.position());
+                }
             }
         }
-        summons = found;
+        summons = others;
+        mine = own;
+    }
+
+    /** The player a summon label names ("Name's Puppet"), null for any other label. */
+    static String owner(String text) {
+        Matcher m = SUMMON.matcher(text);
+        return m.find() ? m.group(1) : null;
     }
 
     /** Whether the label names another player's summon. */
     static boolean othersSummon(String text) {
-        Matcher m = SUMMON.matcher(text);
-        return m.find() && !m.group(1).equalsIgnoreCase(me);
+        String owner = owner(text);
+        return owner != null && !owner.equalsIgnoreCase(me);
     }
 
     /** Whether to leave this entity undrawn. */
@@ -73,10 +89,13 @@ public final class CrowdMode {
                 return true;
             }
             // a damage number away from you is someone else's
-            return NUMBER.matcher(text).matches() && !text.isBlank() && far(e);
+            return NUMBER.matcher(text).matches() && !text.isBlank() && far(e, Math.max(radius, 4));
         }
-        if (e instanceof Display.ItemDisplay) {
-            return far(e) || underSummon(e);
+        if (e instanceof Display.ItemDisplay d) {
+            if (!vfx(d) || under(e, mine)) {
+                return false;                 // a prop, or your own summon's body
+            }
+            return radius == 0 || far(e, radius) || under(e, summons);
         }
         return false;
     }
@@ -87,17 +106,23 @@ public final class CrowdMode {
             return false;
         }
         Minecraft mc = Minecraft.getInstance();
-        return mc.player != null && mc.player.position().distanceToSqr(x, y, z) > radiusSq;
+        return mc.player != null && (radius == 0 || mc.player.position().distanceToSqr(x, y, z) > radiusSq);
     }
 
-    private static boolean far(Entity e) {
-        return Minecraft.getInstance().player.distanceToSqr(e) > radiusSq;
+    /** A spell effect as Wynncraft draws them: a boat model, or an item display with nothing in it. */
+    private static boolean vfx(Display.ItemDisplay d) {
+        ItemStack s = d.getSlot(0).get();
+        return s.isEmpty() || s.getItem() instanceof BoatItem;
     }
 
-    /** An item display within a block of another player's summon label, under it: its body. */
-    private static boolean underSummon(Entity e) {
+    private static boolean far(Entity e, int blocks) {
+        return Minecraft.getInstance().player.distanceToSqr(e) > (double) blocks * blocks;
+    }
+
+    /** An item display within a block of one of these summon labels, under it: its body. */
+    private static boolean under(Entity e, List<Vec3> labels) {
         Vec3 p = e.position();
-        for (Vec3 s : summons) {
+        for (Vec3 s : labels) {
             double dx = p.x - s.x;
             double dz = p.z - s.z;
             double dy = s.y - p.y;
