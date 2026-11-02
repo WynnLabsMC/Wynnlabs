@@ -386,6 +386,37 @@ class WorldRouteTest {
     }
 
     @Test
+    void aWallLineIsNeverCrossedButACorridorGoesUnderIt() throws IOException {
+        // open ground; a closed wall loop (in blocks) round the middle, cells 4..6 by 1..3
+        WorldRoute g = grid(
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........");
+        String loop = "[[14, 2], [30, 2], [30, 16], [14, 16], [14, 2]]";
+        g.gates(WorldGates.parse("{\"lines\": [" + loop + "]}"));
+        assertEquals(1, g.gates().lines());
+        assertEquals(4, g.gates().segments());
+        // inside cannot be reached from outside, by straight or diagonal steps
+        assertFalse(g.plan(0, 2, 5, 2, 1000, 1000).reached());
+        assertFalse(g.plan(5, 2, 0, 2, 1000, 1000).reached());
+        assertTrue(g.plan(0, 0, 10, 4, 1000, 1000).reached(), "round the loop outside it");
+        assertTrue(g.plan(0, 0, 10, 4, 1000, 1000).cells().stream().noneMatch(c -> c[0] >= 4 && c[0] <= 6 && c[1] >= 1 && c[1] <= 3));
+        // a corridor from outside to inside goes under the wall
+        g.gates(WorldGates.parse("{\"lines\": [" + loop + "], "
+                + "\"corridors\": [{\"name\": \"Road\", \"from\": [6, 10], \"to\": [22, 10]}]}"));
+        assertTrue(g.plan(0, 2, 5, 2, 1000, 1000).reached());
+        // any number of walls is read
+        WorldGates three = WorldGates.parse("{\"lines\": [" + loop + ", [[0, 0], [4, 4]], [[40, 0], [40, 8], [36, 8]]]}");
+        assertEquals(3, three.lines());
+        assertEquals(7, three.segments());
+        // a gate on the wall is a door: crossing allowed within 8 blocks of it
+        g.gates(WorldGates.parse("{\"lines\": [" + loop + "], \"gates\": [{\"name\": \"Door\", \"x\": 14, \"z\": 10}]}"));
+        assertTrue(g.plan(0, 2, 5, 2, 1000, 1000).reached());
+    }
+
+    @Test
     void theRouteKeepsToTheRoadAndOffTheHighLevelLand() throws IOException {
         // the straight way is plain ground; a road loops round it three rows south
         WorldRoute g = grid(

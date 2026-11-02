@@ -556,6 +556,7 @@ public final class GuideLine {
         WorldRoute wm = WorldRouteData.current();
         data.addProperty("impassable", wm == null ? null : wm.impassable());
         data.addProperty("wallLines", wm == null ? null : wm.gates().lines());
+        data.addProperty("wallSegments", wm == null ? null : wm.gates().segments());
         data.addProperty("gates", wm == null ? null : wm.gates().gates());
         data.addProperty("corridors", wm == null ? null : wm.tunnels());
         o.add("data", data);
