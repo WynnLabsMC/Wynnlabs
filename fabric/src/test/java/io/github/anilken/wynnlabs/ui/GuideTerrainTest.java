@@ -2,107 +2,134 @@ package io.github.anilken.wynnlabs.ui;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
-
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.AIR;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.BARRIER;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.HALF;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.LAVA;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.SOLID;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.TALL;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.THIN;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.WATER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * The guide route on three terrain samples from Wynncraft ({@link TerrainGrid}): a coast with a
- * bluff, a river, and a mountain road with arches over it. Each case checks the route a player
- * would walk.
- */
+/** The route's walking rules over block codes, in a made-up Wynncraft cave. */
 class GuideTerrainTest {
 
-    /** The game's search box at a 12-chunk render distance and its node budget. */
-    private static final int BOX = 192;
-    private static final int BUDGET = 150_000;
+    private static final int N = GuidePath.NONE;
 
-    private record Walk(GuidePath.Route route, double length, double road, int maxDrop) {}
+    /**
+     * A tunnel along z = 5 from x = 2 to 30, floor at y = 9 (feet 10), two blocks high: a pool to
+     * swim through (x 10-12), a carpet (15), a hanging chain (18), a slab up (21) to a floor one
+     * higher (feet 11 from x = 22), lava along its south side up to x = 20.
+     */
+    private static GuideDumps.World cave() {
+        GuideDumps.World w = new GuideDumps.World(34, 16, 10, SOLID);
+        w.fill(2, 10, 5, 20, 11, 5, AIR);
+        w.fill(10, 9, 5, 12, 10, 5, WATER);
+        w.set(15, 10, 5, THIN);
+        w.fill(18, 10, 5, 18, 11, 5, THIN);
+        w.set(21, 10, 5, HALF).fill(21, 11, 5, 21, 12, 5, AIR);
+        w.fill(22, 11, 5, 30, 12, 5, AIR);
+        w.fill(2, 10, 6, 20, 10, 6, LAVA);
+        return w;
+    }
 
-    private static Walk walk(TerrainGrid g, int sx, int sy, int sz, int tx, int ty, int tz) {
-        GuidePath.Route r = GuidePath.find(g, sx, sy, sz, tx, ty, tz, BOX, BUDGET);
-        assertNotNull(r, "ground at the start");
-        List<int[]> n = r.nodes();
-        double length = 0;
-        int roads = 0;
-        int maxDrop = 0;
-        for (int i = 0; i < n.size(); i++) {
-            int[] b = n.get(i);
-            if (g.road(b[0], b[1], b[2])) {
-                roads++;
-            }
-            if (i > 0) {
-                int[] a = n.get(i - 1);
-                length += Math.hypot(b[0] - a[0], b[2] - a[2]);
-                maxDrop = Math.max(maxDrop, a[1] - b[1]);
-            }
+    @Test
+    void aCaveWithAPoolACarpetAChainAndASlabIsWalkedThrough() {
+        GuideDump d = cave().dump(2, 10, 5, 30, 11, 5);
+        GuideTerrain w = GuideDumps.walkable(d);
+        GuidePath.Route r = GuidePath.find(w, 2, 10, 5, 30, 11, 5, 64, 10_000);
+        assertNotNull(r);
+        assertTrue(r.reached());
+        assertFalse(r.enclosed());
+        boolean swam = false;
+        for (int[] n : r.nodes()) {
+            assertEquals(5, n[2], "off the tunnel (into the lava?) at " + n[0]);
+            swam |= n[0] >= 10 && n[0] <= 12 && d.at(n[0], n[1], n[2]) == WATER;
         }
-        return new Walk(r, length, (double) roads / n.size(), maxDrop);
+        assertTrue(swam);
     }
 
     @Test
-    void theCoastPathKeepsToTheShoreRoad() {
-        TerrainGrid g = TerrainGrid.load("coast");
-        Walk w = walk(g, 20, g.top(20, 60), 60, 68, g.top(68, 92), 92);
-        assertTrue(w.route().reached());
-        // hardly longer than the straight way, and much of it on the paved shore path
-        assertTrue(w.length() < 1.2 * Math.hypot(68 - 20, 92 - 60), "length " + w.length());
-        assertTrue(w.road() >= 0.4, "road share " + w.road());
-        assertTrue(w.maxDrop() <= 3, "walked, not jumped");
+    void aOneBlockCrawlGapClosesTheCaveAndSaysWhy() {
+        GuideDump d = cave().set(25, 12, 5, SOLID).dump(2, 10, 5, 30, 11, 5);
+        GuidePath.Route r = GuidePath.find(GuideDumps.walkable(d), 2, 10, 5, 30, 11, 5, 64, 10_000);
+        assertFalse(r.reached());
+        assertTrue(r.enclosed());
+        assertEquals(23, r.columns());                    // x 2 to 24
+        assertEquals(GuidePath.STUCK, r.stuck().size());
+        GuidePath.Stuck first = r.stuck().get(0);
+        assertEquals(24, first.x());
+        assertEquals(11, first.y());
+        assertEquals("head blocked", first.rejected().get("E"));
+        assertEquals("wall", first.rejected().get("N"));
+        int[] last = r.nodes().get(r.nodes().size() - 1);
+        assertEquals(24, last[0]);
     }
 
     @Test
-    void offTheBluffToTheShoreBelow() {
-        // no fall damage in Wynncraft: from the clifftop town the way to the lower shore is the jump
-        TerrainGrid g = TerrainGrid.load("coast");
-        Walk w = walk(g, 6, g.top(6, 66), 66, 88, g.top(88, 40), 40);
-        assertTrue(w.route().reached());
-        assertTrue(w.maxDrop() >= 15, "drop " + w.maxDrop());
-        assertTrue(w.length() < 1.2 * Math.hypot(88 - 6, 40 - 66), "length " + w.length());
+    void theBudgetRunningOutIsNotEnclosed() {
+        GuideDump d = cave().dump(2, 10, 5, 30, 11, 5);
+        GuidePath.Route r = GuidePath.find(GuideDumps.walkable(d), 2, 10, 5, 30, 11, 5, 64, 5);
+        assertFalse(r.reached());
+        assertFalse(r.enclosed());
     }
 
     @Test
-    void alongTheRiverBank() {
-        TerrainGrid g = TerrainGrid.load("river");
-        Walk w = walk(g, 2, g.floor(2, 62), 62, 90, g.floor(90, 62), 62);
-        assertTrue(w.route().reached());
-        assertTrue(w.length() < 1.15 * 88, "length " + w.length());
-        for (int[] n : w.route().nodes()) {
-            assertFalse(g.wet(n[0], n[2]), "never in the river");
-        }
+    void lavaIsNeverWalkedIntoAndSaysSo() {
+        GuideTerrain w = GuideDumps.walkable(cave().dump(2, 10, 5, 30, 11, 5));
+        assertEquals(N, w.stand(5, 6, 10));
+        assertEquals("lava", w.why(5, 6, 10));
     }
 
     @Test
-    void theRiverIsNotSwumSoTheRouteStopsAtTheBank() {
-        // the river runs the patch's whole width with no bridge: without swimming the route ends
-        // on the near bank, at the water, as close to the far side as the land reaches
-        TerrainGrid g = TerrainGrid.load("river");
-        Walk w = walk(g, 30, g.floor(30, 62), 62, 40, g.top(40, 15), 15);
-        assertFalse(w.route().reached());
-        int[] end = w.route().nodes().get(w.route().nodes().size() - 1);
-        boolean bank = false;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dz = -2; dz <= 2; dz++) {
-                bank |= g.inside(end[0] + dx, end[2] + dz) && g.wet(end[0] + dx, end[2] + dz);
-            }
-        }
-        assertTrue(bank, "ends at the water: " + end[0] + ", " + end[2]);
-        assertTrue(end[2] < 45, "on the bank nearest the target: z " + end[2]);
+    void thinBlocksAtTheFeetAreStoodInAndWaterIsSwum() {
+        GuideTerrain w = GuideDumps.walkable(cave().dump(2, 10, 5, 30, 11, 5));
+        assertEquals(10, w.stand(15, 5, 10));            // carpet
+        assertEquals(10, w.stand(18, 5, 10));            // chain, feet and head
+        assertEquals(10, w.stand(11, 5, 10));            // in the pool
+        assertEquals(GuideTerrain.SWIM, w.cost(11, 10, 5));
+        assertEquals(10, w.climb(11, 5, 9, 1));          // up from the pool's bottom
     }
 
     @Test
-    void theHillRoadUnderTheArches() {
-        // the start lies under an arch (its highest floor is the arch top, 58 blocks up): the
-        // route starts on the ground below and keeps to the road round the hill
-        TerrainGrid g = TerrainGrid.load("mountain");
-        assertTrue(g.top(8, 88) > g.floor(8, 88) + 40);
-        Walk w = walk(g, 8, g.floor(8, 88), 88, 44, g.floor(44, 90), 90);
-        assertTrue(w.route().reached());
-        assertEquals(g.floor(8, 88), w.route().nodes().get(0)[1]);
-        assertTrue(w.road() >= 0.5, "road share " + w.road());
-        assertTrue(w.maxDrop() <= 3, "walked, not jumped");
+    void aSlabIsAHalfStepUpAndAFenceIsNotJumpedOnto() {
+        GuideTerrain w = GuideDumps.walkable(cave().dump(2, 10, 5, 30, 11, 5));
+        assertEquals(11, w.stand(21, 5, 10));
+        assertEquals(GuideTerrain.HALF_RISE, w.rise(21, 11, 5));
+        assertEquals(GuidePath.RISE, w.rise(22, 11, 5));
+        assertEquals(10, w.stand(20, 5, 11));            // and down off it
+
+        GuideDumps.World f = new GuideDumps.World(6, 16, 6, AIR).fill(0, 0, 0, 5, 9, 5, SOLID).set(3, 10, 3, TALL);
+        GuideTerrain fw = GuideDumps.walkable(f.dump(2, 10, 3, 4, 10, 3));
+        assertEquals(N, fw.stand(3, 3, 10));
+        assertEquals("fence", fw.why(3, 3, 10));
+    }
+
+    @Test
+    void aBarrierIsWalkedOnAndBlocksLikeAnySolid() {
+        // a floor of barriers, a barrier wall at x = 4 two high
+        GuideDumps.World w = new GuideDumps.World(8, 16, 4, AIR).fill(0, 0, 0, 7, 9, 3, BARRIER)
+                .fill(4, 10, 0, 4, 11, 3, BARRIER);
+        GuideTerrain g = GuideDumps.walkable(w.dump(1, 10, 1, 6, 10, 1));
+        assertEquals(10, g.stand(2, 1, 10));
+        assertEquals(N, g.stand(4, 1, 10));
+        assertEquals("wall", g.why(4, 1, 10));
+        assertFalse(GuidePath.find(g, 1, 10, 1, 6, 10, 1, 16, 1000).reached());
+    }
+
+    @Test
+    void aDeepShaftDropsIntoWaterButNotPastTheLimit() {
+        GuideDumps.World w = new GuideDumps.World(6, 60, 6, SOLID);
+        w.fill(1, 50, 1, 1, 51, 1, AIR);                  // the ledge
+        w.fill(2, 1, 1, 2, 51, 1, AIR);                   // an open shaft beside it, down to y = 1
+        w.fill(3, 30, 1, 3, 51, 1, AIR).fill(3, 30, 1, 3, 32, 1, WATER);
+        GuideTerrain g = GuideDumps.walkable(w.dump(1, 50, 1, 3, 30, 1));
+        assertEquals(N, g.stand(2, 1, 50));
+        assertEquals("drop too far", g.why(2, 1, 50));
+        assertEquals(32, g.stand(3, 1, 50));             // the water's top
     }
 }

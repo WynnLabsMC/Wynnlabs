@@ -1,10 +1,14 @@
 package io.github.anilken.wynnlabs.ui;
 
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 
 /**
@@ -36,6 +40,15 @@ final class GuidePath {
     static final double DROP_COST = 0.15;
     /** A step onto a road or stair costs this much of a plain one, so routes keep to roads. */
     static final double ROAD = 0.7;
+    /** A step a block up (a jump) costs this much more. */
+    static final double RISE = 0.5;
+    /** When the search runs out of spots, this many of the spots it reached nearest the target are reported. */
+    static final int STUCK = 8;
+    /** An exit's walking cost from the player weighs this much against its flat distance to the target. */
+    static final double EXIT_WALK = 0.5;
+    /** Exit kinds: on the edge of the search box, or next to a column whose chunk is not loaded. */
+    static final String EXIT_BOX = "box";
+    static final String EXIT_UNLOADED = "unloaded";
     /**
      * The distance estimate is scaled by this: below 1 so a road a little aside is still tried
      * before the plain straight way wins, above {@link #ROAD} so open ground is not searched wide.
@@ -47,7 +60,7 @@ final class GuidePath {
     interface Walkable {
         /**
          * The feet height to stand at in column ({@code x}, {@code z}) when stepping there from
-         * feet height {@code fromY}: solid ground below, two free blocks, no water or lava, at most
+         * feet height {@code fromY}: ground below (or water to swim in), two free blocks, no lava, at most
          * one block up and three down, or deeper (down to {@link #DROP}) where the column below is
          * open all the way; {@link #NONE} when there is none (or the column is unknown).
          */
@@ -65,10 +78,46 @@ final class GuidePath {
         default double cost(int x, int y, int z) {
             return 1;
         }
+
+        /** What a step a block up onto feet ({@code x}, {@code y}, {@code z}) costs on top of the step: {@link #RISE}. */
+        default double rise(int x, int y, int z) {
+            return RISE;
+        }
+
+        /**
+         * Why there is nowhere to stand in column ({@code x}, {@code z}) stepping from feet height
+         * {@code fromY} ({@link #stand} gave {@link #NONE}), in a few words: no ground, head
+         * blocked, drop too far, lava, ...
+         */
+        default String why(int x, int z, int fromY) {
+            return "no ground";
+        }
+
+        /** Whether column ({@code x}, {@code z}) is not loaded, seen from feet height {@code fromY}: the ground may go on there. */
+        default boolean unknown(int x, int z, int fromY) {
+            return false;
+        }
     }
 
-    /** A route's spots {x, feetY, z}, start first, whether it ends at the target, and how many spots the search looked at. */
-    record Route(List<int[]> nodes, boolean reached, int expanded) {}
+    /**
+     * A route's spots {x, feetY, z}, start first, whether it ends at the target, and how many
+     * spots the search looked at. {@code enclosed}: the search ran out of spots to go to before
+     * its budget (the walkable ground around the start is closed in); then {@code columns} is how
+     * many columns it reached and {@code stuck} the reached spots nearest the target, with why
+     * each one's neighbours could not be stepped to. {@code exit} (null: none, the ground is
+     * sealed) is where the walkable ground goes on past what the search could see, which the
+     * route then leads to, and {@code exitKind} why it could not see further ({@link #EXIT_BOX},
+     * {@link #EXIT_UNLOADED}).
+     */
+    record Route(List<int[]> nodes, boolean reached, int expanded, boolean enclosed, int columns, List<Stuck> stuck,
+                 int[] exit, String exitKind) {
+        Route(List<int[]> nodes, boolean reached, int expanded) {
+            this(nodes, reached, expanded, false, 0, List.of(), null, null);
+        }
+    }
+
+    /** A spot reached near the target, and its neighbour columns that could not be stepped to: direction (N, NE, ...) to why. */
+    record Stuck(int x, int y, int z, Map<String, String> rejected) {}
 
     /** One candidate's search in {@link #findFirst}: its index, its route, and whether that came from an earlier search. */
     record Try(int index, Route route, boolean cached) {}
@@ -96,6 +145,8 @@ final class GuidePath {
     }
 
     private static final int[][] MOVES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+    /** The moves' compass names (+x east, +z south). */
+    private static final String[] DIRS = {"E", "W", "S", "N", "SE", "NE", "SW", "NW"};
     private static final double DIAG = Math.sqrt(2);
 
     private GuidePath() {}
@@ -169,8 +220,17 @@ final class GuidePath {
         Node nearest = start;
         double nearestH = goal.h(sx, y0, sz);
         int expanded = 0;
+        LongOpenHashSet columns = new LongOpenHashSet();
+        // the reached spots nearest the target, farthest on top, for a report when closed in
+        PriorityQueue<Node> close = new PriorityQueue<>(Comparator.comparingDouble((Node a) -> -dist(a, tx, ty, tz)));
+        boolean outOfTime = false;
+        // where the ground goes on past what can be seen: the best one, should the search close in
+        Node exit = null;
+        String exitKind = null;
+        double exitScore = Double.POSITIVE_INFINITY;
         while (!open.isEmpty() && expanded < budget) {
             if (expanded % CLOCK_EVERY == 0 && expanded > 0 && System.nanoTime() > deadline) {
+                outOfTime = true;
                 break;
             }
             Node n = open.poll();
@@ -186,10 +246,21 @@ final class GuidePath {
                 return new Route(trace(n), true, expanded);
             }
             expanded++;
+            columns.add(key(n.x(), 0, n.z()));
+            close.add(n);
+            if (close.size() > STUCK) {
+                close.poll();
+            }
             for (int[] m : MOVES) {
                 int nx = n.x() + m[0];
                 int nz = n.z() + m[1];
                 if (Math.abs(nx - sx) > box || Math.abs(nz - sz) > box) {
+                    double score = flat(n.x(), n.z(), tx, tz) + EXIT_WALK * n.g();
+                    if (score < exitScore) {
+                        exit = n;
+                        exitKind = EXIT_BOX;
+                        exitScore = score;
+                    }
                     continue;
                 }
                 boolean diagonal = m[0] != 0 && m[1] != 0;
@@ -199,21 +270,65 @@ final class GuidePath {
                 }
                 int ny = w.stand(nx, nz, n.y());
                 if (ny == NONE) {
+                    if (w.unknown(nx, nz, n.y())) {
+                        double score = flat(n.x(), n.z(), tx, tz) + EXIT_WALK * n.g();
+                        if (score < exitScore) {
+                            exit = n;
+                            exitKind = EXIT_UNLOADED;
+                            exitScore = score;
+                        }
+                    }
                     continue;
                 }
                 int drop = n.y() - ny;
-                double g = n.g() + (diagonal ? DIAG : 1) * w.cost(nx, ny, nz) + (ny > n.y() ? 0.5 : 0)
+                double g = n.g() + (diagonal ? DIAG : 1) * w.cost(nx, ny, nz) + (ny > n.y() ? w.rise(nx, ny, nz) : 0)
                         + (drop > 3 ? DROP_COST * drop : 0);
                 push(open, best, n, nx, ny, nz, g, goal);
             }
             for (int dy = -1; dy <= 1; dy += 2) {
                 int ny = w.climb(n.x(), n.z(), n.y(), dy);
                 if (ny != NONE) {
-                    push(open, best, n, n.x(), ny, n.z(), n.g() + (dy > 0 ? 1.5 : 1), goal);
+                    push(open, best, n, n.x(), ny, n.z(), n.g() + (dy > 0 ? 1.5 : 1) * w.cost(n.x(), ny, n.z()), goal);
                 }
             }
         }
+        if (open.isEmpty() && !outOfTime) {
+            List<Node> near = new ArrayList<>(close);
+            near.sort(Comparator.comparingDouble(a -> dist(a, tx, ty, tz)));
+            List<Stuck> stuck = new ArrayList<>();
+            for (Node s : near) {
+                stuck.add(new Stuck(s.x(), s.y(), s.z(), rejected(w, s, sx, sz, box)));
+            }
+            // closed in: lead to where the ground goes on out of sight, else to the spot nearest the target
+            Node end = exit != null ? exit : nearest;
+            int[] at = exit == null ? null : new int[] {exit.x(), exit.y(), exit.z()};
+            return new Route(trace(end), false, expanded, true, columns.size(), List.copyOf(stuck), at, exitKind);
+        }
         return new Route(trace(nearest), false, expanded);
+    }
+
+    /** The neighbour columns of a spot that cannot be stepped to, and why. */
+    private static Map<String, String> rejected(Walkable w, Node n, int sx, int sz, int box) {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (int i = 0; i < MOVES.length; i++) {
+            int[] m = MOVES[i];
+            int nx = n.x() + m[0];
+            int nz = n.z() + m[1];
+            if (Math.abs(nx - sx) > box || Math.abs(nz - sz) > box) {
+                out.put(DIRS[i], "outside the search box");
+            } else if (w.stand(nx, nz, n.y()) == NONE) {
+                out.put(DIRS[i], w.why(nx, nz, n.y()));
+            } else if (m[0] != 0 && m[1] != 0 && (w.stand(n.x() + m[0], n.z(), n.y()) == NONE
+                    || w.stand(n.x(), n.z() + m[1], n.y()) == NONE)) {
+                out.put(DIRS[i], "corner");
+            }
+        }
+        return out;
+    }
+
+    private static double dist(Node n, int tx, int ty, int tz) {
+        return Math.sqrt((double) (n.x() - tx) * (n.x() - tx) + (double) (n.y() - ty) * (n.y() - ty)
+                + (double) (n.z() - tz) * (n.z() - tz));
     }
 
     /**

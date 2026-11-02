@@ -1,2 +1,4 @@
 # recorded test data and its expected files are compared byte for byte: keep LF everywhere
 fabric/src/test/resources/fixtures/** text eol=lf
+# gzipped dumps are binary: no line-ending conversion
+fabric/src/test/resources/fixtures/**/*.gz binary

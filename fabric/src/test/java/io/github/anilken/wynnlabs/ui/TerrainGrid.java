@@ -10,18 +10,16 @@ import java.nio.charset.StandardCharsets;
 /**
  * A terrain sample from Wynncraft for the guide route's tests: per column the runs of blocks the
  * player cannot walk through (solid ground, water, lava), top down, so the paths under arches,
- * bridges and overhangs are there too. Walked with the game's rules (GuideLine's walkable): solid
- * ground below, two free blocks, no water or lava at the feet, at most one block up and three down,
- * or deeper down an open column; a road or stair block on top costs {@link GuidePath#ROAD}.
+ * bridges and overhangs are there too. Its blocks are read as {@link GuideTerrain} codes and walked
+ * with the game's own rules ({@link #walkable()}); a road or stair block on top is a road.
  * Coordinates are relative to the patch's north-west corner.
  */
-final class TerrainGrid implements GuidePath.Walkable {
+final class TerrainGrid implements GuideTerrain.Blocks {
 
     private static final int SOLID = 0;
     private static final int ROAD = 1;
     private static final int WATER = 2;
     private static final int LAVA = 3;
-    private static final int AIR = -1;
 
     final int width;
     final int depth;
@@ -80,26 +78,37 @@ final class TerrainGrid implements GuidePath.Walkable {
         return x >= 0 && z >= 0 && x < width && z < depth;
     }
 
-    /** The block at (x, y, z): solid, road (solid, the top of its run), water, lava or air. */
-    private int at(int x, int y, int z) {
-        int[] col = runs[x][z];
+    /** The block code at (x, y, z): unknown outside the patch or where it has no data. */
+    @Override
+    public char at(int x, int y, int z) {
+        int[] col = inside(x, z) ? runs[x][z] : null;
         if (col == null) {
-            return AIR;
+            return GuideTerrain.UNKNOWN;
         }
         for (int i = 0; i < col.length; i += 3) {
             if (y >= col[i] && y < col[i + 1]) {
-                return col[i + 2] == ROAD && y != col[i + 1] - 1 ? SOLID : col[i + 2];
+                return switch (col[i + 2]) {
+                    case WATER -> GuideTerrain.WATER;
+                    case LAVA -> GuideTerrain.LAVA;
+                    case ROAD -> y == col[i + 1] - 1 ? GuideTerrain.ROAD : GuideTerrain.SOLID;
+                    default -> GuideTerrain.SOLID;
+                };
             }
         }
-        return AIR;
+        return GuideTerrain.AIR;
     }
 
-    private static boolean solid(int b) {
-        return b == SOLID || b == ROAD;
+    /** The patch walked with the game's rules. */
+    GuideTerrain walkable() {
+        return new GuideTerrain(this);
+    }
+
+    private boolean solid(int kind) {
+        return kind == SOLID || kind == ROAD;
     }
 
     private boolean standable(int x, int y, int z) {
-        return at(x, y, z) == AIR && !solid(at(x, y + 1, z)) && solid(at(x, y - 1, z));
+        return walkable().standable(x, y, z) && GuideTerrain.ground(at(x, y - 1, z));
     }
 
     /** The highest feet height a player can stand at in a column, NONE with none. */
@@ -138,36 +147,6 @@ final class TerrainGrid implements GuidePath.Walkable {
 
     /** Whether the block under feet height {@code y} is a road or stair block. */
     boolean road(int x, int y, int z) {
-        return inside(x, z) && at(x, y - 1, z) == ROAD;
-    }
-
-    @Override
-    public int stand(int x, int z, int fromY) {
-        if (!inside(x, z) || runs[x][z] == null) {
-            return GuidePath.NONE;
-        }
-        for (int y = fromY + 1; y >= fromY - 3; y--) {
-            if (standable(x, y, z)) {
-                return y;
-            }
-        }
-        // no fall damage in Wynncraft: off a ledge, down an open column to the ground
-        if (solid(at(x, fromY + 1, z))) {
-            return GuidePath.NONE;
-        }
-        for (int y = fromY; y >= fromY - GuidePath.DROP; y--) {
-            if (at(x, y, z) != AIR) {
-                return GuidePath.NONE;
-            }
-            if (y < fromY - 3 && standable(x, y, z)) {
-                return y;
-            }
-        }
-        return GuidePath.NONE;
-    }
-
-    @Override
-    public double cost(int x, int y, int z) {
-        return road(x, y, z) ? GuidePath.ROAD : 1;
+        return at(x, y - 1, z) == GuideTerrain.ROAD;
     }
 }

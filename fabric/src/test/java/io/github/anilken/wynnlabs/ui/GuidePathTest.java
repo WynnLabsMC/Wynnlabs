@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -461,5 +462,63 @@ class GuidePathTest {
             assertTrue(Math.abs(a[0] - b[0]) <= 1 && Math.abs(a[2] - b[2]) <= 1);
             assertEquals(b[1], g.stand(b[0], b[2], a[1]));
         }
+    }
+
+    @Test
+    void aSealedRoomHasNoExit() {
+        // a 5 × 5 room in walls, the target outside it
+        Grid g = new Grid(64);
+        for (int i = 0; i < 20; i++) {
+            for (int j = 0; j < 20; j++) {
+                if (i < 2 || i > 6 || j < 2 || j > 6) {
+                    g.h[i][j] = N;
+                }
+            }
+        }
+        GuidePath.Route r = GuidePath.find(g, 4, 64, 4, 15, 64, 15, 64, 10_000);
+        assertTrue(r.enclosed());
+        assertNull(r.exit());
+        int[] last = r.nodes().get(r.nodes().size() - 1);
+        assertEquals(6, last[0]);
+        assertEquals(6, last[2]);
+    }
+
+    @Test
+    void closedInByTheSearchBoxTheRouteLeadsToItsEdge() {
+        // open ground, the target well past a box of 5: the ground goes on at the box's east edge
+        Grid g = new Grid(64);
+        GuidePath.Route r = GuidePath.find(g, 2, 64, 10, 18, 64, 10, 5, 10_000);
+        assertFalse(r.reached());
+        assertTrue(r.enclosed());
+        assertEquals(GuidePath.EXIT_BOX, r.exitKind());
+        assertEquals(7, r.exit()[0]);
+        assertEquals(10, r.exit()[2]);
+        assertArrayEquals(r.exit(), r.nodes().get(r.nodes().size() - 1));
+    }
+
+    @Test
+    void anExitIntoUnloadedChunksIsNearerThanAFarOneCloserToTheTarget() {
+        // a corridor along z = 10 east to x 12, then the chunks there are not loaded; a long way
+        // round (north, x 2..17 along z = 2) ends at unloaded columns too, a little nearer the target
+        Grid g = new Grid(64) {
+            @Override
+            public boolean unknown(int x, int z, int fromY) {
+                return x >= 13 && z == 10 || x >= 18 && z == 2;
+            }
+        };
+        for (int i = 0; i < 20; i++) {
+            for (int j = 0; j < 20; j++) {
+                boolean corridor = j == 10 && i >= 2 && i <= 12;
+                boolean round = j == 2 && i >= 2 && i <= 17 || i == 2 && j >= 2 && j <= 10;
+                if (!corridor && !round) {
+                    g.h[i][j] = N;
+                }
+            }
+        }
+        GuidePath.Route r = GuidePath.find(g, 6, 64, 10, 40, 64, 6, 64, 10_000);
+        assertTrue(r.enclosed());
+        assertEquals(GuidePath.EXIT_UNLOADED, r.exitKind());
+        assertEquals(12, r.exit()[0]);
+        assertEquals(10, r.exit()[2]);
     }
 }
