@@ -96,6 +96,8 @@ final class SettingsRows {
                 p.row("switch", "tooltipPrice");
                 p.row("choice", "dropGlow");
                 p.row("switch", "glowUpgrade");
+                p.row("switch", "crowdMode");
+                p.row("step", "crowdRadius");
                 p.row("multi", "warnings");
                 p.row("multi", "chat");
             }

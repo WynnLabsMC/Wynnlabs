@@ -167,7 +167,22 @@ public final class Coach {
         return uses;
     }
 
-    /** The HUD: the death warning, and the hunt line when a hunt is on. */
+    private static String noteText = "";
+    private static String noteIcon = "sparkles";
+    private static int noteColour = Hud.GOLD;
+    private static long noteUntil;
+    private static int noteWidth;
+
+    /** A short notice where the death warning stands (two seconds): a switch flipped, a mode changed. */
+    public static void note(String text, String icon, int colour) {
+        noteText = text;
+        noteIcon = icon;
+        noteColour = colour;
+        noteUntil = System.currentTimeMillis() + 2000;
+        noteWidth = Hud.noticeWidth(Hud.font(), text);
+    }
+
+    /** The HUD: the death warning, a notice, and the hunt line when a hunt is on. */
     public static void renderHud(GuiGraphics g, net.minecraft.client.DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.options.hideGui) {
@@ -182,6 +197,11 @@ public final class Coach {
                 warnWidth = Hud.noticeWidth(font, warnLine);
             }
             Hud.notice(g, font, g.guiWidth() / 2, g.guiHeight() / 2 - 40 - HUD_MARGIN, warnWidth, "alert-triangle", warnLine, Hud.RED);
+        }
+        if (now < noteUntil && !noteText.isEmpty()) {
+            // under the warning when both show
+            int y = g.guiHeight() / 2 - 40 - HUD_MARGIN + (now < warnUntil && !warnText.isEmpty() ? Hud.noticeHeight() + 4 : 0);
+            Hud.notice(g, font, g.guiWidth() / 2, y, noteWidth, noteIcon, noteText, noteColour);
         }
         if (huntTarget != null) {
             long min = (now - huntStart) / 60000;

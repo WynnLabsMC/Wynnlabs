@@ -56,6 +56,13 @@ public final class GroundDebug {
                 j.addProperty("text", t.getText().getString());
             }
             j.addProperty("distance", Math.round(e.distanceTo(mc.player) * 10) / 10.0);
+            if (e.getVehicle() != null) {
+                j.addProperty("rides", e.getVehicle().getClass().getSimpleName() + "#" + e.getVehicle().getId());
+            }
+            if (!e.getPassengers().isEmpty()) {
+                j.addProperty("passengers", e.getPassengers().size());
+            }
+            j.addProperty("id", e.getId());
             j.addProperty("customName", e.getCustomName() == null ? null : e.getCustomName().getString());
             j.addProperty("glowing", mc.shouldEntityAppearGlowing(e));
             if (stack != null && !stack.isEmpty()) {
