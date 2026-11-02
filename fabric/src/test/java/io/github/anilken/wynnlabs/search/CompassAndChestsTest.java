@@ -60,6 +60,15 @@ class CompassAndChestsTest {
     }
 
     @Test
+    void anItemsChestsHaveAKnownTier() {
+        List<Area> chests = List.of(
+                new Area(1, 2, 3, 0, 80, 0, null),          // tierless: maybe a shop, left out
+                new Area(4, 5, 6, 0, 80, 1, null),
+                new Area(7, 8, 9, 0, 120, 3, null));        // out of the band
+        assertEquals(List.of(chests.get(1)), Places.forTest(chests).chestsInBand(70, 90));
+    }
+
+    @Test
     void playerChestsAreAdded(@TempDir Path dir) throws Exception {
         Path f = dir.resolve("chests.json");
         Files.writeString(f, "[{\"x\":123456,\"y\":1,\"z\":-7,\"stars\":2}]");
