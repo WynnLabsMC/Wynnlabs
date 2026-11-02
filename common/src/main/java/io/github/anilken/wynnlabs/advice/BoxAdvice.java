@@ -137,6 +137,19 @@ final class BoxAdvice {
             }
             return sell(box, L.t("wynnlabs.auto.box_none_for_class", AltCharacters.className(cls)));
         }
+        // A tier whose boxes go straight to the Blacksmith (rule trade.blacksmithTiers, Unique by
+        // default): their market prices are too thin to trust and a best-roll guess is not a reason
+        // to identify; only a piece picked outright (the shopping list, the road map) still is
+        if (Rules.list("trade", "blacksmithTiers").contains(box.tier().name())) {
+            boolean picked = false;
+            for (ItemData info : GameState.current().possibleGears(box)) {
+                picked |= Shopping.find(info.name()) != null || io.github.anilken.wynnlabs.build.roadmap.Roadmap.plans(info.name());
+            }
+            if (!picked) {
+                return sell(box, L.t("wynnlabs.auto.box_tier_blacksmith", box.tier().name().charAt(0)
+                        + box.tier().name().substring(1).toLowerCase(java.util.Locale.ROOT)));
+            }
+        }
         // The build plan, as it judges the piece once identified: an outcome is one you would
         // wear only when the plan would take it at its best roll. When none would, the box is
         // sold by its value (Blacksmith or the Trade Market's reveal), never identified to wear
@@ -172,13 +185,6 @@ final class BoxAdvice {
         // too far ahead to identify now: kept for later only when an outcome will help (above)
         if (low > level + tooHigh) {
             return plain(new Advice.Entry(Verdict.KEEP, L.t("wynnlabs.auto.identify_near_level", low)));
-        }
-        // a tier whose boxes go straight to the Blacksmith (rule trade.blacksmithTiers, Unique by
-        // default): their market prices are too thin to trust, so no route is weighed, unless the
-        // build wants a piece from it (above)
-        if (wearName == null && Rules.list("trade", "blacksmithTiers").contains(box.tier().name())) {
-            return sell(box, L.t("wynnlabs.auto.box_tier_blacksmith", box.tier().name().charAt(0)
-                    + box.tier().name().substring(1).toLowerCase(java.util.Locale.ROOT)));
         }
         // without a plan to ask, the rough check: the best outcome against what you wear
         WornGear.Weakest wb = judged || !GameState.current().inGame() ? null : WornGear.weakest(WornGear.worn(box.slot()));

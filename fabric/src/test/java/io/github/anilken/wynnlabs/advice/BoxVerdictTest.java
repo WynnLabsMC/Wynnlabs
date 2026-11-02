@@ -91,9 +91,6 @@ class BoxVerdictTest {
         // the Unique box from the fixture: nothing in it the build asks for, so no route is weighed
         ItemView.Box box = new ItemView.Box(Slot.LEGGINGS, Tier.UNIQUE, 66, 70);
         BoxAdvice.Decision d = BoxAdvice.decide(box, Klass.SHAMAN, 44);
-        if (d.entry().verdict() == Verdict.KEEP) {
-            return;                                   // too far ahead for a level-44 character
-        }
         assertEquals(Verdict.SELL, d.entry().verdict());
         assertEquals(BoxVerdict.Label.SELL, BoxVerdict.of(box, Klass.SHAMAN, 44).label());
         // the same box one tier up is still weighed by its value
