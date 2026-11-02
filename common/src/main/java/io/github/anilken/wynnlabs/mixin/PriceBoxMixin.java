@@ -3,24 +3,40 @@ package io.github.anilken.wynnlabs.mixin;
 import io.github.anilken.wynnlabs.ui.PriceBox;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.network.chat.Component;
 import org.joml.Vector2i;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 
 /**
- * Notes where Wynnventory puts its price box ({@link PriceBox}), so our item tooltip keeps out
- * from under it. Soft: without Wynnventory the target does not exist and nothing is applied.
- * Reading only; the box is drawn where Wynnventory meant it.
+ * Wynnventory's price box and our item tooltip ({@link PriceBox}): the box's lines are taken as
+ * Wynnventory is about to draw them, to be drawn beside our tooltip; and where Wynnventory puts
+ * the box (anchored, or handed back) is noted so our tooltip keeps out from under it. Soft:
+ * without Wynnventory the target does not exist and nothing is applied.
  */
 @Pseudo
 @Mixin(targets = "com.wynnventory.util.RenderUtils", remap = false)
 public abstract class PriceBoxMixin {
+
+    @Inject(method = "drawTooltip", at = @At("HEAD"), cancellable = true, remap = false, require = 0)
+    private static void wynnlabs$take(GuiGraphics g, int mouseX, int mouseY, List<Component> vanilla,
+            List<Component> custom, CallbackInfo ci) {
+        try {
+            if (PriceBox.take(g, mouseX, mouseY, vanilla, custom)) {
+                ci.cancel();
+            }
+        } catch (Throwable ignored) {
+            // Wynnventory then draws as usual
+        }
+    }
 
     @Inject(method = "calculateTooltipCoords", at = @At("RETURN"), remap = false, require = 0)
     private static void wynnlabs$noteBox(int mouseX, int mouseY, List<ClientTooltipComponent> vanilla,

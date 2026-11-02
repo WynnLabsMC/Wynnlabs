@@ -59,10 +59,12 @@ public final class MenuTooltips {
             return POSITIONER;
         }
         float s = wanted();
-        if (s >= 1f) {
+        // at full size the game and Wynntils place it, unless Wynnventory's price box is on the
+        // screen: then ours places it (the same way), so it can keep out from under the box
+        if (s >= 1f && !PriceBox.fresh()) {
             return null;
         }
-        POSITIONER.begin(g, s, wynntils > 0 ? wynntils : 1f, 0);
+        POSITIONER.begin(g, Math.min(s, 1f), wynntils > 0 ? wynntils : 1f, 0);
         return POSITIONER;
     }
 

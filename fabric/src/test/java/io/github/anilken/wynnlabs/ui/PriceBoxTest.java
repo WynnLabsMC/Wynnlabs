@@ -30,6 +30,16 @@ class PriceBoxTest {
     }
 
     @Test
+    void theBoxStandsAtTheLeftEdgeLevelWithTheScreensMiddle() {
+        float[] a = PriceBox.anchored(100, 60, 360);
+        assertEquals(6, a[0]);                                // 2 from the edge, then the frame
+        assertEquals((360 - 68) / 2f + 4, a[1]);
+        assertEquals(1f, a[2]);
+        float[] tall = PriceBox.anchored(100, 600, 360);
+        assertEquals(360 / 610f, tall[2], 1e-4);
+    }
+
+    @Test
     void withNowhereToGoItStays() {
         int[] wide = {0, 0, 640, 360};
         assertEquals(52, PriceBox.avoid(wide, 0, 52, 90, 100, 60, 40, 12, 4, 640));

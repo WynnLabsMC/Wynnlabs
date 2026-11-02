@@ -259,6 +259,11 @@ public final class WynntilsEvents {
         @SubscribeEvent(priority = EventPriority.LOW)
         public void onPosition(TooltipRenderEvent.Position e) {
             try {
+                if (io.github.anilken.wynnlabs.ui.PriceBox.drawing()) {
+                    // the price box we draw stays where we put it, whatever the tooltip fitting says
+                    e.setPositioner(io.github.anilken.wynnlabs.ui.PriceBox.fixed());
+                    return;
+                }
                 if (e.getPositioner() == null) {
                     var p = MenuTooltips.positioner(e.getGuiGraphics(), universalScale());
                     if (p != null) {
