@@ -327,6 +327,11 @@ public final class WynnLabs {
                 if (client.player == null || client.screen != null) {
                     continue;
                 }
+                // Shift with the menu key: crowd mode on or off instead
+                if (net.minecraft.client.gui.screens.Screen.hasShiftDown()) {
+                    io.github.anilken.wynnlabs.ui.CrowdMode.flip(client);
+                    continue;
+                }
                 client.setScreen(new RoadmapScreen());
             }
         });
@@ -334,8 +339,6 @@ public final class WynnLabs {
         io.github.anilken.wynnlabs.ui.SearchKey.register(platform, category);
         // T over a gear box in a container: the box contents window over it
         io.github.anilken.wynnlabs.ui.BoxKey.register(platform, category);
-        // F7 in the world: crowd mode on or off, said on the action bar (the letters are all taken)
-        io.github.anilken.wynnlabs.ui.CrowdMode.registerKey(platform, category);
         // files waiting in the background writer reach the disk before the game closes
         platform.onClientStopping(Saver::flush);
         // Wynntils' event bus only exists once the client has started.

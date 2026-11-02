@@ -38,23 +38,12 @@ public final class CrowdMode {
     /** The root display of every labelled stack → true to hide it (another player's summon). */
     private static volatile Map<Integer, Boolean> bodies = Map.of();
 
-    /** The key that flips the switch while no screen is open, telling on the action bar. */
-    public static void registerKey(io.github.anilken.wynnlabs.core.Platform platform,
-            net.minecraft.client.KeyMapping.Category category) {
-        net.minecraft.client.KeyMapping k = platform.registerKey(new net.minecraft.client.KeyMapping(
-                "key.wynnlabs.crowd", com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
-                org.lwjgl.glfw.GLFW.GLFW_KEY_F7, category));
-        platform.onEndTick(client -> {
-            while (k.consumeClick()) {
-                if (client.player == null || client.screen != null) {
-                    continue;
-                }
-                Settings.toggle("crowdMode");
-                boolean now = Settings.on("crowdMode");
-                client.gui.setOverlayMessage(io.github.anilken.wynnlabs.core.L.c(
-                        now ? "wynnlabs.crowd.on" : "wynnlabs.crowd.off"), false);
-            }
-        });
+    /** Flips the switch (Shift with the menu key), telling on the action bar. */
+    public static void flip(Minecraft client) {
+        Settings.toggle("crowdMode");
+        boolean now = Settings.on("crowdMode");
+        client.gui.setOverlayMessage(io.github.anilken.wynnlabs.core.L.c(
+                now ? "wynnlabs.crowd.on" : "wynnlabs.crowd.off"), false);
     }
 
     /** Once a tick: the switch, the radius and which stacks have a label. */

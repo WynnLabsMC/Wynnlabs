@@ -20,7 +20,7 @@ final class AboutKeys {
         {"key.wynnlabs.roadmap", null, "wynnlabs.about.key_menu"},
         {"key.wynnlabs.search", null, "wynnlabs.about.key_search"},
         {"key.wynnlabs.box_guide", null, "wynnlabs.about.key_box"},
-        {"key.wynnlabs.crowd", null, "wynnlabs.about.key_crowd"},
+        {"shift:key.wynnlabs.roadmap", null, "wynnlabs.about.key_crowd"},
         {null, "1–9", "wynnlabs.about.key_tabs"},
         {null, "/", "wynnlabs.about.key_find"},
         {null, "Esc", "wynnlabs.about.key_back"}};
@@ -29,6 +29,10 @@ final class AboutKeys {
 
     /** The key bound to {@code name} as the game writes it, "unbound" when none, null when no such binding. */
     static String bound(String name) {
+        if (name.startsWith("shift:")) {
+            String base = bound(name.substring(6));
+            return base == null ? null : L.t("wynnlabs.about.shift_key", base);
+        }
         for (KeyMapping k : Minecraft.getInstance().options.keyMappings) {
             if (k.getName().equals(name)) {
                 return k.isUnbound() ? L.t("wynnlabs.about.unbound") : k.getTranslatedKeyMessage().getString();

@@ -2499,7 +2499,7 @@
   "wynnlabs.search.track_tip": "Takip et: yakına gelince haber, görünce işaret",
   "wynnlabs.search.track_item_tip": "Takip et: yerdeyken ışın ve adı görünür",
   "wynnlabs.search.tracking_tip": "Takipte: bırakmak için tıkla",
-  "key.wynnlabs.crowd": "Kalabalık modu aç/kapat",
+  "wynnlabs.about.shift_key": "Shift + %s",
   "wynnlabs.about.key_crowd": "Kalabalık modunu açar/kapatır (büyü efekti yok)",
   "wynnlabs.crowd.on": "Kalabalık modu açık: büyü efekti yok",
   "wynnlabs.crowd.off": "Kalabalık modu kapalı: efektler geri",
