@@ -51,20 +51,30 @@ class GuideLineTest {
     }
 
     @Test
-    void theArcRisesInTheMiddleAndReachesTheTarget() {
-        List<double[]> pts = GuideLine.arc(0, 100, 0, 100, 100, 0, 300, 10);
-        assertEquals(11, pts.size());
-        assertEquals(100, pts.get(10)[0], E);
-        assertEquals(100, pts.get(10)[1], E);
-        assertEquals(105, pts.get(5)[1], E);
-        double[] cut = GuideLine.arc(0, 100, 0, 1000, 100, 0, 300, 10).get(10);
-        assertEquals(300, cut[0], E);
+    void fadesInFromThePlayersFeet() {
+        assertEquals(0f, GuideLine.nearFade(0), 1e-6);
+        assertEquals(1f, GuideLine.nearFade(GuideLine.FADE), 1e-6);
+        assertTrue(GuideLine.nearFade(0.7) > 0 && GuideLine.nearFade(0.7) < 1);
     }
 
     @Test
-    void fadesOutNearThePlayer() {
-        assertEquals(0f, GuideLine.nearFade(1), 1e-6);
-        assertEquals(1f, GuideLine.nearFade(8), 1e-6);
-        assertTrue(GuideLine.nearFade(5) > 0 && GuideLine.nearFade(5) < 1);
+    void dashesAndGapsFlowTowardTheEnd() {
+        double period = GuideLine.DASH + GuideLine.GAP;
+        assertEquals(1, GuideLine.dashAt(0, 0), E);                       // a dash's front at the end
+        assertTrue(GuideLine.dashAt(GuideLine.DASH + 0.1, 0) < 0);        // then a gap
+        assertTrue(GuideLine.dashAt(period + 0.1, 0) > 0);                // then the next dash
+        // a second later the pattern moved FLOW blocks toward the end
+        assertEquals(GuideLine.dashAt(4.5, 0), GuideLine.dashAt(4.5 - GuideLine.FLOW, 1), E);
+    }
+
+    @Test
+    void thePathIsCutWhereThePlayerStands() {
+        List<double[]> pts = List.of(new double[] {0, 64, 0}, new double[] {10, 64, 0}, new double[] {10, 64, 10});
+        double[] at = GuideLine.nearest(pts, 4, 1);
+        assertEquals(0, at[0], E);
+        assertEquals(0.4, at[1], E);
+        at = GuideLine.nearest(pts, 11, 6);
+        assertEquals(1, at[0], E);
+        assertEquals(0.6, at[1], E);
     }
 }

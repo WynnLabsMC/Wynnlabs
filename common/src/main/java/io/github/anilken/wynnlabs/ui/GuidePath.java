@@ -11,8 +11,9 @@ import java.util.PriorityQueue;
  * The guide line's walking route: an A* over block columns. A step goes to one of the eight
  * neighbouring columns where there is ground to stand on at most one block up or three down
  * ({@link Walkable}); a diagonal step needs both columns beside it walkable, so it never cuts a
- * corner. The search is bounded (a box around the start, a node budget); when it cannot reach the
- * target it returns the route to the reachable spot nearest the target. Pure: no Minecraft types.
+ * corner; roads and stairs cost less, so the route keeps to them. The search is bounded (a box
+ * around the start, a node budget); when it cannot reach the target it returns the route to the
+ * reachable spot nearest the target. Pure: no Minecraft types.
  */
 final class GuidePath {
 
@@ -20,6 +21,13 @@ final class GuidePath {
     static final int NONE = Integer.MIN_VALUE;
     /** The target counts as reached within this flat distance, in blocks. */
     static final double REACH = 1.5;
+    /** A step onto a road or stair costs this much of a plain one, so routes keep to roads. */
+    static final double ROAD = 0.7;
+    /**
+     * The distance estimate is scaled by this: below 1 so a road a little aside is still tried
+     * before the plain straight way wins, above {@link #ROAD} so open ground is not searched wide.
+     */
+    private static final double H_WEIGHT = 0.8;
 
     /** The ground of a column, seen from a step at feet height {@code fromY}. */
     @FunctionalInterface
@@ -30,6 +38,11 @@ final class GuidePath {
          * one block up and three down; {@link #NONE} when there is none (or the column is unknown).
          */
         int stand(int x, int z, int fromY);
+
+        /** What a step onto feet ({@code x}, {@code y}, {@code z}) costs against a plain one: {@link #ROAD} on roads and stairs. */
+        default double cost(int x, int y, int z) {
+            return 1;
+        }
     }
 
     /** A route's spots {x, feetY, z}, start first, and whether it ends at the target. */
@@ -54,11 +67,11 @@ final class GuidePath {
         }
         PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f(), b.f()));
         Map<Long, Double> best = new HashMap<>();
-        Node start = new Node(sx, y0, sz, 0, h(sx, sz, tx, tz), null);
+        Node start = new Node(sx, y0, sz, 0, H_WEIGHT * h(sx, sz, tx, tz), null);
         open.add(start);
         best.put(key(sx, y0, sz), 0.0);
         Node nearest = start;
-        double nearestH = start.f();
+        double nearestH = h(sx, sz, tx, tz);
         int expanded = 0;
         while (!open.isEmpty() && expanded < budget) {
             Node n = open.poll();
@@ -90,12 +103,12 @@ final class GuidePath {
                 if (ny == NONE) {
                     continue;
                 }
-                double g = n.g() + (diagonal ? DIAG : 1) + (ny > n.y() ? 0.5 : 0);
+                double g = n.g() + (diagonal ? DIAG : 1) * w.cost(nx, ny, nz) + (ny > n.y() ? 0.5 : 0);
                 long k = key(nx, ny, nz);
                 Double old = best.get(k);
                 if (old == null || g < old) {
                     best.put(k, g);
-                    open.add(new Node(nx, ny, nz, g, g + h(nx, nz, tx, tz), n));
+                    open.add(new Node(nx, ny, nz, g, g + H_WEIGHT * h(nx, nz, tx, tz), n));
                 }
             }
         }

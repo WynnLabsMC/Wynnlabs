@@ -11,7 +11,9 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -26,33 +28,46 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A line from the player to the compass target (setting guideLine): the nearest pin of ours on
- * the Wynntils map, else the nearest other waypoint there (a map click or /compass puts its
- * target there too). On foot it follows a walkable route ({@link GuidePath}) through the loaded
- * area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the loaded area,
- * or where no route goes on, it continues straight, laid on the highest block every
- * {@link #STEP} blocks. While riding or gliding it is a gentle arc through the air. Depth tested
- * like {@link ChestBeams}, so terrain hides it, and faded near the player so it never covers the
- * crosshair. Each frame only draws. Drawing only: nothing is sent to the server.
+ * A navigation path from the player to the compass target (setting guideLine), in the manner of
+ * Black Desert's: a light cyan strip of dashes flowing toward the target, with a thin pillar of
+ * light where it ends. The target is the nearest pin of ours on the Wynntils map, else the nearest
+ * other waypoint there (a map click or /compass puts its target there too).
+ *
+ * <p>On foot the strip lies flat on the ground along a walkable route ({@link GuidePath}) through
+ * the loaded area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the
+ * loaded area, or where no route goes on, it continues straight, laid on the highest block every
+ * {@link #STEP} blocks. While riding or gliding it is a straight line to the target; when the
+ * target is well above the mount (a cliff city a wyvern cannot reach) the ground route from below
+ * the player is drawn too, so the player sees where to land and walk. Depth tested like
+ * {@link ChestBeams}, so terrain hides it. Each frame only draws. Drawing only: nothing is sent to
+ * the server.
  */
 public final class GuideLine {
 
-    /** Ground points this far apart, in blocks. */
+    /** Ground points this far apart on the straight stretch, in blocks. */
     static final double STEP = 2;
     /** The line stops this far from the player, in blocks (measured flat). */
     static final double CAP = 300;
-    /** How far above the ground the ground line floats. */
-    static final double LIFT = 0.3;
-    /** Ticks between two looks at the target and the ground. */
+    /** How far above the ground the strip lies. */
+    static final double LIFT = 0.08;
+    /** Dashes this long with gaps this long, in blocks; they flow this many blocks a second. */
+    static final double DASH = 1.2;
+    static final double GAP = 0.6;
+    static final double FLOW = 1.0;
+    /** The first blocks from the player fade in over this length. */
+    static final double FADE = 1.5;
+    /** Mounted with the target this much higher: the ground route is drawn as well. */
+    private static final double HIGH = 8;
+    /** Height of the pillar at the end of the path. */
+    private static final float PILLAR = 6f;
+    /** Light cyan. */
+    private static final int COLOUR = 0x9FE8FF;
+    /** Ticks between two looks at the target. */
     private static final int EVERY = 10;
     /** Ticks between two route searches. */
     private static final int ROUTE_EVERY = 20;
     /** At most this many spots looked at in one route search. */
     private static final int BUDGET = 20_000;
-    /** Pin colours: "go there" aqua, quest points gold, someone else's waypoint white. */
-    private static final int GO = 0x55FFFF;
-    private static final int QUEST = 0xFFAA00;
-    private static final int OTHER = 0xFFFFFF;
 
     /** Height of the highest block at a column, or {@link #UNKNOWN} where the chunk is not loaded. */
     @FunctionalInterface
@@ -62,15 +77,20 @@ public final class GuideLine {
 
     static final int UNKNOWN = Integer.MIN_VALUE;
 
-    /** The target being led to and its colour. */
-    record Target(double x, double y, double z, int colour) {}
+    /** The target being led to (the pin's block centre). */
+    record Target(double x, double y, double z) {}
+
+    /** A ground path: its points {x, y, z}, player end first, and where its pillar stands (null: none). */
+    record Path(List<double[]> points, double[] end) {}
+
+    private static final Path NO_PATH = new Path(List.of(), null);
 
     private static int tick;
     private static boolean failed;
     private static volatile Target target;
-    /** The ground line's points {x, y, z}, player first; replaced (never changed) every {@link #EVERY} ticks. */
-    private static volatile List<double[]> ground = List.of();
-    /** The target the shown ground line was routed for (null: only the straight line so far). */
+    /** The ground path drawn; replaced (never changed) by the tick or the route thread. */
+    private static volatile Path ground = NO_PATH;
+    /** The target the shown ground path was routed for (null: only the straight line so far). */
     private static volatile Target routed;
     /** One thread for route searches; a new request replaces one still waiting. */
     private static final ThreadPoolExecutor ROUTER = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
@@ -116,31 +136,45 @@ public final class GuideLine {
         return out;
     }
 
-    /**
-     * A gentle arc from ({@code sx}, {@code sy}, {@code sz}) to the target, cut at {@code cap}
-     * blocks (straight-line distance): {@code segments + 1} points, highest in the middle at a
-     * twentieth of the length (at most 12 blocks) above the straight line.
-     */
-    static List<double[]> arc(double sx, double sy, double sz, double tx, double ty, double tz,
-                              double cap, int segments) {
-        double dx = tx - sx;
-        double dy = ty - sy;
-        double dz = tz - sz;
-        double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-        double k = dist > cap ? cap / dist : 1;
-        double rise = Math.min(12, dist * k * 0.05);
-        List<double[]> out = new ArrayList<>(segments + 1);
-        for (int i = 0; i <= segments; i++) {
-            double t = (double) i / segments;
-            double u = t * k;
-            out.add(new double[] {sx + dx * u, sy + dy * u + rise * Math.sin(Math.PI * t), sz + dz * u});
-        }
-        return out;
+    /** Opacity at {@code d} blocks along the line from the player: none at the feet, full from {@link #FADE} on. */
+    static float nearFade(double d) {
+        return (float) Math.max(0, Math.min(1, d / FADE));
     }
 
-    /** Opacity at {@code d} blocks from the player: none up close, full from 8 blocks on. */
-    static float nearFade(double d) {
-        return (float) Math.max(0, Math.min(1, (d - 2) / 6));
+    /**
+     * Where a dash covers the spot {@code left} blocks before the line's end at {@code seconds}:
+     * -1 in a gap, else how far along the dash from its back (0) to its front (1). The pattern is
+     * fixed to the end, so a new route (which mostly changes the player end) does not make the
+     * dashes jump, and it moves toward the end by {@link #FLOW} blocks a second.
+     */
+    static double dashAt(double left, double seconds) {
+        double period = DASH + GAP;
+        double u = ((left + seconds * FLOW) % period + period) % period;
+        return u < DASH ? 1 - u / DASH : -1;
+    }
+
+    /**
+     * Index of the segment of {@code pts} closest to (x, z), seen from above, and how far along it
+     * (0..1): where the path is cut so it starts at the player's feet.
+     */
+    static double[] nearest(List<double[]> pts, double x, double z) {
+        double best = Double.MAX_VALUE;
+        double[] out = {0, 0};
+        for (int i = 1; i < pts.size(); i++) {
+            double[] a = pts.get(i - 1);
+            double[] b = pts.get(i);
+            double dx = b[0] - a[0];
+            double dz = b[2] - a[2];
+            double l2 = dx * dx + dz * dz;
+            double t = l2 < 1e-9 ? 0 : Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[2]) * dz) / l2));
+            double d = sq(a[0] + dx * t - x) + sq(a[2] + dz * t - z);
+            if (d < best) {
+                best = d;
+                out[0] = i - 1;
+                out[1] = t;
+            }
+        }
+        return out;
     }
 
     /** The pin to lead to: the nearest of ours, else the nearest of any; null with none on the map. */
@@ -157,22 +191,17 @@ public final class GuideLine {
                 bestD = d;
             }
         }
-        if (best == null) {
-            return null;
-        }
-        int colour = !bestOurs ? OTHER : Waypoints.isQuest(best) ? QUEST : GO;
-        return new Target(best.x() + 0.5, best.y(), best.z() + 0.5, colour);
+        return best == null ? null : new Target(best.x() + 0.5, best.y(), best.z() + 0.5);
     }
 
-    /** Every {@link #EVERY} ticks: the target, and on foot the ground points to it. */
+    /** Every {@link #EVERY} ticks: the target, and when a ground path is wanted, its search. */
     public static void onTick(Minecraft mc) {
         if (++tick % EVERY != 0) {
             return;
         }
         Player p = mc.player;
         if (failed || p == null || mc.level == null || !Settings.on("guideLine")) {
-            target = null;
-            ground = List.of();
+            clear();
             return;
         }
         try {
@@ -180,32 +209,46 @@ public final class GuideLine {
             Target t = pins == null ? null : pick(pins.all(), p.getX(), p.getZ());
             boolean changed = !Objects.equals(t, target);
             target = t;
-            if (t == null || airborne(p)) {
-                ground = List.of();
+            ClientLevel level = mc.level;
+            int sx = (int) Math.floor(p.getX());
+            int sz = (int) Math.floor(p.getZ());
+            int sy;
+            if (!airborne(p)) {
+                sy = (int) Math.floor(p.getY() + 0.01);
+            } else if (t != null && t.y() - p.getY() > HIGH && level.hasChunk(sx >> 4, sz >> 4)) {
+                // the ground below the mount: where to land and walk up
+                sy = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sx, sz);
+            } else {
+                sy = UNKNOWN;
+            }
+            if (t == null || sy == UNKNOWN) {
+                ground = NO_PATH;
                 routed = null;
                 return;
             }
-            ClientLevel level = mc.level;
             if (changed || routed == null) {
                 // the straight line at once; the route replaces it when found
-                ground = List.copyOf(sample(p.getX(), p.getY(), p.getZ(), t.x(), t.z(), STEP, CAP, heights(level)));
+                List<double[]> line = sample(sx + 0.5, sy, sz + 0.5, t.x(), t.z(), STEP, CAP, heights(level));
+                ground = new Path(List.copyOf(line), line.get(line.size() - 1));
             }
             if (changed || tick % ROUTE_EVERY == 0) {
                 if (changed) {
                     routed = null;
                 }
-                int sx = (int) Math.floor(p.getX());
-                int sy = (int) Math.floor(p.getY() + 0.01);
-                int sz = (int) Math.floor(p.getZ());
                 int box = Math.max(32, Math.min(256, mc.options.getEffectiveRenderDistance() * 16));
                 ROUTER.execute(() -> route(level, t, sx, sy, sz, box));
             }
         } catch (Throwable e) {
             failed = true;
-            target = null;
-            ground = List.of();
+            clear();
             System.out.println("[WynnLabs] guide line failed, off until restart: " + e);
         }
+    }
+
+    private static void clear() {
+        target = null;
+        ground = NO_PATH;
+        routed = null;
     }
 
     /** The highest block of a column, {@link #UNKNOWN} where its chunk is not loaded. */
@@ -235,7 +278,7 @@ public final class GuideLine {
                 pts.addAll(rest.subList(1, rest.size()));
             }
             if (t.equals(target)) {
-                ground = List.copyOf(pts);
+                ground = new Path(List.copyOf(pts), end);
                 routed = t;
             }
         } catch (Throwable e) {
@@ -246,17 +289,26 @@ public final class GuideLine {
     /** Columns the player can step to, read from loaded chunks only (an unloaded one has none). */
     private static GuidePath.Walkable walkable(ClientLevel level) {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        return (x, z, fromY) -> {
-            ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
-            if (chunk == null) {
+        return new GuidePath.Walkable() {
+            @Override
+            public int stand(int x, int z, int fromY) {
+                ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
+                if (chunk == null) {
+                    return GuidePath.NONE;
+                }
+                for (int y = fromY + 1; y >= fromY - 3; y--) {
+                    if (standable(chunk, pos, x, y, z)) {
+                        return y;
+                    }
+                }
                 return GuidePath.NONE;
             }
-            for (int y = fromY + 1; y >= fromY - 3; y--) {
-                if (standable(chunk, pos, x, y, z)) {
-                    return y;
-                }
+
+            @Override
+            public double cost(int x, int y, int z) {
+                ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
+                return chunk != null && road(chunk.getBlockState(pos.set(x, y - 1, z))) ? GuidePath.ROAD : 1;
             }
-            return GuidePath.NONE;
         };
     }
 
@@ -273,12 +325,20 @@ public final class GuideLine {
         return below.blocksMotion() && below.getFluidState().isEmpty();
     }
 
-    /** On a mount or gliding: the line goes through the air. */
+    /** A road or stair block, which the route prefers. */
+    private static boolean road(BlockState s) {
+        return s.is(Blocks.DIRT_PATH) || s.is(Blocks.GRAVEL) || s.is(Blocks.COBBLESTONE)
+                || s.is(Blocks.MOSSY_COBBLESTONE) || s.is(Blocks.STONE_BRICKS) || s.is(Blocks.MOSSY_STONE_BRICKS)
+                || s.is(Blocks.CRACKED_STONE_BRICKS) || s.is(Blocks.SMOOTH_STONE)
+                || s.is(BlockTags.PLANKS) || s.is(BlockTags.SLABS) || s.is(BlockTags.STAIRS);
+    }
+
+    /** On a mount or gliding: the straight line through the air. */
     private static boolean airborne(Player p) {
         return p.isPassenger() || p.isFallFlying();
     }
 
-    /** Every frame: the line, in one batch. */
+    /** Every frame: the path, in one batch. */
     public static void renderWorld(PoseStack pose, MultiBufferSource buffers) {
         Target t = target;
         if (t == null || failed) {
@@ -293,44 +353,34 @@ public final class GuideLine {
             float pt = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
             Vec3 me = p.getPosition(pt);
             Vec3 c = mc.gameRenderer.getMainCamera().position();
-            List<double[]> pts;
+            double seconds = (mc.level.getGameTime() % 100_000 + pt) / 20.0;
+            VertexConsumer quads = buffers.getBuffer(RenderTypes.debugQuads());
             if (airborne(p)) {
-                // from just ahead of the eyes, so the start is not inside the mount
-                Vec3 look = p.getViewVector(pt);
-                double sx = me.x + look.x * 3;
-                double sy = me.y + p.getEyeHeight() - 0.6;
-                double sz = me.z + look.z * 3;
-                pts = arc(sx, sy, sz, t.x(), t.y() + 1, t.z(), CAP, 64);
-            } else {
-                pts = ground;
-                if (pts.isEmpty()) {
-                    return;
+                double dx = t.x() - me.x;
+                double dy = t.y() + 1 - me.y;
+                double dz = t.z() - me.z;
+                double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+                double k = dist > CAP ? CAP / dist : 1;
+                List<double[]> air = List.of(new double[] {me.x, me.y, me.z},
+                        new double[] {me.x + dx * k, me.y + dy * k, me.z + dz * k});
+                dashes(pose, quads, c, air, seconds, false);
+                if (k == 1) {
+                    Beams.draw(pose, quads, (float) (t.x() - c.x), (float) (t.y() + 1 - c.y), (float) (t.z() - c.z),
+                            PILLAR, COLOUR, 1f);
                 }
             }
-            VertexConsumer quads = buffers.getBuffer(RenderTypes.debugQuads());
-            double fx = t.x() - me.x;
-            double fz = t.z() - me.z;
-            for (int i = 1; i < pts.size(); i++) {
-                double[] a = pts.get(i - 1);
-                double[] b = pts.get(i);
-                // the ground points are a few ticks old: skip the ones already behind the player
-                if ((b[0] - me.x) * fx + (b[2] - me.z) * fz < 0) {
-                    continue;
+            Path g = ground;
+            if (g.points().size() >= 2) {
+                dashes(pose, quads, c, fromFeet(g.points(), me), seconds, true);
+                if (g.end() != null) {
+                    double[] e = g.end();
+                    Beams.draw(pose, quads, (float) (e[0] - c.x), (float) (e[1] - c.y), (float) (e[2] - c.z),
+                            PILLAR, COLOUR, 1f);
                 }
-                float fa = nearFade(Math.sqrt(sq(a[0] - me.x) + sq(a[1] - me.y) + sq(a[2] - me.z)));
-                float fb = nearFade(Math.sqrt(sq(b[0] - me.x) + sq(b[1] - me.y) + sq(b[2] - me.z)));
-                if (fa < 0.02f && fb < 0.02f) {
-                    continue;
-                }
-                float ax = (float) (a[0] - c.x), ay = (float) (a[1] - c.y), az = (float) (a[2] - c.z);
-                float bx = (float) (b[0] - c.x), by = (float) (b[1] - c.y), bz = (float) (b[2] - c.z);
-                ribbon(pose, quads, ax, ay, az, bx, by, bz, 0.06f, t.colour(), 0.75f * fa, 0.75f * fb);
-                ribbon(pose, quads, ax, ay, az, bx, by, bz, 0.18f, t.colour(), 0.2f * fa, 0.2f * fb);
             }
         } catch (Throwable e) {
             failed = true;                          // once broken, stay out of the frame loop
-            target = null;
-            ground = List.of();
+            clear();
             System.out.println("[WynnLabs] guide line failed, off until restart: " + e);
         } finally {
             if (buffers instanceof MultiBufferSource.BufferSource source) {
@@ -339,35 +389,115 @@ public final class GuideLine {
         }
     }
 
+    /** The path cut where it passes the player, so it starts at their feet (it is up to a second old). */
+    private static List<double[]> fromFeet(List<double[]> pts, Vec3 me) {
+        double[] at = nearest(pts, me.x, me.z);
+        int i = (int) at[0];
+        double[] a = pts.get(i);
+        double[] b = pts.get(i + 1);
+        double t = at[1];
+        List<double[]> out = new ArrayList<>(pts.size() - i);
+        out.add(new double[] {a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t});
+        out.addAll(pts.subList(i + 1, pts.size()));
+        return out;
+    }
+
     /**
-     * One segment from a to b (relative to the camera) as a strip {@code half} wide each side,
-     * turned to face the camera.
+     * The dashes along {@code pts} (absolute positions), each narrowing at its back; flat on the
+     * ground with {@code flat}, else turned to face the camera.
      */
-    private static void ribbon(PoseStack pose, VertexConsumer v, float ax, float ay, float az,
-                               float bx, float by, float bz, float half, int rgb, float alphaA, float alphaB) {
-        // side = (b - a) × (camera - midpoint): across the segment, square to the line of sight
+    private static void dashes(PoseStack pose, VertexConsumer v, Vec3 c, List<double[]> pts, double seconds, boolean flat) {
+        double total = 0;
+        for (int i = 1; i < pts.size(); i++) {
+            total += dist(pts.get(i - 1), pts.get(i));
+        }
+        double along = 0;
+        for (int i = 1; i < pts.size(); i++) {
+            double[] a = pts.get(i - 1);
+            double[] b = pts.get(i);
+            double len = dist(a, b);
+            if (len < 1e-6) {
+                continue;
+            }
+            // cut the segment where dashes start and end: pieces of at most 0.3 blocks
+            int pieces = Math.max(1, (int) Math.ceil(len / 0.3));
+            for (int s = 0; s < pieces; s++) {
+                double s0 = (double) s / pieces;
+                double s1 = (double) (s + 1) / pieces;
+                double d0 = along + len * s0;
+                double d1 = along + len * s1;
+                double mid = dashAt(total - (d0 + d1) / 2, seconds);
+                if (mid < 0) {
+                    continue;
+                }
+                double u0 = Math.max(0, dashAt(total - d0, seconds));
+                double u1 = Math.max(0, dashAt(total - d1, seconds));
+                float f0 = nearFade(d0);
+                float f1 = nearFade(d1);
+                if (f0 < 0.02f && f1 < 0.02f) {
+                    continue;
+                }
+                float ax = (float) (a[0] + (b[0] - a[0]) * s0 - c.x);
+                float ay = (float) (a[1] + (b[1] - a[1]) * s0 - c.y);
+                float az = (float) (a[2] + (b[2] - a[2]) * s0 - c.z);
+                float bx = (float) (a[0] + (b[0] - a[0]) * s1 - c.x);
+                float by = (float) (a[1] + (b[1] - a[1]) * s1 - c.y);
+                float bz = (float) (a[2] + (b[2] - a[2]) * s1 - c.z);
+                // the back of a dash is narrow, its front full width: a soft arrow toward the target
+                float w0 = (float) (0.35 + 0.65 * u0);
+                float w1 = (float) (0.35 + 0.65 * u1);
+                strip(pose, v, ax, ay, az, bx, by, bz, 0.06f * w0, 0.06f * w1, 0.8f * f0, 0.8f * f1, flat);
+                strip(pose, v, ax, ay, az, bx, by, bz, 0.175f * w0, 0.175f * w1, 0.25f * f0, 0.25f * f1, flat);
+            }
+            along += len;
+        }
+    }
+
+    /**
+     * One piece from a to b (relative to the camera), {@code halfA} / {@code halfB} wide each side:
+     * lying flat with {@code flat} (facing up), else square to the line of sight.
+     */
+    private static void strip(PoseStack pose, VertexConsumer v, float ax, float ay, float az,
+                              float bx, float by, float bz, float halfA, float halfB,
+                              float alphaA, float alphaB, boolean flat) {
         float dx = bx - ax, dy = by - ay, dz = bz - az;
-        float cx = -(ax + bx) / 2, cy = -(ay + by) / 2, cz = -(az + bz) / 2;
-        float ox = dy * cz - dz * cy;
-        float oy = dz * cx - dx * cz;
-        float oz = dx * cy - dy * cx;
+        float ox, oy, oz;
+        if (flat) {
+            // left of the way, level: (-dz, 0, dx); with the order below the face looks up
+            ox = -dz;
+            oy = 0;
+            oz = dx;
+        } else {
+            // (b - a) × (camera - midpoint): across the piece, square to the line of sight
+            float cx = -(ax + bx) / 2, cy = -(ay + by) / 2, cz = -(az + bz) / 2;
+            ox = dy * cz - dz * cy;
+            oy = dz * cx - dx * cz;
+            oz = dx * cy - dy * cx;
+        }
         float len = (float) Math.sqrt(ox * ox + oy * oy + oz * oz);
-        if (len < 1e-5f) {
+        if (len < 1e-6f) {
             return;
         }
-        ox *= half / len;
-        oy *= half / len;
-        oz *= half / len;
-        int r = rgb >> 16 & 0xFF;
-        int g = rgb >> 8 & 0xFF;
-        int b = rgb & 0xFF;
+        ox /= len;
+        oy /= len;
+        oz /= len;
+        int r = COLOUR >> 16 & 0xFF;
+        int g = COLOUR >> 8 & 0xFF;
+        int b = COLOUR & 0xFF;
         int a1 = Math.round(255 * Math.max(0, Math.min(1, alphaA)));
         int a2 = Math.round(255 * Math.max(0, Math.min(1, alphaB)));
+        if (a1 == 0 && a2 == 0) {
+            return;
+        }
         var p = pose.last();
-        v.addVertex(p, ax - ox, ay - oy, az - oz).setColor(r, g, b, a1);
-        v.addVertex(p, ax + ox, ay + oy, az + oz).setColor(r, g, b, a1);
-        v.addVertex(p, bx + ox, by + oy, bz + oz).setColor(r, g, b, a2);
-        v.addVertex(p, bx - ox, by - oy, bz - oz).setColor(r, g, b, a2);
+        v.addVertex(p, ax - ox * halfA, ay - oy * halfA, az - oz * halfA).setColor(r, g, b, a1);
+        v.addVertex(p, ax + ox * halfA, ay + oy * halfA, az + oz * halfA).setColor(r, g, b, a1);
+        v.addVertex(p, bx + ox * halfB, by + oy * halfB, bz + oz * halfB).setColor(r, g, b, a2);
+        v.addVertex(p, bx - ox * halfB, by - oy * halfB, bz - oz * halfB).setColor(r, g, b, a2);
+    }
+
+    private static double dist(double[] a, double[] b) {
+        return Math.sqrt(sq(b[0] - a[0]) + sq(b[1] - a[1]) + sq(b[2] - a[2]));
     }
 
     private static double sq(double v) {

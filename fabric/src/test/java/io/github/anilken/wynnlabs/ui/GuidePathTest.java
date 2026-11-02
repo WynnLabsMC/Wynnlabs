@@ -16,7 +16,7 @@ class GuidePathTest {
     private static final int N = GuidePath.NONE;
 
     /** A 20 × 20 grid of feet heights (NONE: a wall or water), stepping rules as in the game. */
-    private static final class Grid implements GuidePath.Walkable {
+    private static class Grid implements GuidePath.Walkable {
         final int[][] h = new int[20][20];
 
         Grid(int flat) {
@@ -114,6 +114,21 @@ class GuidePathTest {
         for (int i = 1; i < smooth.size(); i++) {
             assertTrue(GuidePath.straight(g, smooth.get(i - 1), smooth.get(i)));
         }
+    }
+
+    @Test
+    void routesKeepToRoads() {
+        // a road along z = 8, a little aside from the straight way along z = 5
+        Grid g = new Grid(64) {
+            @Override
+            public double cost(int x, int y, int z) {
+                return z == 8 ? GuidePath.ROAD : 1;
+            }
+        };
+        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 18, 5, 64, 20_000);
+        assertTrue(r.reached());
+        long onRoad = r.nodes().stream().filter(n -> n[2] == 8).count();
+        assertTrue(onRoad >= 8, "steps on the road: " + onRoad);
     }
 
     /** Every step of a route goes to a neighbouring column the grid allows from the last height. */
