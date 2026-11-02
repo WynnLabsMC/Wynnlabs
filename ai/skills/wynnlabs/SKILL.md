@@ -76,7 +76,9 @@ and explain or disagree when you have a reason.
    The Trade Market has only so many order slots (by rank, or rule `trade.marketSlots`): the items
    that bring in the most get them, the rest go to the Blacksmith. Do not send more there than that,
    unless the player turned the limit off (rule `trade.marketSlotsLimit` false). Items rolled at least
-   `trade.keepRollPercent` (default 80) always go to the Trade Market.
+   `trade.keepRollPercent` (default 80) always go to the Trade Market. Boxes of the tiers in
+   `trade.blacksmithTiers` (default Unique) go straight to the Blacksmith unless the build wants a
+   piece from them: their market prices are too thin to trust.
 5. Quests: `/quests` gives status and requirements. Prefer quests the player out-levels a little.
 6. Secret discoveries: `/discoveries` lists them with `done`, `minLevel`, `distance` and whether each
    requirement is met (`null` when the mod cannot tell). Suggest near ones within the player's level

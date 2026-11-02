@@ -173,6 +173,13 @@ final class BoxAdvice {
         if (low > level + tooHigh) {
             return plain(new Advice.Entry(Verdict.KEEP, L.t("wynnlabs.auto.identify_near_level", low)));
         }
+        // a tier whose boxes go straight to the Blacksmith (rule trade.blacksmithTiers, Unique by
+        // default): their market prices are too thin to trust, so no route is weighed, unless the
+        // build wants a piece from it (above)
+        if (wearName == null && Rules.list("trade", "blacksmithTiers").contains(box.tier().name())) {
+            return sell(box, L.t("wynnlabs.auto.box_tier_blacksmith", box.tier().name().charAt(0)
+                    + box.tier().name().substring(1).toLowerCase(java.util.Locale.ROOT)));
+        }
         // without a plan to ask, the rough check: the best outcome against what you wear
         WornGear.Weakest wb = judged || !GameState.current().inGame() ? null : WornGear.weakest(WornGear.worn(box.slot()));
         if (wb != null && wb.name() != null && all > 0) {

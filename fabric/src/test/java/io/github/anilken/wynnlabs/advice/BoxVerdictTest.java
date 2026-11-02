@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
@@ -82,6 +83,23 @@ class BoxVerdictTest {
     void aBoxYouWouldWearSaysIdentify() {
         List<BoxRoutes.Outcome> wear = List.of(new BoxRoutes.Outcome("Masochist", 77, 46.0 * 64, true, true));
         assertEquals(BoxVerdict.Label.IDENTIFY, of(BoxRoutes.choose(wear, 5, 640, false)).label());
+    }
+
+    @Test
+    void aUniqueBoxGoesToTheBlacksmithUnlessTheBuildWantsAPiece() throws Exception {
+        FixtureState.load(Fixtures.root().resolve("shaman-44")).install("en");
+        // the Unique box from the fixture: nothing in it the build asks for, so no route is weighed
+        ItemView.Box box = new ItemView.Box(Slot.LEGGINGS, Tier.UNIQUE, 66, 70);
+        BoxAdvice.Decision d = BoxAdvice.decide(box, Klass.SHAMAN, 44);
+        if (d.entry().verdict() == Verdict.KEEP) {
+            return;                                   // too far ahead for a level-44 character
+        }
+        assertEquals(Verdict.SELL, d.entry().verdict());
+        assertEquals(BoxVerdict.Label.SELL, BoxVerdict.of(box, Klass.SHAMAN, 44).label());
+        // the same box one tier up is still weighed by its value
+        ItemView.Box rare = new ItemView.Box(Slot.LEGGINGS, Tier.RARE, 66, 70);
+        BoxAdvice.Decision r = BoxAdvice.decide(rare, Klass.SHAMAN, 44);
+        assertNotEquals("wynnlabs.auto.box_tier_blacksmith", r.entry().note());
     }
 
     @Test

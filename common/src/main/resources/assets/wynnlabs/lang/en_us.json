@@ -220,6 +220,7 @@
   "wynnlabs.auto.dungeon_outlevelled_low": "Outlevelled (%s Lv %s). Low value: trash it if you need space",
   "wynnlabs.auto.powder_hint": "%s empty powder slot: %s|%s empty powder slots: %s",
   "wynnlabs.auto.box_for_alt": "Lv %s-%s: fits %s; stash it in the account bank",
+  "wynnlabs.auto.box_tier_blacksmith": "%s box: its market prices are too thin to trust, the Blacksmith takes it",
   "wynnlabs.auto.box_too_low": "Lv %s-%s, way below your level",
   "wynnlabs.auto.box_other_class_alt": "%s box: identify it for %s and stash it in the account bank",
   "wynnlabs.auto.box_none_for_class": "Nothing in it drops for %s",
