@@ -77,4 +77,53 @@ class GuideLineTest {
         assertEquals(1, at[0], E);
         assertEquals(0.6, at[1], E);
     }
+
+    @Test
+    void thePathIsWalkedByArcLengthRoundACorner() {
+        // 4 blocks east, then 4 north: a point every 0.25 blocks, the corner kept
+        List<double[]> pts = List.of(new double[] {0, 64, 0}, new double[] {4, 64, 0}, new double[] {4, 64, 4});
+        GuideLine.Track t = GuideLine.resample(pts, 0.25, 100);
+        assertEquals(33, t.s().length);
+        assertEquals(8, t.length(), E);
+        assertEquals(8, t.toEnd(), E);
+        double[] corner = GuideLine.at(t, 4);
+        assertEquals(4, corner[0], E);
+        assertEquals(0, corner[2], E);
+        double[] past = GuideLine.at(t, 5.1);
+        assertEquals(4, past[0], E);
+        assertEquals(1.1, past[2], E);
+        // capped: only the first stretch, but still measured from the whole path's end
+        GuideLine.Track cut = GuideLine.resample(pts, 0.25, 3);
+        assertEquals(3, cut.length(), E);
+        assertEquals(8, cut.toEnd(), E);
+    }
+
+    @Test
+    void dashCentresAreEvenlySpacedFixedToTheEndAndFlow() {
+        double period = GuideLine.DASH + GuideLine.GAP;
+        double[] c = GuideLine.centres(20, 20, 0);
+        assertTrue(c.length > 5);
+        for (int i = 1; i < c.length; i++) {
+            assertEquals(period, c[i] - c[i - 1], E);
+        }
+        assertTrue(c[0] >= GuideLine.DASH / 2 - E);
+        assertTrue(c[c.length - 1] + GuideLine.DASH / 2 <= 20 + E);
+        // fixed to the end: the last centre sits a whole number of periods before it
+        double fromEnd = 20 - c[c.length - 1];
+        assertEquals(0, Math.abs(fromEnd / period - Math.round(fromEnd / period)), 1e-6);
+        // a moment later every dash moved toward the end by FLOW blocks a second
+        double[] later = GuideLine.centres(20, 20, 0.2);
+        assertEquals(c[1] + 0.2 * GuideLine.FLOW, later[1], E);
+        // never more than the nearest DASHES
+        assertEquals(GuideLine.DASHES, GuideLine.centres(1000, 1000, 0).length);
+    }
+
+    @Test
+    void thePulseStaysWithinItsRange() {
+        for (double t = 0; t < 3; t += 0.05) {
+            float p = GuideLine.pulse(t);
+            assertTrue(p >= 1 - GuideLine.PULSE - 1e-6 && p <= 1 + GuideLine.PULSE + 1e-6);
+        }
+        assertEquals(1 + GuideLine.PULSE, GuideLine.pulse(GuideLine.PULSE_SECONDS / 4), 1e-6);
+    }
 }
