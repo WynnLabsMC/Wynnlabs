@@ -64,7 +64,13 @@ class CompassAndChestsTest {
         Path f = dir.resolve("chests.json");
         Files.writeString(f, "[{\"x\":123456,\"y\":1,\"z\":-7,\"stars\":2}]");
         int shipped = LootChests.load(null).size();
-        assertEquals(shipped + 1, LootChests.load(f).size());
+        List<Area> all = LootChests.load(f);
+        assertEquals(shipped + 1, all.size());
+        // a route keeps to the player's own chests, and takes every spot only when none is theirs
+        Area mine = Area.point(123456, 1, -7);
+        assertTrue(LootChests.own(mine));
+        assertEquals(List.of(mine), LootChests.ownOrAll(List.of(all.get(0), mine)));
+        assertEquals(List.of(all.get(0)), LootChests.ownOrAll(List.of(all.get(0))));
     }
 
     @Test

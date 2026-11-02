@@ -452,6 +452,7 @@ final class SearchCardPanel extends MenuPaint {
 
     /** Whether the route set now is this row's places (the same spots). */
     boolean routeOf(List<Area> places) {
+        places = io.github.anilken.wynnlabs.search.LootChests.ownOrAll(places);
         List<Waypoints.Mine> route = Waypoints.route();
         if (route.isEmpty() || route.size() > places.size()) {
             return false;
@@ -471,6 +472,8 @@ final class SearchCardPanel extends MenuPaint {
     }
 
     void pinAll(List<Area> places) {
+        // an item's loot chests: only the player's own (the shipped list has chests they never saw)
+        places = io.github.anilken.wynnlabs.search.LootChests.ownOrAll(places);
         String what = entry.name().length() > 32 ? entry.name().substring(0, 32) : entry.name();
         List<int[]> points = new java.util.ArrayList<>();
         for (Area p : places) {

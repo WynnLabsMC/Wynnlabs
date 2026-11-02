@@ -20,10 +20,14 @@ import java.util.Map;
  * are arrays of {@code {x, y, z, stars}}; stars is the chest's tier (0 when not recorded). The
  * same position is kept once, the shipped entry first unless it has no tier and the player's has.
  * Chests carry no level here; {@link Places} gives each the level of the nearest known place.
+ * The positions from the player's own file are remembered ({@link #own}): a route through an
+ * item's chests keeps to them, since the shipped list has chests the player never saw.
  */
 public final class LootChests {
 
     static final String SHIPPED = "/assets/wynnlabs/chests.json";
+    /** The positions of the player's own chests, from the last {@link #load}. */
+    private static volatile java.util.Set<Long> ownKeys = java.util.Set.of();
 
     private LootChests() {}
 
@@ -45,7 +49,23 @@ public final class LootChests {
                 System.out.println("[WynnLabs] chests.json unreadable: " + e);
             }
         }
+        java.util.Set<Long> keys = new java.util.HashSet<>();
+        for (Area c : user) {
+            keys.add(key(c));
+        }
+        ownKeys = java.util.Set.copyOf(keys);
         return merge(shipped, user);
+    }
+
+    /** Whether this spot is one of the player's own chests (by position), as of the last load. */
+    public static boolean own(Area a) {
+        return ownKeys.contains(key(a));
+    }
+
+    /** The player's own chests among {@code places}; all of them when none is the player's. */
+    public static List<Area> ownOrAll(List<Area> places) {
+        List<Area> own = places.stream().filter(LootChests::own).toList();
+        return own.isEmpty() ? places : own;
     }
 
     /** One area per {x, y, z, stars} object; anything else in the array is skipped. */
