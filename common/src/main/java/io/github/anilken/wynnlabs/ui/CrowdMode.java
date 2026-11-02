@@ -8,19 +8,19 @@ import net.minecraft.world.item.BoatItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Crowd mode: in a packed fight the spell effects are not drawn. Other players' summons
- * (totems, puppets, effigies, birds, mob totems: text labels "Name's Puppet" with the item
- * display under them) are never drawn, your own stay; the spell effects Wynncraft draws as
- * item displays ("Oak Boat" models standing on their own: a mob's body rides its mob and is
- * drawn) and the particles are left out beyond the radius, all of
- * them at radius 0; damage numbers farther than the radius (four blocks at 0) go too. Nothing
- * the game sends is changed, only what is drawn.
+ * Crowd mode: in a packed fight the spell effects are not drawn. Wynncraft draws bodies and
+ * effects alike as stacks of item displays ("Oak Boat" models riding an empty root display).
+ * A body (a mob, a summon, a pet) has a name label, a text display made right after its stack;
+ * an effect has none. Other players' summons ("Name's Puppet") are never drawn, your own and
+ * the mobs stay; the label-less stacks and the particles are left out beyond the radius, all
+ * of them at radius 0; damage numbers farther than the radius (four blocks at 0) go too.
+ * Nothing the game sends is changed, only what is drawn.
  */
 public final class CrowdMode {
 
@@ -34,33 +34,71 @@ public final class CrowdMode {
     private static volatile boolean on;
     private static volatile int radius;
     private static volatile double radiusSq;
-    /** Where other players' summon labels stood last tick, and where yours did: bodies sit under them. */
-    private static volatile List<Vec3> summons = List.of();
-    private static volatile List<Vec3> mine = List.of();
     private static volatile String me = "";
+    /** The root display of every labelled stack → true to hide it (another player's summon). */
+    private static volatile Map<Integer, Boolean> bodies = Map.of();
 
-    /** Once a tick: the switch, the radius and where the others' summons are. */
+    /** Once a tick: the switch, the radius and which stacks have a label. */
     public static void onTick(Minecraft mc) {
         on = Settings.on("crowdMode");
         if (!on || mc.level == null || mc.player == null) {
-            summons = List.of();
+            bodies = Map.of();
             return;
         }
         radius = Settings.number("crowdRadius", 0);
         radiusSq = (double) radius * radius;
         me = mc.getUser().getName();
-        List<Vec3> others = new ArrayList<>();
-        List<Vec3> own = new ArrayList<>();
+        Map<Integer, Boolean> found = new HashMap<>();
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (e instanceof Display.TextDisplay t) {
-                String owner = owner(t.getText().getString());
-                if (owner != null) {
-                    (owner.equalsIgnoreCase(me) ? own : others).add(e.position());
-                }
+            if (!(e instanceof Display.TextDisplay t)) {
+                continue;
+            }
+            String text = t.getText().getString();
+            if (text.isBlank() || NUMBER.matcher(text).matches()) {
+                continue;
+            }
+            boolean hide = othersSummon(text);
+            // the label is made right after the stack: the entity before it is part of the stack
+            Entity before = mc.level.getEntity(e.getId() - 1);
+            Entity root = before instanceof Display ? root(before) : null;
+            if (root == null || root.position().distanceToSqr(e.position()) > 9) {
+                root = nearestRoot(mc, e.position());
+            }
+            if (root != null) {
+                found.merge(root.getId(), hide, Boolean::logicalAnd);
             }
         }
-        summons = others;
-        mine = own;
+        bodies = found;
+    }
+
+    /** The bottom of the entity's ride chain. */
+    private static Entity root(Entity e) {
+        Entity r = e;
+        for (int i = 0; i < 8 && r.getVehicle() != null; i++) {
+            r = r.getVehicle();
+        }
+        return r;
+    }
+
+    /** The root display standing under a label (within a block, up to four below), else null. */
+    private static Entity nearestRoot(Minecraft mc, Vec3 label) {
+        Entity best = null;
+        double bestD = 1.0;
+        for (Entity e : mc.level.entitiesForRendering()) {
+            if (!(e instanceof Display.ItemDisplay) || e.getVehicle() != null) {
+                continue;
+            }
+            Vec3 p = e.position();
+            double dx = p.x - label.x;
+            double dz = p.z - label.z;
+            double dy = label.y - p.y;
+            double d = dx * dx + dz * dz;
+            if (d < bestD && dy > -0.5 && dy < 4.0) {
+                best = e;
+                bestD = d;
+            }
+        }
+        return best;
     }
 
     /** The player a summon label names ("Name's Puppet"), null for any other label. */
@@ -93,13 +131,16 @@ public final class CrowdMode {
             return NUMBER.matcher(text).matches() && !text.isBlank() && far(e, Math.max(radius, 4));
         }
         if (e instanceof Display.ItemDisplay d) {
-            // a mob's body or a cosmetic rides something that is not a display (the invisible mob,
-            // a player), a prop is no boat, your own summon stands under your label: all drawn; a
-            // spell effect stands on its own or in a stack of displays riding each other
-            if (ridesSomethingElse(e) || !vfx(d) || under(e, mine)) {
+            Entity root = root(e);
+            Boolean body = bodies.get(root.getId());
+            if (body != null) {
+                return body;                  // a labelled stack: another player's summon, or kept
+            }
+            // a cosmetic rides a player, a prop is no boat: drawn; a label-less stack is an effect
+            if (!(root instanceof Display) || !vfx(d)) {
                 return false;
             }
-            return radius == 0 || far(e, radius) || under(e, summons);
+            return radius == 0 || far(e, radius);
         }
         return false;
     }
@@ -113,19 +154,6 @@ public final class CrowdMode {
         return mc.player != null && (radius == 0 || mc.player.position().distanceToSqr(x, y, z) > radiusSq);
     }
 
-    /** Whether the bottom of the entity's ride chain is something other than a display. */
-    private static boolean ridesSomethingElse(Entity e) {
-        Entity v = e.getVehicle();
-        int hops = 0;
-        while (v != null && hops++ < 8) {
-            if (!(v instanceof Display)) {
-                return true;
-            }
-            v = v.getVehicle();
-        }
-        return false;
-    }
-
     /** A spell effect as Wynncraft draws them: a boat model, or an item display with nothing in it. */
     private static boolean vfx(Display.ItemDisplay d) {
         ItemStack s = d.getSlot(0).get();
@@ -134,19 +162,5 @@ public final class CrowdMode {
 
     private static boolean far(Entity e, int blocks) {
         return Minecraft.getInstance().player.distanceToSqr(e) > (double) blocks * blocks;
-    }
-
-    /** An item display within a block of one of these summon labels, under it: its body. */
-    private static boolean under(Entity e, List<Vec3> labels) {
-        Vec3 p = e.position();
-        for (Vec3 s : labels) {
-            double dx = p.x - s.x;
-            double dz = p.z - s.z;
-            double dy = s.y - p.y;
-            if (dx * dx + dz * dz < 1.0 && dy > -0.5 && dy < 4.0) {
-                return true;
-            }
-        }
-        return false;
     }
 }
