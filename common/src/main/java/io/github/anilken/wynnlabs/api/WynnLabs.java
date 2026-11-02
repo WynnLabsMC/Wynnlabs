@@ -169,6 +169,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.MobTracker", MobTracker::onTick));
         platform.onEndTick(Perf.tick("tick.DropTracker", io.github.anilken.wynnlabs.ui.DropTracker::onTick));
         platform.onEndTick(Perf.tick("tick.ChestBeams", io.github.anilken.wynnlabs.ui.ChestBeams::onTick));
+        platform.onEndTick(Perf.tick("tick.GuideLine", io.github.anilken.wynnlabs.ui.GuideLine::onTick));
         platform.onEndTick(Perf.tick("tick.KeptMarks", io.github.anilken.wynnlabs.ui.KeptMarksSync::onTick));
         platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
         platform.onEndTick(Perf.tick("tick.AutoAdvice", WornGear::snapshotArmour));
@@ -273,6 +274,17 @@ public final class WynnLabs {
                 // a beam must never break the frame
             } finally {
                 Perf.end("world.ChestBeams", t);
+            }
+        });
+        // the line to the compass target (setting guideLine)
+        platform.onWorldRender((pose, buffers) -> {
+            long t = Perf.start();
+            try {
+                io.github.anilken.wynnlabs.ui.GuideLine.renderWorld(pose, buffers);
+            } catch (Throwable ignored) {
+                // a line must never break the frame
+            } finally {
+                Perf.end("world.GuideLine", t);
             }
         });
         // the beams and names over tracked items on the ground (setting trackedDrops)
@@ -663,6 +675,7 @@ public final class WynnLabs {
                 }
                 case "/questplan" -> send(ex, 200, onGameThread(QuestAdvisor::json));
                 case "/deaths" -> send(ex, 200, onGameThread(DeathCoach::json));
+                case "/guide" -> send(ex, 200, onGameThread(io.github.anilken.wynnlabs.ui.GuideLine::json));
                 case "/vault" -> send(ex, 200, onGameThread(Vault::json));
                 case "/ground" -> {
                     String q = ex.getRequestURI().getQuery();

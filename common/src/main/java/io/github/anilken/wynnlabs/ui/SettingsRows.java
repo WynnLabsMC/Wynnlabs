@@ -98,6 +98,7 @@ final class SettingsRows {
                 p.row("switch", "glowUpgrade");
                 p.row("switch", "crowdMode");
                 p.row("step", "crowdRadius");
+                p.row("switch", "guideLine");
                 p.row("multi", "warnings");
                 p.row("multi", "chat");
             }
