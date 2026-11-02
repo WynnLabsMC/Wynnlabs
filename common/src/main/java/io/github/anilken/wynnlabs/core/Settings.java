@@ -26,7 +26,7 @@ public final class Settings {
     public static final Map<String, String> DESC = new LinkedHashMap<>();
 
     static {
-        for (String k : new String[] {"itemAdvice", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
+        for (String k : new String[] {"itemAdvice", "adviceOnly", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
             "boxCompactTooltip", "gearCompactTooltip", "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "trackedDrops", "mobTrack",
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "healerAdvice", "deathCoach", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",

@@ -93,6 +93,7 @@ final class SettingsRows {
                 p.row("fill", "menu_fill");
                 p.head("wynnlabs.settings.sec_in_game");
                 p.row("switch", "itemAdvice");
+                p.row("switch", "adviceOnly");
                 p.row("switch", "tooltipPrice");
                 p.row("choice", "dropGlow");
                 p.row("switch", "glowUpgrade");
@@ -105,6 +106,7 @@ final class SettingsRows {
             case "items" -> {
                 p.head("wynnlabs.settings.sec_advice");
                 p.row("switch", "itemAdvice");
+                p.row("switch", "adviceOnly");
                 p.row("switch", "altAdvice");
                 p.row("switch", "sellSummary");
                 p.head("wynnlabs.settings.sec_tooltip");
