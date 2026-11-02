@@ -3068,7 +3068,7 @@
   "wynnlabs.settings.opt.treeHelp.1": "Tips",
   "wynnlabs.settings.opt.treeHelp.2": "Tips + glow",
   "wynnlabs.setting.updates": "New versions",
-  "wynnlabs.setting_desc.updates": "Notify: checks GitHub once a session and tells you in chat. Auto-install: downloads it in the background and installs it when the game closes",
+  "wynnlabs.setting_desc.updates": "Notify: checks GitHub every few hours while you play and tells you in chat. Auto-install: downloads it in the background and installs it when the game closes",
   "wynnlabs.settings.example.updates": "A new release is out: one line in chat and a note on the About page",
   "wynnlabs.settings.opt.updates.0": "Off",
   "wynnlabs.settings.opt.updates.1": "Notify",
