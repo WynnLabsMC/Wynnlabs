@@ -310,6 +310,13 @@
   },
   {
    "name": "The Silent Road",
+   "x": 594,
+   "z": -647,
+   "level": 100,
+   "source": "https://wynncraft.wiki.gg/wiki/The_Silent_Road"
+  },
+  {
+   "name": "The Silent Road",
    "x": 604,
    "z": -1168,
    "level": 100,
@@ -372,156 +379,306 @@
    "source": "https://wynncraft.wiki.gg/wiki/Wynn_Coast"
   }
  ],
- "passages": [
-  [
-   602,
-   -1178,
-   782,
-   -998
-  ],
-  [
-   606,
-   -1166,
-   786,
-   -986
-  ],
-  [
-   1042,
-   -4510,
-   1094,
-   -4510
-  ],
-  [
-   1046,
-   -4490,
-   1094,
-   -4510
-  ],
-  [
-   1050,
-   -4554,
-   1094,
-   -4510
-  ],
-  [
-   1058,
-   -4526,
-   1094,
-   -4510
-  ],
-  [
-   1066,
-   -4574,
-   1094,
-   -4510
-  ],
-  [
-   1070,
-   -4486,
-   1094,
-   -4510
-  ],
-  [
-   1086,
-   -4490,
-   1094,
-   -4510
-  ],
-  [
-   1094,
-   -4614,
-   1094,
-   -4510
-  ],
-  [
-   1094,
-   -4510,
-   1094,
-   -4486
-  ],
-  [
-   1094,
-   -4510,
-   1102,
-   -4486
-  ],
-  [
-   1094,
-   -4510,
-   1122,
-   -4482
-  ],
-  [
-   1094,
-   -4510,
-   1138,
-   -4618
-  ],
-  [
-   1094,
-   -4510,
-   1142,
-   -4510
-  ],
-  [
-   1094,
-   -4510,
-   1178,
-   -4594
-  ],
-  [
-   1094,
-   -4510,
-   1194,
-   -4550
-  ],
-  [
-   1094,
-   -4510,
-   1218,
-   -4458
-  ],
-  [
-   1454,
-   -2202,
-   1470,
-   -2166
-  ],
-  [
-   1454,
-   -2182,
-   1470,
-   -2166
-  ],
-  [
-   1454,
-   -2174,
-   1470,
-   -2166
-  ],
-  [
-   1454,
-   -2166,
-   1470,
-   -2166
-  ],
-  [
-   1454,
-   -2158,
-   1470,
-   -2166
-  ],
-  [
-   1458,
-   -2154,
-   1470,
-   -2166
-  ],
-  [
-   1458,
-   -2142,
-   1470,
-   -2166
-  ]
+ "corridors": [
+  {
+   "name": "Canyon of the Lost",
+   "from": [
+    -965,
+    -5305
+   ],
+   "to": [
+    500,
+    -5000
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Canyon_of_the_Lost"
+  },
+  {
+   "name": "Dernel Jungle",
+   "from": [
+    -792,
+    -657
+   ],
+   "to": [
+    -600,
+    -600
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Dernel_Jungle"
+  },
+  {
+   "name": "Ice Canyon",
+   "from": [
+    -110,
+    -630
+   ],
+   "to": [
+    -180,
+    -465
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Ice_Canyon"
+  },
+  {
+   "name": "Lower Molten Heights",
+   "from": [
+    -965,
+    -5305
+   ],
+   "to": [
+    1450,
+    -5500
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
+  },
+  {
+   "name": "Lower Molten Heights",
+   "from": [
+    1430,
+    -5000
+   ],
+   "to": [
+    1450,
+    -5500
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
+  },
+  {
+   "name": "Lower Molten Heights",
+   "from": [
+    1185,
+    -5020
+   ],
+   "to": [
+    1450,
+    -5500
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
+  },
+  {
+   "name": "Molten Heights",
+   "from": [
+    965,
+    -5305
+   ],
+   "to": [
+    1450,
+    -5500
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
+  },
+  {
+   "name": "Molten Heights",
+   "from": [
+    1430,
+    -5000
+   ],
+   "to": [
+    1450,
+    -5500
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
+  },
+  {
+   "name": "Molten Heights",
+   "from": [
+    1185,
+    -5020
+   ],
+   "to": [
+    1450,
+    -5500
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
+  },
+  {
+   "name": "Sky Islands",
+   "from": [
+    1430,
+    -5000
+   ],
+   "to": [
+    1200,
+    -4750
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Sky_Islands"
+  },
+  {
+   "name": "Sky Islands",
+   "from": [
+    1185,
+    -5020
+   ],
+   "to": [
+    1200,
+    -4750
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Sky_Islands"
+  },
+  {
+   "name": "The Silent Road",
+   "from": [
+    604,
+    -1168
+   ],
+   "to": [
+    610,
+    -1045
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/The_Silent_Road"
+  },
+  {
+   "name": "The Silent Road",
+   "from": [
+    594,
+    -647
+   ],
+   "to": [
+    610,
+    -1045
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/The_Silent_Road"
+  },
+  {
+   "name": "Troms Jungle",
+   "from": [
+    -240,
+    -696
+   ],
+   "to": [
+    -600,
+    -800
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Troms_Jungle"
+  },
+  {
+   "name": "Troms Jungle",
+   "from": [
+    -749,
+    -919
+   ],
+   "to": [
+    -600,
+    -800
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Troms_Jungle"
+  },
+  {
+   "name": "Alive Island",
+   "from": [
+    902,
+    -3908
+   ],
+   "to": [
+    -9250,
+    -10530
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Alive_Island"
+  },
+  {
+   "name": "Ancient Nemract",
+   "from": [
+    90,
+    -1991
+   ],
+   "to": [
+    204,
+    -1882
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Ancient_Nemract"
+  },
+  {
+   "name": "Emerald Trail",
+   "from": [
+    -739,
+    -1576
+   ],
+   "to": [
+    -609,
+    -1611
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Emerald_Trail"
+  },
+  {
+   "name": "Emerald Trail",
+   "from": [
+    -405,
+    -1606
+   ],
+   "to": [
+    -609,
+    -1611
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Emerald_Trail"
+  },
+  {
+   "name": "Invaded Barracks",
+   "from": [
+    1471,
+    -2168
+   ],
+   "to": [
+    1398,
+    -2225
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Invaded_Barracks"
+  },
+  {
+   "name": "Pigmen's Ravine",
+   "from": [
+    -620,
+    -1320
+   ],
+   "to": [
+    -875,
+    -1373
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Pigmen's_Ravine"
+  },
+  {
+   "name": "Pigmen's Ravine",
+   "from": [
+    -690,
+    -1235
+   ],
+   "to": [
+    -875,
+    -1373
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Pigmen's_Ravine"
+  },
+  {
+   "name": "Pigmen's Ravine",
+   "from": [
+    -750,
+    -1200
+   ],
+   "to": [
+    -875,
+    -1373
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Pigmen's_Ravine"
+  },
+  {
+   "name": "Twain Lake",
+   "from": [
+    87,
+    -572
+   ],
+   "to": [
+    59,
+    -434
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Twain_Lake"
+  },
+  {
+   "name": "Volmor's Tower",
+   "from": [
+    280,
+    90
+   ],
+   "to": [
+    280,
+    -4950
+   ],
+   "source": "https://wynncraft.wiki.gg/wiki/Volmor's_Tower"
+  }
  ]
 }

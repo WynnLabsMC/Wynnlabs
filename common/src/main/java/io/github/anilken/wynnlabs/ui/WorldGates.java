@@ -11,14 +11,14 @@ import java.util.List;
 /**
  * The region entrances and the walls the terrain does not show, for the world route. A gate is
  * an access point of a region from the Wynncraft wiki (its name, block x and z, and suggested
- * level): the mouth of a passage under or through a mountain wall, which the coarse A* enters to
- * come out on walkable ground beyond ({@link WorldRoute#gates}). The lines are ridge lines a
- * player cannot cross (Wynncraft's invisible barrier walls); a step may not cross one except
- * within {@link #GATE} blocks of a gate. The passages under the mountains from each gate were
- * worked out with the map, offline, and come in the same file. Read from {@code world-gates.json}:
- * {@code {"lines": [[[x, z], [x, z], ...], ...], "gates": [{"name", "x", "z", "level"}, ...],
- * "passages": [[x1, z1, x2, z2], ...]}}, every list optional; anything malformed makes
- * {@link #parse} return null, and the guide goes on without.
+ * level). A corridor is a road the wiki describes as a Location under the mountains: from one of
+ * its access points to its location point, walked at the cost of flat ground through the rock the
+ * map shows over it ({@link WorldRoute#gates}); a gate leads anywhere only as the mouth of such a
+ * corridor. The lines are ridge lines a player cannot cross (Wynncraft's invisible barrier walls);
+ * a step may not cross one except within {@link #GATE} blocks of a gate. Read from
+ * {@code world-gates.json}: {@code {"lines": [[[x, z], [x, z], ...], ...], "gates": [{"name", "x",
+ * "z", "level"}, ...], "corridors": [{"name", "from": [x, z], "to": [x, z]}, ...]}}, every list
+ * optional; anything malformed makes {@link #parse} return null, and the guide goes on without.
  */
 final class WorldGates {
 
@@ -33,17 +33,19 @@ final class WorldGates {
     /** Each line's points {x, z}, in order. */
     private final List<double[][]> lines;
     private final List<Gate> gates;
-    /** The passages {x1, z1, x2, z2} in blocks, both ways; null when the file has none (the map works them out). */
-    private final List<double[]> passages;
+    private final List<Corridor> corridors;
+
+    /** A road under the mountains: the Location's name, and the access point and location point it joins, in blocks. */
+    record Corridor(String name, double fromX, double fromZ, double toX, double toZ) {}
 
     WorldGates(List<double[][]> lines, List<Gate> gates) {
-        this(lines, gates, null);
+        this(lines, gates, List.of());
     }
 
-    WorldGates(List<double[][]> lines, List<Gate> gates, List<double[]> passages) {
+    WorldGates(List<double[][]> lines, List<Gate> gates, List<Corridor> corridors) {
         this.lines = lines;
         this.gates = gates;
-        this.passages = passages;
+        this.corridors = corridors;
     }
 
     /** The walls in {@code json}; null when it is not the expected shape. */
@@ -73,20 +75,17 @@ final class WorldGates {
                             j.has("level") && !j.get("level").isJsonNull() ? j.get("level").getAsInt() : 0));
                 }
             }
-            List<double[]> passages = null;
-            if (o.has("passages")) {
-                passages = new ArrayList<>();
-                for (JsonElement p : o.getAsJsonArray("passages")) {
-                    JsonArray a = p.getAsJsonArray();
-                    if (a.size() != 4) {
-                        return null;
-                    }
-                    passages.add(new double[] {a.get(0).getAsDouble(), a.get(1).getAsDouble(),
-                            a.get(2).getAsDouble(), a.get(3).getAsDouble()});
+            List<Corridor> corridors = new ArrayList<>();
+            if (o.has("corridors")) {
+                for (JsonElement c : o.getAsJsonArray("corridors")) {
+                    JsonObject j = c.getAsJsonObject();
+                    double[] from = point(j.get("from"));
+                    double[] to = point(j.get("to"));
+                    corridors.add(new Corridor(j.has("name") && !j.get("name").isJsonNull() ? j.get("name").getAsString() : "",
+                            from[0], from[1], to[0], to[1]));
                 }
-                passages = List.copyOf(passages);
             }
-            return new WorldGates(List.copyOf(lines), List.copyOf(gates), passages);
+            return new WorldGates(List.copyOf(lines), List.copyOf(gates), List.copyOf(corridors));
         } catch (RuntimeException e) {
             return null;
         }
@@ -112,9 +111,8 @@ final class WorldGates {
         return gates;
     }
 
-    /** The passages worked out offline, null when the file has none. */
-    List<double[]> passages() {
-        return passages;
+    List<Corridor> corridors() {
+        return corridors;
     }
 
     /** Whether the step from (ax, az) to (bx, bz) crosses a line away from every gate. */

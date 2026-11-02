@@ -498,7 +498,7 @@ public final class GuideLine {
         data.addProperty("impassable", wm == null ? null : wm.impassable());
         data.addProperty("wallLines", wm == null ? null : wm.gates().lines());
         data.addProperty("gates", wm == null ? null : wm.gates().gates());
-        data.addProperty("passages", wm == null ? null : wm.tunnels());
+        data.addProperty("corridors", wm == null ? null : wm.tunnels());
         o.add("data", data);
         // the world plan: whether the coarse map led the way, how long it is and the next waypoint
         World w = lastWorld;

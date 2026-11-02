@@ -321,8 +321,8 @@ class WorldRouteTest {
     }
 
     @Test
-    void aGateIsAPassageUnderTheMountain() throws IOException {
-        // a mountain wall three cells thick across the way; a gate at its west foot
+    void aCorridorLeadsUnderTheMountainFromItsGate() throws IOException {
+        // a wall of impassable cells across the way; a gate at its west foot (cell 3, 2 = block 14, 10)
         WorldRoute g = grid(
                 "....###....",
                 "....###....",
@@ -330,45 +330,48 @@ class WorldRouteTest {
                 "....###....",
                 "....###....");
         assertFalse(g.plan(0, 2, 10, 2, 1000, 1000).reached());
-        // the gate on the walkable cell (3, 2), block (14, 10): a passage east to (7, 2)
+        // a gate alone is no way through rock
         g.gates(WorldGates.parse("{\"gates\": [{\"name\": \"Pass\", \"x\": 14, \"z\": 10, \"level\": 1}]}"));
-        assertTrue(g.tunnels() >= 1);
+        assertEquals(0, g.tunnels());
+        assertFalse(g.plan(0, 2, 10, 2, 1000, 1000).reached());
+        // a corridor from the gate to the road's location point beyond the wall
+        g.gates(WorldGates.parse("{\"gates\": [{\"name\": \"Pass\", \"x\": 14, \"z\": 10}], "
+                + "\"corridors\": [{\"name\": \"Road\", \"from\": [14, 10], \"to\": [30, 10]}]}"));
+        assertEquals(1, g.tunnels());
+        assertEquals("Road", g.gates().corridors().get(0).name());
         WorldRoute.Plan p = g.plan(0, 2, 10, 2, 1000, 1000);
         assertTrue(p.reached());
         assertTrue(p.cells().stream().anyMatch(c -> c[0] == 3 && c[1] == 2), "in at the gate");
-        assertTrue(p.cells().stream().anyMatch(c -> c[0] == 7), "out beyond the wall");
-        assertTrue(p.cells().stream().noneMatch(c -> c[0] >= 4 && c[0] <= 6), "nothing drawn on the mountain");
-        // and back the other way
-        assertTrue(g.plan(10, 2, 0, 2, 1000, 1000).reached());
-        // the drawn line keeps the mouth's height through the passage
-        List<double[]> line = g.line(p.cells(), 0);
-        assertTrue(line.stream().allMatch(pt -> pt[1] == 64));
-        // a gate in the mountain itself, aimed from the nearest walkable cell
-        g.gates(WorldGates.parse("{\"gates\": [{\"name\": \"Mouth\", \"x\": 18, \"z\": 10}]}"));
-        assertTrue(g.plan(0, 2, 10, 2, 1000, 1000).reached());
-        // two gates across the wall from each other are joined directly
-        WorldRoute wide = grid(
-                "..########..",
-                "..########..",
-                "..########..");
-        wide.gates(WorldGates.parse("{\"gates\": [{\"name\": \"West\", \"x\": 6, \"z\": 6}, {\"name\": \"East\", \"x\": 42, \"z\": 6}]}"));
-        assertTrue(wide.plan(0, 1, 11, 1, 1000, 1000).reached());
-        // passages worked out with the map are taken as they are, and only those; one ending in the mountain is left out
-        WorldRoute set = grid(
+        assertTrue(p.cells().stream().anyMatch(c -> c[0] == 7 && c[1] == 2), "out at the road's point");
+        assertTrue(p.cells().stream().noneMatch(c -> c[0] >= 4 && c[0] <= 6), "nothing walked on the rock");
+        assertTrue(g.plan(10, 2, 0, 2, 1000, 1000).reached(), "both ways");
+        // the drawn line keeps the mouth's height through the corridor
+        assertTrue(g.line(p.cells(), 0).stream().allMatch(pt -> pt[1] == 64));
+        // two corridors meeting at a location point in the rock (moved to walkable ground near it) carry the route across
+        WorldRoute two = grid(
+                "....###....",
+                "....###....",
                 "....###....",
                 "....###....",
                 "....###....");
-        set.gates(WorldGates.parse("{\"gates\": [{\"name\": \"West\", \"x\": 14, \"z\": 6}], "
-                + "\"passages\": [[14, 6, 30, 6], [14, 6, 22, 6]]}"));
-        assertEquals(1, set.tunnels());
-        WorldRoute.Plan via = set.plan(0, 1, 10, 1, 1000, 1000);
-        assertTrue(via.reached());
-        assertTrue(via.cells().stream().noneMatch(c -> c[0] >= 4 && c[0] <= 6));
-        // with the passages given, the gates are not bored as well
-        set.gates(WorldGates.parse("{\"gates\": [{\"name\": \"West\", \"x\": 14, \"z\": 6}], \"passages\": []}"));
-        assertEquals(0, set.tunnels());
-        assertFalse(set.plan(0, 1, 10, 1, 1000, 1000).reached());
-        assertNull(WorldGates.parse("{\"passages\": [[1, 2, 3]]}"));
+        two.gates(WorldGates.parse("{\"corridors\": ["
+                + "{\"name\": \"Road\", \"from\": [14, 10], \"to\": [22, 10]},"
+                + "{\"name\": \"Road\", \"from\": [30, 2], \"to\": [22, 10]}]}"));
+        assertEquals(2, two.tunnels());
+        WorldRoute.Plan q = two.plan(0, 2, 10, 0, 1000, 1000);
+        assertTrue(q.reached());
+        assertTrue(q.cells().stream().noneMatch(c -> c[0] >= 4 && c[0] <= 6), "the corridors, not the rock");
+        // a corridor end in the rock with nothing else there leads nowhere
+        WorldRoute dead = grid(
+                "....###....",
+                "....###....",
+                "....###....");
+        dead.gates(WorldGates.parse("{\"corridors\": [{\"name\": \"Mine\", \"from\": [14, 6], \"to\": [22, 6]}]}"));
+        assertFalse(dead.plan(0, 1, 10, 1, 1000, 1000).reached());
+        // malformed corridors make the file unread
+        assertNull(WorldGates.parse("{\"corridors\": [{\"from\": [1, 2]}]}"));
+        assertNull(WorldGates.parse("{\"corridors\": [{\"from\": [1, 2, 3], \"to\": [4, 5]}]}"));
+        assertEquals(0, WorldGates.parse("{\"corridors\": []}").corridors().size());
     }
 
     @Test

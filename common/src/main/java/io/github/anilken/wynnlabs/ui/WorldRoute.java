@@ -28,13 +28,10 @@ import java.util.zip.GZIPInputStream;
  * {@link #UP_COST} a block more and a deep drop {@link #DROP_COST} a block. Cells with an
  * invisible wall (Wynncraft's barrier blocks at walk height, recorded in the game and folded in
  * offline) are impassable, and the hand-made walls of {@link WorldGates} may not be crossed away
- * from a gate. A gate is the mouth of a passage under a mountain: from its cell the route may go
- * on in a straight line, at the cost of flat walking, to walkable ground beyond the mountain. The
- * passages come worked out with the map (each ending in a large connected area, through the small
- * pockets a covered road shows from above); without them each gate is bored here, up to
- * {@link #TUNNEL} cells to the first walkable cell past impassable ones, and two gates that close
- * across impassable cells are joined directly ({@link #gates}). Pure: no Minecraft types, so it
- * is tested on hand-made grids.
+ * from a gate. Roads under the mountains are the wiki's corridors: from a gate (an access point)
+ * to the Location's point, walked at the cost of flat ground through the rock the map shows over
+ * them ({@link #gates}); a gate is never a free way through rock on its own. Pure: no Minecraft
+ * types, so it is tested on hand-made grids.
  *
  * <p>File: gzip over "WLWR", a version byte (3), the cell size, the tile size (cells a side), then
  * big-endian ints: the height base, the origin tile x and z, the tiles wide and high; a bitmap of
@@ -67,17 +64,6 @@ final class WorldRoute {
     private static final int CLOCK_EVERY = 1024;
     /** Where the target's cell cannot be stood on, one up to this many cells away is aimed at. */
     private static final int NEAR = 2;
-    /** A passage from a gate runs through impassable cells for at most this many cells (96 blocks at 4). */
-    static final int TUNNEL = 24;
-    /** The eight directions a passage may run in, and the sixteen in between. */
-    private static final double[][] RAYS = new double[16][];
-
-    static {
-        for (int i = 0; i < 16; i++) {
-            RAYS[i] = new double[] {Math.cos(i * Math.PI / 8), Math.sin(i * Math.PI / 8)};
-        }
-    }
-
     private static final int[][] MOVES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
     private static final double DIAG = Math.sqrt(2);
 
@@ -98,7 +84,7 @@ final class WorldRoute {
     private final int impassable;
     /** The hand-made walls, {@link WorldGates#NONE} without any. */
     private volatile WorldGates gates = WorldGates.NONE;
-    /** The passages: by the key of a cell, the cells {cx, cz, length in cells} a route may jump to from it. */
+    /** The corridors: by the key of a cell, the cells {cx, cz, length in cells} a route may go on to from it. */
     private volatile java.util.Map<Long, List<int[]>> tunnels = java.util.Map.of();
 
     /** A way over the cells {cx, cz}, start first, whether it ends at the target's cell, the cells looked at and the time taken. */
@@ -131,98 +117,41 @@ final class WorldRoute {
     }
 
     /**
-     * The region entrances and walls the plan keeps to. Each gate becomes a passage: from the
-     * walkable cell at the gate (or the nearest within {@link #NEAR}), a ray in each of 16
-     * directions through impassable or unknown cells, up to {@link #TUNNEL} cells, to the first
-     * walkable cell beyond; and a straight joint to any other gate within {@link #TUNNEL} cells
-     * across such cells. Every passage runs both ways.
+     * The region entrances, corridors and walls the plan keeps to. Each corridor joins the cell of
+     * its access point to the cell of its location point, both ways, at the cost of walking its
+     * length: the route goes in at the gate and out where the road under the mountain opens. An end
+     * on a cell that cannot be stood on is moved to the nearest walkable one within {@link #NEAR};
+     * with none it stays where it is, and joins only the corridors that meet there (one access
+     * point to the location point, the location point on to another access point).
      */
     void gates(WorldGates g) {
         gates = g == null ? WorldGates.NONE : g;
         java.util.Map<Long, List<int[]>> t = new java.util.HashMap<>();
-        if (gates.passages() != null) {
-            for (double[] p : gates.passages()) {
-                int[] a = {cellOf(p[0]), cellOf(p[1])};
-                int[] b = {cellOf(p[2]), cellOf(p[3])};
-                if (walkable(a[0], a[1]) && walkable(b[0], b[1])) {
-                    join(t, a, b);
-                }
-            }
-            tunnels = t;
-            return;
-        }
-        List<int[]> mouths = new ArrayList<>();
-        for (WorldGates.Gate gate : gates.gateList()) {
-            int[] m = aim(cellOf(gate.x()), cellOf(gate.z()));
-            if (m != null) {
-                mouths.add(m);
-            }
-        }
-        for (int[] m : mouths) {
-            for (double[] ray : RAYS) {
-                int[] exit = bore(m[0], m[1], ray[0], ray[1]);
-                if (exit != null) {
-                    join(t, m, exit);
-                }
-            }
-            for (int[] o : mouths) {
-                double d = Math.hypot(o[0] - m[0], o[1] - m[1]);
-                if (o != m && d > 0 && d <= TUNNEL && blockedBetween(m, o)) {
-                    join(t, m, o);
-                }
+        for (WorldGates.Corridor c : gates.corridors()) {
+            int[] a = end(c.fromX(), c.fromZ());
+            int[] b = end(c.toX(), c.toZ());
+            if (a[0] != b[0] || a[1] != b[1]) {
+                join(t, a, b);
             }
         }
         tunnels = t;
     }
 
-    /** How many passages the gates make. */
+    /** A corridor's end in cells: its own cell when it can be stood on, else the nearest within {@link #NEAR}, else its own. */
+    private int[] end(double x, double z) {
+        int cx = cellOf(x);
+        int cz = cellOf(z);
+        int[] m = aim(cx, cz);
+        return m != null ? m : new int[] {cx, cz};
+    }
+
+    /** How many corridors the plan may take. */
     int tunnels() {
         int n = 0;
         for (List<int[]> l : tunnels.values()) {
             n += l.size();
         }
         return n / 2;
-    }
-
-    /**
-     * From cell (sx, sz) along (dx, dz): the first walkable cell after at least one impassable or
-     * unknown cell, within {@link #TUNNEL} cells; null when the way is open ground, or no ground
-     * comes within reach.
-     */
-    private int[] bore(int sx, int sz, double dx, double dz) {
-        boolean rock = false;
-        int px = sx;
-        int pz = sz;
-        for (int i = 1; i <= TUNNEL; i++) {
-            int cx = (int) Math.round(sx + dx * i);
-            int cz = (int) Math.round(sz + dz * i);
-            if (cx == px && cz == pz) {
-                continue;
-            }
-            px = cx;
-            pz = cz;
-            if (kind(cx, cz) == LAVA) {
-                return null;
-            }
-            if (walkable(cx, cz)) {
-                return rock ? new int[] {cx, cz, i} : null;
-            }
-            rock = true;
-        }
-        return null;
-    }
-
-    /** Whether the straight line between two cells passes a cell that cannot be walked. */
-    private boolean blockedBetween(int[] a, int[] b) {
-        int steps = (int) Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]));
-        for (int i = 1; i < steps; i++) {
-            int cx = (int) Math.round(a[0] + (b[0] - a[0]) * (double) i / steps);
-            int cz = (int) Math.round(a[1] + (b[1] - a[1]) * (double) i / steps);
-            if (!walkable(cx, cz)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static void join(java.util.Map<Long, List<int[]>> t, int[] a, int[] b) {
@@ -460,7 +389,7 @@ final class WorldRoute {
                     open.add(new Node(nx, nz, g, g + octile(nx, nz, gx, gz), n));
                 }
             }
-            // a passage under the mountain from a gate: flat walking, no height checks inside
+            // a corridor under the mountain from a gate: flat walking, no height checks inside
             List<int[]> through = tunnels.get(key(n.x(), n.z()));
             if (through != null) {
                 for (int[] t : through) {
