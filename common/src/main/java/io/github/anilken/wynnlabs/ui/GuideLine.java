@@ -55,11 +55,10 @@ import java.util.concurrent.TimeUnit;
  * so the way round a mountain or out of a sealed canyon is known before its chunks load: the
  * block-level route aims at the farthest waypoint of that corridor inside the loaded area, and past
  * it the corridor is drawn faint on the map's heights instead of a straight line. While riding or
- * gliding there is also a straight line through the air to the target, and the ground route is
+ * gliding a straight line through the air leads until a ground route is found, which is
  * searched the same way from the ground under the player (the highest spot to stand on in their
- * column, however far down: {@link GuidePath#surface}); where there is one it is the main line and
- * the air line is drawn faint, so the player sees where to land and walk (a cliff city a wyvern
- * cannot reach). Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
+ * column, however far down: {@link GuidePath#surface}); where there is one it is the only line,
+ * so the player sees where to land and walk (a cliff city a wyvern cannot reach). Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
  * path is laid on the ground every 2 ticks; each frame only moves the dashes along it and draws.
  * Drawing only: nothing is sent to the server.
  */
@@ -95,8 +94,6 @@ public final class GuideLine {
     private static final double DISC = 0.8;
     /** The first blocks from the player fade in over this length. */
     static final double FADE = 1.5;
-    /** Riding or gliding with a ground route shown: the air line's share of the opacity. */
-    private static final float AIR_DIM = 0.3f;
     /** Height of the pillar at the end of the path. */
     private static final float PILLAR = 6f;
     /** Light cyan for the glow, pillar and disc; the chevrons go from {@link #TAIL} to white at the tip. */
@@ -1218,9 +1215,9 @@ public final class GuideLine {
             double seconds = (mc.level.getGameTime() % 100_000 + pt) / 20.0;
             float glow = pulse(seconds);
             VertexConsumer quads = buffers.getBuffer(RenderTypes.debugQuads());
-            if (airLine && airborne(p)) {
-                // faint under a ground route, so that reads as the main line
-                float dim = routed != null && ground.points().size() >= 2 ? AIR_DIM : 1f;
+            if (airLine && airborne(p) && !(routed != null && ground.points().size() >= 2)) {
+                // only until a ground route is found: then the one line, on the ground, leads
+                float dim = 1f;
                 double dx = t.x() - me.x;
                 double dy = t.y() + 1 - me.y;
                 double dz = t.z() - me.z;
