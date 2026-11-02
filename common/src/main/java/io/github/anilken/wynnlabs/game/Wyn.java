@@ -1915,7 +1915,8 @@ public final class Wyn {
             for (int i = 0; i < points.size(); i++) {
                 int[] p = points.get(i);
                 int argb = (i < faintFrom ? 0xE0 : 0x70) << 24 | rgb & 0xFFFFFF;
-                out.add(new RouteDot(new com.wynntils.utils.mc.type.PoiLocation(p[0], p[1], p[2]), argb, i));
+                double span = i == 0 ? 0 : Math.hypot(p[0] - points.get(i - 1)[0], p[2] - points.get(i - 1)[2]);
+                out.add(new RouteDot(new com.wynntils.utils.mc.type.PoiLocation(p[0], p[1], p[2]), argb, i, span));
             }
             registered.pois = List.copyOf(out);
             return true;
@@ -1940,11 +1941,12 @@ public final class Wyn {
     /**
      * One point of the guide route on the map. Wynntils draws the points in order, so each draws
      * the line from the point before it (when that was drawn just now, in the same pass) and a
-     * joint at itself; a point off the map is skipped by Wynntils, and the line ends there. The
-     * size keeps it drawn (the minimap draws nothing with no size). A failure in our drawing
-     * turns the line off and never reaches Wynntils' screen.
+     * joint at itself; a point off the map is skipped by Wynntils, and the line ends there. Its
+     * size reaches back over the whole segment ({@code span} blocks, whichever way the map is
+     * turned): the minimap clips each point's drawing to its own box, and draws nothing with no
+     * size. A failure in our drawing turns the line off and never reaches Wynntils' screen.
      */
-    private record RouteDot(com.wynntils.utils.mc.type.PoiLocation location, int argb, int index)
+    private record RouteDot(com.wynntils.utils.mc.type.PoiLocation location, int argb, int index, double span)
             implements com.wynntils.services.map.pois.Poi {
 
         /** A joint of the line is this many pixels across; the line this many wide. */
@@ -2013,12 +2015,18 @@ public final class Wyn {
 
         @Override
         public int getWidth(float zoomRenderScale, float scale) {
-            return WIDTH;
+            return box(zoomRenderScale, scale);
         }
 
         @Override
         public int getHeight(float zoomRenderScale, float scale) {
-            return WIDTH;
+            return box(zoomRenderScale, scale);
+        }
+
+        /** The box around the point that holds the segment back to the point before, at this zoom. */
+        private int box(float zoomRenderScale, float scale) {
+            double zoom = Math.max(zoomRenderScale, scale);
+            return WIDTH + 2 * (int) Math.ceil(span * zoom);
         }
 
         @Override

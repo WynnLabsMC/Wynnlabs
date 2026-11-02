@@ -134,7 +134,7 @@ public final class GuideLine {
     private static final double WAYPOINT = 24;
     /** ... aims at waypoints this far inside the loaded area, ... */
     private static final int MARGIN = 8;
-    /** ... and is not used when the player or the target is this far under the map's surface (a cave). */
+    /** ... and is not used when the player is this far under the map's surface (a cave). */
     private static final int UNDER = 12;
     /** The arrow toward a target that cannot be walked to: its length, and its height over the last spot. */
     private static final double ARROW = 3;
@@ -226,6 +226,8 @@ public final class GuideLine {
     private static volatile int[] groundStart;
     /** The target the shown ground path was routed for (null: only the straight line so far). */
     private static volatile Target routed;
+    /** Past the ground path, for Wynntils' map only: the rest of the way to the target (the world corridor, or straight), faint. */
+    private static volatile List<double[]> mapBeyond = List.of();
     /** The ground path last handed to Wynntils' minimap and map (tick thread only; null: none yet). */
     private static Path mapShown;
     /** One thread for route searches; a new request replaces one still waiting. */
@@ -651,6 +653,14 @@ public final class GuideLine {
             }
             out.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
         }
+        List<double[]> beyond = g.points().isEmpty() ? List.of() : mapBeyond;
+        if (beyond.size() >= 2) {
+            // the rest of the way past the route, faint, so the map shows the whole way
+            for (int i : mapPoints(beyond, MAP_STEP, MAP_MAX)) {
+                double[] q = beyond.get(i);
+                out.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
+            }
+        }
         Wyn.showGuideRoute(out, faint, MAP_RGB);
     }
 
@@ -692,6 +702,7 @@ public final class GuideLine {
         track = null;
         candidates = List.of();
         ground = NO_PATH;
+        mapBeyond = List.of();
         routed = null;
     }
 
@@ -769,13 +780,17 @@ public final class GuideLine {
             double walked = Math.hypot(end[0] - sx, end[2] - sz);
             int tail = pts.size();
             double[] arrow = null;
-            if (world != null && walked < CAP) {
+            List<double[]> beyond = List.of();
+            if (world != null) {
                 // on along the corridor from where the route ends, faint, on the map's heights
                 WorldRoute g = world.map();
                 List<int[]> cells = world.plan().cells();
                 List<double[]> rest = g.line(cells.subList(g.nearestCell(cells, end[0], end[2]), cells.size()), LIFT);
                 rest.add(new double[] {t.x(), rest.get(rest.size() - 1)[1], t.z()});
-                pts.addAll(upTo(rest, end, CAP - walked));
+                beyond = rest;                                      // the whole way, for the map
+                if (walked < CAP) {
+                    pts.addAll(upTo(rest, end, CAP - walked));
+                }
             } else if (r.enclosed()) {
                 // closed in: no line into the rock; the route ends at an exit (where the ground goes on
                 // out of sight) or, sealed, at the spot nearest the target, with an arrow toward it
@@ -784,8 +799,13 @@ public final class GuideLine {
                 List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
                 pts.addAll(rest.subList(1, rest.size()));
             }
+            if (!r.reached() && beyond.isEmpty()) {
+                // no corridor: the map's line still goes on to the target, straight and faint
+                beyond = List.of(end, new double[] {t.x(), end[1], t.z()});
+            }
             if (gen == generation) {
                 target = t;
+                mapBeyond = beyond;
                 ground = new Path(List.copyOf(pts), end, tail, arrow);
                 routed = t;
             }
@@ -817,13 +837,11 @@ public final class GuideLine {
                 int tx = g.cellOf(t.x());
                 int tz = g.cellOf(t.z());
                 int ph = g.height(px, pz);
-                int th = g.height(tx, tz);
                 if (ph != WorldRoute.UNKNOWN && sy < ph - UNDER) {
                     why = "the player is under the map's surface";
-                } else if (th != WorldRoute.UNKNOWN && t.y() > 0 && t.y() < th - UNDER) {
-                    // (a pin with no height, y 0, is taken as on the surface)
-                    why = "the target is under the map's surface";
                 } else {
+                    // a target under the map's surface (a valley floor under an overhang, a cave
+                    // mouth) is still aimed at over the map: the block route does the last part
                     plan = g.plan(px, pz, tx, tz, WORLD_BUDGET, WORLD_MILLIS);
                     if (plan == null) {
                         why = "no cell to start from or to aim at";
