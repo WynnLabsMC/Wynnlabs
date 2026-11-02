@@ -27,6 +27,8 @@ public final class DevTools implements DevHooks.Hooks {
         platform.onEndTick(Perf.tick("tick.Shots", Shots::onTick));
         // the Mount Feeder's slots and lore, written out while one is open (to confirm its layout)
         platform.onEndTick(FeederDump::onTick);
+        // Wynncraft's invisible walls, one chunk a tick, to config/wynnlabs/dev/barriers.jsonl
+        platform.onEndTick(BarrierScan::onTick);
         // a developer's own tools in the git-ignored common/src/local, when there are any
         try {
             Class.forName("io.github.anilken.wynnlabs.local.LocalTools").getMethod("register", Platform.class)

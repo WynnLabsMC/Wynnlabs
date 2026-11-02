@@ -25,15 +25,24 @@ import java.util.zip.GZIPInputStream;
  * was made, block by block with the game's step rule (a block up, any drop, water swum, never lava),
  * so a narrow stair or a gate in a wall counts though the cells' heights differ; the map holds it as
  * four direction bits a cell ({@link #open}). Water costs {@link #WATER_COST} times ground, a climb
- * {@link #UP_COST} a block more and a deep drop {@link #DROP_COST} a block. Pure: no Minecraft
- * types, so it is tested on hand-made grids.
+ * {@link #UP_COST} a block more and a deep drop {@link #DROP_COST} a block. Cells with an
+ * invisible wall (Wynncraft's barrier blocks at walk height, recorded in the game and folded in
+ * offline) are impassable, and the hand-made walls of {@link WorldGates} may not be crossed away
+ * from a gate. A gate is the mouth of a passage under a mountain: from its cell the route may go
+ * on in a straight line, at the cost of flat walking, to walkable ground beyond the mountain. The
+ * passages come worked out with the map (each ending in a large connected area, through the small
+ * pockets a covered road shows from above); without them each gate is bored here, up to
+ * {@link #TUNNEL} cells to the first walkable cell past impassable ones, and two gates that close
+ * across impassable cells are joined directly ({@link #gates}). Pure: no Minecraft types, so it
+ * is tested on hand-made grids.
  *
- * <p>File: gzip over "WLWR", a version byte (2), the cell size, the tile size (cells a side), then
+ * <p>File: gzip over "WLWR", a version byte (3), the cell size, the tile size (cells a side), then
  * big-endian ints: the height base, the origin tile x and z, the tiles wide and high; a bitmap of
  * the tiles present (row-major, z outer, bit i of byte i / 8); then each present tile in that
  * order: tile² height bytes (0 unknown, else y - base + 1), tile² / 4 kind bytes (two bits a cell,
  * cell i in bits 2 (i mod 4)), tile² / 2 edge bytes (four bits a cell, cell i in nibble i mod 2:
- * bit 0 east +x, 1 south +z, 2 west -x, 3 north -z).
+ * bit 0 east +x, 1 south +z, 2 west -x, 3 north -z), tile² / 8 wall bytes (one bit a cell, cell i
+ * in bit i mod 8: impassable).
  */
 final class WorldRoute {
 
@@ -58,6 +67,16 @@ final class WorldRoute {
     private static final int CLOCK_EVERY = 1024;
     /** Where the target's cell cannot be stood on, one up to this many cells away is aimed at. */
     private static final int NEAR = 2;
+    /** A passage from a gate runs through impassable cells for at most this many cells (96 blocks at 4). */
+    static final int TUNNEL = 24;
+    /** The eight directions a passage may run in, and the sixteen in between. */
+    private static final double[][] RAYS = new double[16][];
+
+    static {
+        for (int i = 0; i < 16; i++) {
+            RAYS[i] = new double[] {Math.cos(i * Math.PI / 8), Math.sin(i * Math.PI / 8)};
+        }
+    }
 
     private static final int[][] MOVES = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
     private static final double DIAG = Math.sqrt(2);
@@ -70,10 +89,17 @@ final class WorldRoute {
     private final int originZ;
     private final int wide;
     private final int high;
-    /** Per tile (row-major, z outer; null: not mapped): the height bytes, the packed kinds and the packed edge bits. */
+    /** Per tile (row-major, z outer; null: not mapped): the height bytes, the packed kinds, the packed edge bits and the wall bits. */
     private final byte[][] heights;
     private final byte[][] kinds;
     private final byte[][] edges;
+    private final byte[][] walls;
+    /** How many cells are impassable. */
+    private final int impassable;
+    /** The hand-made walls, {@link WorldGates#NONE} without any. */
+    private volatile WorldGates gates = WorldGates.NONE;
+    /** The passages: by the key of a cell, the cells {cx, cz, length in cells} a route may jump to from it. */
+    private volatile java.util.Map<Long, List<int[]>> tunnels = java.util.Map.of();
 
     /** A way over the cells {cx, cz}, start first, whether it ends at the target's cell, the cells looked at and the time taken. */
     record Plan(List<int[]> cells, boolean reached, int expanded, long millis) {}
@@ -81,7 +107,7 @@ final class WorldRoute {
     private record Node(int x, int z, double g, double f, Node parent) {}
 
     WorldRoute(int cell, int tile, int base, int originX, int originZ, int wide, int high,
-               byte[][] heights, byte[][] kinds, byte[][] edges) {
+               byte[][] heights, byte[][] kinds, byte[][] edges, byte[][] walls) {
         this.cell = cell;
         this.tile = tile;
         this.base = base;
@@ -92,6 +118,126 @@ final class WorldRoute {
         this.heights = heights;
         this.kinds = kinds;
         this.edges = edges;
+        this.walls = walls;
+        int n = 0;
+        for (byte[] w : walls) {
+            if (w != null) {
+                for (byte b : w) {
+                    n += Integer.bitCount(b & 0xFF);
+                }
+            }
+        }
+        this.impassable = n;
+    }
+
+    /**
+     * The region entrances and walls the plan keeps to. Each gate becomes a passage: from the
+     * walkable cell at the gate (or the nearest within {@link #NEAR}), a ray in each of 16
+     * directions through impassable or unknown cells, up to {@link #TUNNEL} cells, to the first
+     * walkable cell beyond; and a straight joint to any other gate within {@link #TUNNEL} cells
+     * across such cells. Every passage runs both ways.
+     */
+    void gates(WorldGates g) {
+        gates = g == null ? WorldGates.NONE : g;
+        java.util.Map<Long, List<int[]>> t = new java.util.HashMap<>();
+        if (gates.passages() != null) {
+            for (double[] p : gates.passages()) {
+                int[] a = {cellOf(p[0]), cellOf(p[1])};
+                int[] b = {cellOf(p[2]), cellOf(p[3])};
+                if (walkable(a[0], a[1]) && walkable(b[0], b[1])) {
+                    join(t, a, b);
+                }
+            }
+            tunnels = t;
+            return;
+        }
+        List<int[]> mouths = new ArrayList<>();
+        for (WorldGates.Gate gate : gates.gateList()) {
+            int[] m = aim(cellOf(gate.x()), cellOf(gate.z()));
+            if (m != null) {
+                mouths.add(m);
+            }
+        }
+        for (int[] m : mouths) {
+            for (double[] ray : RAYS) {
+                int[] exit = bore(m[0], m[1], ray[0], ray[1]);
+                if (exit != null) {
+                    join(t, m, exit);
+                }
+            }
+            for (int[] o : mouths) {
+                double d = Math.hypot(o[0] - m[0], o[1] - m[1]);
+                if (o != m && d > 0 && d <= TUNNEL && blockedBetween(m, o)) {
+                    join(t, m, o);
+                }
+            }
+        }
+        tunnels = t;
+    }
+
+    /** How many passages the gates make. */
+    int tunnels() {
+        int n = 0;
+        for (List<int[]> l : tunnels.values()) {
+            n += l.size();
+        }
+        return n / 2;
+    }
+
+    /**
+     * From cell (sx, sz) along (dx, dz): the first walkable cell after at least one impassable or
+     * unknown cell, within {@link #TUNNEL} cells; null when the way is open ground, or no ground
+     * comes within reach.
+     */
+    private int[] bore(int sx, int sz, double dx, double dz) {
+        boolean rock = false;
+        int px = sx;
+        int pz = sz;
+        for (int i = 1; i <= TUNNEL; i++) {
+            int cx = (int) Math.round(sx + dx * i);
+            int cz = (int) Math.round(sz + dz * i);
+            if (cx == px && cz == pz) {
+                continue;
+            }
+            px = cx;
+            pz = cz;
+            if (kind(cx, cz) == LAVA) {
+                return null;
+            }
+            if (walkable(cx, cz)) {
+                return rock ? new int[] {cx, cz, i} : null;
+            }
+            rock = true;
+        }
+        return null;
+    }
+
+    /** Whether the straight line between two cells passes a cell that cannot be walked. */
+    private boolean blockedBetween(int[] a, int[] b) {
+        int steps = (int) Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]));
+        for (int i = 1; i < steps; i++) {
+            int cx = (int) Math.round(a[0] + (b[0] - a[0]) * (double) i / steps);
+            int cz = (int) Math.round(a[1] + (b[1] - a[1]) * (double) i / steps);
+            if (!walkable(cx, cz)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void join(java.util.Map<Long, List<int[]>> t, int[] a, int[] b) {
+        int len = (int) Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]));
+        t.computeIfAbsent(key(a[0], a[1]), k -> new ArrayList<>()).add(new int[] {b[0], b[1], len});
+        t.computeIfAbsent(key(b[0], b[1]), k -> new ArrayList<>()).add(new int[] {a[0], a[1], len});
+    }
+
+    WorldGates gates() {
+        return gates;
+    }
+
+    /** How many cells an invisible wall makes impassable. */
+    int impassable() {
+        return impassable;
     }
 
     /** Reads a map in the file format from {@code gz} (gzip). */
@@ -103,7 +249,7 @@ final class WorldRoute {
             throw new IOException("not a world route map");
         }
         int version = in.readUnsignedByte();
-        if (version != 2) {
+        if (version != 3) {
             throw new IOException("world route map version " + version);
         }
         int cell = in.readUnsignedByte();
@@ -122,17 +268,20 @@ final class WorldRoute {
         byte[][] heights = new byte[n][];
         byte[][] kinds = new byte[n][];
         byte[][] edges = new byte[n][];
+        byte[][] walls = new byte[n][];
         for (int i = 0; i < n; i++) {
             if ((bitmap[i >> 3] >> (i & 7) & 1) != 0) {
                 heights[i] = new byte[tile * tile];
                 kinds[i] = new byte[tile * tile / 4];
                 edges[i] = new byte[tile * tile / 2];
+                walls[i] = new byte[tile * tile / 8];
                 in.readFully(heights[i]);
                 in.readFully(kinds[i]);
                 in.readFully(edges[i]);
+                in.readFully(walls[i]);
             }
         }
-        return new WorldRoute(cell, tile, base, ox, oz, wide, high, heights, kinds, edges);
+        return new WorldRoute(cell, tile, base, ox, oz, wide, high, heights, kinds, edges, walls);
     }
 
     /** The cell a block coordinate lies in. */
@@ -191,10 +340,20 @@ final class WorldRoute {
         return h == 0 ? UNKNOWN : h - 1 + base;
     }
 
-    /** Whether the cell can be stood or swum on: ground or water with a height. */
+    /** Whether an invisible wall stands in the cell. */
+    boolean wall(int cx, int cz) {
+        int t = tileOf(cx, cz);
+        if (t < 0) {
+            return false;
+        }
+        int i = index(cx, cz);
+        return (walls[t][i >> 3] >> (i & 7) & 1) != 0;
+    }
+
+    /** Whether the cell can be stood or swum on: ground or water with a height, and no wall. */
     boolean walkable(int cx, int cz) {
         int k = kind(cx, cz);
-        return (k == GROUND || k == WATER) && height(cx, cz) != UNKNOWN;
+        return (k == GROUND || k == WATER) && height(cx, cz) != UNKNOWN && !wall(cx, cz);
     }
 
     /** Whether a player gets from the cell into its neighbour in {@code direction} ({@link #EAST} ...). */
@@ -223,7 +382,8 @@ final class WorldRoute {
      */
     double step(int fx, int fz, int tx, int tz, double dist) {
         int k = kind(tx, tz);
-        if (k != GROUND && k != WATER || !open(fx, fz, tx - fx, tz - fz)) {
+        if (k != GROUND && k != WATER || wall(tx, tz) || !open(fx, fz, tx - fx, tz - fz)
+                || gates.blocked(centre(fx), centre(fz), centre(tx), centre(tz))) {
             return -1;
         }
         int from = height(fx, fz);
@@ -300,6 +460,18 @@ final class WorldRoute {
                     open.add(new Node(nx, nz, g, g + octile(nx, nz, gx, gz), n));
                 }
             }
+            // a passage under the mountain from a gate: flat walking, no height checks inside
+            List<int[]> through = tunnels.get(key(n.x(), n.z()));
+            if (through != null) {
+                for (int[] t : through) {
+                    double g = n.g() + t[2];
+                    long k = key(t[0], t[1]);
+                    if (g < best.get(k)) {
+                        best.put(k, g);
+                        open.add(new Node(t[0], t[1], g, g + octile(t[0], t[1], gx, gz), n));
+                    }
+                }
+            }
         }
         return new Plan(trace(nearest), false, expanded, (System.nanoTime() - t0) / 1_000_000);
     }
@@ -323,13 +495,18 @@ final class WorldRoute {
 
     /**
      * The plan's cells as points {x, y, z} on the ground to draw: each cell's centre at its surface
-     * height plus {@code lift}.
+     * height plus {@code lift}; through a passage, where the surface is the mountain over it, the
+     * height stays that of the mouth.
      */
     List<double[]> line(List<int[]> cells, double lift) {
         List<double[]> out = new ArrayList<>(cells.size());
+        int last = 0;
         for (int[] c : cells) {
             int h = height(c[0], c[1]);
-            out.add(new double[] {centre(c[0]), (h == UNKNOWN ? 0 : h) + lift, centre(c[1])});
+            if (h != UNKNOWN && walkable(c[0], c[1])) {
+                last = h;
+            }
+            out.add(new double[] {centre(c[0]), last + lift, centre(c[1])});
         }
         return out;
     }

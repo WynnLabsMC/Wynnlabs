@@ -494,6 +494,11 @@ public final class GuideLine {
         data.addProperty("hash", ds.hash());
         data.addProperty("ageMinutes", ds.hash() == null ? null : ds.age() / 60_000);
         data.addProperty("why", ds.why());
+        WorldRoute wm = WorldRouteData.current();
+        data.addProperty("impassable", wm == null ? null : wm.impassable());
+        data.addProperty("wallLines", wm == null ? null : wm.gates().lines());
+        data.addProperty("gates", wm == null ? null : wm.gates().gates());
+        data.addProperty("passages", wm == null ? null : wm.tunnels());
         o.add("data", data);
         // the world plan: whether the coarse map led the way, how long it is and the next waypoint
         World w = lastWorld;

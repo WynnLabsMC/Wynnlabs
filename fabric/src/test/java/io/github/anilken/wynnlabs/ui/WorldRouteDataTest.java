@@ -29,6 +29,7 @@ class WorldRouteDataTest {
     private long now = 1_700_000_000_000L;
     private final List<String> requests = new ArrayList<>();
     private byte[] served;
+    private String gates = "{\"lines\": [[[0, 0], [100, 0]]], \"gates\": [{\"name\": \"Gate\", \"x\": 50, \"z\": 0, \"level\": 1}]}";
     private boolean offline;
 
     @BeforeEach
@@ -40,6 +41,12 @@ class WorldRouteDataTest {
             requests.add(url);
             if (offline) {
                 throw new IOException("offline");
+            }
+            if (url.equals(WorldRouteData.GATES_URL)) {
+                if (gates == null) {
+                    throw new IOException("no gates");
+                }
+                return gates.getBytes(StandardCharsets.UTF_8);
             }
             return url.equals(WorldRouteData.HASH_URL)
                     ? (WorldRouteData.sha256(served) + "\n").getBytes(StandardCharsets.UTF_8) : served;
@@ -69,7 +76,10 @@ class WorldRouteDataTest {
         assertEquals(WorldRouteData.State.MISSING, WorldRouteData.status().state());
         WorldRoute g = WorldRouteData.obtain(dir);
         assertNotNull(g);
-        assertEquals(List.of(WorldRouteData.URL), requests);
+        assertEquals(List.of(WorldRouteData.URL, WorldRouteData.GATES_URL), requests);
+        assertEquals(1, g.gates().lines());
+        assertEquals(1, g.gates().gates());
+        assertTrue(Files.isRegularFile(WorldRouteData.gatesFile(dir)));
         assertTrue(Files.isRegularFile(WorldRouteData.file(dir)));
         WorldRouteData.Meta m = WorldRouteData.Meta.read(WorldRouteData.sidecar(dir));
         assertEquals(WorldRouteData.sha256(served), m.sha256());
@@ -81,7 +91,7 @@ class WorldRouteDataTest {
         // the same hour: nothing is asked again
         now += 1000;
         assertSame(g, WorldRouteData.obtain(dir));
-        assertEquals(1, requests.size());
+        assertEquals(2, requests.size());
         assertEquals(1000, WorldRouteData.status().age());
     }
 
@@ -89,8 +99,11 @@ class WorldRouteDataTest {
     void aDayLaterOnlyTheHashIsAskedForUnlessItDiffers() throws IOException {
         WorldRoute g = WorldRouteData.obtain(dir);
         now += DAY;
+        gates = null;                           // the walls cannot be fetched today: the old file stays
         assertSame(g, WorldRouteData.obtain(dir));
-        assertEquals(List.of(WorldRouteData.URL, WorldRouteData.HASH_URL), requests);
+        assertEquals(List.of(WorldRouteData.URL, WorldRouteData.GATES_URL, WorldRouteData.HASH_URL, WorldRouteData.GATES_URL), requests);
+        assertEquals(1, g.gates().gates());
+        gates = "{\"lines\": []}";
         assertEquals(now, WorldRouteData.Meta.read(WorldRouteData.sidecar(dir)).checked(), "the look is noted");
         // a newer map in the repository: downloaded
         served = WorldRouteTest.gridBytes("...", "...", "...");
@@ -98,7 +111,9 @@ class WorldRouteDataTest {
         WorldRoute fresh = WorldRouteData.obtain(dir);
         assertNotNull(fresh);
         assertFalse(fresh == g);
-        assertEquals(List.of(WorldRouteData.URL, WorldRouteData.HASH_URL, WorldRouteData.HASH_URL, WorldRouteData.URL), requests);
+        assertEquals(List.of(WorldRouteData.URL, WorldRouteData.GATES_URL, WorldRouteData.HASH_URL, WorldRouteData.GATES_URL,
+                WorldRouteData.HASH_URL, WorldRouteData.URL, WorldRouteData.GATES_URL), requests);
+        assertEquals(0, fresh.gates().lines(), "the new walls file");
         assertEquals(WorldRouteData.sha256(served), WorldRouteData.Meta.read(WorldRouteData.sidecar(dir)).sha256());
     }
 
@@ -116,6 +131,11 @@ class WorldRouteDataTest {
         assertNotNull(WorldRouteData.obtain(dir));
         assertTrue(requests.isEmpty());
         assertEquals(WorldRouteData.State.READY, WorldRouteData.status().state());
+        assertEquals(1, WorldRouteData.current().gates().gates(), "the walls file on disk");
+        // a malformed walls file on disk: no walls
+        Files.writeString(WorldRouteData.gatesFile(dir), "{\"lines\": [[[1]]]}");
+        WorldRouteData.reset();
+        assertEquals(0, WorldRouteData.obtain(dir).gates().lines());
     }
 
     @Test
@@ -143,14 +163,14 @@ class WorldRouteDataTest {
         assertFalse(Files.exists(WorldRouteData.file(dir)));
         assertFalse(Files.exists(WorldRouteData.sidecar(dir)));
         assertNotNull(WorldRouteData.obtain(dir));
-        assertEquals(List.of(WorldRouteData.URL), requests);
+        assertEquals(List.of(WorldRouteData.URL, WorldRouteData.GATES_URL), requests);
         // a file that is not a map at all, though its hash matches its sidecar: deleted, fetched again
         byte[] junk = {9, 9, 9};
         WorldRouteData.store(dir, junk, new WorldRouteData.Meta(WorldRouteData.sha256(junk), now, now));
         WorldRouteData.reset();
         requests.clear();
         assertNotNull(WorldRouteData.obtain(dir));
-        assertEquals(List.of(WorldRouteData.URL), requests);
+        assertEquals(List.of(WorldRouteData.URL, WorldRouteData.GATES_URL), requests);
         assertFalse(WorldRouteData.due(new WorldRouteData.Meta("0".repeat(64), now, now), now + DAY - 1));
         assertTrue(WorldRouteData.due(new WorldRouteData.Meta("0".repeat(64), now, now), now + DAY));
         assertTrue(WorldRouteData.due(null, now));

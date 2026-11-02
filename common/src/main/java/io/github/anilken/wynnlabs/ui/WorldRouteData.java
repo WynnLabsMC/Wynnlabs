@@ -32,14 +32,18 @@ import java.util.Set;
  * time, on the caller's thread (the guide's route thread, never the render thread), 20 seconds
  * each; any failure leaves the guide to its block-level route with one line in the log, and is
  * not tried again for {@link #RETRY_MILLIS}. Each hop stays over https to GitHub's own hosts, as
- * the update check does.
+ * the update check does. The hand-made walls ({@value #GATES_URL}, {@link WorldGates}) come along
+ * with every fetch of the map and every daily look, to {@value #GATES}; a failure keeps the old
+ * file, and a malformed one is ignored.
  */
 final class WorldRouteData {
 
     static final String URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-route.bin";
     static final String HASH_URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-route.sha256";
+    static final String GATES_URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-gates.json";
     static final String FILE = "world-route.bin";
     static final String META = "world-route.bin.meta";
+    static final String GATES = "world-gates.json";
     /** The repository is asked for a newer map at most this often, ... */
     static final long RECHECK_MILLIS = 24L * 60 * 60 * 1000;
     /** ... and after a failed download the next try waits this long. */
@@ -103,6 +107,42 @@ final class WorldRouteData {
         return dir.resolve(META);
     }
 
+    static Path gatesFile(Path dir) {
+        return dir.resolve(GATES);
+    }
+
+    /** The map in memory (null: none yet), for /guide. */
+    static WorldRoute current() {
+        return map;
+    }
+
+    /** Fetches the walls file into {@code dir} (an old one stays on failure) and gives the map what it holds. */
+    private static void walls(Path dir, WorldRoute g) {
+        try {
+            byte[] bytes = fetcher.get(GATES_URL);
+            if (WorldGates.parse(new String(bytes, StandardCharsets.UTF_8)) != null) {
+                Files.createDirectories(dir);
+                Files.write(gatesFile(dir), bytes);
+            }
+        } catch (IOException | RuntimeException e) {
+            // the file on disk, if any, serves
+        }
+        readWalls(dir, g);
+    }
+
+    /** The walls file on disk into the map; none when it is missing or malformed. */
+    private static void readWalls(Path dir, WorldRoute g) {
+        WorldGates w = null;
+        try {
+            if (Files.isRegularFile(gatesFile(dir))) {
+                w = WorldGates.parse(Files.readString(gatesFile(dir), StandardCharsets.UTF_8));
+            }
+        } catch (IOException | RuntimeException e) {
+            w = null;
+        }
+        g.gates(w);
+    }
+
     /** The data's state, for /guide. */
     static Status status() {
         Meta m = loaded;
@@ -134,7 +174,9 @@ final class WorldRouteData {
             m = verified(dir);
             if (m != null) {
                 try {
-                    map = load(file(dir));
+                    WorldRoute g = load(file(dir));
+                    readWalls(dir, g);
+                    map = g;
                     loaded = m;
                     state = State.READY;
                 } catch (IOException e) {
@@ -158,6 +200,7 @@ final class WorldRouteData {
                 if (fresh.equals(m.sha256())) {
                     loaded = m = new Meta(m.sha256(), m.downloaded(), now);
                     m.write(sidecar(dir));
+                    walls(dir, map);
                     return map;
                 }
             } catch (IOException e) {
@@ -173,6 +216,7 @@ final class WorldRouteData {
             WorldRoute fresh = WorldRoute.load(new java.io.ByteArrayInputStream(bytes));
             Meta fm = new Meta(sha, now, now);
             store(dir, bytes, fm);
+            walls(dir, fresh);
             map = fresh;
             loaded = fm;
             state = State.READY;

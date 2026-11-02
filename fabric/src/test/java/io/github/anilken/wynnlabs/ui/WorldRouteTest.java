@@ -20,8 +20,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * swims a river and never crosses lava, and the corridor hands the block-level route its waypoints.
  * The maps are written here, from character rows: '.' ground at 64, '~' water at 62, 'M' a
  * mountain top at 90, 'L' lava, ' ' unknown, a digit ground 2 blocks higher a step ('1' 66, '2' 68).
- * A cell opens toward a neighbour that can be stood or swum on and is at most 2 blocks higher or
- * 40 lower, the way the generator decides it block by block on the real map.
+ * '#' ground at 64 with an invisible wall (impassable). A cell opens toward a neighbour that can
+ * be stood or swum on and is at most 2 blocks higher or 40 lower, the way the generator decides it
+ * block by block on the real map.
  */
 class WorldRouteTest {
 
@@ -39,6 +40,7 @@ class WorldRouteTest {
         byte[] heights = new byte[TILE * TILE];
         byte[] kinds = new byte[TILE * TILE / 4];
         byte[] edges = new byte[TILE * TILE / 2];
+        byte[] walls = new byte[TILE * TILE / 8];
         int[] ys = new int[TILE * TILE];
         java.util.Arrays.fill(ys, WorldRoute.UNKNOWN);
         for (int z = 0; z < rows.length; z++) {
@@ -46,9 +48,12 @@ class WorldRouteTest {
                 char c = rows[z].charAt(x);
                 int kind;
                 int y;
-                if (c == '.') {
+                if (c == '.' || c == '#') {
                     kind = WorldRoute.GROUND;
                     y = 64;
+                    if (c == '#') {
+                        walls[(z * TILE + x) >> 3] |= (byte) (1 << ((z * TILE + x) & 7));
+                    }
                 } else if (c >= '0' && c <= '9') {
                     kind = WorldRoute.GROUND;
                     y = 64 + 2 * (c - '0');
@@ -93,7 +98,7 @@ class WorldRouteTest {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(new GZIPOutputStream(bytes))) {
             out.writeBytes("WLWR");
-            out.writeByte(2);
+            out.writeByte(3);
             out.writeByte(CELL);
             out.writeByte(TILE);
             out.writeInt(BASE);
@@ -105,6 +110,7 @@ class WorldRouteTest {
             out.write(heights);
             out.write(kinds);
             out.write(edges);
+            out.write(walls);
         }
         return bytes.toByteArray();
     }
@@ -274,6 +280,95 @@ class WorldRouteTest {
         assertEquals(16, line.size());
         assertEquals(64.08, line.get(3)[1], 1e-9);
         assertEquals(4, g.nearestCell(p.cells(), 17, 1));
+    }
+
+    @Test
+    void anInvisibleWallIsImpassableAndAHandMadeLineIsCrossedOnlyAtAGate() throws IOException {
+        // a recorded wall down the middle with a hole; then a hand-made line over the hole
+        WorldRoute g = grid(
+                "....#....",
+                "....#....",
+                ".........",
+                "....#....",
+                "....#....");
+        assertEquals(4, g.impassable());
+        assertTrue(g.wall(4, 0));
+        assertFalse(g.walkable(4, 0));
+        WorldRoute.Plan p = g.plan(0, 0, 8, 0, 1000, 1000);
+        assertTrue(p.reached());
+        assertTrue(p.cells().stream().anyMatch(c -> c[0] == 4 && c[1] == 2), "through the hole");
+        // the line (in blocks) closes the hole: x = 18 from z = 0 to z = 20
+        WorldGates line = WorldGates.parse("{\"lines\": [[[18, 0], [18, 20]]], \"gates\": []}");
+        assertEquals(1, line.lines());
+        assertEquals(0, line.gates());
+        g.gates(line);
+        assertTrue(line.blocked(14, 10, 22, 10));
+        assertFalse(line.blocked(14, 10, 14, 14), "along the line is not across it");
+        assertFalse(g.plan(0, 0, 8, 0, 1000, 1000).reached());
+        // a gate on the line at the hole: crossing allowed within 8 blocks of it
+        g.gates(WorldGates.parse("{\"lines\": [[[18, 0], [18, 20]]], \"gates\": [{\"name\": \"Hole\", \"x\": 18, \"z\": 10, \"level\": 5}]}"));
+        assertTrue(g.plan(0, 0, 8, 0, 1000, 1000).reached());
+        assertEquals(1, g.gates().gates());
+        assertEquals("Hole", g.gates().gateList().get(0).name());
+        assertEquals(5, g.gates().gateList().get(0).level());
+        // malformed files are no walls; an empty one is fine
+        assertNull(WorldGates.parse("{\"lines\": [[[18, 0]]]}"));
+        assertNull(WorldGates.parse("{\"lines\": [[[18, 0, 1], [18, 20, 1]]]}"));
+        assertNull(WorldGates.parse("{\"gates\": [{\"name\": \"x\"}]}"));
+        assertNull(WorldGates.parse("not json"));
+        assertEquals(0, WorldGates.parse("{}").lines());
+        assertEquals(0, WorldGates.parse("{\"lines\": [], \"gates\": []}").gates());
+    }
+
+    @Test
+    void aGateIsAPassageUnderTheMountain() throws IOException {
+        // a mountain wall three cells thick across the way; a gate at its west foot
+        WorldRoute g = grid(
+                "....###....",
+                "....###....",
+                "....###....",
+                "....###....",
+                "....###....");
+        assertFalse(g.plan(0, 2, 10, 2, 1000, 1000).reached());
+        // the gate on the walkable cell (3, 2), block (14, 10): a passage east to (7, 2)
+        g.gates(WorldGates.parse("{\"gates\": [{\"name\": \"Pass\", \"x\": 14, \"z\": 10, \"level\": 1}]}"));
+        assertTrue(g.tunnels() >= 1);
+        WorldRoute.Plan p = g.plan(0, 2, 10, 2, 1000, 1000);
+        assertTrue(p.reached());
+        assertTrue(p.cells().stream().anyMatch(c -> c[0] == 3 && c[1] == 2), "in at the gate");
+        assertTrue(p.cells().stream().anyMatch(c -> c[0] == 7), "out beyond the wall");
+        assertTrue(p.cells().stream().noneMatch(c -> c[0] >= 4 && c[0] <= 6), "nothing drawn on the mountain");
+        // and back the other way
+        assertTrue(g.plan(10, 2, 0, 2, 1000, 1000).reached());
+        // the drawn line keeps the mouth's height through the passage
+        List<double[]> line = g.line(p.cells(), 0);
+        assertTrue(line.stream().allMatch(pt -> pt[1] == 64));
+        // a gate in the mountain itself, aimed from the nearest walkable cell
+        g.gates(WorldGates.parse("{\"gates\": [{\"name\": \"Mouth\", \"x\": 18, \"z\": 10}]}"));
+        assertTrue(g.plan(0, 2, 10, 2, 1000, 1000).reached());
+        // two gates across the wall from each other are joined directly
+        WorldRoute wide = grid(
+                "..########..",
+                "..########..",
+                "..########..");
+        wide.gates(WorldGates.parse("{\"gates\": [{\"name\": \"West\", \"x\": 6, \"z\": 6}, {\"name\": \"East\", \"x\": 42, \"z\": 6}]}"));
+        assertTrue(wide.plan(0, 1, 11, 1, 1000, 1000).reached());
+        // passages worked out with the map are taken as they are, and only those; one ending in the mountain is left out
+        WorldRoute set = grid(
+                "....###....",
+                "....###....",
+                "....###....");
+        set.gates(WorldGates.parse("{\"gates\": [{\"name\": \"West\", \"x\": 14, \"z\": 6}], "
+                + "\"passages\": [[14, 6, 30, 6], [14, 6, 22, 6]]}"));
+        assertEquals(1, set.tunnels());
+        WorldRoute.Plan via = set.plan(0, 1, 10, 1, 1000, 1000);
+        assertTrue(via.reached());
+        assertTrue(via.cells().stream().noneMatch(c -> c[0] >= 4 && c[0] <= 6));
+        // with the passages given, the gates are not bored as well
+        set.gates(WorldGates.parse("{\"gates\": [{\"name\": \"West\", \"x\": 14, \"z\": 6}], \"passages\": []}"));
+        assertEquals(0, set.tunnels());
+        assertFalse(set.plan(0, 1, 10, 1, 1000, 1000).reached());
+        assertNull(WorldGates.parse("{\"passages\": [[1, 2, 3]]}"));
     }
 
     @Test
