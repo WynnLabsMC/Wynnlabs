@@ -79,11 +79,19 @@ public final class Today {
                 Waypoints.forgetRemoved(pins);
                 Waypoints.holdKeep(pins);       // lasting pins Wynntils cleared with a new compass target
             }
+            // the route (an item's loot chests, a quest's points): nearby spots on the map, a spot
+            // stood at for two seconds done
+            for (String done : Waypoints.routeTick(pins, mc.player.getX(), mc.player.getY(), mc.player.getZ())) {
+                int left = Waypoints.route().size();
+                mc.gui.setOverlayMessage((left == 0 ? L.c("wynnlabs.route.done", done)
+                        : L.c("wynnlabs.route.taken", done, left))
+                        .withStyle(net.minecraft.ChatFormatting.GREEN), false);
+            }
             java.util.List<Pin> reached = new java.util.ArrayList<>();
             java.util.Iterator<Pin> it = pins.all().iterator();
             while (it.hasNext()) {
                 var m = it.next();
-                if (!Waypoints.ours(m)) {
+                if (!Waypoints.ours(m) || Waypoints.isRoute(m)) {
                     continue;
                 }
                 double dx = m.x() + 0.5 - mc.player.getX();

@@ -450,6 +450,26 @@ final class SearchCardPanel extends MenuPaint {
         }
     }
 
+    /** Whether the route set now is this row's places (the same spots). */
+    boolean routeOf(List<Area> places) {
+        List<Waypoints.Mine> route = Waypoints.route();
+        if (route.isEmpty() || route.size() > places.size()) {
+            return false;
+        }
+        for (Waypoints.Mine m : route) {
+            if (places.stream().noneMatch(p -> p.x() == m.x() && p.y() == m.y() && p.z() == m.z())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** "Route ✔" again: the route is over, its pins leave the map. */
+    void endRoute() {
+        Waypoints.clearRoute();
+        menu.flash(L.t("wynnlabs.search.route_off"));
+    }
+
     void pinAll(List<Area> places) {
         String what = entry.name().length() > 32 ? entry.name().substring(0, 32) : entry.name();
         List<int[]> points = new java.util.ArrayList<>();

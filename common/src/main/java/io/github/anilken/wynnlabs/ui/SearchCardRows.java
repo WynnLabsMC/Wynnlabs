@@ -83,20 +83,26 @@ final class SearchCardRows extends MenuPaint {
         // the controls on the right, right to left: compass, map mark, track
         int r = x + w;
         if (place) {
-            String pin = L.t("wynnlabs.search.pin");
+            Area a = s.main();
+            List<Area> all = s.areas();
+            boolean route = all.size() > 1 && card.routeOf(all);
+            String pin = L.t(route ? "wynnlabs.search.route_on" : "wynnlabs.search.pin");
             int pw = Ui.chipWidth(font(), pin);
             int py = Type.BODY.onCaps(ty, Ui.SMALL_H);
             Ui.small(g, font(), pin, r - pw, py, pw, card.over(mx, my) ? mx : -1, my);
-            Area a = s.main();
-            List<Area> all = s.areas();
             String label = card.rowText(s);
             card.click(r - pw, py, pw, Ui.SMALL_H, () -> {
-                if (all.size() > 1) {
+                if (route) {
+                    card.endRoute();
+                } else if (all.size() > 1) {
                     card.pinAll(all);
                 } else {
                     card.pin(a, label);
                 }
             });
+            if (all.size() > 1) {
+                card.tip(r - pw, py, pw, Ui.SMALL_H, mx, my, L.t(route ? "wynnlabs.search.route_on_tip" : "wynnlabs.search.route_tip"));
+            }
             r -= pw + Theme.SP_2;
             int bw = Ui.CHIP_H + 2;
             int iy = Type.BODY.onCaps(ty, Ui.CHIP_H);

@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * "Go there": a Wynntils user waypoint (compass, beacon, map pin), set locally the way its own
@@ -32,12 +33,14 @@ public final class Waypoints {
     private static final String[] OLD_QUEST = {"Wynn Labs quest: ", "Görev: "};
 
     /**
-     * A pin of ours and which kind: "go" (one at a time), "quest" (a quest's point on the map) or
+     * A pin of ours and which kind: "go" (one at a time), "quest" (a quest's point on the map),
      * "next" (a quest point waiting its turn: only one quest point is shown at a time, because the
-     * world labels of several pins draw over each other). {@code quest}: the quest a quest point was
-     * set for, or null (the pins inbox and other points no quest owns).
+     * world labels of several pins draw over each other), "keep" (a lasting pin) or "route" (a spot
+     * of a route: the loot chests of an item, a quest's points; only the nearby ones are on the map,
+     * see {@link #routeTick}). {@code quest}: the quest a quest point was set for, or null (the pins
+     * inbox and other points no quest owns).
      */
-    record Mine(String kind, String name, int x, int y, int z, String quest) {
+    public record Mine(String kind, String name, int x, int y, int z, String quest) {
         Mine(String kind, String name, int x, int y, int z) {
             this(kind, name, x, y, z, null);
         }
@@ -144,6 +147,11 @@ public final class Waypoints {
         return kind(p, "keep", new String[0]);
     }
 
+    /** A spot of the route that is on the map now. */
+    public static boolean isRoute(Pin p) {
+        return kind(p, "route", new String[0]);
+    }
+
     /** Puts a lasting pin on the map; true when placed. */
     public static boolean keep(int x, int y, int z, String label) {
         try {
@@ -207,7 +215,7 @@ public final class Waypoints {
 
     /** Any pin of ours. */
     public static boolean ours(Pin p) {
-        return isGo(p) || isQuest(p);
+        return isGo(p) || isQuest(p) || isRoute(p);
     }
 
     /** The pin's label, without the prefix older versions put in front. */
@@ -252,6 +260,7 @@ public final class Waypoints {
             }
         }
         mine().removeIf(m -> !m.kind().equals("keep"));     // the lasting pins stay ("clear keep" for them)
+        nearLast = Set.of();
         save();
         return n;
     }
@@ -385,8 +394,8 @@ public final class Waypoints {
      * player asked for a clean compass at start). Always false: nothing is put back.
      */
     public static boolean restore(Wyn.Pins pins) {
-        if (!mine().isEmpty()) {
-            mine().clear();
+        // the route stays: its spots come back on the map as you get near them
+        if (mine().removeIf(m -> !m.kind().equals("route"))) {
             save();
         }
         return false;
@@ -400,9 +409,15 @@ public final class Waypoints {
     public static void forgetRemoved(Wyn.Pins pins) {
         List<Pin> onMap = pins.all();
         boolean[] questGone = {false};
+        boolean foreign = onMap.stream().anyMatch(p -> !ours(p));
         boolean changed = mine().removeIf(m -> {
             // a lasting pin is never forgotten here: Wynntils drops every user waypoint at once when
-            // a new compass target is set (map click, /compass, "Click to track"), and it comes back
+            // a new compass target is set (map click, /compass, "Click to track"), and it comes back;
+            // so does a route spot, unless the player took it off the map themselves (no other pin
+            // was set in the same step): that spot is dropped from the route
+            if (m.kind().equals("route")) {
+                return !foreign && shownRoute.contains(key(m)) && onMap.stream().noneMatch(m::is);
+            }
             boolean shown = m.kind().equals("go") || m.kind().equals("quest");
             boolean gone = shown && onMap.stream().noneMatch(m::is);
             if (gone && m.kind().equals("quest")) {
@@ -450,28 +465,185 @@ public final class Waypoints {
     }
 
     /**
-     * Several "go there" pins at once (the search tab's row of loot chests or spawn areas): the
-     * previous ones go first, like {@link #go}; how many were placed.
+     * A route: several spots at once (the search tab's row of loot chests or spawn areas, a quest's
+     * points). They are not all put on the map, that buries the screen under pins: only the spots
+     * within {@link #ROUTE_NEAR} blocks are shown (at most {@link #ROUTE_SHOWN}, the nearest), and
+     * with none that close, the nearest one, so there is always somewhere to go. A spot you stand
+     * at for a couple of seconds counts as done (the chest looted) and leaves the route; the next
+     * one appears. The previous route and "go there" pin go first; how many spots the route has.
      */
     public static int goAll(List<int[]> points, String label) {
         if (points.isEmpty()) {
             return 0;
         }
-        if (!go(points.get(0)[0], points.get(0)[1], points.get(0)[2], label)) {
-            return 0;
-        }
         try {
             var pins = Wyn.waypoints();
+            for (Pin m : pins.all()) {
+                if (isGo(m) || isRoute(m)) {
+                    remove(pins, m);
+                }
+            }
+            mine().removeIf(m -> m.kind().equals("route"));
             String what = label == null || label.isBlank() ? L.t("wynnlabs.waypoint.default_label")
                     : label.length() > 32 ? label.substring(0, 32) : label;
-            for (int i = 1; i < points.size(); i++) {
-                int[] p = points.get(i);
-                add(pins, p[0], p[1], p[2], what, false);
+            for (int[] p : points) {
+                mine().add(new Mine("route", what, p[0], p[1], p[2]));
+            }
+            nearLast = Set.of();
+            save();
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            if (mc.player != null) {
+                routeTick(pins, mc.player.getX(), mc.player.getY(), mc.player.getZ());
             }
             return points.size();
         } catch (Throwable t) {
-            return 1;
+            return 0;
         }
+    }
+
+    /** Spots this close (blocks, flat) are on the map; farther ones wait. */
+    public static final double ROUTE_NEAR = 80;
+    /** At most this many route spots on the map at once (the nearest). */
+    public static final int ROUTE_SHOWN = 6;
+    /** Standing this close to a spot (flat) counts as being at it. */
+    public static final double ROUTE_AT = 6;
+
+    /** The spots the player stood at last check: at one on two checks in a row (two seconds) means done. */
+    private static Set<Long> nearLast = Set.of();
+    /** The route spots we put on the map. */
+    private static final Set<Long> shownRoute = new java.util.HashSet<>();
+
+    static long key(Mine m) {
+        return ((long) m.x() << 40) ^ ((long) (m.y() & 0xFFFFF) << 20) ^ (m.z() & 0xFFFFFL);
+    }
+
+    /** The route's spots still to do, nearest first. */
+    public static List<Mine> route() {
+        return mine().stream().filter(m -> m.kind().equals("route")).toList();
+    }
+
+    /** Whether a route is set. */
+    public static boolean routeSet() {
+        return mine().stream().anyMatch(m -> m.kind().equals("route"));
+    }
+
+    /** Ends the route: its spots leave the map and the list; how many were left. */
+    public static int clearRoute() {
+        var pins = Wyn.waypoints();
+        for (Pin m : pins.all()) {
+            if (isRoute(m)) {
+                pins.remove(m);
+            }
+        }
+        int n = 0;
+        Iterator<Mine> it = mine().iterator();
+        while (it.hasNext()) {
+            if (it.next().kind().equals("route")) {
+                it.remove();
+                n++;
+            }
+        }
+        shownRoute.clear();
+        nearLast = Set.of();
+        save();
+        return n;
+    }
+
+    /** The spots of {@code route} within {@code near} blocks (flat) of the player, nearest first, at most {@code cap}; none that close: the nearest one. */
+    static List<Mine> routeShown(List<Mine> route, double px, double pz, double near, int cap) {
+        List<Mine> sorted = new ArrayList<>(route);
+        sorted.sort(java.util.Comparator.comparingDouble(m -> flatSq(m, px, pz)));
+        List<Mine> out = new ArrayList<>();
+        for (Mine m : sorted) {
+            if (out.size() >= cap || (!out.isEmpty() && flatSq(m, px, pz) > near * near)) {
+                break;
+            }
+            out.add(m);
+        }
+        return out;
+    }
+
+    /** The spots the player is at now (within {@code at} blocks flat, not far below). */
+    static Set<Long> routeNear(List<Mine> route, double px, double py, double pz, double at) {
+        Set<Long> near = new java.util.HashSet<>();
+        for (Mine m : route) {
+            if (flatSq(m, px, pz) <= at * at && closeInHeight(m.y() - py)) {
+                near.add(key(m));
+            }
+        }
+        return near;
+    }
+
+    private static double flatSq(Mine m, double px, double pz) {
+        double dx = m.x() + 0.5 - px;
+        double dz = m.z() + 0.5 - pz;
+        return dx * dx + dz * dz;
+    }
+
+    /**
+     * Every couple of seconds while a route is set: the spots stood at on this check and the last
+     * are done and leave the route; then the map shows the nearby spots ({@link #routeShown}) and
+     * nothing else of the route. Returns the labels of the spots done (usually none).
+     */
+    public static List<String> routeTick(Wyn.Pins pins, double px, double py, double pz) {
+        List<Mine> route = route();
+        if (route.isEmpty()) {
+            if (!shownRoute.isEmpty()) {
+                shownRoute.clear();
+            }
+            nearLast = Set.of();
+            return List.of();
+        }
+        Set<Long> near = routeNear(route, px, py, pz, ROUTE_AT);
+        List<String> done = new ArrayList<>();
+        for (Mine m : route) {
+            if (near.contains(key(m)) && nearLast.contains(key(m))) {
+                mine().remove(m);
+                done.add(m.name());
+            }
+        }
+        nearLast = near;
+        route = route();
+        Set<Long> want = new java.util.HashSet<>();
+        for (Mine m : routeShown(route, px, pz, ROUTE_NEAR, ROUTE_SHOWN)) {
+            want.add(key(m));
+        }
+        // off the map: what is done or now too far; on it: what is wanted and not there yet
+        List<Pin> onMap = pins.all();
+        for (Mine m : new ArrayList<>(mine())) {
+            if (!m.kind().equals("route")) {
+                continue;
+            }
+            boolean there = onMap.stream().anyMatch(m::is);
+            if (want.contains(key(m)) && !there) {
+                pins.add(m.x(), m.y(), m.z(), m.name());
+                shownRoute.add(key(m));
+            } else if (!want.contains(key(m)) && there) {
+                for (Pin p : onMap) {
+                    if (m.is(p)) {
+                        pins.remove(p);
+                    }
+                }
+                shownRoute.remove(key(m));
+            }
+        }
+        for (Pin p : onMap) {
+            // a done spot's pin: no Mine matches it any more, but it is still ours to take off
+            boolean stale = route.stream().noneMatch(m -> m.is(p)) && done.size() > 0
+                    && mineKeyOf(p) != null && shownRoute.contains(mineKeyOf(p));
+            if (stale) {
+                pins.remove(p);
+                shownRoute.remove(mineKeyOf(p));
+            }
+        }
+        if (!done.isEmpty()) {
+            save();
+        }
+        return done;
+    }
+
+    private static Long mineKeyOf(Pin p) {
+        return key(new Mine("route", "", p.x(), p.y(), p.z()));
     }
 
     /** Every point of a quest, in order, one on the map at a time (the previous quest's points go first). */
