@@ -541,16 +541,14 @@ public final class Advice {
     }
 
     /**
-     * Only the verdict lines of {@code out} (the ones carrying the "✦ Advice: " marker) and the red
-     * warnings (a "Can't equip", which may wrap over lines): no reasons, upgrades, prices or hints.
+     * Only the verdict lines of {@code out} (the ones carrying the "✦ Advice: " marker) and the
+     * "⚠ Can't equip" warning: no reasons, upgrades, prices (the red "no listings" line too) or hints.
      */
     static List<Component> brief(List<Component> out, String markerText) {
         List<Component> kept = new ArrayList<>();
         for (Component c : out) {
             String t = c.getString();
-            var colour = c.getStyle().getColor();
-            boolean red = colour != null && colour.equals(net.minecraft.network.chat.TextColor.fromLegacyFormat(ChatFormatting.RED));
-            if (!t.isEmpty() && (t.contains(markerText) || red)) {
+            if (!t.isEmpty() && (t.contains(markerText) || t.startsWith("⚠"))) {
                 kept.add(c);
             }
         }

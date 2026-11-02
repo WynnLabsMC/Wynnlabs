@@ -18,7 +18,8 @@ class AdviceBriefTest {
         Component cannot = Component.literal("⚠ Can't equip: Lv 90 (you: 84)").withStyle(ChatFormatting.RED);
         Component next = Component.literal("Next upgrade: Insomniac (Lv 111)").withStyle(ChatFormatting.GRAY);
         Component price = Component.literal("◆ Price: ~25 EB").withStyle(ChatFormatting.GOLD);
-        List<Component> out = List.of(Component.empty(), head, reason, cannot, next, price);
+        Component stale = Component.literal("   As of 10:48: no listings (old price)").withStyle(ChatFormatting.RED);
+        List<Component> out = List.of(Component.empty(), head, reason, cannot, next, price, stale);
         assertEquals(List.of(head, cannot), Advice.brief(out, "✦ Advice: "));
     }
 }
