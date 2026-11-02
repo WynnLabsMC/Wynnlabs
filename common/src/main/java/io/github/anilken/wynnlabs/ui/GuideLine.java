@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.github.anilken.wynnlabs.core.Settings;
-import io.github.anilken.wynnlabs.game.DistantHorizons;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.model.Pin;
 import io.github.anilken.wynnlabs.quests.Waypoints;
@@ -40,10 +39,8 @@ import java.util.concurrent.TimeUnit;
  * other waypoint there (a map click or /compass puts its target there too).
  *
  * <p>On foot the strip lies flat on the ground along a walkable route ({@link GuidePath}) through
- * the loaded area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own. With
- * Distant Horizons' LOD terrain (WynnLODGrabber fills it with Wynncraft's surface) a target past the
- * loaded area is routed over that surface the whole way ({@link LodGround}, {@link FarPath}). Past
- * what can be routed, or where no route goes on, it continues straight, laid on the highest block every
+ * the loaded area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the
+ * loaded area, or where no route goes on, it continues straight, laid on the highest block every
  * {@link #STEP} blocks. The route aims at the target's floor, not only its column, and climbs
  * ladders and vines. While riding or gliding it is a straight line to the target; when the target
  * is well above or below the mount (a cliff city a wyvern cannot reach) and there is ground just
@@ -117,13 +114,6 @@ public final class GuideLine {
     private static final double DOOR = 1.5;
     /** A block at most this tall (a flower pot) is stepped over at the feet. */
     private static final double THIN = 0.375;
-    /** Over Distant Horizons' LOD terrain: the search box at most this many blocks each way, ... */
-    private static final int FAR_BOX = 2048;
-    /** ... and at most this many spots looked at (the usual budget, more the farther the target), ... */
-    private static final int FAR_BUDGET = 600_000;
-    private static final int FAR_PER_BLOCK = 300;
-    /** ... with the LOD columns read kept this long, in milliseconds. */
-    private static final long LOD_KEEP = 5_000;
 
     /** Height of the highest block at a column, or {@link #UNKNOWN} where the chunk is not loaded. */
     @FunctionalInterface
@@ -150,13 +140,6 @@ public final class GuideLine {
     record Path(List<double[]> points, double[] end, int tail) {}
 
     private static final Path NO_PATH = new Path(List.of(), null, 0);
-
-    /**
-     * The LOD terrain in the last round, for /guide: whether Distant Horizons could be read,
-     * whether the route went over it, the LOD columns read, the finest detail level seen (0: a
-     * block, -1: none) and why it was not used (null: it was, or nothing to say).
-     */
-    record Lod(boolean available, boolean used, int columns, int detail, String why) {}
     /** The straight guess past the route is drawn at this share of the opacity, still. */
     private static final float TAIL_ALPHA = 1 / 3f;
 
@@ -185,10 +168,6 @@ public final class GuideLine {
     private static volatile boolean airLine;
     /** The target the shown ground path was routed for (null: only the straight line so far). */
     private static volatile Target routed;
-    private static volatile Lod lastLod;
-    /** The LOD columns read (route thread only) and the level they are of. */
-    private static LodGround.Cache lodCache;
-    private static ClientLevel lodLevel;
     /** One thread for route searches; a new request replaces one still waiting. */
     private static final ThreadPoolExecutor ROUTER = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(1), r -> {
@@ -471,14 +450,6 @@ public final class GuideLine {
             list.add(j);
         }
         o.add("candidates", list);
-        Lod l = lastLod;
-        JsonObject lod = new JsonObject();
-        lod.addProperty("available", l != null && l.available());
-        lod.addProperty("used", l != null && l.used());
-        lod.addProperty("columns", l == null ? 0 : l.columns());
-        lod.addProperty("detail", l == null ? -1 : l.detail());
-        lod.addProperty("why", l == null ? null : l.why());
-        o.add("lod", lod);
         if (c == null) {
             o.add("leadsTo", null);
         } else {
@@ -513,9 +484,6 @@ public final class GuideLine {
             if (pinsNow != failedFor) {
                 FAILED.clear();
                 failedFor = pinsNow;
-            }
-            if (routeFar(level, cands, gen, sx, sy, sz)) {
-                return;
             }
             GuidePath.Walkable w = walkable(level);
             List<int[]> goals = new ArrayList<>();
@@ -567,89 +535,6 @@ public final class GuideLine {
             // a failed search leaves the straight line; the next one tries again
             lastError = e.toString();
         }
-    }
-
-    /**
-     * On the route thread: with Distant Horizons' LOD terrain covering the way to a target past the
-     * loaded chunks, the route over it all the way there ({@link FarPath}, the box widened to the
-     * target's distance), its points on the LOD surface out there. False when there is no LOD
-     * terrain, the target is in the loaded area or the LOD has no data there: the usual search then.
-     */
-    private static boolean routeFar(ClientLevel level, List<Target> cands, int gen, int sx, int sy, int sz) {
-        if (cands.isEmpty()) {
-            return false;
-        }
-        if (!DistantHorizons.ready()) {
-            String error = DistantHorizons.error();
-            lastLod = new Lod(false, false, 0, -1, error != null ? error : "no Distant Horizons world loaded");
-            return false;
-        }
-        if (lodCache == null || lodLevel != level) {
-            lodCache = new LodGround.Cache(GuideLine::lodSurface, LOD_KEEP);
-            lodLevel = level;
-        }
-        LodGround.Cache cache = lodCache;
-        cache.round();
-        LodGround w = new LodGround(walkable(level), heights(level),
-                (x, z) -> level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false) != null, cache);
-        Target t = cands.get(0);
-        int tx = (int) Math.floor(t.x());
-        int tz = (int) Math.floor(t.z());
-        int ty = (int) Math.floor(t.y());
-        String why = !w.coarse(tx, tz) ? "target in the loaded area"
-                : cache.surface(tx, tz) == LodGround.NO_DATA || cache.surface((sx + tx) / 2, (sz + tz) / 2) == LodGround.NO_DATA
-                ? "no LOD data on the way" : null;
-        if (why != null) {
-            lastLod = new Lod(true, false, cache.reads(), cache.finest(), why);
-            return false;
-        }
-        double dist = Math.hypot(tx - sx, tz - sz);
-        int box = (int) Math.min(FAR_BOX, Math.ceil(dist) + 32);
-        int budget = (int) Math.min(FAR_BUDGET, BUDGET + dist * FAR_PER_BLOCK);
-        // the pin's floor when there is one near its height, else the LOD surface (a rough pin height)
-        int gy = GuidePath.feet(w, tx, tz, ty);
-        int top = w.surface(tx, tz);
-        if (gy == ty && top != GuidePath.NONE && Math.abs(top - ty) > 4) {
-            gy = top;
-        }
-        long t0 = System.nanoTime();
-        GuidePath.Route r = FarPath.find(w, w, sx, sy, sz, tx, gy, tz, box, budget, SEARCH_MILLIS);
-        long millis = (System.nanoTime() - t0) / 1_000_000;
-        lastLod = new Lod(true, r != null, cache.reads(), cache.finest(), r == null ? "no ground at the start" : null);
-        if (r == null) {
-            return false;
-        }
-        lastChoice = new GuidePath.Choice(0, List.of(new GuidePath.Try(0, r, false)));
-        lastCandidates = List.of(t);
-        lastSearch = new Search(r.reached(), r.nodes().size(), r.expanded(), r.nodes().get(r.nodes().size() - 1),
-                box, budget, millis);
-        if (r.nodes().size() < 2 || gen != generation) {
-            return true;
-        }
-        List<double[]> pts = new ArrayList<>(GuidePath.points(w, GuidePath.smooth(w, r.nodes(), 24), LIFT));
-        double[] end = pts.get(pts.size() - 1);
-        double walked = Math.hypot(end[0] - sx, end[2] - sz);
-        int tail = pts.size();
-        if (!r.reached() && walked < CAP) {
-            List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, w);
-            pts.addAll(rest.subList(1, rest.size()));
-        }
-        if (gen == generation) {
-            target = t;
-            ground = new Path(List.copyOf(pts), end, tail);
-            routed = t;
-        }
-        return true;
-    }
-
-    /** A column's surface from Distant Horizons, {@link LodGround#pack packed}. */
-    private static int lodSurface(int x, int z) {
-        DistantHorizons.Surface s = DistantHorizons.surface(x, z);
-        if (s == null) {
-            return LodGround.NO_DATA;
-        }
-        int kind = s.lava() ? LodGround.LAVA : s.water() ? LodGround.WET : LodGround.GROUND;
-        return LodGround.pack(s.feet(), kind, s.detail());
     }
 
     private static long spot(int[] g) {
