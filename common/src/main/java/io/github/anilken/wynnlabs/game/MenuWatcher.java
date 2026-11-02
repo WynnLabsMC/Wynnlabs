@@ -220,6 +220,30 @@ public final class MenuWatcher {
      * piece its boxes can hold, so they are priced before the player hovers them; the request
      * itself skips what is fresh or already asked.
      */
+    /** The loot chest screen already seen, so a chest counts once. */
+    private static AbstractContainerScreen<?> lastChest;
+
+    /** A loot chest just opened: the route spot it belongs to is done, said on the action bar. */
+    private static void routeChest(AbstractContainerScreen<?> screen, Minecraft mc) {
+        if (screen == lastChest || mc.player == null) {
+            return;
+        }
+        io.github.anilken.wynnlabs.model.MenuKind menu = Wyn.container();
+        if (menu == null || menu.type() == null || !menu.type().contains("Chest")) {
+            return;
+        }
+        lastChest = screen;
+        String done = io.github.anilken.wynnlabs.quests.Waypoints.routeOpened(
+                mc.player.getX(), mc.player.getY(), mc.player.getZ());
+        if (done == null) {
+            return;
+        }
+        int left = io.github.anilken.wynnlabs.quests.Waypoints.route().size();
+        mc.gui.setOverlayMessage((left == 0 ? L.c("wynnlabs.route.done", done)
+                : L.c("wynnlabs.route.taken", done, left))
+                .withStyle(net.minecraft.ChatFormatting.GREEN), false);
+    }
+
     private static void priceChestBoxes(AbstractContainerScreen<?> screen, Minecraft mc) {
         io.github.anilken.wynnlabs.model.MenuKind menu = Wyn.container();
         if (menu == null || menu.type() == null || !menu.type().contains("Chest")) {
@@ -260,7 +284,13 @@ public final class MenuWatcher {
             }
         }
         if (tick % 10 != 0 || !(mc.screen instanceof AbstractContainerScreen<?> screen)) {
+            lastChest = null;
             return;
+        }
+        try {
+            routeChest(screen, mc);             // a loot chest opened on the route: its spot is done
+        } catch (Throwable ignored) {
+            // reading a menu must never break the game
         }
         try {
             TreeConnectors.capture(screen);     // the ability tree's pieces, when its menu is open

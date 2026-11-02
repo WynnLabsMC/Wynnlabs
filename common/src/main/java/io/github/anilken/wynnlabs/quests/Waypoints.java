@@ -260,7 +260,6 @@ public final class Waypoints {
             }
         }
         mine().removeIf(m -> !m.kind().equals("keep"));     // the lasting pins stay ("clear keep" for them)
-        nearLast = Set.of();
         save();
         return n;
     }
@@ -468,9 +467,10 @@ public final class Waypoints {
      * A route: several spots at once (the search tab's row of loot chests or spawn areas, a quest's
      * points). They are not all put on the map, that buries the screen under pins: only the spots
      * within {@link #ROUTE_NEAR} blocks are shown (at most {@link #ROUTE_SHOWN}, the nearest), and
-     * with none that close, the nearest one, so there is always somewhere to go. A spot you stand
-     * at for a couple of seconds counts as done (the chest looted) and leaves the route; the next
-     * one appears. The previous route and "go there" pin go first; how many spots the route has.
+     * with none that close, the nearest one, so there is always somewhere to go. A spot is done
+     * when its chest is opened ({@link #routeOpened}; standing there is not enough, you may just
+     * be passing): it leaves the route and the next one appears. The previous route and "go there"
+     * pin go first; how many spots the route has.
      */
     public static int goAll(List<int[]> points, String label) {
         if (points.isEmpty()) {
@@ -489,7 +489,6 @@ public final class Waypoints {
             for (int[] p : points) {
                 mine().add(new Mine("route", what, p[0], p[1], p[2]));
             }
-            nearLast = Set.of();
             save();
             var mc = net.minecraft.client.Minecraft.getInstance();
             if (mc.player != null) {
@@ -505,11 +504,9 @@ public final class Waypoints {
     public static final double ROUTE_NEAR = 80;
     /** At most this many route spots on the map at once (the nearest). */
     public static final int ROUTE_SHOWN = 6;
-    /** Standing this close to a spot (flat) counts as being at it. */
-    public static final double ROUTE_AT = 6;
+    /** A chest opened this close to a spot (flat) is that spot's chest. */
+    public static final double ROUTE_AT = 8;
 
-    /** The spots the player stood at last check: at one on two checks in a row (two seconds) means done. */
-    private static Set<Long> nearLast = Set.of();
     /** The route spots we put on the map. */
     private static final Set<Long> shownRoute = new java.util.HashSet<>();
 
@@ -544,7 +541,6 @@ public final class Waypoints {
             }
         }
         shownRoute.clear();
-        nearLast = Set.of();
         save();
         return n;
     }
@@ -563,15 +559,44 @@ public final class Waypoints {
         return out;
     }
 
-    /** The spots the player is at now (within {@code at} blocks flat, not far below). */
-    static Set<Long> routeNear(List<Mine> route, double px, double py, double pz, double at) {
-        Set<Long> near = new java.util.HashSet<>();
+    /** The route spot nearest the player within {@code at} blocks flat (and not far below), or null. */
+    static Mine routeAt(List<Mine> route, double px, double py, double pz, double at) {
+        Mine best = null;
+        double bestD = at * at;
         for (Mine m : route) {
-            if (flatSq(m, px, pz) <= at * at && closeInHeight(m.y() - py)) {
-                near.add(key(m));
+            double d = flatSq(m, px, pz);
+            if (d <= bestD && closeInHeight(m.y() - py)) {
+                best = m;
+                bestD = d;
             }
         }
-        return near;
+        return best;
+    }
+
+    /**
+     * A loot chest was opened where the player stands: the route spot it belongs to (the nearest
+     * within {@link #ROUTE_AT} blocks) is done and leaves the route and the map. Returns its label,
+     * or null when no spot is that close.
+     */
+    public static String routeOpened(double px, double py, double pz) {
+        Mine hit = routeAt(route(), px, py, pz, ROUTE_AT);
+        if (hit == null) {
+            return null;
+        }
+        mine().remove(hit);
+        shownRoute.remove(key(hit));
+        try {
+            var pins = Wyn.waypoints();
+            for (Pin p : pins.all()) {
+                if (hit.is(p)) {
+                    pins.remove(p);
+                }
+            }
+        } catch (Throwable ignored) {
+            // the next tick takes the pin off anyway
+        }
+        save();
+        return hit.name();
     }
 
     private static double flatSq(Mine m, double px, double pz) {
@@ -581,29 +606,17 @@ public final class Waypoints {
     }
 
     /**
-     * Every couple of seconds while a route is set: the spots stood at on this check and the last
-     * are done and leave the route; then the map shows the nearby spots ({@link #routeShown}) and
-     * nothing else of the route. Returns the labels of the spots done (usually none).
+     * Every couple of seconds while a route is set: the map shows the nearby spots
+     * ({@link #routeShown}) and nothing else of the route.
      */
-    public static List<String> routeTick(Wyn.Pins pins, double px, double py, double pz) {
+    public static void routeTick(Wyn.Pins pins, double px, double py, double pz) {
         List<Mine> route = route();
         if (route.isEmpty()) {
             if (!shownRoute.isEmpty()) {
                 shownRoute.clear();
             }
-            nearLast = Set.of();
-            return List.of();
+            return;
         }
-        Set<Long> near = routeNear(route, px, py, pz, ROUTE_AT);
-        List<String> done = new ArrayList<>();
-        for (Mine m : route) {
-            if (near.contains(key(m)) && nearLast.contains(key(m))) {
-                mine().remove(m);
-                done.add(m.name());
-            }
-        }
-        nearLast = near;
-        route = route();
         Set<Long> want = new java.util.HashSet<>();
         for (Mine m : routeShown(route, px, pz, ROUTE_NEAR, ROUTE_SHOWN)) {
             want.add(key(m));
@@ -627,23 +640,6 @@ public final class Waypoints {
                 shownRoute.remove(key(m));
             }
         }
-        for (Pin p : onMap) {
-            // a done spot's pin: no Mine matches it any more, but it is still ours to take off
-            boolean stale = route.stream().noneMatch(m -> m.is(p)) && done.size() > 0
-                    && mineKeyOf(p) != null && shownRoute.contains(mineKeyOf(p));
-            if (stale) {
-                pins.remove(p);
-                shownRoute.remove(mineKeyOf(p));
-            }
-        }
-        if (!done.isEmpty()) {
-            save();
-        }
-        return done;
-    }
-
-    private static Long mineKeyOf(Pin p) {
-        return key(new Mine("route", "", p.x(), p.y(), p.z()));
     }
 
     /** Every point of a quest, in order, one on the map at a time (the previous quest's points go first). */

@@ -3,9 +3,9 @@ package io.github.anilken.wynnlabs.quests;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /** A route shows only the nearby spots, or the nearest one; standing at a spot marks it. */
@@ -32,11 +32,11 @@ class WaypointsRouteTest {
     }
 
     @Test
-    void standingAtASpotCountsFlatAndNotFromFarBelow() {
-        List<Waypoints.Mine> route = List.of(at(0, 0), at(100, 0));
-        Set<Long> near = Waypoints.routeNear(route, 3, 70, 3, 6);
-        assertEquals(Set.of(Waypoints.key(at(0, 0))), near);
-        assertTrue(Waypoints.routeNear(route, 3, 40, 3, 6).isEmpty());    // 30 blocks below: a cave under it
-        assertEquals(1, Waypoints.routeNear(route, 3, 90, 3, 6).size());  // flying over it on a mount
+    void theChestOpenedIsTheNearestSpotFlatAndNotFromFarBelow() {
+        List<Waypoints.Mine> route = List.of(at(0, 0), at(5, 0), at(100, 0));
+        assertEquals(at(5, 0), Waypoints.routeAt(route, 4, 70, 1, 8));
+        assertNull(Waypoints.routeAt(route, 3, 40, 3, 8));                // 30 blocks below: a cave under it
+        assertEquals(at(0, 0), Waypoints.routeAt(route, 1, 90, 1, 8));    // flying over it on a mount
+        assertNull(Waypoints.routeAt(route, 50, 70, 0, 8));               // no chest of the route here
     }
 }
