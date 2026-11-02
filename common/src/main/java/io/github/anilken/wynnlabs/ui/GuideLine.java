@@ -42,7 +42,11 @@ import java.util.concurrent.TimeUnit;
  * the loaded area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the
  * loaded area, or where no route goes on, it continues straight, laid on the highest block every
  * {@link #STEP} blocks. The route aims at the target's floor, not only its column, and climbs
- * ladders and vines. While riding or gliding it is a straight line to the target; when the target
+ * ladders and vines. A target beyond the loaded area is first planned over the coarse map of the
+ * walkable world ({@link WorldRoute}), so the way round a mountain or out of a sealed canyon is
+ * known before its chunks load: the block-level route aims at the farthest waypoint of that
+ * corridor inside the loaded area, and past it the corridor is drawn faint on the map's heights
+ * instead of a straight line. While riding or gliding it is a straight line to the target; when the target
  * is well above or below the mount (a cliff city a wyvern cannot reach) and there is ground just
  * under the player, the ground route from there is drawn instead, so the player sees where to
  * land and walk. Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
@@ -114,6 +118,17 @@ public final class GuideLine {
     private static final double DOOR = 1.5;
     /** A block at most this tall (a flower pot) is stepped over at the feet. */
     private static final double THIN = 0.375;
+    /** The world plan looks at most at this many cells of the coarse map, for at most this long in milliseconds, ... */
+    private static final int WORLD_BUDGET = 300_000;
+    private static final long WORLD_MILLIS = 400;
+    /** ... is planned again once the player has moved this far from where it was planned, ... */
+    private static final double REPLAN = 32;
+    /** ... hands the block-level route a waypoint about every this many blocks along its corridor, ... */
+    private static final double WAYPOINT = 24;
+    /** ... aims at waypoints this far inside the loaded area, ... */
+    private static final int MARGIN = 8;
+    /** ... and is not used when the player or the target is this far under the map's surface (a cave). */
+    private static final int UNDER = 12;
 
     /** Height of the highest block at a column, or {@link #UNKNOWN} where the chunk is not loaded. */
     @FunctionalInterface
@@ -139,6 +154,20 @@ public final class GuideLine {
      */
     record Path(List<double[]> points, double[] end, int tail) {}
 
+    /**
+     * The world plan of the last route search, for /guide: whether it was used, why not when it
+     * was not, its length in cells, how long it took, and the corridor waypoint the block-level
+     * route aims at {x, feetY, z} (null: none).
+     */
+    record World(boolean used, String why, int cells, long millis, double[] next) {}
+
+    /**
+     * A world plan kept (route thread only): where the player stood when it was made, the target
+     * it leads to, the plan and its corridor waypoints (a null plan: no way was found, {@code why}
+     * says why, and none is looked for again until the player has moved {@link #REPLAN}).
+     */
+    private record Coarse(int sx, int sz, Target target, WorldRoute map, WorldRoute.Plan plan, List<double[]> waypoints, String why) {}
+
     private static final Path NO_PATH = new Path(List.of(), null, 0);
     /** The straight guess past the route is drawn at this share of the opacity, still. */
     private static final float TAIL_ALPHA = 1 / 3f;
@@ -160,6 +189,9 @@ public final class GuideLine {
     /** Failed searches by target spot (route thread only), dropped when the pins on the map change. */
     private static final Map<Long, Failed> FAILED = new HashMap<>();
     private static int failedFor;
+    /** The world plan kept (route thread only; null: none) and the last round's, for /guide. */
+    private static Coarse coarse;
+    private static volatile World lastWorld;
     /** The ground path drawn; replaced (never changed) by the tick or the route thread. */
     private static volatile Path ground = NO_PATH;
     /** The dashes' stretch of the ground path, from the player's feet; rebuilt every 2 ticks (null: none). */
@@ -455,6 +487,35 @@ public final class GuideLine {
         } else {
             o.addProperty("leadsTo", c.chosen());
         }
+        // the world map's data on disk: missing, downloading, ready (hash and age) or failed
+        WorldRouteData.Status ds = WorldRouteData.status();
+        JsonObject data = new JsonObject();
+        data.addProperty("state", ds.state().name().toLowerCase(java.util.Locale.ROOT));
+        data.addProperty("hash", ds.hash());
+        data.addProperty("ageMinutes", ds.hash() == null ? null : ds.age() / 60_000);
+        data.addProperty("why", ds.why());
+        o.add("data", data);
+        // the world plan: whether the coarse map led the way, how long it is and the next waypoint
+        World w = lastWorld;
+        if (w == null) {
+            o.add("world", null);
+        } else {
+            JsonObject j = new JsonObject();
+            j.addProperty("used", w.used());
+            j.addProperty("why", w.why());
+            j.addProperty("cells", w.cells());
+            j.addProperty("millis", w.millis());
+            if (w.next() == null) {
+                j.add("next", null);
+            } else {
+                JsonArray a = new JsonArray();
+                for (double v : w.next()) {
+                    a.add(v);
+                }
+                j.add("next", a);
+            }
+            o.add("world", j);
+        }
         o.addProperty("error", lastError);
         return o;
     }
@@ -486,11 +547,29 @@ public final class GuideLine {
                 failedFor = pinsNow;
             }
             GuidePath.Walkable w = walkable(level);
+            // one target beyond the loaded area: the way there over the coarse map first, and the
+            // block-level route aims at the farthest waypoint of its corridor that is loaded
+            Target far = cands.size() == 1 ? cands.get(0) : null;
+            Coarse world = far != null && Math.max(Math.abs(far.x() - sx), Math.abs(far.z() - sz)) > box
+                    ? world(far, sx, sy, sz) : null;
+            int hand = world == null ? -1
+                    : WorldRoute.handoff(world.waypoints(), sx, sz, box - MARGIN, (x, z) -> level.hasChunk(x >> 4, z >> 4));
             List<int[]> goals = new ArrayList<>();
-            for (Target t : cands) {
-                int tx = (int) Math.floor(t.x());
-                int tz = (int) Math.floor(t.z());
-                goals.add(new int[] {tx, GuidePath.feet(w, tx, tz, (int) Math.floor(t.y())), tz});
+            if (hand >= 0) {
+                double[] wp = world.waypoints().get(hand);
+                int wx = (int) Math.floor(wp[0]);
+                int wz = (int) Math.floor(wp[2]);
+                goals.add(new int[] {wx, GuidePath.feet(w, wx, wz, (int) wp[1]), wz});
+            } else {
+                for (Target t : cands) {
+                    int tx = (int) Math.floor(t.x());
+                    int tz = (int) Math.floor(t.z());
+                    goals.add(new int[] {tx, GuidePath.feet(w, tx, tz, (int) Math.floor(t.y())), tz});
+                }
+            }
+            if (world != null) {
+                lastWorld = new World(true, hand >= 0 ? null : "no corridor waypoint in the loaded area",
+                        world.plan().cells().size(), world.plan().millis(), hand >= 0 ? world.waypoints().get(hand) : null);
             }
             long t0 = System.nanoTime();
             GuidePath.Choice c = GuidePath.findFirst(w, sx, sy, sz, goals, box, EACH, BUDGET, SEARCH_MILLIS, i -> {
@@ -522,7 +601,14 @@ public final class GuideLine {
             double[] end = pts.get(pts.size() - 1);
             double walked = Math.hypot(end[0] - sx, end[2] - sz);
             int tail = pts.size();
-            if (!r.reached() && walked < CAP) {
+            if (world != null && walked < CAP) {
+                // on along the corridor from where the route ends, faint, on the map's heights
+                WorldRoute g = world.map();
+                List<int[]> cells = world.plan().cells();
+                List<double[]> rest = g.line(cells.subList(g.nearestCell(cells, end[0], end[2]), cells.size()), LIFT);
+                rest.add(new double[] {t.x(), rest.get(rest.size() - 1)[1], t.z()});
+                pts.addAll(upTo(rest, end, CAP - walked));
+            } else if (!r.reached() && walked < CAP) {
                 List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
                 pts.addAll(rest.subList(1, rest.size()));
             }
@@ -535,6 +621,71 @@ public final class GuideLine {
             // a failed search leaves the straight line; the next one tries again
             lastError = e.toString();
         }
+    }
+
+    /**
+     * On the route thread: the world plan from where the player stands to {@code t} over the
+     * coarse map, kept while the player stays within {@link #REPLAN} of where it was made; null
+     * when there is none (no map, a way not found, the player or the target under the surface),
+     * which {@link #lastWorld} then says.
+     */
+    private static Coarse world(Target t, int sx, int sy, int sz) {
+        Coarse k = coarse;
+        if (k == null || !k.target().equals(t) || Math.hypot(sx - k.sx(), sz - k.sz()) > REPLAN) {
+            // the map: in memory, on disk, or fetched now (on this thread, the route thread)
+            WorldRoute g = WorldRouteData.map();
+            WorldRoute.Plan plan = null;
+            List<double[]> waypoints = List.of();
+            String why = null;
+            if (g == null) {
+                why = "no map: " + WorldRouteData.status().state().name().toLowerCase(java.util.Locale.ROOT);
+            } else {
+                int px = g.cellOf(sx);
+                int pz = g.cellOf(sz);
+                int tx = g.cellOf(t.x());
+                int tz = g.cellOf(t.z());
+                int ph = g.height(px, pz);
+                int th = g.height(tx, tz);
+                if (ph != WorldRoute.UNKNOWN && sy < ph - UNDER) {
+                    why = "the player is under the map's surface";
+                } else if (th != WorldRoute.UNKNOWN && t.y() < th - UNDER) {
+                    why = "the target is under the map's surface";
+                } else {
+                    plan = g.plan(px, pz, tx, tz, WORLD_BUDGET, WORLD_MILLIS);
+                    if (plan == null) {
+                        why = "no cell to start from or to aim at";
+                    } else if (!plan.reached()) {
+                        why = "no way found (" + plan.expanded() + " cells, " + plan.millis() + " ms)";
+                        plan = null;
+                    } else {
+                        waypoints = g.corridor(plan.cells(), WAYPOINT);
+                    }
+                }
+            }
+            k = new Coarse(sx, sz, t, g, plan, waypoints, why);
+            coarse = k;
+        }
+        if (k.plan() == null) {
+            lastWorld = new World(false, k.why(), 0, 0, null);
+            return null;
+        }
+        return k;
+    }
+
+    /** The points of {@code pts} up to {@code max} blocks (flat, along them) from {@code from}. */
+    static List<double[]> upTo(List<double[]> pts, double[] from, double max) {
+        List<double[]> out = new ArrayList<>();
+        double along = 0;
+        double[] prev = from;
+        for (double[] p : pts) {
+            along += Math.hypot(p[0] - prev[0], p[2] - prev[2]);
+            if (along > max) {
+                break;
+            }
+            out.add(p);
+            prev = p;
+        }
+        return out;
     }
 
     private static long spot(int[] g) {
