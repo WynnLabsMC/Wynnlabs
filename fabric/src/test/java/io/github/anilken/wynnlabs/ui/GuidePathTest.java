@@ -15,13 +15,20 @@ class GuidePathTest {
 
     private static final int N = GuidePath.NONE;
 
-    /** A 20 × 20 grid of feet heights (NONE: a wall or water), stepping rules as in the game. */
+    /** A square grid of feet heights (NONE: a wall or water), 20 × 20 unless sized, stepping rules as in the game. */
     private static class Grid implements GuidePath.Walkable {
-        final int[][] h = new int[20][20];
+        final int[][] h;
+        final int size;
         /** Deepest step down: 3 a walk; {@link GuidePath#DROP} off a ledge where nothing overhangs. */
         int drop = 3;
 
         Grid(int flat) {
+            this(flat, 20);
+        }
+
+        Grid(int flat, int size) {
+            this.size = size;
+            h = new int[size][size];
             for (int[] row : h) {
                 Arrays.fill(row, flat);
             }
@@ -29,12 +36,45 @@ class GuidePathTest {
 
         @Override
         public int stand(int x, int z, int fromY) {
-            if (x < 0 || z < 0 || x >= 20 || z >= 20 || h[x][z] == N) {
+            if (x < 0 || z < 0 || x >= size || z >= size || h[x][z] == N) {
                 return N;
             }
             int y = h[x][z];
             return y - fromY > 1 || fromY - y > drop ? N : y;
         }
+    }
+
+    @Test
+    void aChestOnCratesIsReachedByTheStairAside() {
+        // a town square: crates 4 high over x 20..23, z 20..23 with the chest on top at (21, 21);
+        // the player 14 blocks west of it. The only way up is a stair along z = 10 (x 10..13,
+        // one block a step) and a walkway at crate height back along x = 21 to the crates.
+        Grid g = new Grid(64, 40);
+        for (int x = 20; x <= 23; x++) {
+            for (int z = 20; z <= 23; z++) {
+                g.h[x][z] = 68;
+            }
+        }
+        for (int x = 10; x <= 13; x++) {
+            g.h[x][10] = 65 + (x - 10);
+        }
+        for (int x = 14; x <= 21; x++) {
+            g.h[x][10] = 68;
+        }
+        for (int z = 11; z <= 19; z++) {
+            g.h[21][z] = 68;
+        }
+        int ty = GuidePath.feet(g, 21, 21, 68);
+        assertEquals(68, ty);
+        // the box the game uses at its smallest (32 blocks each way) and its node budget
+        GuidePath.Route r = GuidePath.find(g, 7, 64, 21, 21, ty, 21, 32, 20_000);
+        assertTrue(r.reached());
+        int[] end = r.nodes().get(r.nodes().size() - 1);
+        assertEquals(68, end[1]);
+        assertTrue(Math.hypot(end[0] - 21, end[2] - 21) <= GuidePath.REACH);
+        assertTrue(r.nodes().stream().anyMatch(n -> n[2] == 10 && n[0] >= 10 && n[0] <= 13));
+        assertTrue(r.nodes().size() > 25, "a detour, not straight at the crates: " + r.nodes().size());
+        steps(g, r.nodes());
     }
 
     @Test
