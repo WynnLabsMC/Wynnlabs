@@ -362,54 +362,6 @@
  ],
  "corridors": [
   {
-   "name": "Canyon of the Lost",
-   "from": [
-    -965,
-    -5305
-   ],
-   "to": [
-    500,
-    -5000
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Canyon_of_the_Lost"
-  },
-  {
-   "name": "Dernel Jungle",
-   "from": [
-    -792,
-    -657
-   ],
-   "to": [
-    -600,
-    -600
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Dernel_Jungle"
-  },
-  {
-   "name": "Ice Canyon",
-   "from": [
-    -110,
-    -630
-   ],
-   "to": [
-    -180,
-    -465
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Ice_Canyon"
-  },
-  {
-   "name": "Lower Molten Heights",
-   "from": [
-    -965,
-    -5305
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
-  },
-  {
    "name": "Lower Molten Heights",
    "from": [
     1430,
@@ -518,66 +470,6 @@
    "source": "https://wynncraft.wiki.gg/wiki/The_Silent_Road"
   },
   {
-   "name": "Troms Jungle",
-   "from": [
-    -240,
-    -696
-   ],
-   "to": [
-    -600,
-    -800
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Troms_Jungle"
-  },
-  {
-   "name": "Alive Island",
-   "from": [
-    902,
-    -3908
-   ],
-   "to": [
-    -9250,
-    -10530
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Alive_Island"
-  },
-  {
-   "name": "Ancient Nemract",
-   "from": [
-    90,
-    -1991
-   ],
-   "to": [
-    204,
-    -1882
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Ancient_Nemract"
-  },
-  {
-   "name": "Emerald Trail",
-   "from": [
-    -739,
-    -1576
-   ],
-   "to": [
-    -609,
-    -1611
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Emerald_Trail"
-  },
-  {
-   "name": "Emerald Trail",
-   "from": [
-    -405,
-    -1606
-   ],
-   "to": [
-    -609,
-    -1611
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Emerald_Trail"
-  },
-  {
    "name": "Invaded Barracks",
    "from": [
     1471,
@@ -588,54 +480,6 @@
     -2225
    ],
    "source": "https://wynncraft.wiki.gg/wiki/Invaded_Barracks"
-  },
-  {
-   "name": "Pigmen's Ravine",
-   "from": [
-    -620,
-    -1320
-   ],
-   "to": [
-    -875,
-    -1373
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Pigmen's_Ravine"
-  },
-  {
-   "name": "Pigmen's Ravine",
-   "from": [
-    -690,
-    -1235
-   ],
-   "to": [
-    -875,
-    -1373
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Pigmen's_Ravine"
-  },
-  {
-   "name": "Pigmen's Ravine",
-   "from": [
-    -750,
-    -1200
-   ],
-   "to": [
-    -875,
-    -1373
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Pigmen's_Ravine"
-  },
-  {
-   "name": "Volmor's Tower",
-   "from": [
-    280,
-    90
-   ],
-   "to": [
-    280,
-    -4950
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Volmor's_Tower"
   }
  ]
 }
