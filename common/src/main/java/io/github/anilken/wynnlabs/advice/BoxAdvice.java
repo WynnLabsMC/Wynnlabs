@@ -95,6 +95,13 @@ final class BoxAdvice {
         return new Decision(boxRoute(box, c, why, 0, 0), c);
     }
 
+    /** The Blacksmith, whatever the box would fetch revealed: the route is not weighed, {@code why} says so. */
+    private static Decision blacksmith(ItemView.Box box, String why) {
+        BoxRoutes.Choice c = SellAdvice.boxChoice(box);
+        return new Decision(new Advice.Entry(Verdict.SELL, why),
+                new BoxRoutes.Choice(BoxRoutes.Route.BLACKSMITH, c.value(), null));
+    }
+
     /** A verdict that weighed no route (kept for an alt, too far ahead, nothing known). */
     private static Decision plain(Advice.Entry e) {
         return new Decision(e, null);
@@ -136,6 +143,19 @@ final class BoxAdvice {
                 }
             }
             return sell(box, L.t("wynnlabs.auto.box_none_for_class", AltCharacters.className(cls)));
+        }
+        // A tier whose boxes go straight to the Blacksmith (rule trade.blacksmithTiers, Unique by
+        // default): their market prices are too thin to trust and a best-roll guess is not a reason
+        // to identify; only a piece picked outright (the shopping list, the road map) still is
+        if (Rules.list("trade", "blacksmithTiers").contains(box.tier().name())) {
+            boolean picked = false;
+            for (ItemData info : GameState.current().possibleGears(box)) {
+                picked |= Shopping.find(info.name()) != null || io.github.anilken.wynnlabs.build.roadmap.Roadmap.plans(info.name());
+            }
+            if (!picked) {
+                return blacksmith(box, L.t("wynnlabs.auto.box_tier_blacksmith", box.tier().name().charAt(0)
+                        + box.tier().name().substring(1).toLowerCase(java.util.Locale.ROOT)));
+            }
         }
         // The build plan, as it judges the piece once identified: an outcome is one you would
         // wear only when the plan would take it at its best roll. When none would, the box is
