@@ -45,12 +45,12 @@ public final class CrowdMode {
                 || com.mojang.blaze3d.platform.InputConstants.isKeyDown(w, org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SHIFT);
     }
 
-    /** Flips the switch (Shift with the menu key), telling on the action bar. */
+    /** Flips the switch (Shift with the menu key), telling through the coach's notice. */
     public static void flip(Minecraft client) {
         Settings.toggle("crowdMode");
         boolean now = Settings.on("crowdMode");
-        client.gui.setOverlayMessage(io.github.anilken.wynnlabs.core.L.c(
-                now ? "wynnlabs.crowd.on" : "wynnlabs.crowd.off"), false);
+        io.github.anilken.wynnlabs.coach.Coach.toast(io.github.anilken.wynnlabs.core.L.c(
+                now ? "wynnlabs.crowd.on" : "wynnlabs.crowd.off"));
     }
 
     /** Once a tick: the switch, the radius and which stacks have a label. */
