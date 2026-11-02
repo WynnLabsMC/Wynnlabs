@@ -46,6 +46,35 @@ final class WorldGates {
         this.lines = lines;
         this.gates = gates;
         this.corridors = corridors;
+        // each wall segment {x1, z1, x2, z2} under every square of BUCKET blocks its bounding box touches
+        java.util.Map<Long, List<double[]>> b = new java.util.HashMap<>();
+        for (double[][] line : lines) {
+            for (int i = 1; i < line.length; i++) {
+                double[] s = {line[i - 1][0], line[i - 1][1], line[i][0], line[i][1]};
+                int x0 = bucket(Math.min(s[0], s[2]));
+                int x1 = bucket(Math.max(s[0], s[2]));
+                int z0 = bucket(Math.min(s[1], s[3]));
+                int z1 = bucket(Math.max(s[1], s[3]));
+                for (int x = x0; x <= x1; x++) {
+                    for (int z = z0; z <= z1; z++) {
+                        b.computeIfAbsent(key(x, z), k -> new ArrayList<>()).add(s);
+                    }
+                }
+            }
+        }
+        this.buckets = b;
+    }
+
+    /** The wall segments are looked up by squares this many blocks wide. */
+    private static final double BUCKET = 64;
+    private final java.util.Map<Long, List<double[]>> buckets;
+
+    private static int bucket(double v) {
+        return (int) Math.floor(v / BUCKET);
+    }
+
+    private static long key(int x, int z) {
+        return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
     /** The walls in {@code json}; null when it is not the expected shape. */
@@ -103,6 +132,15 @@ final class WorldGates {
         return lines.size();
     }
 
+    /** How many wall segments the lines make. */
+    int segments() {
+        int n = 0;
+        for (double[][] line : lines) {
+            n += line.length - 1;
+        }
+        return n;
+    }
+
     int gates() {
         return gates.size();
     }
@@ -117,14 +155,20 @@ final class WorldGates {
 
     /** Whether the step from (ax, az) to (bx, bz) crosses a line away from every gate. */
     boolean blocked(double ax, double az, double bx, double bz) {
-        if (lines.isEmpty()) {
+        if (buckets.isEmpty()) {
             return false;
         }
-        for (double[][] line : lines) {
-            for (int i = 1; i < line.length; i++) {
-                if (cross(ax, az, bx, bz, line[i - 1][0], line[i - 1][1], line[i][0], line[i][1])
-                        && !nearGate((ax + bx) / 2, (az + bz) / 2)) {
-                    return true;
+        // only the segments under the squares the step's own box touches
+        for (int x = bucket(Math.min(ax, bx)); x <= bucket(Math.max(ax, bx)); x++) {
+            for (int z = bucket(Math.min(az, bz)); z <= bucket(Math.max(az, bz)); z++) {
+                List<double[]> segs = buckets.get(key(x, z));
+                if (segs == null) {
+                    continue;
+                }
+                for (double[] s : segs) {
+                    if (cross(ax, az, bx, bz, s[0], s[1], s[2], s[3]) && !nearGate((ax + bx) / 2, (az + bz) / 2)) {
+                        return true;
+                    }
                 }
             }
         }
