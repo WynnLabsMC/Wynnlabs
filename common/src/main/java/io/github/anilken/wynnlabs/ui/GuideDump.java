@@ -14,7 +14,8 @@ import com.google.gson.JsonObject;
  */
 final class GuideDump {
 
-    static final int VERSION = 1;
+    /** 2: barriers have their own code ({@link GuideTerrain#BARRIER}); a version 1 dump reads the same, its barriers solid. */
+    static final int VERSION = 2;
 
     /** The box's lowest corner and its size. */
     final int x0, y0, z0, sx, sy, sz;
@@ -90,6 +91,7 @@ final class GuideDump {
         JsonObject legend = new JsonObject();
         legend.addProperty(String.valueOf(GuideTerrain.AIR), "air");
         legend.addProperty(String.valueOf(GuideTerrain.SOLID), "solid");
+        legend.addProperty(String.valueOf(GuideTerrain.BARRIER), "barrier");
         legend.addProperty(String.valueOf(GuideTerrain.ROAD), "solid road");
         legend.addProperty(String.valueOf(GuideTerrain.WATER), "water");
         legend.addProperty(String.valueOf(GuideTerrain.LAVA), "lava");
@@ -111,7 +113,12 @@ final class GuideDump {
         return o;
     }
 
+    /** A dump of any version up to {@link #VERSION}; a newer one is refused. */
     static GuideDump fromJson(JsonObject o) {
+        int version = o.has("version") ? o.get("version").getAsInt() : 1;
+        if (version < 1 || version > VERSION) {
+            throw new IllegalArgumentException("guide dump version " + version + ", this reads up to " + VERSION);
+        }
         JsonArray origin = o.getAsJsonArray("origin");
         JsonArray size = o.getAsJsonArray("size");
         int sx = size.get(0).getAsInt();

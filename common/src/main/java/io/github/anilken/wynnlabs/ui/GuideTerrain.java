@@ -15,6 +15,8 @@ final class GuideTerrain implements GuidePath.Walkable {
     /** Block codes. */
     static final char AIR = '.';
     static final char SOLID = '#';
+    /** A barrier: solid like any other, coded apart so a dump also records where they are. */
+    static final char BARRIER = 'b';
     /** A solid block a road is paved with (cheaper to walk on). */
     static final char ROAD = 'r';
     static final char WATER = 'w';
@@ -60,7 +62,7 @@ final class GuideTerrain implements GuidePath.Walkable {
 
     /** Whether a block with this code holds the player up. */
     static boolean ground(char c) {
-        return c == SOLID || c == ROAD || c == HALF || c == DOOR || c == TALL;
+        return c == SOLID || c == BARRIER || c == ROAD || c == HALF || c == DOOR || c == TALL;
     }
 
     /** Feet at {@code y}: the feet and head let the player through, and the block below holds them or the feet swim. */

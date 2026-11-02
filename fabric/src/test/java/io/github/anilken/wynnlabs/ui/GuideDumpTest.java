@@ -34,7 +34,7 @@ class GuideDumpTest {
     @Test
     void aDumpSurvivesARoundTripThroughJson() {
         GuideDumps.World w = new GuideDumps.World(5, 8, 4, GuideTerrain.SOLID)
-                .fill(1, 3, 1, 3, 5, 2, GuideTerrain.AIR).set(2, 3, 1, GuideTerrain.WATER)
+                .fill(1, 3, 1, 3, 5, 2, GuideTerrain.AIR).set(2, 3, 1, GuideTerrain.WATER).set(3, 6, 2, GuideTerrain.BARRIER)
                 .fill(4, 0, 3, 4, 7, 3, GuideTerrain.UNKNOWN);
         GuideDump d = w.dump(1, 3, 1, 3, 3, 2);
         String text = d.toJson().toString();
@@ -49,6 +49,8 @@ class GuideDumpTest {
         assertArrayEquals(new int[] {1, 3, 1}, back.start());
         assertEquals(3.5, back.target.get("x").getAsDouble());
         JsonObject o = d.toJson();
+        assertEquals(GuideDump.VERSION, o.get("version").getAsInt());
+        assertEquals(GuideTerrain.BARRIER, back.at(3, 6, 2));
         assertEquals("19+-", o.get("loaded").getAsString());
         // the ground: the highest block not walked through
         assertEquals(8, back.ground().height(0, 0));

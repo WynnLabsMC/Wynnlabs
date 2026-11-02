@@ -623,7 +623,7 @@ public final class GuideLine {
     }
 
     /**
-     * A block's code for the route: lava, climbable, door, slab or stair first; then whatever the
+     * A block's code for the route: a barrier, lava, climbable, door, slab or stair first; then whatever the
      * player walks through (no collision, something thin like a carpet or snow layer, a chain, a
      * cobweb) is water or a non-solid; the rest is a fence or wall (taller than a block), a road
      * block or plain solid.
@@ -631,6 +631,9 @@ public final class GuideLine {
     static char code(BlockGetter level, BlockPos pos, BlockState s) {
         if (s.isAir()) {
             return GuideTerrain.AIR;
+        }
+        if (s.is(Blocks.BARRIER)) {
+            return GuideTerrain.BARRIER;
         }
         FluidState fluid = s.getFluidState();
         if (fluid.is(FluidTags.LAVA)) {

@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.ui;
 import org.junit.jupiter.api.Test;
 
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.AIR;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.BARRIER;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.HALF;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.LAVA;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.SOLID;
@@ -106,6 +107,18 @@ class GuideTerrainTest {
         GuideTerrain fw = GuideDumps.walkable(f.dump(2, 10, 3, 4, 10, 3));
         assertEquals(N, fw.stand(3, 3, 10));
         assertEquals("fence", fw.why(3, 3, 10));
+    }
+
+    @Test
+    void aBarrierIsWalkedOnAndBlocksLikeAnySolid() {
+        // a floor of barriers, a barrier wall at x = 4 two high
+        GuideDumps.World w = new GuideDumps.World(8, 16, 4, AIR).fill(0, 0, 0, 7, 9, 3, BARRIER)
+                .fill(4, 10, 0, 4, 11, 3, BARRIER);
+        GuideTerrain g = GuideDumps.walkable(w.dump(1, 10, 1, 6, 10, 1));
+        assertEquals(10, g.stand(2, 1, 10));
+        assertEquals(N, g.stand(4, 1, 10));
+        assertEquals("wall", g.why(4, 1, 10));
+        assertFalse(GuidePath.find(g, 1, 10, 1, 6, 10, 1, 16, 1000).reached());
     }
 
     @Test
