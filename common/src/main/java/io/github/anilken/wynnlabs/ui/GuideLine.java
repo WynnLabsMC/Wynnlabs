@@ -36,9 +36,11 @@ import java.util.concurrent.TimeUnit;
  * <p>On foot the strip lies flat on the ground along a walkable route ({@link GuidePath}) through
  * the loaded area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the
  * loaded area, or where no route goes on, it continues straight, laid on the highest block every
- * {@link #STEP} blocks. While riding or gliding it is a straight line to the target; when the
- * target is well above the mount (a cliff city a wyvern cannot reach) the ground route from below
- * the player is drawn too, so the player sees where to land and walk. Depth tested like
+ * {@link #STEP} blocks. The route aims at the target's floor, not only its column, and climbs
+ * ladders and vines. While riding or gliding it is a straight line to the target; when the target
+ * is well above or below the mount (a cliff city a wyvern cannot reach) and there is ground just
+ * under the player, the ground route from there is drawn instead, so the player sees where to
+ * land and walk. Depth tested like
  * {@link ChestBeams}, so terrain hides it. Each frame only draws. Drawing only: nothing is sent to
  * the server.
  */
@@ -56,8 +58,12 @@ public final class GuideLine {
     static final double FLOW = 1.0;
     /** The first blocks from the player fade in over this length. */
     static final double FADE = 1.5;
-    /** Mounted with the target this much higher: the ground route is drawn as well. */
+    /** Mounted with the target this much higher or lower: the ground route from below is drawn instead. */
     private static final double HIGH = 8;
+    /** Where a rider can land: ground at most this far below, ... */
+    private static final int LAND_DEPTH = 6;
+    /** ... in the column under them or up to this many columns away. */
+    private static final int LAND_REACH = 3;
     /** Height of the pillar at the end of the path. */
     private static final float PILLAR = 6f;
     /** Light cyan. */
@@ -90,6 +96,8 @@ public final class GuideLine {
     private static volatile Target target;
     /** The ground path drawn; replaced (never changed) by the tick or the route thread. */
     private static volatile Path ground = NO_PATH;
+    /** Riding or gliding with no ground route to show: the straight line through the air. */
+    private static volatile boolean airLine;
     /** The target the shown ground path was routed for (null: only the straight line so far). */
     private static volatile Target routed;
     /** One thread for route searches; a new request replaces one still waiting. */
@@ -201,6 +209,7 @@ public final class GuideLine {
         }
         Player p = mc.player;
         if (failed || p == null || mc.level == null || !Settings.on("guideLine")) {
+            airLine = false;
             clear();
             return;
         }
@@ -210,22 +219,27 @@ public final class GuideLine {
             boolean changed = !Objects.equals(t, target);
             target = t;
             ClientLevel level = mc.level;
-            int sx = (int) Math.floor(p.getX());
-            int sz = (int) Math.floor(p.getZ());
-            int sy;
-            if (!airborne(p)) {
-                sy = (int) Math.floor(p.getY() + 0.01);
-            } else if (t != null && t.y() - p.getY() > HIGH && level.hasChunk(sx >> 4, sz >> 4)) {
-                // the ground below the mount: where to land and walk up
-                sy = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, sx, sz);
-            } else {
-                sy = UNKNOWN;
+            int px = (int) Math.floor(p.getX());
+            int py = (int) Math.floor(p.getY() + 0.01);
+            int pz = (int) Math.floor(p.getZ());
+            int[] start = null;
+            if (t == null) {
+                // nothing to lead to
+            } else if (!airborne(p)) {
+                start = new int[] {px, py, pz};
+            } else if (Math.abs(t.y() - p.getY()) > HIGH) {
+                // the ground just under the mount: where to land and walk on
+                start = GuidePath.below(walkable(level), px, pz, py, LAND_DEPTH, LAND_REACH);
             }
-            if (t == null || sy == UNKNOWN) {
+            airLine = t != null && start == null && airborne(p);
+            if (start == null) {
                 ground = NO_PATH;
                 routed = null;
                 return;
             }
+            int sx = start[0];
+            int sy = start[1];
+            int sz = start[2];
             if (changed || routed == null) {
                 // the straight line at once; the route replaces it when found
                 List<double[]> line = sample(sx + 0.5, sy, sz + 0.5, t.x(), t.z(), STEP, CAP, heights(level));
@@ -266,7 +280,8 @@ public final class GuideLine {
             GuidePath.Walkable w = walkable(level);
             int tx = (int) Math.floor(t.x());
             int tz = (int) Math.floor(t.z());
-            GuidePath.Route r = GuidePath.find(w, sx, sy, sz, tx, tz, box, BUDGET);
+            int ty = GuidePath.feet(w, tx, tz, (int) Math.floor(t.y()));
+            GuidePath.Route r = GuidePath.find(w, sx, sy, sz, tx, ty, tz, box, BUDGET);
             if (r == null || r.nodes().size() < 2 || !t.equals(target)) {
                 return;                                 // the straight line stays
             }
@@ -297,11 +312,18 @@ public final class GuideLine {
                     return GuidePath.NONE;
                 }
                 for (int y = fromY + 1; y >= fromY - 3; y--) {
-                    if (standable(chunk, pos, x, y, z)) {
+                    if (standable(chunk, pos, x, y, z) || onLadder(chunk, pos, x, y, z)) {
                         return y;
                     }
                 }
                 return GuidePath.NONE;
+            }
+
+            @Override
+            public int climb(int x, int z, int y, int dy) {
+                ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
+                return chunk != null && onLadder(chunk, pos, x, y, z) && onLadder(chunk, pos, x, y + dy, z)
+                        ? y + dy : GuidePath.NONE;
             }
 
             @Override
@@ -323,6 +345,15 @@ public final class GuideLine {
         }
         BlockState below = chunk.getBlockState(pos.set(x, y - 1, z));
         return below.blocksMotion() && below.getFluidState().isEmpty();
+    }
+
+    /** Feet height {@code y} in a ladder, vines or scaffolding, with room for the head. */
+    private static boolean onLadder(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int y, int z) {
+        if (!chunk.getBlockState(pos.set(x, y, z)).is(BlockTags.CLIMBABLE)) {
+            return false;
+        }
+        BlockState head = chunk.getBlockState(pos.set(x, y + 1, z));
+        return !head.blocksMotion() || head.is(BlockTags.CLIMBABLE);
     }
 
     /** A road or stair block, which the route prefers. */
@@ -355,7 +386,7 @@ public final class GuideLine {
             Vec3 c = mc.gameRenderer.getMainCamera().position();
             double seconds = (mc.level.getGameTime() % 100_000 + pt) / 20.0;
             VertexConsumer quads = buffers.getBuffer(RenderTypes.debugQuads());
-            if (airborne(p)) {
+            if (airLine && airborne(p)) {
                 double dx = t.x() - me.x;
                 double dy = t.y() + 1 - me.y;
                 double dz = t.z() - me.z;
@@ -455,14 +486,15 @@ public final class GuideLine {
 
     /**
      * One piece from a to b (relative to the camera), {@code halfA} / {@code halfB} wide each side:
-     * lying flat with {@code flat} (facing up), else square to the line of sight.
+     * lying flat with {@code flat} (facing up), else (or going straight up a ladder) square to the
+     * line of sight.
      */
     private static void strip(PoseStack pose, VertexConsumer v, float ax, float ay, float az,
                               float bx, float by, float bz, float halfA, float halfB,
                               float alphaA, float alphaB, boolean flat) {
         float dx = bx - ax, dy = by - ay, dz = bz - az;
         float ox, oy, oz;
-        if (flat) {
+        if (flat && dx * dx + dz * dz > 1e-4f) {
             // left of the way, level: (-dz, 0, dx); with the order below the face looks up
             ox = -dz;
             oy = 0;

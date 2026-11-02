@@ -43,7 +43,7 @@ class GuidePathTest {
                 g.h[10][z] = N;
             }
         }
-        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 18, 5, 64, 20_000);
+        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 18, 64, 5, 64, 20_000);
         assertTrue(r.reached());
         assertTrue(r.nodes().stream().anyMatch(n -> n[0] == 10 && n[2] == 15));
         steps(g, r.nodes());
@@ -59,7 +59,7 @@ class GuidePathTest {
                 g.h[x][z] = z >= 17 ? 67 : 64;
             }
         }
-        GuidePath.Route r = GuidePath.find(g, 2, 70, 5, 18, 5, 64, 20_000);
+        GuidePath.Route r = GuidePath.find(g, 2, 70, 5, 18, 64, 5, 64, 20_000);
         assertTrue(r.reached());
         assertTrue(r.nodes().stream().anyMatch(n -> n[2] >= 17));
         steps(g, r.nodes());
@@ -75,7 +75,7 @@ class GuidePathTest {
             g.h[12][i] = N;
             g.h[18][i] = N;
         }
-        GuidePath.Route r = GuidePath.find(g, 2, 64, 15, 15, 15, 64, 20_000);
+        GuidePath.Route r = GuidePath.find(g, 2, 64, 15, 15, 64, 15, 64, 20_000);
         assertFalse(r.reached());
         int[] end = r.nodes().get(r.nodes().size() - 1);
         assertEquals(11, end[0]);
@@ -86,13 +86,13 @@ class GuidePathTest {
     void noGroundUnderTheStartGivesNoRoute() {
         Grid g = new Grid(64);
         g.h[2][2] = N;
-        assertNull(GuidePath.find(g, 2, 64, 2, 15, 15, 64, 20_000));
+        assertNull(GuidePath.find(g, 2, 64, 2, 15, 64, 15, 64, 20_000));
     }
 
     @Test
     void anOpenFieldSmoothsToOneStraightSegment() {
         Grid g = new Grid(64);
-        GuidePath.Route r = GuidePath.find(g, 1, 64, 1, 17, 9, 64, 20_000);
+        GuidePath.Route r = GuidePath.find(g, 1, 64, 1, 17, 64, 9, 64, 20_000);
         List<int[]> smooth = GuidePath.smooth(g, r.nodes(), 24);
         assertEquals(2, smooth.size());
         List<double[]> pts = GuidePath.points(g, smooth, 0.3);
@@ -108,7 +108,7 @@ class GuidePathTest {
                 g.h[10][z] = N;
             }
         }
-        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 18, 5, 64, 20_000);
+        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 18, 64, 5, 64, 20_000);
         List<int[]> smooth = GuidePath.smooth(g, r.nodes(), 24);
         assertTrue(smooth.size() >= 3 && smooth.size() < r.nodes().size());
         for (int i = 1; i < smooth.size(); i++) {
@@ -125,10 +125,106 @@ class GuidePathTest {
                 return z == 8 ? GuidePath.ROAD : 1;
             }
         };
-        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 18, 5, 64, 20_000);
+        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 18, 64, 5, 64, 20_000);
         assertTrue(r.reached());
         long onRoad = r.nodes().stream().filter(n -> n[2] == 8).count();
         assertTrue(onRoad >= 8, "steps on the road: " + onRoad);
+    }
+
+    /**
+     * A 10 × 10 two-storey building: the ground floor at feet 64 everywhere, an upper floor at 70
+     * over x 5..9; spots are listed one by one, so a column can have both floors.
+     */
+    private static final class House implements GuidePath.Walkable {
+        final java.util.Set<String> spots = new java.util.HashSet<>();
+        final java.util.Set<String> ladder = new java.util.HashSet<>();
+
+        House() {
+            for (int x = 0; x < 10; x++) {
+                for (int z = 0; z < 10; z++) {
+                    spots.add(x + "," + 64 + "," + z);
+                    if (x >= 5) {
+                        spots.add(x + "," + 70 + "," + z);
+                    }
+                }
+            }
+        }
+
+        /** A stair along the wall z = 9: one block up per column from x = 0 (65) to x = 4 (69). */
+        House stair() {
+            for (int x = 0; x <= 4; x++) {
+                spots.add(x + "," + (65 + x) + "," + 9);
+            }
+            return this;
+        }
+
+        @Override
+        public int stand(int x, int z, int fromY) {
+            for (int y = fromY + 1; y >= fromY - 3; y--) {
+                if (spots.contains(x + "," + y + "," + z) || ladder.contains(x + "," + y + "," + z)) {
+                    return y;
+                }
+            }
+            return N;
+        }
+
+        @Override
+        public int climb(int x, int z, int y, int dy) {
+            return ladder.contains(x + "," + y + "," + z) && ladder.contains(x + "," + (y + dy) + "," + z) ? y + dy : N;
+        }
+    }
+
+    @Test
+    void aTargetUpstairsIsReachedByTheStair() {
+        House h = new House().stair();
+        int ty = GuidePath.feet(h, 8, 2, 70);
+        assertEquals(70, ty);
+        GuidePath.Route r = GuidePath.find(h, 1, 64, 2, 8, ty, 2, 64, 20_000);
+        assertTrue(r.reached());
+        int[] end = r.nodes().get(r.nodes().size() - 1);
+        assertEquals(70, end[1]);
+        assertTrue(r.nodes().stream().anyMatch(n -> n[2] == 9 && n[1] > 64 && n[1] < 70));
+    }
+
+    @Test
+    void withoutTheStairTheRouteEndsUnderTheTarget() {
+        House h = new House();
+        GuidePath.Route r = GuidePath.find(h, 1, 64, 2, 8, 70, 2, 64, 20_000);
+        assertFalse(r.reached());
+        int[] end = r.nodes().get(r.nodes().size() - 1);
+        assertEquals(8, end[0]);
+        assertEquals(64, end[1]);
+        assertEquals(2, end[2]);
+    }
+
+    @Test
+    void aLadderIsClimbed() {
+        House h = new House();
+        for (int y = 64; y <= 69; y++) {
+            h.ladder.add(4 + "," + y + "," + 5);         // up the wall beside the upper floor
+        }
+        GuidePath.Route r = GuidePath.find(h, 1, 64, 2, 8, 70, 2, 64, 20_000);
+        assertTrue(r.reached());
+        assertTrue(r.nodes().stream().anyMatch(n -> n[0] == 4 && n[2] == 5 && n[1] == 67));
+    }
+
+    @Test
+    void aTargetInAWallNicheAimsAtTheNearestFloor() {
+        House h = new House();
+        assertEquals(70, GuidePath.feet(h, 7, 7, 73));     // 3 above the floor: still found
+        assertEquals(64, GuidePath.feet(h, 2, 2, 66));
+        assertEquals(90, GuidePath.feet(h, 2, 2, 90));     // nothing within 4: the pin height
+    }
+
+    @Test
+    void aRiderLandsOnGroundJustBelowOrNearby() {
+        Grid g = new Grid(64);
+        assertTrue(Arrays.equals(new int[] {5, 64, 5}, GuidePath.below(g, 5, 5, 68, 6, 3)));
+        assertNull(GuidePath.below(g, 5, 5, 80, 6, 3));    // flying high: no ground near
+        g.h[5][5] = N;
+        g.h[4][5] = N;
+        int[] land = GuidePath.below(g, 5, 5, 66, 6, 3);
+        assertTrue(land != null && Math.max(Math.abs(land[0] - 5), Math.abs(land[2] - 5)) == 1);
     }
 
     /** Every step of a route goes to a neighbouring column the grid allows from the last height. */

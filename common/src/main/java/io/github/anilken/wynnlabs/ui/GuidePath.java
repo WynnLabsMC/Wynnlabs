@@ -11,16 +11,21 @@ import java.util.PriorityQueue;
  * The guide line's walking route: an A* over block columns. A step goes to one of the eight
  * neighbouring columns where there is ground to stand on at most one block up or three down
  * ({@link Walkable}); a diagonal step needs both columns beside it walkable, so it never cuts a
- * corner; roads and stairs cost less, so the route keeps to them. The search is bounded (a box
- * around the start, a node budget); when it cannot reach the target it returns the route to the
- * reachable spot nearest the target. Pure: no Minecraft types.
+ * corner, and ladders and vines are climbed one block at a time. Roads and stairs cost less, so
+ * the route keeps to them. The goal is the target's column and floor. The search is bounded (a
+ * box around the start, a node budget); when it cannot reach the target it returns the route to
+ * the reachable spot nearest the target. Pure: no Minecraft types.
  */
 final class GuidePath {
 
     /** No ground to stand on from here. */
     static final int NONE = Integer.MIN_VALUE;
-    /** The target counts as reached within this flat distance, in blocks. */
+    /** The target counts as reached within this flat distance, in blocks, ... */
     static final double REACH = 1.5;
+    /** ... and this close in feet height, so a chest up a tower is not reached from the floor under it. */
+    static final int REACH_Y = 2;
+    /** A block of height difference weighs this much in the distance estimate. */
+    static final double H_Y = 0.6;
     /** A step onto a road or stair costs this much of a plain one, so routes keep to roads. */
     static final double ROAD = 0.7;
     /**
@@ -39,6 +44,14 @@ final class GuidePath {
          */
         int stand(int x, int z, int fromY);
 
+        /**
+         * The feet height after climbing one block up ({@code dy} 1) or down (-1) from {@code y} in
+         * the same column (a ladder, vines, scaffolding); {@link #NONE} when there is nothing to climb.
+         */
+        default int climb(int x, int z, int y, int dy) {
+            return NONE;
+        }
+
         /** What a step onto feet ({@code x}, {@code y}, {@code z}) costs against a plain one: {@link #ROAD} on roads and stairs. */
         default double cost(int x, int y, int z) {
             return 1;
@@ -56,22 +69,65 @@ final class GuidePath {
     private GuidePath() {}
 
     /**
-     * The route from feet ({@code sx}, {@code sy}, {@code sz}) to column ({@code tx}, {@code tz}),
-     * expanding at most {@code budget} spots inside {@code box} blocks of the start; null when the
-     * start itself has no ground.
+     * Feet height to aim for at a target whose block is at height {@code y} in column (x, z): a
+     * standable spot within 2 of it, else within 4 (a chest in a wall niche, a rough pin height),
+     * the nearest first; {@code y} itself when there is none.
      */
-    static Route find(Walkable w, int sx, int sy, int sz, int tx, int tz, int box, int budget) {
+    static int feet(Walkable w, int x, int z, int y) {
+        int best = NONE;
+        // stand(fromY) looks from fromY + 1 down to fromY - 3
+        for (int from : new int[] {y + 1, y + 3, y - 1}) {
+            int f = w.stand(x, z, from);
+            if (f != NONE && Math.abs(f - y) <= 4 && (best == NONE || Math.abs(f - y) < Math.abs(best - y))) {
+                best = f;
+            }
+        }
+        return best == NONE ? y : best;
+    }
+
+    /**
+     * The first standable spot at most {@code depth} blocks below feet height {@code y}, in column
+     * (x, z) or, failing that, in the columns up to {@code reach} away (nearest ring first); null with
+     * none. Where a rider can land.
+     */
+    static int[] below(Walkable w, int x, int z, int y, int depth, int reach) {
+        for (int r = 0; r <= reach; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                        continue;
+                    }
+                    // stand(fromY) looks from fromY + 1 down to fromY - 3: y .. y-4, then on down
+                    for (int from = y - 1; from + 1 >= y - depth; from -= 4) {
+                        int f = w.stand(x + dx, z + dz, from);
+                        if (f != NONE && f <= y && f >= y - depth) {
+                            return new int[] {x + dx, f, z + dz};
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The route from feet ({@code sx}, {@code sy}, {@code sz}) to feet ({@code tx}, {@code ty},
+     * {@code tz}), expanding at most {@code budget} spots inside {@code box} blocks of the start;
+     * null when the start itself has no ground. Short of the target it ends at the spot the
+     * estimate puts nearest, height included, so it climbs toward the right floor.
+     */
+    static Route find(Walkable w, int sx, int sy, int sz, int tx, int ty, int tz, int box, int budget) {
         int y0 = w.stand(sx, sz, sy);
         if (y0 == NONE) {
             return null;
         }
         PriorityQueue<Node> open = new PriorityQueue<>((a, b) -> Double.compare(a.f(), b.f()));
         Map<Long, Double> best = new HashMap<>();
-        Node start = new Node(sx, y0, sz, 0, H_WEIGHT * h(sx, sz, tx, tz), null);
+        Node start = new Node(sx, y0, sz, 0, H_WEIGHT * h(sx, y0, sz, tx, ty, tz), null);
         open.add(start);
         best.put(key(sx, y0, sz), 0.0);
         Node nearest = start;
-        double nearestH = h(sx, sz, tx, tz);
+        double nearestH = h(sx, y0, sz, tx, ty, tz);
         int expanded = 0;
         while (!open.isEmpty() && expanded < budget) {
             Node n = open.poll();
@@ -79,12 +135,12 @@ final class GuidePath {
             if (known != null && known < n.g()) {
                 continue;                               // a shorter way here was already taken
             }
-            double hn = h(n.x(), n.z(), tx, tz);
+            double hn = h(n.x(), n.y(), n.z(), tx, ty, tz);
             if (hn < nearestH) {
                 nearest = n;
                 nearestH = hn;
             }
-            if (flat(n.x(), n.z(), tx, tz) <= REACH) {
+            if (flat(n.x(), n.z(), tx, tz) <= REACH && Math.abs(n.y() - ty) <= REACH_Y) {
                 return new Route(trace(n), true);
             }
             expanded++;
@@ -104,15 +160,26 @@ final class GuidePath {
                     continue;
                 }
                 double g = n.g() + (diagonal ? DIAG : 1) * w.cost(nx, ny, nz) + (ny > n.y() ? 0.5 : 0);
-                long k = key(nx, ny, nz);
-                Double old = best.get(k);
-                if (old == null || g < old) {
-                    best.put(k, g);
-                    open.add(new Node(nx, ny, nz, g, g + H_WEIGHT * h(nx, nz, tx, tz), n));
+                push(open, best, n, nx, ny, nz, g, tx, ty, tz);
+            }
+            for (int dy = -1; dy <= 1; dy += 2) {
+                int ny = w.climb(n.x(), n.z(), n.y(), dy);
+                if (ny != NONE) {
+                    push(open, best, n, n.x(), ny, n.z(), n.g() + (dy > 0 ? 1.5 : 1), tx, ty, tz);
                 }
             }
         }
         return new Route(trace(nearest), false);
+    }
+
+    private static void push(PriorityQueue<Node> open, Map<Long, Double> best, Node from,
+                             int x, int y, int z, double g, int tx, int ty, int tz) {
+        long k = key(x, y, z);
+        Double old = best.get(k);
+        if (old == null || g < old) {
+            best.put(k, g);
+            open.add(new Node(x, y, z, g, g + H_WEIGHT * h(x, y, z, tx, ty, tz), from));
+        }
     }
 
     /**
@@ -209,11 +276,11 @@ final class GuidePath {
         return out;
     }
 
-    /** Octile distance: the walking length with diagonal steps and no obstacles. */
-    private static double h(int x, int z, int tx, int tz) {
+    /** Octile distance (the walking length with diagonal steps and no obstacles) plus {@link #H_Y} a block of height. */
+    static double h(int x, int y, int z, int tx, int ty, int tz) {
         int dx = Math.abs(tx - x);
         int dz = Math.abs(tz - z);
-        return Math.max(dx, dz) + (DIAG - 1) * Math.min(dx, dz);
+        return Math.max(dx, dz) + (DIAG - 1) * Math.min(dx, dz) + H_Y * Math.abs(ty - y);
     }
 
     private static double flat(int x, int z, int tx, int tz) {
