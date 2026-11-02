@@ -37,8 +37,6 @@ public final class CrowdMode {
     /** Where other players' summon labels stood last tick, and where yours did: bodies sit under them. */
     private static volatile List<Vec3> summons = List.of();
     private static volatile List<Vec3> mine = List.of();
-    /** Where every other name label stood (a mob's, a mount's): what stands under one is a body. */
-    private static volatile List<Vec3> labels = List.of();
     private static volatile String me = "";
 
     /** Once a tick: the switch, the radius and where the others' summons are. */
@@ -53,21 +51,16 @@ public final class CrowdMode {
         me = mc.getUser().getName();
         List<Vec3> others = new ArrayList<>();
         List<Vec3> own = new ArrayList<>();
-        List<Vec3> named = new ArrayList<>();
         for (Entity e : mc.level.entitiesForRendering()) {
             if (e instanceof Display.TextDisplay t) {
-                String text = t.getText().getString();
-                String owner = owner(text);
+                String owner = owner(t.getText().getString());
                 if (owner != null) {
                     (owner.equalsIgnoreCase(me) ? own : others).add(e.position());
-                } else if (!text.isBlank() && !NUMBER.matcher(text).matches()) {
-                    named.add(e.position());
                 }
             }
         }
         summons = others;
         mine = own;
-        labels = named;
     }
 
     /** The player a summon label names ("Name's Puppet"), null for any other label. */
@@ -106,13 +99,7 @@ public final class CrowdMode {
             if (ridesSomethingElse(e) || !vfx(d) || under(e, mine)) {
                 return false;
             }
-            if (under(e, summons)) {
-                return true;
-            }
-            if (under(e, labels)) {
-                return false;                 // a mob or a mount: it stands under its name
-            }
-            return radius == 0 || far(e, radius);
+            return radius == 0 || far(e, radius) || under(e, summons);
         }
         return false;
     }
@@ -156,7 +143,7 @@ public final class CrowdMode {
             double dx = p.x - s.x;
             double dz = p.z - s.z;
             double dy = s.y - p.y;
-            if (dx * dx + dz * dz < 2.25 && dy > -0.5 && dy < 5.0) {
+            if (dx * dx + dz * dz < 1.0 && dy > -0.5 && dy < 4.0) {
                 return true;
             }
         }
