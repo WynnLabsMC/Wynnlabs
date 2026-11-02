@@ -43,7 +43,7 @@ public final class CrowdMode {
             net.minecraft.client.KeyMapping.Category category) {
         net.minecraft.client.KeyMapping k = platform.registerKey(new net.minecraft.client.KeyMapping(
                 "key.wynnlabs.crowd", com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM,
-                org.lwjgl.glfw.GLFW.GLFW_KEY_K, category));
+                org.lwjgl.glfw.GLFW.GLFW_KEY_J, category));
         platform.onEndTick(client -> {
             while (k.consumeClick()) {
                 if (client.player == null || client.screen != null) {
