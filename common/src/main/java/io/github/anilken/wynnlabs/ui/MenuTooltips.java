@@ -176,7 +176,10 @@ public final class MenuTooltips {
             float t = onGrid(scale(ours, wynntils, h, screenH), grid);
             scaleFactor = t;
             // in a menu the gap stays the game's 12 GUI px on screen, in whole menu pixels
-            place(screenW, screenH, mouseX, mouseY, w, h, t, Math.round(OFFSET * MenuScale.tooltipGap()), at);
+            int gap = Math.round(OFFSET * MenuScale.tooltipGap());
+            place(screenW, screenH, mouseX, mouseY, w, h, t, gap, at);
+            // Wynnventory's price box stands beside where the game's tooltip would be: out from under it
+            at[0] = PriceBox.avoid(at[0], at[1], w * t, h * t, mouseX, gap, EDGE * t, screenW);
             pos.set(Math.round(at[0] / t), Math.round(at[1] / t));
             double gs = grid > 0 ? grid : Minecraft.getInstance().getWindow().getGuiScale();
             var pose = g.pose();
