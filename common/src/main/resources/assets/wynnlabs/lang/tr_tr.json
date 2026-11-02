@@ -2092,6 +2092,7 @@
   "wynnlabs.import.empty": "Linkte item yok",
   "wynnlabs.import.crafted": "Craft item",
   "wynnlabs.import.from_recipe": "Linkteki tariften",
+  "wynnlabs.import.from_stats": "Statlar linkten",
   "wynnlabs.import.custom": "Custom item",
   "wynnlabs.import.why_crafted": "Tarif bilinmiyor",
   "wynnlabs.import.why_custom": "Alınmadı",

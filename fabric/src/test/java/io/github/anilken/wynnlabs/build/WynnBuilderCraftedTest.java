@@ -57,7 +57,7 @@ class WynnBuilderCraftedTest {
         WynnBuilderLink.Piece p = b.pieces().get(0);
         assertEquals(WynnBuilderLink.Kind.CRAFTED, p.kind());
         assertEquals(WynnBuilderLink.WEAPON, p.slot());
-        assertEquals(code, p.craft(), "the code's own letters");
+        assertEquals(code, p.code(), "the code's own letters");
         assertEquals(recipe, p.recipe());
         assertEquals("T6", p.powders(), "the powders after it");
     }
@@ -66,7 +66,7 @@ class WynnBuilderCraftedTest {
     void olderLinksKeepTheirCraftedCodes() {
         WynnBuilderLink.Build c = WynnBuilderLink.decode("https://wynnbuilder.github.io/builder?v=18#10_09V0DPCR-17B9F9fAM8r9t9i510Qz0Jf0x2CR-19c4N4N4N4N4N9c910uH0QJ2M1G-s-s1C1g010003610003610003600z0z0+0+0+0+0-1T2Y2Y2Z2Z2a2azskR5OxIc0");
         assertNotNull(c);
-        assertEquals("CR-17B9F9fAM8r9t9i51", c.pieces().get(2).craft());
+        assertEquals("CR-17B9F9fAM8r9t9i51", c.pieces().get(2).code());
         assertNotNull(c.pieces().get(2).recipe(), "crafted leggings");
         assertEquals("leggings", c.pieces().get(2).recipe().type());
         assertEquals("bracelet", c.pieces().get(6).recipe().type(), "crafted bracelet");
@@ -106,7 +106,7 @@ class WynnBuilderCraftedTest {
         LinkImport.Result r = LinkImport.of(state, b, ings::get);
         LinkImport.Row row = r.rows().get(0);
         assertEquals(LinkImport.Why.KEPT, row.why());
-        Damage.Piece made = row.crafted();
+        Damage.Piece made = row.made();
         assertNotNull(made);
         assertEquals("Crafted Relik", made.name());
         assertEquals(Slot.RELIK, made.type());
@@ -129,7 +129,7 @@ class WynnBuilderCraftedTest {
         // an ingredient the game does not know: the piece stays left out, as before
         LinkImport.Result unknown = LinkImport.of(state, b, n -> null);
         assertEquals(LinkImport.Why.CRAFTED, unknown.rows().get(0).why());
-        assertNull(unknown.rows().get(0).crafted());
+        assertNull(unknown.rows().get(0).made());
     }
 
     /** A relik recipe in the highest bracket up to level 44 with the ingredient in its first slot, three-star materials, fast. */

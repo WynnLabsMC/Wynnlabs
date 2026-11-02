@@ -2092,6 +2092,7 @@
   "wynnlabs.import.empty": "No items in the link",
   "wynnlabs.import.crafted": "Crafted item",
   "wynnlabs.import.from_recipe": "From the link's recipe",
+  "wynnlabs.import.from_stats": "Stats from the link",
   "wynnlabs.import.custom": "Custom item",
   "wynnlabs.import.why_crafted": "Unknown recipe",
   "wynnlabs.import.why_custom": "Skipped",

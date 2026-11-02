@@ -19,22 +19,23 @@ import java.util.function.Function;
 
 /**
  * A WynnBuilder build link turned into the items to build around: each piece of the link found
- * in the game's item database by name, a crafted one made from the link's recipe, or why it is
- * left out. The kept items go to {@link Locks#set} once the player confirms (a crafted piece has
- * no name to build around, so it is only scored, {@link #set}); powders, tomes and skill points
- * are only shown. The link's ability tree and aspects are read with its weapon's class (yours when
- * the weapon is custom or not in the database).
+ * in the game's item database by name, a crafted one made from the link's recipe, a custom one
+ * from the numbers the link holds, or why it is left out. The kept items go to {@link Locks#set}
+ * once the player confirms (a crafted or custom piece has no name to build around, so it is only
+ * scored, {@link #set}); powders, tomes and skill points are only shown. The link's ability tree
+ * and aspects are read with its weapon's class (yours when the weapon is not in the database).
  */
 public final class LinkImport {
 
-    /** Why a piece of the link is not built around; KEPT when it is (a crafted one: made from its recipe). */
+    /** Why a piece of the link is not built around; KEPT when it is (a crafted or custom one: made from the link). */
     public enum Why { KEPT, CRAFTED, CUSTOM, UNKNOWN, WRONG_SLOT, CLASS }
 
     /**
      * One piece of the link: what it is, the item when the database has it, the piece made from
-     * its recipe when it is crafted (else null), and whether it is kept.
+     * the link when it is crafted (its recipe) or custom (its numbers), else null, and whether it
+     * is kept.
      */
-    public record Row(WynnBuilderLink.Piece piece, ItemData info, Damage.Piece crafted, Why why) {}
+    public record Row(WynnBuilderLink.Piece piece, ItemData info, Damage.Piece made, Why why) {}
 
     /**
      * The link's rows in its order, the items kept (one per slot, two rings) and the link's
@@ -60,13 +61,12 @@ public final class LinkImport {
             Why why;
             ItemData info = null;
             Damage.Piece made = null;
-            if (p.kind() == WynnBuilderLink.Kind.CRAFTED) {
-                made = crafted(p, ingredients);
+            if (p.kind() != WynnBuilderLink.Kind.ITEM) {
+                made = p.kind() == WynnBuilderLink.Kind.CRAFTED ? crafted(p, ingredients) : custom(p);
                 Klass need = made == null ? null : made.type().klass();
-                why = made == null ? Why.CRAFTED : !fits(made.type(), p.slot()) ? Why.WRONG_SLOT
+                why = made == null ? (p.kind() == WynnBuilderLink.Kind.CRAFTED ? Why.CRAFTED : Why.CUSTOM)
+                        : !fits(made.type(), p.slot()) ? Why.WRONG_SLOT
                         : need != null && need != state.classType() ? Why.CLASS : Why.KEPT;
-            } else if (p.kind() == WynnBuilderLink.Kind.CUSTOM) {
-                why = Why.CUSTOM;
             } else {
                 info = p.name() == null ? null : byName.get(p.name());
                 if (info == null && p.alias() != null) {
@@ -104,13 +104,19 @@ public final class LinkImport {
         Craft.Result made = Craft.craft(recipe, r.tier1(), r.tier2(), r.speed(), slots);
         String type = r.type().toUpperCase(Locale.ROOT);
         String name = "Crafted " + type.charAt(0) + r.type().substring(1);
-        return Damage.crafted(made, r.speed(), name, Slot.of(type), "craft:" + p.craft() + "|" + p.powders(), p.powders());
+        return Damage.crafted(made, r.speed(), name, Slot.of(type), "craft:" + p.code() + "|" + p.powders(), p.powders());
+    }
+
+    /** A custom piece of the link from the numbers it holds; null when its code is in the site's older form. */
+    static Damage.Piece custom(WynnBuilderLink.Piece p) {
+        WynnBuilderCustom.Item it = p.custom();
+        return it == null ? null : WynnBuilderCustom.piece(it, "custom:" + p.code());
     }
 
     /**
      * The link's pieces as the model scores them, by build slot ({@link Build#SLOTS}): each kept
-     * item at the middle of its rolls with the link's powders, and each crafted one made from its
-     * recipe. What {@link Damage#breakdown} takes.
+     * item at the middle of its rolls with the link's powders, each crafted one made from its
+     * recipe and each custom one from its numbers. What {@link Damage#breakdown} takes.
      */
     public static Map<String, Damage.Piece> set(Result r) {
         Map<String, Damage.Piece> out = new java.util.LinkedHashMap<>();
@@ -120,7 +126,7 @@ public final class LinkImport {
             }
             int slot = row.piece().slot();
             String key = slot >= Build.SLOTS.length ? "WEAPON" : Build.SLOTS[slot];
-            out.put(key, row.crafted() != null ? row.crafted() : Damage.piece(row.info(), row.piece().powders()));
+            out.put(key, row.made() != null ? row.made() : Damage.piece(row.info(), row.piece().powders()));
         }
         return out;
     }
@@ -146,8 +152,8 @@ public final class LinkImport {
     /** The class the link is for: its weapon's, else yours. */
     static Klass klass(List<Row> rows, GameState state) {
         for (Row r : rows) {
-            if (r.piece().slot() == WynnBuilderLink.WEAPON && r.crafted() != null && r.crafted().type().klass() != null) {
-                return r.crafted().type().klass();
+            if (r.piece().slot() == WynnBuilderLink.WEAPON && r.made() != null && r.made().type().klass() != null) {
+                return r.made().type().klass();
             }
             if (r.piece().slot() == WynnBuilderLink.WEAPON && r.info() != null && r.info().slot().isWeapon()) {
                 Klass k = r.info().requirements().klass().orElse(r.info().slot().klass());

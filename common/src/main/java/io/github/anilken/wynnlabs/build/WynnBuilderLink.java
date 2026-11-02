@@ -25,12 +25,12 @@ import java.util.Map;
  *
  * <p>The current form is a bit string, lowest bit first, six bits per letter (0-9, A-Z, a-z, +,
  * -): 12 in six bits, the data version in ten, then per piece a 2-bit kind (an item by id + 1, 0
- * for none; a crafted item as its crafter code's bits; a custom item, skipped) and, for armour and
- * the weapon, a powder flag and
+ * for none; a crafted item as its crafter code's bits; a custom item as its length in letters, 12
+ * bits, and its code's letters) and, for armour and the weapon, a powder flag and
  * the powders; a tome flag and one id per tome slot; a skill point flag and each skill's points;
  * a level flag and the level. The widths of the ids change with the data version. The older form
  * is "N_" and fixed-width letters, high letter first: 3 per item ("CR-" and a 17-letter crafter
- * code for a crafted one), 2 per skill, 2 for the level, blocks of powders, then the tomes. The ids are WynnBuilder's, shipped in
+ * code for a crafted one, a 3-letter length and "CI-…" for a custom one), 2 per skill, 2 for the level, blocks of powders, then the tomes. The ids are WynnBuilder's, shipped in
  * {@code wynnbuilder-items.json}; nothing here acts in the game.
  */
 public final class WynnBuilderLink {
@@ -48,10 +48,11 @@ public final class WynnBuilderLink {
     /**
      * One piece of the link: its place (0 helmet … 8 weapon), its kind, the item's name as the game
      * writes it and WynnBuilder's own name when that differs (else null; both null for an id the
-     * table does not have), its powders ("T6T6E6", empty for none) and, for a crafted piece, its
-     * crafter code ("CR-…", {@link WynnBuilderCode}; null otherwise).
+     * table does not have), its powders ("T6T6E6", empty for none) and its code: a crafted piece's
+     * crafter code ("CR-…", {@link WynnBuilderCode}), a custom one's ("CI-…", {@link WynnBuilderCustom});
+     * null for an item.
      */
-    public record Piece(int slot, Kind kind, int id, String name, String alias, String powders, String craft) {
+    public record Piece(int slot, Kind kind, int id, String name, String alias, String powders, String code) {
 
         public Piece(int slot, Kind kind, int id, String name, String alias, String powders) {
             this(slot, kind, id, name, alias, powders, null);
@@ -59,7 +60,12 @@ public final class WynnBuilderLink {
 
         /** A crafted piece's recipe; null for any other piece or a code that names something unknown. */
         public RecipeCode.Recipe recipe() {
-            return craft == null ? null : WynnBuilderCode.decode(craft);
+            return kind == Kind.CRAFTED && code != null ? WynnBuilderCode.decode(code) : null;
+        }
+
+        /** A custom piece's numbers; null for any other piece or a code in the site's older form. */
+        public WynnBuilderCustom.Item custom() {
+            return kind == Kind.CUSTOM && code != null ? WynnBuilderCustom.decode(code) : null;
         }
     }
 
@@ -168,8 +174,10 @@ public final class WynnBuilderLink {
             } else if (kind == 1) {
                 p = new Piece(i, Kind.CRAFTED, -1, null, null, "", craft(b, i == WEAPON));
             } else if (kind == 2) {
-                b.skip(b.take(12) * 6);
-                p = new Piece(i, Kind.CUSTOM, -1, null, null, "");
+                int start = b.at + 12;
+                int end = start + b.take(12) * 6;
+                b.skip(end - start);
+                p = new Piece(i, Kind.CUSTOM, -1, null, null, "", WynnBuilderCustom.PREFIX + b.letters(start, end));
             } else {
                 return null;
             }
@@ -178,7 +186,7 @@ public final class WynnBuilderLink {
                 powders = powders(b, w);
             }
             if (p != null) {
-                pieces.add(new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), powders, p.craft()));
+                pieces.add(new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), powders, p.code()));
             }
         }
         List<String> tomes = new ArrayList<>();
@@ -273,8 +281,9 @@ public final class WynnBuilderLink {
                 pieces.add(new Piece(i, Kind.CRAFTED, -1, null, null, "", data.substring(at, at + 20)));
                 at += 20;
             } else if (v > 4 && data.startsWith("CI-", at + 3)) {
-                pieces.add(new Piece(i, Kind.CUSTOM, -1, null, null, ""));
-                at += 3 + number(data, at, 3);
+                int len = number(data, at, 3);
+                pieces.add(new Piece(i, Kind.CUSTOM, -1, null, null, "", data.substring(at + 3, at + 3 + len)));
+                at += 3 + len;
             } else {
                 int id = number(data, at, 3);
                 if (id < 10000) {                       // 10000 and up: the site's empty slots
@@ -316,7 +325,7 @@ public final class WynnBuilderLink {
                 for (int j = 0; j < pieces.size(); j++) {
                     Piece p = pieces.get(j);
                     if (p.slot() == slot) {
-                        pieces.set(j, new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), ps.toString(), p.craft()));
+                        pieces.set(j, new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), ps.toString(), p.code()));
                     }
                 }
             }

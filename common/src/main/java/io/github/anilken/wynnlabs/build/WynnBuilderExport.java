@@ -23,9 +23,10 @@ import java.util.Optional;
  * WynnBuilder build links written by the mod's own code: the inverse of {@link WynnBuilderLink}
  * (the current form, in the newest data version the mod ships) and {@link WynnBuilderTree}.
  * Items and tomes go by WynnBuilder's ids from {@code wynnbuilder-items.json}; a crafted piece
- * with its recipe (one read from a link) goes in as its crafter code, and one without (worn: the
- * game does not show its ingredients), a custom piece or a name the table does not have as an
- * empty slot. A later version
+ * with its recipe (one read from a link) goes in as its crafter code, a crafted piece you wear
+ * (the game shows its numbers, never its ingredients) as a custom item with those numbers
+ * ({@link WynnBuilderCustom}), a custom piece as its code, and a name the table does not have as
+ * an empty slot. A later version
  * the site lacks (Ascended Immolation) goes in as the newest one it has, and an empty weapon
  * slot takes a weapon of the class: the site opens no link without a weapon.
  *
@@ -88,6 +89,19 @@ public final class WynnBuilderExport {
             if (craft != null) {
                 put(bits, 1, 2);
                 for (char c : craft.substring(WynnBuilderCode.PREFIX.length()).toCharArray()) {
+                    put(bits, DIGITS.indexOf(c), 6);
+                }
+                if (slot < 4 || slot == WynnBuilderLink.WEAPON) {
+                    powders(bits, p.powders(), w);
+                }
+                continue;
+            }
+            String custom = p == null ? null : customCode(p);
+            if (custom != null) {
+                String letters = custom.substring(WynnBuilderCustom.PREFIX.length());
+                put(bits, 2, 2);
+                put(bits, letters.length(), 12);
+                for (char c : letters.toCharArray()) {
                     put(bits, DIGITS.indexOf(c), 6);
                 }
                 if (slot < 4 || slot == WynnBuilderLink.WEAPON) {
@@ -179,14 +193,17 @@ public final class WynnBuilderExport {
         return link(newest(pieces, state.tomes(), skills, state.level()), tree);
     }
 
-    /** A worn stack as a link piece: gear by name with its powders, a crafted piece as one; null for none. */
+    /**
+     * A worn stack as a link piece: gear by name with its powders, a crafted piece as a custom
+     * item with the numbers it shows (its powders already in them); null for none.
+     */
     private static WynnBuilderLink.Piece worn(int slot, ItemStack stack, GameState state) {
         Optional<ItemView> v = stack == null || stack.isEmpty() ? Optional.empty() : state.view(stack);
         if (v.isEmpty()) {
             return null;
         }
         if (v.get().isCrafted()) {
-            return new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CRAFTED, -1, v.get().crafted().name(), null, "");
+            return crafted(slot, v.get().crafted());
         }
         if (!v.get().isGear()) {
             return null;
@@ -214,7 +231,7 @@ public final class WynnBuilderExport {
         for (int i = 0; i < Build.SLOTS.length; i++) {
             Damage.Piece p = set.get(Build.SLOTS[i]);
             if (p != null) {
-                pieces.add(p.crafted() ? craftedPiece(i, p)
+                pieces.add(p.crafted() ? craftedPiece(i, p, state)
                         : new WynnBuilderLink.Piece(i, WynnBuilderLink.Kind.ITEM, -1, p.name(), null, judgedPowders(p, state)));
             }
         }
@@ -349,16 +366,37 @@ public final class WynnBuilderExport {
 
     /**
      * A crafted model piece as a link piece: with its recipe and powders when it was made from a
-     * link's ({@link LinkImport#crafted}, its key "craft:CR-…|powders"), else by name alone.
+     * link's ({@link LinkImport#crafted}, its key "craft:CR-…|powders"), as the custom item it
+     * came from ("custom:CI-…"), as a custom item with its numbers when it is one you carry, else
+     * by name alone (an empty slot).
      */
-    private static WynnBuilderLink.Piece craftedPiece(int slot, Damage.Piece p) {
+    private static WynnBuilderLink.Piece craftedPiece(int slot, Damage.Piece p, GameState state) {
         String key = p.key() == null ? "" : p.key();
         int bar = key.indexOf('|');
         if (key.startsWith("craft:") && bar > 0) {
             return new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CRAFTED, -1, p.name(), null, key.substring(bar + 1),
                     key.substring("craft:".length(), bar));
         }
+        if (key.startsWith("custom:")) {
+            return new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CUSTOM, -1, p.name(), null, "", key.substring("custom:".length()));
+        }
+        Optional<ItemView> v = p.stack() == null || p.stack().isEmpty() ? Optional.empty() : state.view(p.stack());
+        if (v.isPresent() && v.get().isCrafted()) {
+            return crafted(slot, v.get().crafted());
+        }
         return new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CRAFTED, -1, p.name(), null, "");
+    }
+
+    /** A crafted piece you carry as a custom item; by name alone (an empty slot) when its slot is not one the site has. */
+    static WynnBuilderLink.Piece crafted(int slot, ItemView.Crafted c) {
+        String code = WynnBuilderCustom.encode(WynnBuilderCustom.of(c));
+        return code == null ? new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CRAFTED, -1, c.name(), null, "")
+                : new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CUSTOM, -1, c.name(), null, "", code);
+    }
+
+    /** A custom piece's code as a link holds it; null for any other piece or one in the site's older form. */
+    private static String customCode(WynnBuilderLink.Piece p) {
+        return p.kind() == WynnBuilderLink.Kind.CUSTOM && p.custom() != null ? p.code() : null;
     }
 
     /**
