@@ -17,7 +17,8 @@ import java.util.regex.Pattern;
  * Crowd mode: in a packed fight the spell effects are not drawn. Other players' summons
  * (totems, puppets, effigies, birds, mob totems: text labels "Name's Puppet" with the item
  * display under them) are never drawn, your own stay; the spell effects Wynncraft draws as
- * item displays ("Oak Boat" models) and the particles are left out beyond the radius, all of
+ * item displays ("Oak Boat" models standing on their own: a mob's body rides its mob and is
+ * drawn) and the particles are left out beyond the radius, all of
  * them at radius 0; damage numbers farther than the radius (four blocks at 0) go too. Nothing
  * the game sends is changed, only what is drawn.
  */
@@ -92,8 +93,10 @@ public final class CrowdMode {
             return NUMBER.matcher(text).matches() && !text.isBlank() && far(e, Math.max(radius, 4));
         }
         if (e instanceof Display.ItemDisplay d) {
-            if (!vfx(d) || under(e, mine)) {
-                return false;                 // a prop, or your own summon's body
+            // a mob's body rides its invisible mob, a prop is no boat, your own summon stands under
+            // your label: all drawn; a spell effect stands on its own
+            if (e.isPassenger() || !vfx(d) || under(e, mine)) {
+                return false;
             }
             return radius == 0 || far(e, radius) || under(e, summons);
         }
