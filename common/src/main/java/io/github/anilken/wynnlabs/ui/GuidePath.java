@@ -63,8 +63,8 @@ final class GuidePath {
         }
     }
 
-    /** A route's spots {x, feetY, z}, start first, and whether it ends at the target. */
-    record Route(List<int[]> nodes, boolean reached) {}
+    /** A route's spots {x, feetY, z}, start first, whether it ends at the target, and how many spots the search looked at. */
+    record Route(List<int[]> nodes, boolean reached, int expanded) {}
 
     private record Node(int x, int y, int z, double g, double f, Node parent) {}
 
@@ -146,7 +146,7 @@ final class GuidePath {
                 nearestH = hn;
             }
             if (flat(n.x(), n.z(), tx, tz) <= REACH && Math.abs(n.y() - ty) <= REACH_Y) {
-                return new Route(trace(n), true);
+                return new Route(trace(n), true, expanded);
             }
             expanded++;
             for (int[] m : MOVES) {
@@ -176,7 +176,7 @@ final class GuidePath {
                 }
             }
         }
-        return new Route(trace(nearest), false);
+        return new Route(trace(nearest), false, expanded);
     }
 
     private static void push(PriorityQueue<Node> open, Map<Long, Double> best, Node from,

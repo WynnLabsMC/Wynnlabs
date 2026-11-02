@@ -1,5 +1,7 @@
 package io.github.anilken.wynnlabs.ui;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.github.anilken.wynnlabs.core.Settings;
@@ -11,6 +13,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.Blocks;
@@ -74,6 +77,10 @@ public final class GuideLine {
     private static final int ROUTE_EVERY = 20;
     /** At most this many spots looked at in one route search. */
     private static final int BUDGET = 20_000;
+    /** A step through a door or gate costs this much of a plain one. */
+    private static final double DOOR = 1.5;
+    /** A block at most this tall (a flower pot) is stepped over at the feet. */
+    private static final double THIN = 0.375;
 
     /** Height of the highest block at a column, or {@link #UNKNOWN} where the chunk is not loaded. */
     @FunctionalInterface
@@ -83,8 +90,14 @@ public final class GuideLine {
 
     static final int UNKNOWN = Integer.MIN_VALUE;
 
-    /** The target being led to (the pin's block centre). */
-    record Target(double x, double y, double z) {}
+    /** The target being led to (the pin's block centre), its label and whether the pin is ours. */
+    record Target(double x, double y, double z, String label, boolean ours) {}
+
+    /**
+     * The last route search, for /guide: whether it reached the target, its spots, the spots
+     * looked at, the last reachable spot {x, feetY, z}, the box and budget, and how long it took.
+     */
+    record Search(boolean reached, int nodes, int expanded, int[] spot, int box, int budget, long millis) {}
 
     /**
      * A ground path: its points {x, y, z}, player end first, where its pillar stands (null: none),
@@ -98,6 +111,9 @@ public final class GuideLine {
     private static final float TAIL_ALPHA = 1 / 3f;
 
     private static int tick;
+    /** The last route search (null: none yet) and the last error's message (null: none), for /guide. */
+    private static volatile Search lastSearch;
+    private static volatile String lastError;
     private static boolean failed;
     private static volatile Target target;
     /** The ground path drawn; replaced (never changed) by the tick or the route thread. */
@@ -205,7 +221,7 @@ public final class GuideLine {
                 bestD = d;
             }
         }
-        return best == null ? null : new Target(best.x() + 0.5, best.y(), best.z() + 0.5);
+        return best == null ? null : new Target(best.x() + 0.5, best.y(), best.z() + 0.5, best.name(), bestOurs);
     }
 
     /** Every {@link #EVERY} ticks: the target, and when a ground path is wanted, its search. */
@@ -261,8 +277,56 @@ public final class GuideLine {
         } catch (Throwable e) {
             failed = true;
             clear();
+            lastError = e.toString();
             System.out.println("[WynnLabs] guide line failed, off until restart: " + e);
         }
+    }
+
+    /** /guide: the setting, the target, the mode and the last route search, to see why a route fails. */
+    public static JsonObject json() {
+        JsonObject o = new JsonObject();
+        o.addProperty("setting", Settings.on("guideLine"));
+        o.addProperty("broken", failed);
+        Target t = target;
+        if (t == null) {
+            o.add("target", null);
+        } else {
+            JsonObject j = new JsonObject();
+            j.addProperty("x", t.x());
+            j.addProperty("y", t.y());
+            j.addProperty("z", t.z());
+            j.addProperty("label", t.label());
+            j.addProperty("ours", t.ours());
+            o.add("target", j);
+        }
+        Player p = Minecraft.getInstance().player;
+        o.addProperty("mode", t == null || p == null ? "none" : airLine && airborne(p) ? "air" : "ground");
+        o.addProperty("routed", routed != null && routed.equals(t));
+        o.addProperty("points", ground.points().size());
+        Search s = lastSearch;
+        if (s == null) {
+            o.add("search", null);
+        } else {
+            JsonObject j = new JsonObject();
+            j.addProperty("reached", s.reached());
+            j.addProperty("nodes", s.nodes());
+            j.addProperty("expanded", s.expanded());
+            if (s.spot() == null) {
+                j.add("lastSpot", null);
+            } else {
+                JsonArray a = new JsonArray();
+                for (int v : s.spot()) {
+                    a.add(v);
+                }
+                j.add("lastSpot", a);
+            }
+            j.addProperty("box", s.box());
+            j.addProperty("budget", s.budget());
+            j.addProperty("millis", s.millis());
+            o.add("search", j);
+        }
+        o.addProperty("error", lastError);
+        return o;
     }
 
     private static void clear() {
@@ -287,7 +351,12 @@ public final class GuideLine {
             int tx = (int) Math.floor(t.x());
             int tz = (int) Math.floor(t.z());
             int ty = GuidePath.feet(w, tx, tz, (int) Math.floor(t.y()));
+            long t0 = System.nanoTime();
             GuidePath.Route r = GuidePath.find(w, sx, sy, sz, tx, ty, tz, box, BUDGET);
+            long millis = (System.nanoTime() - t0) / 1_000_000;
+            lastSearch = r == null ? new Search(false, 0, 0, null, box, BUDGET, millis)
+                    : new Search(r.reached(), r.nodes().size(), r.expanded(), r.nodes().get(r.nodes().size() - 1),
+                            box, BUDGET, millis);
             if (r == null || r.nodes().size() < 2 || !t.equals(target)) {
                 return;                                 // the straight line stays
             }
@@ -305,6 +374,7 @@ public final class GuideLine {
             }
         } catch (Throwable e) {
             // a failed search leaves the straight line; the next one tries again
+            lastError = e.toString();
         }
     }
 
@@ -329,7 +399,7 @@ public final class GuideLine {
                 }
                 for (int y = fromY; y >= fromY - GuidePath.DROP; y--) {
                     BlockState feet = chunk.getBlockState(pos.set(x, y, z));
-                    if (feet.blocksMotion() || !feet.getFluidState().isEmpty()) {
+                    if (!passable(chunk, pos, feet) || !feet.getFluidState().isEmpty()) {
                         return GuidePath.NONE;
                     }
                     if (y < fromY - 3 && standable(chunk, pos, x, y, z)) {
@@ -349,22 +419,45 @@ public final class GuideLine {
             @Override
             public double cost(int x, int y, int z) {
                 ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
-                return chunk != null && road(chunk.getBlockState(pos.set(x, y - 1, z))) ? GuidePath.ROAD : 1;
+                if (chunk == null) {
+                    return 1;
+                }
+                // through a door or gate: to be opened, so an open way is preferred
+                if (door(chunk.getBlockState(pos.set(x, y, z))) || door(chunk.getBlockState(pos.set(x, y + 1, z)))) {
+                    return DOOR;
+                }
+                return road(chunk.getBlockState(pos.set(x, y - 1, z))) ? GuidePath.ROAD : 1;
             }
         };
     }
 
-    /** Solid ground under feet height {@code y}, two free blocks from there, no water or lava at the feet. */
+    /**
+     * Solid ground under feet height {@code y}, two free blocks from there, no water or lava at the
+     * feet. A stair or slab is ground like any block: the feet go one higher, on top of it.
+     */
     private static boolean standable(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int y, int z) {
         BlockState feet = chunk.getBlockState(pos.set(x, y, z));
-        if (feet.blocksMotion() || !feet.getFluidState().isEmpty()) {
+        if (!passable(chunk, pos, feet) || !feet.getFluidState().isEmpty()) {
             return false;
         }
-        if (chunk.getBlockState(pos.set(x, y + 1, z)).blocksMotion()) {
+        if (!passable(chunk, pos.set(x, y + 1, z), chunk.getBlockState(pos))) {
             return false;
         }
         BlockState below = chunk.getBlockState(pos.set(x, y - 1, z));
         return below.blocksMotion() && below.getFluidState().isEmpty();
+    }
+
+    /**
+     * Whether the player gets through the block at {@code pos}: nothing to bump into, something
+     * thin (a carpet, a pressure plate, a flower pot), or a door, gate or trapdoor, open or closed.
+     */
+    private static boolean passable(ChunkAccess chunk, BlockPos pos, BlockState s) {
+        return !s.blocksMotion() || door(s) || s.getCollisionShape(chunk, pos).max(Direction.Axis.Y) <= THIN;
+    }
+
+    /** A door, fence gate or trapdoor: the player opens it. */
+    private static boolean door(BlockState s) {
+        return s.is(BlockTags.DOORS) || s.is(BlockTags.FENCE_GATES) || s.is(BlockTags.TRAPDOORS);
     }
 
     /** Feet height {@code y} in a ladder, vines or scaffolding, with room for the head. */
@@ -441,6 +534,7 @@ public final class GuideLine {
         } catch (Throwable e) {
             failed = true;                          // once broken, stay out of the frame loop
             clear();
+            lastError = e.toString();
             System.out.println("[WynnLabs] guide line failed, off until restart: " + e);
         } finally {
             if (buffers instanceof MultiBufferSource.BufferSource source) {

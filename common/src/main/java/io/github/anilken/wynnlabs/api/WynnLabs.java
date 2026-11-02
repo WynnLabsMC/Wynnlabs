@@ -675,6 +675,7 @@ public final class WynnLabs {
                 }
                 case "/questplan" -> send(ex, 200, onGameThread(QuestAdvisor::json));
                 case "/deaths" -> send(ex, 200, onGameThread(DeathCoach::json));
+                case "/guide" -> send(ex, 200, onGameThread(io.github.anilken.wynnlabs.ui.GuideLine::json));
                 case "/vault" -> send(ex, 200, onGameThread(Vault::json));
                 case "/ground" -> {
                     String q = ex.getRequestURI().getQuery();

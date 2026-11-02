@@ -311,6 +311,50 @@ class GuidePathTest {
         assertTrue(land != null && Math.max(Math.abs(land[0] - 5), Math.abs(land[2] - 5)) == 1);
     }
 
+    @Test
+    void aClosedDoorInAWallIsWalkedThrough() {
+        // a wall along x = 10 with one door at z = 12: the game's door counts as a way through,
+        // a step that costs 1.5 (it has to be opened)
+        Grid g = new Grid(64) {
+            @Override
+            public double cost(int x, int y, int z) {
+                return x == 10 && z == 12 ? 1.5 : 1;
+            }
+        };
+        for (int z = 0; z < 20; z++) {
+            if (z != 12) {
+                g.h[10][z] = N;
+            }
+        }
+        GuidePath.Route r = GuidePath.find(g, 3, 64, 12, 17, 64, 12, 64, 20_000);
+        assertTrue(r.reached());
+        assertTrue(r.nodes().stream().anyMatch(n -> n[0] == 10 && n[2] == 12));
+        assertTrue(r.expanded() > 0);
+        steps(g, r.nodes());
+    }
+
+    @Test
+    void aStairIsClimbedStepByStep() {
+        // a stair up 6 blocks along z = 5, one block a step, to a terrace at 70
+        Grid g = new Grid(64);
+        for (int x = 0; x < 20; x++) {
+            for (int z = 0; z < 20; z++) {
+                if (x >= 12) {
+                    g.h[x][z] = 70;
+                } else if (z != 5 && x >= 6) {
+                    g.h[x][z] = N;                          // the terrace's side wall
+                }
+            }
+        }
+        for (int x = 6; x <= 11; x++) {
+            g.h[x][5] = 64 + (x - 5);                       // 65 at x = 6 up to 70 at x = 11
+        }
+        GuidePath.Route r = GuidePath.find(g, 2, 64, 5, 16, 70, 5, 64, 20_000);
+        assertTrue(r.reached());
+        assertEquals(70, r.nodes().get(r.nodes().size() - 1)[1]);
+        steps(g, r.nodes());
+    }
+
     /** Every step of a route goes to a neighbouring column the grid allows from the last height. */
     private static void steps(Grid g, List<int[]> nodes) {
         for (int i = 1; i < nodes.size(); i++) {
