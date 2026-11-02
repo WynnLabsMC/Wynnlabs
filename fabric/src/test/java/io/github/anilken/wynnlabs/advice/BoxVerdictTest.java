@@ -92,6 +92,7 @@ class BoxVerdictTest {
         ItemView.Box box = new ItemView.Box(Slot.LEGGINGS, Tier.UNIQUE, 66, 70);
         BoxAdvice.Decision d = BoxAdvice.decide(box, Klass.SHAMAN, 44);
         assertEquals(Verdict.SELL, d.entry().verdict());
+        assertEquals(BoxRoutes.Route.BLACKSMITH, d.choice().route());     // never the Trade Market's reveal
         assertEquals(BoxVerdict.Label.SELL, BoxVerdict.of(box, Klass.SHAMAN, 44).label());
         // the same box one tier up is still weighed by its value
         ItemView.Box rare = new ItemView.Box(Slot.LEGGINGS, Tier.RARE, 66, 70);
