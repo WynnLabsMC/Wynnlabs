@@ -14,6 +14,7 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -55,8 +56,8 @@ class GuideDumpTest {
     }
 
     /**
-     * Every dump under {@code fixtures/guide/} is a dead end seen in the game: the route has to
-     * reach its target, or, where the target is past the dump's edge, walk out to that edge.
+     * Every dump under {@code fixtures/guide/} whose target lies inside it is walked to. (A dump
+     * whose target is past its edge has a test of its own.)
      */
     @Test
     void theDumpsFromTheGameAreWalkedThrough() throws IOException, URISyntaxException {
@@ -66,29 +67,89 @@ class GuideDumpTest {
         try (Stream<Path> s = Files.list(Path.of(dir.toURI()))) {
             files = s.filter(f -> f.toString().endsWith(".json") || f.toString().endsWith(".json.gz")).sorted().toList();
         }
-        assumeTrue(!files.isEmpty(), "no guide dumps yet");
         for (Path f : files) {
             String name = f.getFileName().toString();
             GuideDump d = GuideDumps.load("/fixtures/guide/" + name);
             assertNotNull(d.target, name + ": no target");
-            GuideTerrain w = GuideDumps.walkable(d);
-            int[] s = d.start();
             int tx = (int) Math.floor(d.target.get("x").getAsDouble());
             int tz = (int) Math.floor(d.target.get("z").getAsDouble());
-            int ty = GuidePath.feet(w, tx, tz, (int) Math.floor(d.target.get("y").getAsDouble()));
-            int box = d.settings.has("box") ? d.settings.get("box").getAsInt() : 192;
-            int budget = d.settings.has("budget") ? d.settings.get("budget").getAsInt() : 150_000;
-            GuidePath.Route r = GuidePath.find(w, s[0], s[1], s[2], tx, ty, tz, box, budget);
-            assertNotNull(r, name + ": nowhere to stand at the start");
-            boolean inside = tx >= d.x0 && tx < d.x0 + d.sx && tz >= d.z0 && tz < d.z0 + d.sz;
-            if (inside) {
-                assertTrue(r.reached(), name + ": not reached, stuck at " + r.stuck());
-            } else {
-                int[] last = r.nodes().get(r.nodes().size() - 1);
-                boolean edge = last[0] <= d.x0 + 1 || last[0] >= d.x0 + d.sx - 2
-                        || last[2] <= d.z0 + 1 || last[2] >= d.z0 + d.sz - 2;
-                assertTrue(edge, name + ": closed in short of the dump's edge, stuck at " + r.stuck());
+            if (tx >= d.x0 && tx < d.x0 + d.sx && tz >= d.z0 && tz < d.z0 + d.sz) {
+                GuidePath.Route r = route(d);
+                assertTrue(r.reached(), name + ": not reached, " + report(r));
             }
         }
+    }
+
+    /**
+     * The canyon west of Silent Expanse (a dump 128 blocks each way and 64 up and down): the
+     * guide line said "dead end" there, and it is one. Its open air, followed block by block
+     * from where the player can walk, never gets east of x 832 and leaves the dump only to the
+     * sky; the expedition's pin, 182 blocks east and under the mountain, is not reached on foot
+     * from here. So the route is closed in, says why, and the line ends at its last spot.
+     */
+    @Test
+    void theSilentExpanseCanyonIsClosedInAndSaysWhy() {
+        GuideDump d = GuideDumps.load("/fixtures/guide/silent-expanse-cave.json.gz");
+        GuidePath.Route r = route(d);
+        assertNotNull(r, "nowhere to stand at the start");
+        assertFalse(r.reached());
+        assertTrue(r.enclosed(), report(r));
+        assertTrue(r.columns() > 10_000, report(r));
+        assertEquals(GuidePath.STUCK, r.stuck().size());
+        for (GuidePath.Stuck st : r.stuck()) {
+            assertFalse(st.rejected().isEmpty(), report(r));
+        }
+        // no rule about what is walked on would open it: no open air leads east
+        assertEquals(832, eastmostAir(d, r.nodes().get(0)), report(r));
+    }
+
+    /** The route over a dump as the game searches it: the player's feet to the target's, the dump's box and budget. */
+    private static GuidePath.Route route(GuideDump d) {
+        GuideTerrain w = GuideDumps.walkable(d);
+        int[] s = d.start();
+        int tx = (int) Math.floor(d.target.get("x").getAsDouble());
+        int tz = (int) Math.floor(d.target.get("z").getAsDouble());
+        int ty = GuidePath.feet(w, tx, tz, (int) Math.floor(d.target.get("y").getAsDouble()));
+        int box = d.settings.has("box") ? d.settings.get("box").getAsInt() : 192;
+        int budget = d.settings.has("budget") ? d.settings.get("budget").getAsInt() : 150_000;
+        return GuidePath.find(w, s[0], s[1], s[2], tx, ty, tz, box, budget);
+    }
+
+    /** The last spot, the counts, and the stuck spots with why each neighbour was refused, one a line. */
+    private static String report(GuidePath.Route r) {
+        int[] last = r.nodes().get(r.nodes().size() - 1);
+        StringBuilder b = new StringBuilder("last spot " + last[0] + ", " + last[1] + ", " + last[2]
+                + "; expanded " + r.expanded() + ", enclosed " + r.enclosed() + ", columns " + r.columns());
+        for (GuidePath.Stuck st : r.stuck()) {
+            b.append("\n  ").append(st.x()).append(", ").append(st.y()).append(", ").append(st.z())
+                    .append(" ").append(st.rejected());
+        }
+        return b.toString();
+    }
+
+    /** The highest x of the open blocks joined face to face with {@code from}. */
+    private static int eastmostAir(GuideDump d, int[] from) {
+        java.util.BitSet seen = new java.util.BitSet(d.sx * d.sy * d.sz);
+        java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
+        q.add(from);
+        seen.set(index(d, from[0], from[1], from[2]));
+        int east = from[0];
+        int[][] faces = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+        while (!q.isEmpty()) {
+            int[] c = q.poll();
+            east = Math.max(east, c[0]);
+            for (int[] f : faces) {
+                int x = c[0] + f[0], y = c[1] + f[1], z = c[2] + f[2];
+                if (GuideTerrain.passable(d.at(x, y, z)) && !seen.get(index(d, x, y, z))) {
+                    seen.set(index(d, x, y, z));
+                    q.add(new int[] {x, y, z});
+                }
+            }
+        }
+        return east;
+    }
+
+    private static int index(GuideDump d, int x, int y, int z) {
+        return ((z - d.z0) * d.sx + (x - d.x0)) * d.sy + (y - d.y0);
     }
 }
