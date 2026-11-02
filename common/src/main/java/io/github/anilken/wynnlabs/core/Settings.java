@@ -31,7 +31,7 @@ public final class Settings {
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "healerAdvice", "deathCoach", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
             "feederHighlight", "miniQuests", "questGuides", "caveMapDone", "localApi", "apiWrite", "debug", "webFont", "menuResume",
-            "crowdMode"}) {
+            "crowdMode", "guideLine"}) {
             LABELS.put(k, "wynnlabs.setting." + k);
             DESC.put(k, "wynnlabs.setting_desc." + k);
         }
@@ -272,7 +272,7 @@ public final class Settings {
     static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "priceApi",
             "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "rideRefresh",
             "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint", "chestBeams", "gearCompactTooltip",
-            "crowdMode");
+            "crowdMode", "guideLine");
 
     public static boolean on(String key) {
         load();
