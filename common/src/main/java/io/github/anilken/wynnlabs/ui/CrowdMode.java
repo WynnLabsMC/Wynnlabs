@@ -100,9 +100,10 @@ public final class CrowdMode {
             return NUMBER.matcher(text).matches() && !text.isBlank() && far(e, Math.max(radius, 4));
         }
         if (e instanceof Display.ItemDisplay d) {
-            // a mob's body rides its invisible mob, a prop is no boat, your own summon stands under
-            // your label: all drawn; a spell effect stands on its own
-            if (e.isPassenger() || !vfx(d) || under(e, mine)) {
+            // a mob's body or a cosmetic rides something that is not a display (the invisible mob,
+            // a player), a prop is no boat, your own summon stands under your label: all drawn; a
+            // spell effect stands on its own or in a stack of displays riding each other
+            if (ridesSomethingElse(e) || !vfx(d) || under(e, mine)) {
                 return false;
             }
             if (under(e, summons)) {
@@ -123,6 +124,19 @@ public final class CrowdMode {
         }
         Minecraft mc = Minecraft.getInstance();
         return mc.player != null && (radius == 0 || mc.player.position().distanceToSqr(x, y, z) > radiusSq);
+    }
+
+    /** Whether the bottom of the entity's ride chain is something other than a display. */
+    private static boolean ridesSomethingElse(Entity e) {
+        Entity v = e.getVehicle();
+        int hops = 0;
+        while (v != null && hops++ < 8) {
+            if (!(v instanceof Display)) {
+                return true;
+            }
+            v = v.getVehicle();
+        }
+        return false;
     }
 
     /** A spell effect as Wynncraft draws them: a boat model, or an item display with nothing in it. */
