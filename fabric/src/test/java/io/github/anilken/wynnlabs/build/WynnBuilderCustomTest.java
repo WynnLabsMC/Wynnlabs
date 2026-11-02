@@ -68,7 +68,11 @@ class WynnBuilderCustomTest {
         WynnBuilderLink.Piece back = out.pieces().get(0);
         assertEquals(WynnBuilderLink.Kind.CUSTOM, back.kind());
         assertEquals(p.code(), back.code(), "the code's letters come back as written");
-        assertEquals(item, back.custom());
+        // the site reads a crafted weapon's neutral damage as one base number (it shows 0.9 to 1.1 of it):
+        // the range goes out as its middle, so the site's damage averages the game's; fire stays as it is
+        assertEquals(Map.of("neutral", "110-110", "fire", "5-9"), back.custom().damages());
+        assertEquals(new WynnBuilderCustom.Item(item.name(), item.slot(), item.level(), item.crafted(), item.klass(), item.reqs(),
+                item.health(), back.custom().damages(), item.speed(), item.powderSlots(), item.ids()), back.custom(), "the rest as it was");
 
         Damage.Piece before = WynnBuilderCustom.piece(item, "a");
         Damage.Piece after = WynnBuilderCustom.piece(back.custom(), "a");
@@ -102,6 +106,10 @@ class WynnBuilderCustomTest {
         assertEquals(item, WynnBuilderCustom.decode(code));
         assertEquals(item, WynnBuilderCustom.decode(code.substring(3)), "without the CI- prefix");
         assertNull(WynnBuilderCustom.decode("CI-1hello"), "the site's older text form");
+        // a custom weapon that is not crafted keeps its ranges exactly: the site reads them as they are
+        WynnBuilderCustom.Item plain = new WynnBuilderCustom.Item("Plain Spear", Slot.SPEAR, 44, false, null, List.of(0, 0, 0, 0, 0), 0,
+                Map.of("neutral", "100-120", "fire", "5-9"), "FAST", 2, Map.of());
+        assertEquals(plain, WynnBuilderCustom.decode(WynnBuilderCustom.encode(plain)));
         assertNull(WynnBuilderCustom.decode("CI-"));
     }
 

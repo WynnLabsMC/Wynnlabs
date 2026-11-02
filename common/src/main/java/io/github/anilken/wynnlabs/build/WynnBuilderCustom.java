@@ -25,6 +25,11 @@ import java.util.TreeSet;
  * (the name, damage ranges "100-120") as a 16-bit letter count and the letters (Bootstring, the
  * site's parameters), numbers as a 5-bit width minus one and the value signed in that width;
  * then 1 to 6 zero bits to end on a whole letter. Nothing here acts in the game.
+ *
+ * <p>A crafted weapon's neutral damage is one number on the site: it reads the text up to its
+ * dash as the base and shows 0.9 to 1.1 of it. So the neutral range goes out as its middle
+ * ("110-110" for 100-120), the site's damage then averages what the game's does, and a crafted
+ * range comes back the way the site reads it.
  */
 public final class WynnBuilderCustom {
 
@@ -225,6 +230,9 @@ public final class WynnBuilderCustom {
         fields.put("type", type);
         for (int i = 0; i < DAMAGE.length; i++) {
             String d = it.damages().get(Damage.ELEMENTS[i]);
+            if (d != null && i == 0 && it.crafted()) {
+                d = base(d);
+            }
             if (d != null && !d.equals("0-0")) {
                 fields.put(DAMAGE[i], d);
             }
@@ -341,7 +349,7 @@ public final class WynnBuilderCustom {
         for (int i = 0; i < DAMAGE.length; i++) {
             Object d = fields.get(DAMAGE[i]);
             if (d instanceof String s && !s.equals("0-0")) {
-                damages.put(Damage.ELEMENTS[i], s);
+                damages.put(Damage.ELEMENTS[i], i == 0 && "Crafted".equals(fields.get("tier")) ? siteBase(s) : s);
             }
         }
         Map<String, Integer> ids = new LinkedHashMap<>();
@@ -386,6 +394,19 @@ public final class WynnBuilderCustom {
 
     private static int number(Map<String, Object> fields, String id) {
         return fields.get(id) instanceof Integer v ? v : 0;
+    }
+
+    /** A crafted weapon's neutral range as the one number the site reads: its middle, "110-110". */
+    private static String base(String range) {
+        int[] r = range(range);
+        int mid = Math.floorDiv(r[0] + r[1], 2);
+        return mid + "-" + mid;
+    }
+
+    /** A crafted neutral range as the site reads it: the number before the dash, both ends ("100-120" is "100-100"). */
+    private static String siteBase(String range) {
+        int v = range(range)[0];
+        return v + "-" + v;
     }
 
     /** "100-120" (a negative end may lead: "-5-3") as {low, high}. */
