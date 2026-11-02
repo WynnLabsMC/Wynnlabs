@@ -126,4 +126,34 @@ class GuideLineTest {
         }
         assertEquals(1 + GuideLine.PULSE, GuideLine.pulse(GuideLine.PULSE_SECONDS / 4), 1e-6);
     }
+
+    @Test
+    void aStaircaseIsEasedIntoARampAndNothingSinks() {
+        // three steps a block high and a block deep, a point every 0.25 blocks
+        double[] y = new double[16];
+        for (int i = 0; i < y.length; i++) {
+            y[i] = 64 + Math.min(3, i / 4);
+        }
+        double[] eased = GuideLine.ease(y, 0.25);
+        for (int i = 0; i < y.length; i++) {
+            assertTrue(eased[i] >= y[i] - E, "below the ground at " + i);
+            if (i > 0) {
+                // never steeper than the stair's run: a chevron lies on it, it does not stand up
+                assertTrue(Math.abs(eased[i] - eased[i - 1]) <= 0.25 * GuideLine.EASE + E, "too steep at " + i);
+            }
+        }
+        // flat ground stays as it is
+        double[] flat = GuideLine.ease(new double[] {64, 64, 64, 64}, 0.25);
+        for (double v : flat) {
+            assertEquals(64, v, E);
+        }
+    }
+
+    @Test
+    void theChevronsFadeFromCyanToWhite() {
+        assertEquals(0x7FD8FF, GuideLine.mix(0x7FD8FF, 0xFFFFFF, 0));
+        assertEquals(0xFFFFFF, GuideLine.mix(0x7FD8FF, 0xFFFFFF, 1));
+        int half = GuideLine.mix(0x000000, 0xFFFFFF, 0.5f);
+        assertEquals(0x80, half >> 16 & 0xFF);
+    }
 }

@@ -57,18 +57,25 @@ public final class GuideLine {
     static final double CAP = 300;
     /** How far above the ground the strip lies. */
     static final double LIFT = 0.08;
-    /** Dashes (chevrons) this long with gaps this long, in blocks; they flow this many blocks a second. */
-    static final double DASH = 1.0;
-    static final double GAP = 0.6;
-    static final double FLOW = 1.5;
+    /** Dashes (chevrons) this long and wide with gaps this long, in blocks; they flow this many blocks a second. */
+    static final double DASH = 1.3;
+    static final float DASH_WIDTH = 0.6f;
+    static final double GAP = 0.5;
+    static final double FLOW = 2.0;
     /** At most this many dashes, the nearest the player. */
     static final int DASHES = 64;
-    /** The walkable path is walked in steps this long for the dashes, ... */
+    /** The walkable path is walked in steps this long, laid on the block tops under it, ... */
     static final double SAMPLE = 0.25;
-    /** ... each lying this far above the block top under it. */
-    static final double DASH_LIFT = 0.06;
+    /** ... with a step's edge eased into a slope this steep (a block up a block along: a stair's run). */
+    static final double EASE = 1.0;
+    /** The base ribbon lies this far above the ground and the chevrons this far, riding on it. */
+    static final float RIBBON_LIFT = 0.04f;
+    static final float DASH_LIFT = 0.07f;
+    /** The base ribbon: its width and opacity. */
+    private static final float RIBBON_WIDTH = 0.5f;
+    private static final float RIBBON_ALPHA = 0.28f;
     /** The brightness pulse: this much up and down, over this many seconds. */
-    static final double PULSE = 0.15;
+    static final double PULSE = 0.2;
     static final double PULSE_SECONDS = 1.2;
     /** The glowing disc under the pillar: its radius in blocks. */
     private static final double DISC = 0.8;
@@ -82,9 +89,13 @@ public final class GuideLine {
     private static final int LAND_REACH = 3;
     /** Height of the pillar at the end of the path. */
     private static final float PILLAR = 6f;
-    /** Light cyan for the body, glow and pillar; near white for the dashes' core. */
+    /** Light cyan for the glow, pillar and disc; the chevrons go from {@link #TAIL} to white at the tip. */
     private static final int BODY = 0x8FDFFF;
+    private static final int TAIL = 0x7FD8FF;
+    private static final int TIP = 0xFFFFFF;
     private static final int CORE = 0xEAFBFF;
+    /** The base ribbon under the chevrons. */
+    private static final int RIBBON = 0x5FC8FF;
     /** Ticks between two looks at the target. */
     private static final int EVERY = 10;
     /** Ticks between two route searches. */
@@ -730,9 +741,28 @@ public final class GuideLine {
     }
 
     /**
+     * Heights {@code y} of points {@code step} blocks apart, with every rise and drop eased into a
+     * slope of {@link #EASE}: each point is at least as high as any point near it less the slope
+     * times the distance. A staircase becomes the line over its step edges, so a chevron lies on
+     * the stair's run instead of standing up at a step; nothing goes below the real ground.
+     */
+    static double[] ease(double[] y, double step) {
+        int reach = (int) Math.ceil(1.5 / step);
+        double[] out = new double[y.length];
+        for (int i = 0; i < y.length; i++) {
+            double h = y[i];
+            for (int j = Math.max(0, i - reach); j <= Math.min(y.length - 1, i + reach); j++) {
+                h = Math.max(h, y[j] - EASE * step * Math.abs(i - j));
+            }
+            out[i] = h;
+        }
+        return out;
+    }
+
+    /**
      * Every 2 ticks: the walkable part of the ground path from the player's feet, a point every
-     * {@link #SAMPLE} blocks for the nearest {@link #DASHES} dashes, each laid on the top of the
-     * block it is over (a slab, a stair step) and lifted {@link #DASH_LIFT}.
+     * {@link #SAMPLE} blocks, each on the top of the block it is over (a slab, a stair step), the
+     * step edges eased ({@link #ease}).
      */
     private static void buildTrack(Minecraft mc) {
         Path g = ground;
@@ -747,13 +777,13 @@ public final class GuideLine {
             track = null;
             return;
         }
-        Track raw = resample(fromFeet(pts.subList(0, tail), p.getX(), p.getZ()), SAMPLE, DASHES * (DASH + GAP) + DASH);
+        Track raw = resample(fromFeet(pts.subList(0, tail), p.getX(), p.getZ()), SAMPLE, CAP);
         double[] y = raw.y().clone();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int i = 0; i < y.length; i++) {
-            y[i] = surface(mc.level, pos, raw.x()[i], raw.z()[i], y[i] - LIFT) + DASH_LIFT;
+            y[i] = surface(mc.level, pos, raw.x()[i], raw.z()[i], y[i] - LIFT);
         }
-        track = new Track(raw.s(), raw.x(), y, raw.z(), raw.toEnd());
+        track = new Track(raw.s(), raw.x(), ease(y, SAMPLE), raw.z(), raw.toEnd());
     }
 
     /**
@@ -804,7 +834,7 @@ public final class GuideLine {
                 double len = dist * k;
                 Track air = new Track(new double[] {0, len}, new double[] {me.x, me.x + dx * k},
                         new double[] {me.y, me.y + dy * k}, new double[] {me.z, me.z + dz * k}, dist);
-                chevrons(pose, quads, c, air, seconds, false, glow);
+                chevrons(pose, quads, c, air, seconds, false, glow, 0);
                 if (k == 1) {
                     Beams.draw(pose, quads, (float) (t.x() - c.x), (float) (t.y() + 1 - c.y), (float) (t.z() - c.z),
                             PILLAR, BODY, 1f);
@@ -812,7 +842,8 @@ public final class GuideLine {
             }
             Track tr = track;
             if (tr != null) {
-                chevrons(pose, quads, c, tr, seconds, true, glow);
+                ribbon(pose, quads, c, tr);
+                chevrons(pose, quads, c, tr, seconds, true, glow, DASH_LIFT);
             }
             Path g = ground;
             List<double[]> pts = g.points();
@@ -855,19 +886,59 @@ public final class GuideLine {
     }
 
     /**
+     * The base ribbon along the whole track, under the chevrons: one strip through every point,
+     * each point's edge vertices shared with the next quad so the strip runs on unbroken round the
+     * turns, every point at its own ground height.
+     */
+    private static void ribbon(PoseStack pose, VertexConsumer v, Vec3 c, Track t) {
+        double[] s = t.s();
+        int n = s.length;
+        if (n < 2) {
+            return;
+        }
+        int r = RIBBON >> 16 & 0xFF;
+        int g = RIBBON >> 8 & 0xFF;
+        int b = RIBBON & 0xFF;
+        var e = pose.last();
+        float[] prev = null;
+        float prevX = 0, prevY = 0, prevZ = 0;
+        int prevA = 0;
+        for (int i = 0; i < n; i++) {
+            double[] pt = {t.x()[i], t.y()[i], t.z()[i]};
+            float[] o = side(t, s[i], pt, c, true, RIBBON_WIDTH / 2);
+            float x = (float) (pt[0] - c.x), y = (float) (pt[1] - c.y) + RIBBON_LIFT, z = (float) (pt[2] - c.z);
+            int a = Math.round(255 * RIBBON_ALPHA * nearFade(s[i]));
+            if (prev != null && (a > 0 || prevA > 0)) {
+                v.addVertex(e, prevX - prev[0], prevY - prev[1], prevZ - prev[2]).setColor(r, g, b, prevA);
+                v.addVertex(e, prevX + prev[0], prevY + prev[1], prevZ + prev[2]).setColor(r, g, b, prevA);
+                v.addVertex(e, x + o[0], y + o[1], z + o[2]).setColor(r, g, b, a);
+                v.addVertex(e, x - o[0], y - o[1], z - o[2]).setColor(r, g, b, a);
+            }
+            prev = o;
+            prevX = x;
+            prevY = y;
+            prevZ = z;
+            prevA = a;
+        }
+    }
+
+    /**
      * The flowing chevrons along a track: each a narrow tail widening to its broadest point and
-     * closing to a tip toward the target, its three stations placed by arc length so a dash bends
-     * with the path at a turn. Three layers: a wide soft glow, the body, a bright thin core. Flat
-     * on the ground with {@code flat}, else turned to face the camera.
+     * closing to a tip toward the target, its three stations placed by arc length and at the
+     * track's (eased) height there, so a dash lies flat on the ground, tilts with a stair's run
+     * and bends with the path at a turn. Three layers: a wide soft glow, the body (light cyan at
+     * the tail to white at the tip) and a bright thin core. Flat on the ground with {@code flat},
+     * else turned to face the camera; {@code lift} above the track.
      */
     private static void chevrons(PoseStack pose, VertexConsumer v, Vec3 c, Track t, double seconds,
-                                 boolean flat, float glow) {
+                                 boolean flat, float glow, float lift) {
         double[] centres = centres(t.toEnd(), t.length(), seconds);
         for (int layer = 0; layer < 3; layer++) {
-            float width = layer == 0 ? 0.9f : layer == 1 ? 0.45f : 0.12f;
-            float alpha = (layer == 0 ? 0.12f : layer == 1 ? 0.55f : 0.9f) * glow;
-            int rgb = layer == 2 ? CORE : BODY;
-            float lift = layer * 0.002f;
+            float width = layer == 0 ? 1.1f : layer == 1 ? DASH_WIDTH : 0.12f;
+            float alpha = (layer == 0 ? 0.3f : layer == 1 ? 0.7f : 1f) * glow;
+            int back = layer == 0 ? TAIL : layer == 1 ? TAIL : CORE;
+            int front = layer == 0 ? TAIL : TIP;
+            float up = lift + layer * 0.003f;
             for (double s : centres) {
                 float fade = nearFade(s - DASH / 2) * alpha;
                 if (fade < 0.01f) {
@@ -879,24 +950,36 @@ public final class GuideLine {
                 float[] ot = side(t, s - DASH / 2, tail, c, flat, width * 0.15f);
                 float[] om = side(t, s + DASH * 0.1, mid, c, flat, width * 0.5f);
                 int a = Math.round(255 * Math.min(1, fade));
+                int cb = back;
+                int cm = mix(back, front, 0.6f);
+                int cf = front;
                 var e = pose.last();
-                float tx = (float) (tail[0] - c.x), ty = (float) (tail[1] - c.y) + lift, tz = (float) (tail[2] - c.z);
-                float mx = (float) (mid[0] - c.x), my = (float) (mid[1] - c.y) + lift, mz = (float) (mid[2] - c.z);
-                float px = (float) (tip[0] - c.x), py = (float) (tip[1] - c.y) + lift, pz = (float) (tip[2] - c.z);
-                int r = rgb >> 16 & 0xFF;
-                int g = rgb >> 8 & 0xFF;
-                int b = rgb & 0xFF;
+                float tx = (float) (tail[0] - c.x), ty = (float) (tail[1] - c.y) + up, tz = (float) (tail[2] - c.z);
+                float mx = (float) (mid[0] - c.x), my = (float) (mid[1] - c.y) + up, mz = (float) (mid[2] - c.z);
+                float px = (float) (tip[0] - c.x), py = (float) (tip[1] - c.y) + up, pz = (float) (tip[2] - c.z);
                 // tail to broadest point, then broadest point to the tip (the last two vertices meet)
-                v.addVertex(e, tx - ot[0], ty - ot[1], tz - ot[2]).setColor(r, g, b, a);
-                v.addVertex(e, tx + ot[0], ty + ot[1], tz + ot[2]).setColor(r, g, b, a);
-                v.addVertex(e, mx + om[0], my + om[1], mz + om[2]).setColor(r, g, b, a);
-                v.addVertex(e, mx - om[0], my - om[1], mz - om[2]).setColor(r, g, b, a);
-                v.addVertex(e, mx - om[0], my - om[1], mz - om[2]).setColor(r, g, b, a);
-                v.addVertex(e, mx + om[0], my + om[1], mz + om[2]).setColor(r, g, b, a);
-                v.addVertex(e, px, py, pz).setColor(r, g, b, a);
-                v.addVertex(e, px, py, pz).setColor(r, g, b, a);
+                vertex(v, e, tx - ot[0], ty - ot[1], tz - ot[2], cb, a);
+                vertex(v, e, tx + ot[0], ty + ot[1], tz + ot[2], cb, a);
+                vertex(v, e, mx + om[0], my + om[1], mz + om[2], cm, a);
+                vertex(v, e, mx - om[0], my - om[1], mz - om[2], cm, a);
+                vertex(v, e, mx - om[0], my - om[1], mz - om[2], cm, a);
+                vertex(v, e, mx + om[0], my + om[1], mz + om[2], cm, a);
+                vertex(v, e, px, py, pz, cf, a);
+                vertex(v, e, px, py, pz, cf, a);
             }
         }
+    }
+
+    private static void vertex(VertexConsumer v, PoseStack.Pose e, float x, float y, float z, int rgb, int a) {
+        v.addVertex(e, x, y, z).setColor(rgb >> 16 & 0xFF, rgb >> 8 & 0xFF, rgb & 0xFF, a);
+    }
+
+    /** The colour {@code k} of the way from {@code a} to {@code b}. */
+    static int mix(int a, int b, float k) {
+        int r = Math.round((a >> 16 & 0xFF) + ((b >> 16 & 0xFF) - (a >> 16 & 0xFF)) * k);
+        int g = Math.round((a >> 8 & 0xFF) + ((b >> 8 & 0xFF) - (a >> 8 & 0xFF)) * k);
+        int bl = Math.round((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * k);
+        return r << 16 | g << 8 | bl;
     }
 
     /**
@@ -930,7 +1013,7 @@ public final class GuideLine {
     /** A soft glowing disc on the ground at the end of the path, brightest in the middle. */
     private static void disc(PoseStack pose, VertexConsumer v, Vec3 c, double[] e, float glow) {
         float cx = (float) (e[0] - c.x);
-        float cy = (float) (e[1] - LIFT + DASH_LIFT - c.y);
+        float cy = (float) (e[1] - LIFT + RIBBON_LIFT - c.y);
         float cz = (float) (e[2] - c.z);
         int r = BODY >> 16 & 0xFF;
         int g = BODY >> 8 & 0xFF;
