@@ -5344,13 +5344,6 @@
    "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
   },
   {
-   "name": "Molten Heights",
-   "x": 965,
-   "z": -5305,
-   "level": 90,
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
    "name": "Pigmen's Ravine",
    "x": -875,
    "z": -1370,
@@ -5426,13 +5419,6 @@
    "z": -360,
    "level": 45,
    "source": "https://wynncraft.wiki.gg/wiki/The_House_of_Twain_(Location)"
-  },
-  {
-   "name": "The Moon",
-   "x": 1215,
-   "z": -4935,
-   "level": 96,
-   "source": "https://wynncraft.wiki.gg/wiki/The_Moon"
   },
   {
    "name": "The Silent Road",
@@ -5605,90 +5591,6 @@
  ],
  "corridors": [
   {
-   "name": "Lower Molten Heights",
-   "from": [
-    1430,
-    -5000
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
-  },
-  {
-   "name": "Lower Molten Heights",
-   "from": [
-    1185,
-    -5020
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
-  },
-  {
-   "name": "Molten Heights",
-   "from": [
-    965,
-    -5305
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
-   "name": "Molten Heights",
-   "from": [
-    1430,
-    -5000
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
-   "name": "Molten Heights",
-   "from": [
-    1185,
-    -5020
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
-   "name": "Sky Islands",
-   "from": [
-    1430,
-    -5000
-   ],
-   "to": [
-    1200,
-    -4750
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Sky_Islands"
-  },
-  {
-   "name": "Sky Islands",
-   "from": [
-    1185,
-    -5020
-   ],
-   "to": [
-    1200,
-    -4750
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Sky_Islands"
-  },
-  {
    "name": "The Silent Road",
    "from": [
     604,
@@ -5817,6 +5719,54 @@
    "to": [
     1253,
     -5283
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -595,
+    -601
+   ],
+   "to": [
+    -651,
+    -543
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -773,
+    -663
+   ],
+   "to": [
+    -816,
+    -622
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -944,
+    -1594
+   ],
+   "to": [
+    -1000,
+    -1593
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -1652,
+    -595
+   ],
+   "to": [
+    -1617,
+    -596
    ],
    "source": "manual"
   }
