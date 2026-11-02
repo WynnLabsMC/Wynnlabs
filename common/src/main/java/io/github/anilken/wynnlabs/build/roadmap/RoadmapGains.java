@@ -108,8 +108,12 @@ final class RoadmapGains {
                 }
                 lines.addAll(why(now, with, m));
                 against.put(e.getKey(), new Roadmap.Against(worn, now, slot));
-            } else if (nowOk && backOk) {
-                // its share of the set: what the set loses without it, in per cent of what you wear
+            } else if (nowOk && backOk && full.result().objective() > back.result().objective()) {
+                // its share of the set: what the set loses without it, in per cent of what you wear.
+                // Only a share it adds: a set that does better with what you wear there gives the
+                // pick no number, or a small loss over a weak build worn now reads as more than all
+                // of it (a Warrior in a relik it cannot use: Downfall at Lv 100 "-112 %", the set
+                // 70827 against 71320 with Precious, over 441 worn)
                 double unit = now.result().objective();
                 out.put(e.getKey(), (full.result().objective() - back.result().objective()) / unit * 100);
                 lines.add(L.t("wynnlabs.road.why_together", m));

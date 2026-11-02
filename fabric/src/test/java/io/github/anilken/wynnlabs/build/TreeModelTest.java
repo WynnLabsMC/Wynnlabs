@@ -219,16 +219,19 @@ class TreeModelTest {
         List<Roadmap.Step> steps = Roadmap.build();
         assumeTrue(steps.size() > 2, "no road map");
         int checked = 0;
+        int[] real = Tomes.real(io.github.anilken.wynnlabs.game.GameState.current());
         for (Roadmap.Step s : steps) {
             if (s.set() == null || s.build().isEmpty() || s.level() == 44
                     || run.at(s.level()).key().equals(run.at(44).key())) {
                 continue;
             }
             int earned = Math.max(0, (Math.min(s.level(), 101) - 1) * 2);
-            double own = TreeModel.with(run.at(s.level()),
-                    () -> Build.allocateBest(s.build(), s.level(), earned)).result().objective();
-            double asNow = TreeModel.with(run.at(44),
-                    () -> Build.allocateBest(s.build(), s.level(), earned)).result().objective();
+            // with the tome points the milestone was scored with (a guild tome assumed ahead from Lv 100)
+            Tomes.Scope tomes = Tomes.forMilestone(real, s.level(), 44);
+            double own = Tomes.with(tomes, () -> TreeModel.with(run.at(s.level()),
+                    () -> Build.allocateBest(s.build(), s.level(), earned))).result().objective();
+            double asNow = Tomes.with(tomes, () -> TreeModel.with(run.at(44),
+                    () -> Build.allocateBest(s.build(), s.level(), earned))).result().objective();
             assertEquals(s.set().result().objective(), own, Math.abs(own) * 1e-9, "Lv " + s.level());
             assertNotEquals(own, asNow, "Lv " + s.level() + " scored as with today's tree");
             checked++;
