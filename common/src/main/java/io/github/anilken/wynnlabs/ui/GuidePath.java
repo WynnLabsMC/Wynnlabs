@@ -26,6 +26,10 @@ final class GuidePath {
     static final int REACH_Y = 2;
     /** A block of height difference weighs this much in the distance estimate. */
     static final double H_Y = 0.6;
+    /** Deepest step down (no fall damage in Wynncraft): off a roof or ledge to the ground. */
+    static final int DROP = 24;
+    /** A step down deeper than a walk (3) costs this much more a block, so stairs still win. */
+    static final double DROP_COST = 0.15;
     /** A step onto a road or stair costs this much of a plain one, so routes keep to roads. */
     static final double ROAD = 0.7;
     /**
@@ -40,7 +44,8 @@ final class GuidePath {
         /**
          * The feet height to stand at in column ({@code x}, {@code z}) when stepping there from
          * feet height {@code fromY}: solid ground below, two free blocks, no water or lava, at most
-         * one block up and three down; {@link #NONE} when there is none (or the column is unknown).
+         * one block up and three down, or deeper (down to {@link #DROP}) where the column below is
+         * open all the way; {@link #NONE} when there is none (or the column is unknown).
          */
         int stand(int x, int z, int fromY);
 
@@ -159,7 +164,9 @@ final class GuidePath {
                 if (ny == NONE) {
                     continue;
                 }
-                double g = n.g() + (diagonal ? DIAG : 1) * w.cost(nx, ny, nz) + (ny > n.y() ? 0.5 : 0);
+                int drop = n.y() - ny;
+                double g = n.g() + (diagonal ? DIAG : 1) * w.cost(nx, ny, nz) + (ny > n.y() ? 0.5 : 0)
+                        + (drop > 3 ? DROP_COST * drop : 0);
                 push(open, best, n, nx, ny, nz, g, tx, ty, tz);
             }
             for (int dy = -1; dy <= 1; dy += 2) {
@@ -276,11 +283,16 @@ final class GuidePath {
         return out;
     }
 
-    /** Octile distance (the walking length with diagonal steps and no obstacles) plus {@link #H_Y} a block of height. */
+    /**
+     * Octile distance (the walking length with diagonal steps and no obstacles) plus {@link #H_Y} a
+     * block of height beyond what that walk can climb or descend anyway (a stair or slope covers a
+     * block of height a step), so a stair down is not judged worse than jumping off.
+     */
     static double h(int x, int y, int z, int tx, int ty, int tz) {
         int dx = Math.abs(tx - x);
         int dz = Math.abs(tz - z);
-        return Math.max(dx, dz) + (DIAG - 1) * Math.min(dx, dz) + H_Y * Math.abs(ty - y);
+        double walk = Math.max(dx, dz) + (DIAG - 1) * Math.min(dx, dz);
+        return walk + H_Y * Math.max(0, Math.abs(ty - y) - walk);
     }
 
     private static double flat(int x, int z, int tx, int tz) {

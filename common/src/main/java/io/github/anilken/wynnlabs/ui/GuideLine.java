@@ -4,9 +4,11 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.Wyn;
+import io.github.anilken.wynnlabs.model.MenuKind;
 import io.github.anilken.wynnlabs.model.Pin;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
@@ -86,12 +88,23 @@ public final class GuideLine {
     /** The target being led to (the pin's block centre). */
     record Target(double x, double y, double z) {}
 
-    /** A ground path: its points {x, y, z}, player end first, and where its pillar stands (null: none). */
-    record Path(List<double[]> points, double[] end) {}
+    /**
+     * A ground path: its points {x, y, z}, player end first, where its pillar stands (null: none),
+     * and the index from which the points are only the straight guess past the last reachable spot
+     * (the size when the route reaches the target).
+     */
+    record Path(List<double[]> points, double[] end, int tail) {}
 
-    private static final Path NO_PATH = new Path(List.of(), null);
+    private static final Path NO_PATH = new Path(List.of(), null, 0);
+    /** The straight guess past the route is drawn at this share of the opacity, still. */
+    private static final float TAIL_ALPHA = 1 / 3f;
+    /** Pins this close to the player (flat, and in height) go when a chest is opened. */
+    private static final double CHEST_RADIUS = 5;
+    private static final double CHEST_HEIGHT = 4;
 
     private static int tick;
+    /** A chest's window was open last tick. */
+    private static boolean chestOpen;
     private static boolean failed;
     private static volatile Target target;
     /** The ground path drawn; replaced (never changed) by the tick or the route thread. */
@@ -204,6 +217,7 @@ public final class GuideLine {
 
     /** Every {@link #EVERY} ticks: the target, and when a ground path is wanted, its search. */
     public static void onTick(Minecraft mc) {
+        chestCheck(mc);
         if (++tick % EVERY != 0) {
             return;
         }
@@ -243,7 +257,7 @@ public final class GuideLine {
             if (changed || routed == null) {
                 // the straight line at once; the route replaces it when found
                 List<double[]> line = sample(sx + 0.5, sy, sz + 0.5, t.x(), t.z(), STEP, CAP, heights(level));
-                ground = new Path(List.copyOf(line), line.get(line.size() - 1));
+                ground = new Path(List.copyOf(line), line.get(line.size() - 1), line.size());
             }
             if (changed || tick % ROUTE_EVERY == 0) {
                 if (changed) {
@@ -257,6 +271,38 @@ public final class GuideLine {
             clear();
             System.out.println("[WynnLabs] guide line failed, off until restart: " + e);
         }
+    }
+
+    /**
+     * When a chest is opened (a loot chest, a reward chest), the waypoints next to the player go
+     * from the map: the one being led to is done. Whatever the guideLine setting.
+     */
+    private static void chestCheck(Minecraft mc) {
+        boolean open = false;
+        try {
+            if (mc.player != null && mc.screen instanceof AbstractContainerScreen<?>) {
+                MenuKind kind = Wyn.container();
+                open = kind != null && kind.type().endsWith("ChestContainer");
+            }
+            if (open && !chestOpen) {
+                var pins = Wyn.waypoints();
+                if (pins != null) {
+                    for (Pin m : pins.all()) {
+                        double dx = m.x() + 0.5 - mc.player.getX();
+                        double dz = m.z() + 0.5 - mc.player.getZ();
+                        if (dx * dx + dz * dz <= CHEST_RADIUS * CHEST_RADIUS
+                                && Math.abs(m.y() - mc.player.getY()) <= CHEST_HEIGHT) {
+                            Waypoints.remove(pins, m);
+                            target = null;
+                            ground = NO_PATH;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignored) {
+            // the map pins must never break the tick
+        }
+        chestOpen = open;
     }
 
     private static void clear() {
@@ -288,12 +334,13 @@ public final class GuideLine {
             List<double[]> pts = new ArrayList<>(GuidePath.points(w, GuidePath.smooth(w, r.nodes(), 24), LIFT));
             double[] end = pts.get(pts.size() - 1);
             double walked = Math.hypot(end[0] - sx, end[2] - sz);
+            int tail = pts.size();
             if (!r.reached() && walked < CAP) {
                 List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
                 pts.addAll(rest.subList(1, rest.size()));
             }
             if (t.equals(target)) {
-                ground = new Path(List.copyOf(pts), end);
+                ground = new Path(List.copyOf(pts), end, tail);
                 routed = t;
             }
         } catch (Throwable e) {
@@ -313,6 +360,19 @@ public final class GuideLine {
                 }
                 for (int y = fromY + 1; y >= fromY - 3; y--) {
                     if (standable(chunk, pos, x, y, z) || onLadder(chunk, pos, x, y, z)) {
+                        return y;
+                    }
+                }
+                // no fall damage in Wynncraft: off a ledge, down an open column to the ground
+                if (chunk.getBlockState(pos.set(x, fromY + 1, z)).blocksMotion()) {
+                    return GuidePath.NONE;
+                }
+                for (int y = fromY; y >= fromY - GuidePath.DROP; y--) {
+                    BlockState feet = chunk.getBlockState(pos.set(x, y, z));
+                    if (feet.blocksMotion() || !feet.getFluidState().isEmpty()) {
+                        return GuidePath.NONE;
+                    }
+                    if (y < fromY - 3 && standable(chunk, pos, x, y, z)) {
                         return y;
                     }
                 }
@@ -394,15 +454,24 @@ public final class GuideLine {
                 double k = dist > CAP ? CAP / dist : 1;
                 List<double[]> air = List.of(new double[] {me.x, me.y, me.z},
                         new double[] {me.x + dx * k, me.y + dy * k, me.z + dz * k});
-                dashes(pose, quads, c, air, seconds, false);
+                dashes(pose, quads, c, air, seconds, false, 1f, true);
                 if (k == 1) {
                     Beams.draw(pose, quads, (float) (t.x() - c.x), (float) (t.y() + 1 - c.y), (float) (t.z() - c.z),
                             PILLAR, COLOUR, 1f);
                 }
             }
             Path g = ground;
-            if (g.points().size() >= 2) {
-                dashes(pose, quads, c, fromFeet(g.points(), me), seconds, true);
+            List<double[]> pts = g.points();
+            if (pts.size() >= 2) {
+                int tail = Math.max(1, Math.min(pts.size(), g.tail()));
+                List<double[]> walk = pts.subList(0, tail);
+                if (walk.size() >= 2) {
+                    dashes(pose, quads, c, fromFeet(walk, me), seconds, true, 1f, true);
+                }
+                if (tail < pts.size()) {
+                    // past the last reachable spot: a still, faint straight guess, not a path to follow
+                    dashes(pose, quads, c, pts.subList(tail - 1, pts.size()), 0, true, TAIL_ALPHA, false);
+                }
                 if (g.end() != null) {
                     double[] e = g.end();
                     Beams.draw(pose, quads, (float) (e[0] - c.x), (float) (e[1] - c.y), (float) (e[2] - c.z),
@@ -435,9 +504,11 @@ public final class GuideLine {
 
     /**
      * The dashes along {@code pts} (absolute positions), each narrowing at its back; flat on the
-     * ground with {@code flat}, else turned to face the camera.
+     * ground with {@code flat}, else turned to face the camera; at {@code alpha} of the full
+     * opacity, fading in from the first point with {@code fadeIn}.
      */
-    private static void dashes(PoseStack pose, VertexConsumer v, Vec3 c, List<double[]> pts, double seconds, boolean flat) {
+    private static void dashes(PoseStack pose, VertexConsumer v, Vec3 c, List<double[]> pts, double seconds,
+                               boolean flat, float alpha, boolean fadeIn) {
         double total = 0;
         for (int i = 1; i < pts.size(); i++) {
             total += dist(pts.get(i - 1), pts.get(i));
@@ -463,8 +534,8 @@ public final class GuideLine {
                 }
                 double u0 = Math.max(0, dashAt(total - d0, seconds));
                 double u1 = Math.max(0, dashAt(total - d1, seconds));
-                float f0 = nearFade(d0);
-                float f1 = nearFade(d1);
+                float f0 = alpha * (fadeIn ? nearFade(d0) : 1);
+                float f1 = alpha * (fadeIn ? nearFade(d1) : 1);
                 if (f0 < 0.02f && f1 < 0.02f) {
                     continue;
                 }

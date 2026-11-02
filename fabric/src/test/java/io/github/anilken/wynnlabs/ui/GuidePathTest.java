@@ -18,6 +18,8 @@ class GuidePathTest {
     /** A 20 × 20 grid of feet heights (NONE: a wall or water), stepping rules as in the game. */
     private static class Grid implements GuidePath.Walkable {
         final int[][] h = new int[20][20];
+        /** Deepest step down: 3 a walk; {@link GuidePath#DROP} off a ledge where nothing overhangs. */
+        int drop = 3;
 
         Grid(int flat) {
             for (int[] row : h) {
@@ -31,7 +33,49 @@ class GuidePathTest {
                 return N;
             }
             int y = h[x][z];
-            return y - fromY > 1 || fromY - y > 3 ? N : y;
+            return y - fromY > 1 || fromY - y > drop ? N : y;
+        }
+    }
+
+    @Test
+    void aRoofWithNoStairsIsLeftBySteppingOffTheEdge() {
+        // a 10-block platform over x 0..7; the target on the ground beside it
+        Grid g = new Grid(64);
+        g.drop = GuidePath.DROP;
+        for (int x = 0; x <= 7; x++) {
+            for (int z = 0; z < 20; z++) {
+                g.h[x][z] = 74;
+            }
+        }
+        GuidePath.Route r = GuidePath.find(g, 2, 74, 5, 15, 64, 5, 64, 20_000);
+        assertTrue(r.reached());
+        List<int[]> n = r.nodes();
+        boolean stepped = false;
+        for (int i = 1; i < n.size(); i++) {
+            stepped |= n.get(i - 1)[1] - n.get(i)[1] == 10;
+        }
+        assertTrue(stepped);
+        assertEquals(64, n.get(n.size() - 1)[1]);
+    }
+
+    @Test
+    void stairsBeatADrop() {
+        // the same platform with a stair down along z = 0 to the target: the route takes it
+        Grid g = new Grid(64);
+        g.drop = GuidePath.DROP;
+        for (int x = 0; x <= 7; x++) {
+            for (int z = 0; z < 20; z++) {
+                g.h[x][z] = 74;
+            }
+        }
+        for (int x = 8; x <= 17; x++) {
+            g.h[x][0] = 74 - (x - 7);                     // 73 at x = 8 down to 64 at x = 17
+        }
+        GuidePath.Route r = GuidePath.find(g, 6, 74, 1, 18, 64, 1, 64, 20_000);
+        assertTrue(r.reached());
+        List<int[]> n = r.nodes();
+        for (int i = 1; i < n.size(); i++) {
+            assertTrue(n.get(i - 1)[1] - n.get(i)[1] <= 3, "dropped instead of taking the stair");
         }
     }
 
