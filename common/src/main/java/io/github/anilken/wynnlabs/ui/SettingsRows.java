@@ -111,7 +111,6 @@ final class SettingsRows {
                 p.row("multi", "extras");
                 p.row("switch", "gearCompactTooltip");
                 p.row("switch", "boxCompactTooltip");
-                p.row("step", "menuTooltipScale");
                 p.head("wynnlabs.settings.sec_bag");
                 p.row("multi", "slotGlow");
                 p.row("choice", "slotBadges");
