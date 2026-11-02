@@ -2846,7 +2846,7 @@
           "name": "Hardcore",
           "level": 92,
           "tier": "RARE",
-          "gain": 38.1,
+          "gain": 37.9,
           "from": "Fallen Factory dungeon merchant · 4× boss token",
           "price": null,
           "tradable": false,
@@ -2854,63 +2854,63 @@
             {
               "name": "Hardcore",
               "level": 92,
-              "gain": 215.0,
+              "gain": 214.9,
               "from": "Fallen Factory dungeon merchant · 4× boss token",
+              "tradable": false
+            },
+            {
+              "name": "Royal Hydrangea",
+              "level": 96,
+              "gain": 240.1,
+              "from": "Corrupted Undergrowth Ruins dungeon merchant · 5× corrupted boss token",
               "tradable": false
             },
             {
               "name": "Resonance",
               "level": 104,
-              "gain": 172.9,
+              "gain": 173.0,
               "from": "Prelude to Annihilation event",
-              "tradable": true
-            },
-            {
-              "name": "Guacamole",
-              "level": 88,
-              "gain": 141.3,
-              "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Hard Light",
               "level": 96,
-              "gain": 136.8,
+              "gain": 137.5,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Loaded Question",
               "level": 90,
-              "gain": 131.0,
+              "gain": 131.4,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "The End",
               "level": 100,
-              "gain": 129.1,
+              "gain": 130.1,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Misfit",
               "level": 96,
-              "gain": 90.7,
+              "gain": 91.9,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Flagellant",
               "level": 102,
-              "gain": 81.6,
+              "gain": 83.0,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Arkhalis",
               "level": 98,
-              "gain": 47.5,
+              "gain": 47.1,
               "from": "mob drop",
               "tradable": true
             }
@@ -2921,7 +2921,7 @@
           "name": "Coolant",
           "level": 86,
           "tier": "RARE",
-          "gain": 2.8,
+          "gain": 3.0,
           "from": "Relos merchant",
           "price": null,
           "tradable": true,
@@ -2937,77 +2937,77 @@
             {
               "name": "Diamond Fusion Ring",
               "level": 95,
-              "gain": 39.2,
+              "gain": 44.8,
               "from": "Legendary Island (challenge) · 1× Diamond Token + Gold Fusion Ring",
               "tradable": false
             },
             {
               "name": "Gold Fusion Ring",
               "level": 95,
-              "gain": 27.3,
+              "gain": 32.2,
               "from": "Legendary Island (challenge) · 3× Gold Token + Silver Fusion Ring",
               "tradable": false
             },
             {
               "name": "Olive",
               "level": 98,
-              "gain": 23.0,
+              "gain": 27.9,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Spiritstone Signet",
               "level": 103,
-              "gain": 18.1,
+              "gain": 23.1,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Ring of Generosity",
               "level": 69,
-              "gain": 9.5,
+              "gain": 13.6,
               "from": "Trade Market",
               "tradable": true
             },
             {
               "name": "Ring of Wisdom",
               "level": 80,
-              "gain": 2.6,
+              "gain": 6.1,
               "from": "Thanos merchant",
               "tradable": true
             },
             {
               "name": "Photon",
               "level": 61,
-              "gain": 1.2,
+              "gain": 4.6,
               "from": "Trade Market",
               "tradable": true
             },
             {
               "name": "Detective's Ring",
               "level": 74,
-              "gain": -0.1,
+              "gain": 3.4,
               "from": "Murder Mystery quest",
               "tradable": true
             },
             {
               "name": "Ingress",
               "level": 105,
-              "gain": -0.1,
+              "gain": 3.2,
               "from": "The Nameless Anomaly raid",
               "tradable": true
             },
             {
               "name": "Glimmer",
               "level": 67,
-              "gain": -0.5,
+              "gain": 2.9,
               "from": "Efilim merchant",
               "tradable": true
             },
             {
               "name": "Summa",
               "level": 95,
-              "gain": -4.2,
+              "gain": -0.9,
               "from": "Geyser Pit altar · 3× altar run",
               "tradable": false
             }
@@ -3018,7 +3018,7 @@
           "name": "Aquamarine",
           "level": 100,
           "tier": "UNIQUE",
-          "gain": 5.6,
+          "gain": 5.8,
           "from": "mob drop",
           "price": null,
           "tradable": true,
@@ -3026,42 +3026,42 @@
             {
               "name": "Aquamarine",
               "level": 100,
-              "gain": 219.0,
+              "gain": 225.1,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Cancer",
               "level": 98,
-              "gain": 233.6,
+              "gain": 234.0,
               "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Alpenglow",
+              "level": 98,
+              "gain": 209.0,
+              "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Skyfloat",
               "level": 94,
-              "gain": 195.5,
+              "gain": 196.6,
               "from": "Ahmsord merchant",
               "tradable": true
             },
             {
-              "name": "Phoenix Prince's Crown",
-              "level": 90,
-              "gain": 193.8,
-              "from": "Lost Avos City (discovery)",
-              "tradable": false
-            },
-            {
               "name": "Pisces",
               "level": 100,
-              "gain": 186.9,
+              "gain": 195.5,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Aries",
               "level": 92,
-              "gain": 178.7,
+              "gain": 181.5,
               "from": "mob drop",
               "tradable": true
             }
@@ -3072,7 +3072,7 @@
           "name": "Rodoroc's Guard",
           "level": 94,
           "tier": "RARE",
-          "gain": 7.6,
+          "gain": 6.8,
           "from": "Rodoroc merchant",
           "price": null,
           "tradable": true,
@@ -3080,42 +3080,42 @@
             {
               "name": "Rodoroc's Guard",
               "level": 94,
-              "gain": 233.7,
+              "gain": 234.5,
               "from": "Rodoroc merchant",
               "tradable": true
             },
             {
               "name": "Vaward",
               "level": 99,
-              "gain": 170.7,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Turquoise",
-              "level": 95,
-              "gain": 124.3,
+              "gain": 190.0,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Mycelium Plating",
               "level": 96,
-              "gain": 107.6,
+              "gain": 106.8,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Nuance",
+              "level": 90,
+              "gain": 105.5,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Tera",
               "level": 90,
-              "gain": 100.3,
+              "gain": 104.0,
               "from": "Geyser Pit altar · 3× altar run",
               "tradable": false
             },
             {
               "name": "Siliquartz Blend",
               "level": 87,
-              "gain": 97.7,
+              "gain": 96.3,
               "from": "Corkus merchant",
               "tradable": true
             }
@@ -3126,7 +3126,7 @@
           "name": "Royal Stormy Amulet",
           "level": 75,
           "tier": "LEGENDARY",
-          "gain": 1.4,
+          "gain": 0.6,
           "from": "Cinfras merchant",
           "price": null,
           "tradable": true,
@@ -3134,49 +3134,49 @@
             {
               "name": "Royal Stormy Amulet",
               "level": 75,
-              "gain": 7.4,
+              "gain": 8.3,
               "from": "Cinfras merchant",
               "tradable": true
             },
             {
               "name": "Ashes",
               "level": 94,
-              "gain": 39.5,
+              "gain": 41.6,
               "from": "Maex merchant",
               "tradable": true
             },
             {
               "name": "Royal Shocking Amulet",
               "level": 75,
-              "gain": 11.1,
+              "gain": 12.3,
               "from": "Cinfras merchant",
               "tradable": true
             },
             {
               "name": "Royal Cyclone Amulet",
               "level": 75,
-              "gain": 0.8,
+              "gain": 1.3,
               "from": "Cinfras merchant",
               "tradable": true
             },
             {
               "name": "Rough Diamond",
               "level": 80,
-              "gain": -0.3,
+              "gain": 0.1,
               "from": "Thanos merchant",
               "tradable": true
             },
             {
               "name": "Reckoning",
               "level": 80,
-              "gain": -8.5,
+              "gain": -8.1,
               "from": "Orphion's Nexus of Light raid",
               "tradable": true
             },
             {
               "name": "Ominous Wind",
               "level": 95,
-              "gain": -13.2,
+              "gain": -13.3,
               "from": "One Thousand Meters Under quest",
               "tradable": true
             }
@@ -3195,49 +3195,49 @@
             {
               "name": "Pandemonium",
               "level": 99,
-              "gain": 241.1,
+              "gain": 241.0,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Subur Clip",
               "level": 89,
-              "gain": 123.1,
+              "gain": 124.2,
               "from": "The Qira Hive quest · 1× Hive voucher (after The Qira Hive)",
               "tradable": false
             },
             {
               "name": "Megabyte",
               "level": 92,
-              "gain": 89.1,
+              "gain": 89.8,
               "from": "Fallen Factory dungeon merchant · 4× boss token",
               "tradable": false
             },
             {
               "name": "Pride",
               "level": 93,
-              "gain": 41.0,
+              "gain": 40.7,
               "from": "Maex merchant",
               "tradable": true
             },
             {
               "name": "Thanos Banner",
               "level": 82,
-              "gain": 40.8,
+              "gain": 40.3,
               "from": "Thanos merchant",
               "tradable": true
             },
             {
               "name": "Nebulous",
               "level": 99,
-              "gain": 35.1,
+              "gain": 36.1,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Enmity",
               "level": 100,
-              "gain": 4.8,
+              "gain": 5.0,
               "from": "cave chest",
               "tradable": true
             }
@@ -3273,49 +3273,49 @@
             {
               "name": "Dragon's Tear",
               "level": 107,
-              "gain": 11.6,
+              "gain": 11.9,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Diamond Fusion Ring",
               "level": 95,
-              "gain": 29.0,
+              "gain": 29.6,
               "from": "Legendary Island (challenge) · 1× Diamond Token + Gold Fusion Ring",
               "tradable": false
             },
             {
               "name": "Greenrock Ring",
               "level": 115,
-              "gain": 28.3,
+              "gain": 28.7,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Signet of the Rampart",
               "level": 105,
-              "gain": 23.9,
+              "gain": 24.5,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Spiritstone Signet",
               "level": 103,
-              "gain": 20.0,
+              "gain": 20.7,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Olive",
               "level": 98,
-              "gain": 17.8,
+              "gain": 18.0,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Prime",
               "level": 109,
-              "gain": 15.0,
+              "gain": 15.1,
               "from": "cave chest",
               "tradable": true
             },
@@ -3348,35 +3348,35 @@
             {
               "name": "Dragon's Tear",
               "level": 107,
-              "gain": 11.6,
+              "gain": 11.9,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Diamond Fusion Ring",
               "level": 95,
-              "gain": 29.0,
+              "gain": 29.6,
               "from": "Legendary Island (challenge) · 1× Diamond Token + Gold Fusion Ring",
               "tradable": false
             },
             {
               "name": "Spiritstone Signet",
               "level": 103,
-              "gain": 20.0,
+              "gain": 20.7,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Olive",
               "level": 98,
-              "gain": 17.8,
+              "gain": 18.0,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Prime",
               "level": 109,
-              "gain": 15.0,
+              "gain": 15.1,
               "from": "cave chest",
               "tradable": true
             },
@@ -3394,7 +3394,7 @@
           "name": "Taxonomy",
           "level": 107,
           "tier": "RARE",
-          "gain": 2.4,
+          "gain": 2.5,
           "from": "cave chest",
           "price": null,
           "tradable": true,
@@ -3402,21 +3402,21 @@
             {
               "name": "Taxonomy",
               "level": 107,
-              "gain": 29.9,
+              "gain": 30.7,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Contrast",
               "level": 100,
-              "gain": 31.4,
+              "gain": 31.8,
               "from": "The Qira Hive quest · 1× Master Voucher (after The Qira Hive)",
               "tradable": false
             },
             {
               "name": "Cosmium",
               "level": 92,
-              "gain": 17.8,
+              "gain": 18.2,
               "from": "cave chest",
               "tradable": true
             },
@@ -3430,14 +3430,14 @@
             {
               "name": "Oaken Pendant",
               "level": 105,
-              "gain": 13.0,
+              "gain": 13.2,
               "from": "cave chest",
               "tradable": true
             },
             {
               "name": "Umami",
               "level": 104,
-              "gain": 2.5,
+              "gain": 2.7,
               "from": "cave chest",
               "tradable": true
             }
@@ -3471,35 +3471,35 @@
             {
               "name": "Omniverse",
               "level": 112,
-              "gain": 152.9,
+              "gain": 157.1,
+              "from": "mob drop",
+              "tradable": true
+            },
+            {
+              "name": "Skyline",
+              "level": 111,
+              "gain": 220.6,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Neutrino",
               "level": 100,
-              "gain": 169.6,
+              "gain": 177.1,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Vaward",
               "level": 99,
-              "gain": 100.7,
+              "gain": 126.7,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Haze Striders",
               "level": 113,
-              "gain": 89.8,
-              "from": "mob drop",
-              "tradable": true
-            },
-            {
-              "name": "Turquoise",
-              "level": 95,
-              "gain": 84.3,
+              "gain": 93.2,
               "from": "mob drop",
               "tradable": true
             },
@@ -3525,49 +3525,49 @@
             {
               "name": "Polyglot",
               "level": 113,
-              "gain": 215.3,
+              "gain": 223.5,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Firemoss Veil",
               "level": 113,
-              "gain": 181.0,
+              "gain": 185.6,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Rosebush",
               "level": 118,
-              "gain": 180.5,
+              "gain": 185.0,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Nutrient",
               "level": 120,
-              "gain": 169.0,
+              "gain": 174.1,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Dreamscape",
               "level": 112,
-              "gain": 132.7,
+              "gain": 136.9,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Pisces",
               "level": 100,
-              "gain": 126.4,
+              "gain": 130.6,
               "from": "mob drop",
               "tradable": true
             },
             {
               "name": "Myopia",
               "level": 103,
-              "gain": 118.8,
+              "gain": 121.2,
               "from": "cave chest",
               "tradable": true
             }
