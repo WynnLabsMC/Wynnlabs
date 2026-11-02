@@ -38,7 +38,7 @@ final class GuideTerrain implements GuidePath.Walkable {
     static final double SWIM = 3;
     /** A step onto a road costs this much of a plain one. */
     static final double ROAD_COST = GuidePath.ROAD;
-    /** ... and onto a road's edge (a block of it next to anything else): between, so the middle of the road wins. */
+    /** ... and onto the edge of a road at least three wide: between, so the middle of the road wins. */
     static final double ROAD_EDGE = (GuidePath.ROAD + 1) / 2;
     /** A step through a door or gate costs this much of a plain one: to be opened, so an open way wins. */
     static final double DOOR_COST = 1.5;
@@ -137,12 +137,22 @@ final class GuideTerrain implements GuidePath.Walkable {
         if (below != ROAD && below != HALF) {
             return 1;
         }
-        return roadAround(x, y - 1, z) ? ROAD_COST : ROAD_EDGE;
+        return edge(x, y - 1, z) ? ROAD_EDGE : ROAD_COST;
     }
 
-    /** Whether the four blocks beside ({@code x}, {@code y}, {@code z}) are road too (one up or down counts: a slope). */
-    private boolean roadAround(int x, int y, int z) {
-        return road(x + 1, y, z) && road(x - 1, y, z) && road(x, y, z + 1) && road(x, y, z - 1);
+    /**
+     * Whether the road block ({@code x}, {@code y}, {@code z}) is the edge of a road with a middle to
+     * walk instead: across one axis, road on one side and not the other, and road again two blocks
+     * in (so the road is at least three wide there). A road one or two wide has no edge: all of it
+     * is the road. A block one up or down counts as road too (a slope).
+     */
+    private boolean edge(int x, int y, int z) {
+        return edge(road(x + 1, y, z), road(x - 1, y, z), road(x + 2, y, z), road(x - 2, y, z))
+                || edge(road(x, y, z + 1), road(x, y, z - 1), road(x, y, z + 2), road(x, y, z - 2));
+    }
+
+    private static boolean edge(boolean in1, boolean in2, boolean far1, boolean far2) {
+        return in1 && !in2 && far1 || in2 && !in1 && far2;
     }
 
     private boolean road(int x, int y, int z) {

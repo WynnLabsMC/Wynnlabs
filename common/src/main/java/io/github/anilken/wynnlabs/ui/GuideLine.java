@@ -103,9 +103,6 @@ public final class GuideLine {
     private static final int CORE = 0xEAFBFF;
     /** The base ribbon under the chevrons. */
     private static final int RIBBON = 0x5FC8FF;
-    /** On Wynntils' minimap and map: a dot at most every this many blocks along the route, and at most this many dots. */
-    static final double MAP_STEP = 4;
-    static final int MAP_MAX = 400;
     /** Ticks between two looks at the target. */
     private static final int EVERY = 10;
     /** Ticks between two route searches. */
@@ -215,18 +212,12 @@ public final class GuideLine {
     private static volatile Track track;
     /** Riding or gliding: the straight line through the air (faint while a ground route is shown). */
     private static volatile boolean airLine;
-    /** The route's colour on Wynntils' minimap and map: a road-sign yellow, which reads on grass, sand and stone. */
-    static final int MAP_RGB = 0xFFD23F;
     /** Riding or gliding with no ground under the player: why ({@code /guide}); null otherwise. */
     private static volatile String groundWhy;
     /** Riding or gliding: where the ground route starts, under the player (null: no ground there, or on foot). */
     private static volatile int[] groundStart;
     /** The target the shown ground path was routed for (null: only the straight line so far). */
     private static volatile Target routed;
-    /** Past the ground path, for Wynntils' map only: the rest of the way to the target (the world corridor, or straight), faint. */
-    private static volatile List<double[]> mapBeyond = List.of();
-    /** The ground path last handed to Wynntils' minimap and map (tick thread only; null: none yet). */
-    private static Path mapShown;
     /** One thread for route searches; a new request replaces one still waiting. */
     private static final ThreadPoolExecutor ROUTER = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
             new ArrayBlockingQueue<>(1), r -> {
@@ -366,11 +357,6 @@ public final class GuideLine {
         }
         if (tick % EVERY != 0) {
             return;
-        }
-        try {
-            syncMap(mc);
-        } catch (Throwable e) {
-            lastError = e.toString();
         }
         Player p = mc.player;
         if (failed || p == null || mc.level == null || !Settings.on("guideLine")) {
@@ -602,104 +588,12 @@ public final class GuideLine {
         return o;
     }
 
-    /**
-     * Hands the ground path shown to Wynntils' minimap and map when it is a new one (none when the
-     * guide line or its map setting is off, or out of the world); the straight guess past the
-     * route is faint. Every {@link #EVERY} ticks, and only an identity check when nothing changed.
-     */
-    private static void syncMap(Minecraft mc) {
-        boolean on = !failed && mc.player != null && mc.level != null
-                && Settings.on("guideLine") && Settings.on("guideMinimap");
-        Path g = on ? ground : NO_PATH;
-        Player p = mc.player;
-        Target t = target;
-        if (on && g.points().isEmpty() && t != null && airLine && airborne(p)) {
-            // riding or gliding with no ground route yet: the straight line, all faint, so the map
-            // still shows the way; re-sent as the player moves
-            mapShown = null;
-            List<double[]> line = new ArrayList<>();
-            double dx = t.x() - p.getX();
-            double dz = t.z() - p.getZ();
-            double len = Math.hypot(dx, dz);
-            int n = Math.max(1, (int) Math.ceil(len / MAP_STEP));
-            for (int i = 0; i <= n; i++) {
-                double k = (double) i / n;
-                line.add(new double[] {p.getX() + dx * k, p.getY(), p.getZ() + dz * k});
-            }
-            int[] keepAir = mapPoints(line, MAP_STEP, MAP_MAX);
-            List<int[]> air = new ArrayList<>(keepAir.length);
-            for (int i : keepAir) {
-                double[] q = line.get(i);
-                air.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
-            }
-            Wyn.showGuideRoute(air, 0, MAP_RGB);
-            return;
-        }
-        if (g == mapShown) {
-            return;
-        }
-        mapShown = g;
-        List<double[]> pts = g.points();
-        int[] keep = mapPoints(pts, MAP_STEP, MAP_MAX);
-        List<int[]> out = new ArrayList<>(keep.length);
-        int faint = keep.length;
-        for (int i = 0; i < keep.length; i++) {
-            double[] q = pts.get(keep[i]);
-            if (keep[i] >= g.tail() && faint == keep.length) {
-                faint = i;
-            }
-            out.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
-        }
-        List<double[]> beyond = g.points().isEmpty() ? List.of() : mapBeyond;
-        if (beyond.size() >= 2) {
-            // the rest of the way past the route, faint, so the map shows the whole way
-            for (int i : mapPoints(beyond, MAP_STEP, MAP_MAX)) {
-                double[] q = beyond.get(i);
-                out.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
-            }
-        }
-        Wyn.showGuideRoute(out, faint, MAP_RGB);
-    }
-
-    /**
-     * The indices of {@code pts} kept for Wynntils' map: the first, then each next one at least
-     * {@code step} blocks (flat, along the way) on from the last kept, and the last; the step grows
-     * with a long way so that at most {@code max} (at least 3) are kept.
-     */
-    static int[] mapPoints(List<double[]> pts, double step, int max) {
-        int n = pts.size();
-        if (n == 0) {
-            return new int[0];
-        }
-        double length = 0;
-        for (int i = 1; i < n; i++) {
-            length += Math.hypot(pts.get(i)[0] - pts.get(i - 1)[0], pts.get(i)[2] - pts.get(i - 1)[2]);
-        }
-        double s = Math.max(step, length / (Math.max(3, max) - 2));
-        int[] out = new int[n];
-        int k = 0;
-        out[k++] = 0;
-        double since = 0;
-        for (int i = 1; i < n; i++) {
-            since += Math.hypot(pts.get(i)[0] - pts.get(i - 1)[0], pts.get(i)[2] - pts.get(i - 1)[2]);
-            if (since >= s - 1e-9) {
-                out[k++] = i;
-                since = 0;
-            }
-        }
-        if (out[k - 1] != n - 1) {
-            out[k++] = n - 1;
-        }
-        return java.util.Arrays.copyOf(out, k);
-    }
-
     private static void clear() {
         target = null;
         groundStart = null;
         track = null;
         candidates = List.of();
         ground = NO_PATH;
-        mapBeyond = List.of();
         routed = null;
     }
 
@@ -777,17 +671,13 @@ public final class GuideLine {
             double walked = Math.hypot(end[0] - sx, end[2] - sz);
             int tail = pts.size();
             double[] arrow = null;
-            List<double[]> beyond = List.of();
-            if (world != null) {
+            if (world != null && walked < CAP) {
                 // on along the corridor from where the route ends, faint, on the map's heights
                 WorldRoute g = world.map();
                 List<int[]> cells = world.plan().cells();
                 List<double[]> rest = g.line(cells.subList(g.nearestCell(cells, end[0], end[2]), cells.size()), LIFT);
                 rest.add(new double[] {t.x(), rest.get(rest.size() - 1)[1], t.z()});
-                beyond = rest;                                      // the whole way, for the map
-                if (walked < CAP) {
-                    pts.addAll(upTo(rest, end, CAP - walked));
-                }
+                pts.addAll(upTo(rest, end, CAP - walked));
             } else if (r.enclosed()) {
                 // closed in: no line into the rock; the route ends at an exit (where the ground goes on
                 // out of sight) or, sealed, at the spot nearest the target, with an arrow toward it
@@ -796,13 +686,8 @@ public final class GuideLine {
                 List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
                 pts.addAll(rest.subList(1, rest.size()));
             }
-            if (!r.reached() && beyond.isEmpty()) {
-                // no corridor: the map's line still goes on to the target, straight and faint
-                beyond = List.of(end, new double[] {t.x(), end[1], t.z()});
-            }
             if (gen == generation) {
                 target = t;
-                mapBeyond = beyond;
                 ground = new Path(List.copyOf(pts), end, tail, arrow);
                 routed = t;
             }

@@ -110,6 +110,19 @@ class GuideTerrainTest {
     }
 
     @Test
+    void aNarrowRoadHasNoEdge() {
+        // roads one and two wide along x (z 2, and z 5..6): every block of them is the road
+        GuideDumps.World w = new GuideDumps.World(12, 14, 10, SOLID);
+        w.fill(0, 10, 0, 11, 13, 9, AIR);
+        w.fill(0, 9, 2, 11, 9, 2, ROAD);
+        w.fill(0, 9, 5, 11, 9, 6, ROAD);
+        GuideTerrain g = GuideDumps.walkable(w.dump(5, 10, 5, 6, 10, 5));
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 2));
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 5));
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 6));
+    }
+
+    @Test
     void aSlabIsAHalfStepUpAndAFenceIsNotJumpedOnto() {
         GuideTerrain w = GuideDumps.walkable(cave().dump(2, 10, 5, 30, 11, 5));
         assertEquals(11, w.stand(21, 5, 10));
