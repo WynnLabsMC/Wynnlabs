@@ -102,12 +102,13 @@ class GuideDumpTest {
         // no rule about what is walked on would open it: no open air leads east
         assertEquals(832, eastmostAir(d, r.nodes().get(0)), report(r));
         // so the line leads out of the canyon where its ground goes on past the dump (unloaded
-        // here), not to the eastern wall nearest the target
+        // here), not to the eastern wall nearest the target: south, the way players go (round
+        // through Eyeball Forest and north again to Lutho)
         assertNotNull(r.exit(), report(r));
         assertEquals(GuidePath.EXIT_UNLOADED, r.exitKind());
         int[] e = r.exit();
-        assertTrue(e[0] < 800, report(r));
-        assertTrue(e[0] <= d.x0 + 1 || e[2] <= d.z0 + 1 || e[2] >= d.z0 + d.sz - 2, report(r));
+        assertTrue(e[2] >= d.z0 + d.sz - 4, "not on the south edge: " + report(r));
+        assertTrue(e[0] >= 740 && e[0] <= 780, report(r));
         assertArrayEquals(e, r.nodes().get(r.nodes().size() - 1));
     }
 
