@@ -10,22 +10,30 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.status.ChunkStatus;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A line from the player to the compass target (setting guideLine): the nearest pin of ours on
  * the Wynntils map, else the nearest other waypoint there (a map click or /compass puts its
- * target there too). On foot it follows the ground: a point every {@link #STEP} blocks laid on
- * the highest block at that spot, straight on where the chunk is not loaded. While riding or
- * gliding it is a gentle arc through the air. Depth tested like {@link ChestBeams}, so terrain
- * hides it, and faded near the player so it never covers the crosshair. The target and the ground
- * points are worked out every {@link #EVERY} ticks; each frame only draws them. Drawing only:
- * nothing is sent to the server.
+ * target there too). On foot it follows a walkable route ({@link GuidePath}) through the loaded
+ * area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the loaded area,
+ * or where no route goes on, it continues straight, laid on the highest block every
+ * {@link #STEP} blocks. While riding or gliding it is a gentle arc through the air. Depth tested
+ * like {@link ChestBeams}, so terrain hides it, and faded near the player so it never covers the
+ * crosshair. Each frame only draws. Drawing only: nothing is sent to the server.
  */
 public final class GuideLine {
 
@@ -37,6 +45,10 @@ public final class GuideLine {
     static final double LIFT = 0.3;
     /** Ticks between two looks at the target and the ground. */
     private static final int EVERY = 10;
+    /** Ticks between two route searches. */
+    private static final int ROUTE_EVERY = 20;
+    /** At most this many spots looked at in one route search. */
+    private static final int BUDGET = 20_000;
     /** Pin colours: "go there" aqua, quest points gold, someone else's waypoint white. */
     private static final int GO = 0x55FFFF;
     private static final int QUEST = 0xFFAA00;
@@ -58,6 +70,15 @@ public final class GuideLine {
     private static volatile Target target;
     /** The ground line's points {x, y, z}, player first; replaced (never changed) every {@link #EVERY} ticks. */
     private static volatile List<double[]> ground = List.of();
+    /** The target the shown ground line was routed for (null: only the straight line so far). */
+    private static volatile Target routed;
+    /** One thread for route searches; a new request replaces one still waiting. */
+    private static final ThreadPoolExecutor ROUTER = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(1), r -> {
+                Thread t = new Thread(r, "WynnLabs guide route");
+                t.setDaemon(true);
+                return t;
+            }, new ThreadPoolExecutor.DiscardOldestPolicy());
 
     private GuideLine() {}
 
@@ -157,21 +178,99 @@ public final class GuideLine {
         try {
             var pins = Wyn.waypoints();
             Target t = pins == null ? null : pick(pins.all(), p.getX(), p.getZ());
+            boolean changed = !Objects.equals(t, target);
             target = t;
             if (t == null || airborne(p)) {
                 ground = List.of();
+                routed = null;
                 return;
             }
             ClientLevel level = mc.level;
-            ground = List.copyOf(sample(p.getX(), p.getY(), p.getZ(), t.x(), t.z(), STEP, CAP,
-                    (x, z) -> level.hasChunk(x >> 4, z >> 4)
-                            ? level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) : UNKNOWN));
+            if (changed || routed == null) {
+                // the straight line at once; the route replaces it when found
+                ground = List.copyOf(sample(p.getX(), p.getY(), p.getZ(), t.x(), t.z(), STEP, CAP, heights(level)));
+            }
+            if (changed || tick % ROUTE_EVERY == 0) {
+                if (changed) {
+                    routed = null;
+                }
+                int sx = (int) Math.floor(p.getX());
+                int sy = (int) Math.floor(p.getY() + 0.01);
+                int sz = (int) Math.floor(p.getZ());
+                int box = Math.max(32, Math.min(256, mc.options.getEffectiveRenderDistance() * 16));
+                ROUTER.execute(() -> route(level, t, sx, sy, sz, box));
+            }
         } catch (Throwable e) {
             failed = true;
             target = null;
             ground = List.of();
             System.out.println("[WynnLabs] guide line failed, off until restart: " + e);
         }
+    }
+
+    /** The highest block of a column, {@link #UNKNOWN} where its chunk is not loaded. */
+    private static Ground heights(ClientLevel level) {
+        return (x, z) -> level.hasChunk(x >> 4, z >> 4)
+                ? level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) : UNKNOWN;
+    }
+
+    /**
+     * On the route thread: the walking route to the target, smoothed, then straight on to the
+     * target from where it stops. Kept only while the target is still the same.
+     */
+    private static void route(ClientLevel level, Target t, int sx, int sy, int sz, int box) {
+        try {
+            GuidePath.Walkable w = walkable(level);
+            int tx = (int) Math.floor(t.x());
+            int tz = (int) Math.floor(t.z());
+            GuidePath.Route r = GuidePath.find(w, sx, sy, sz, tx, tz, box, BUDGET);
+            if (r == null || r.nodes().size() < 2 || !t.equals(target)) {
+                return;                                 // the straight line stays
+            }
+            List<double[]> pts = new ArrayList<>(GuidePath.points(w, GuidePath.smooth(w, r.nodes(), 24), LIFT));
+            double[] end = pts.get(pts.size() - 1);
+            double walked = Math.hypot(end[0] - sx, end[2] - sz);
+            if (!r.reached() && walked < CAP) {
+                List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
+                pts.addAll(rest.subList(1, rest.size()));
+            }
+            if (t.equals(target)) {
+                ground = List.copyOf(pts);
+                routed = t;
+            }
+        } catch (Throwable e) {
+            // a failed search leaves the straight line; the next one tries again
+        }
+    }
+
+    /** Columns the player can step to, read from loaded chunks only (an unloaded one has none). */
+    private static GuidePath.Walkable walkable(ClientLevel level) {
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        return (x, z, fromY) -> {
+            ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
+            if (chunk == null) {
+                return GuidePath.NONE;
+            }
+            for (int y = fromY + 1; y >= fromY - 3; y--) {
+                if (standable(chunk, pos, x, y, z)) {
+                    return y;
+                }
+            }
+            return GuidePath.NONE;
+        };
+    }
+
+    /** Solid ground under feet height {@code y}, two free blocks from there, no water or lava at the feet. */
+    private static boolean standable(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int y, int z) {
+        BlockState feet = chunk.getBlockState(pos.set(x, y, z));
+        if (feet.blocksMotion() || !feet.getFluidState().isEmpty()) {
+            return false;
+        }
+        if (chunk.getBlockState(pos.set(x, y + 1, z)).blocksMotion()) {
+            return false;
+        }
+        BlockState below = chunk.getBlockState(pos.set(x, y - 1, z));
+        return below.blocksMotion() && below.getFluidState().isEmpty();
     }
 
     /** On a mount or gliding: the line goes through the air. */

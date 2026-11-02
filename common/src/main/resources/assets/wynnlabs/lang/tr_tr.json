@@ -1818,7 +1818,7 @@
   "wynnlabs.setting.crowdMode": "Kalabalık modu: büyü efekti yok",
   "wynnlabs.setting.guideLine": "Pusula hedefine yol çizgisi",
   "wynnlabs.setting_desc.crowdMode": "Büyü efektleri ve parçacıklar çizilmez; başka oyuncuların totem, kukla ve pet'leri de. Seninkiler ve yakınındaki hasar sayıları kalır. Kalabalık savaşta FPS düşmez",
-  "wynnlabs.setting_desc.guideLine": "Senden en yakın pinimize (ya da pusula hedefine) bir çizgi uzanır: yürürken yerden gider, binekteyken havada hafif bir yay çizer. Tepe ve duvarlar onu gizler",
+  "wynnlabs.setting_desc.guideLine": "Senden en yakın pinimize (ya da pusula hedefine) bir çizgi uzanır: yürürken duvar, uçurum ve suyun etrafından dolaşan yürünebilir bir yol izler, binekteyken havada hafif bir yay çizer. Tepe ve duvarlar onu gizler",
   "wynnlabs.settings.example.crowdMode": "Açık: raid boss odasında kendi totemin ve moblar görünür; büyü parıltıları, diğer kuklalar ve kıvılcımları gider",
   "wynnlabs.settings.example.guideLine": "Wyvern üstünde: tepelerin üstünden geçen altın renkli bir yay sıradaki görev adımını gösterir",
   "wynnlabs.setting.crowdRadius": "Efektlerin yine de çizildiği mesafe",

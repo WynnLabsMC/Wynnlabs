@@ -1818,7 +1818,7 @@
   "wynnlabs.setting.crowdMode": "Crowd mode: no spell effects",
   "wynnlabs.setting.guideLine": "Guide line to the compass target",
   "wynnlabs.setting_desc.crowdMode": "Spell effects and particles are not drawn, nor other players' totems, puppets and pets; yours stay, and so do damage numbers close to you. The frame rate holds in a packed fight",
-  "wynnlabs.setting_desc.guideLine": "A line leads from you to the nearest pin of ours (or your compass target): along the ground on foot, a gentle arc through the air on a mount. Hills and walls hide it",
+  "wynnlabs.setting_desc.guideLine": "A line leads from you to the nearest pin of ours (or your compass target): on foot it follows a walkable path around walls, cliffs and water; on a mount it is a gentle arc through the air. Hills and walls hide it",
   "wynnlabs.settings.example.crowdMode": "On: a raid boss room shows your totem and the mobs; the spell flashes, the other puppets and their sparks are gone",
   "wynnlabs.settings.example.guideLine": "On a wyvern: a gold arc over the hills points straight at the next quest step",
   "wynnlabs.setting.crowdRadius": "Effects still drawn within",
