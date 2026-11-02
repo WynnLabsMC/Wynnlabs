@@ -82,11 +82,6 @@ public final class Settings {
 
     static {
         // tooltip size while a menu is open, in percent; 100 leaves tooltips as the game draws them
-        STEPS.put("menuTooltipScale", new int[] {70, 75, 80, 85, 90, 95, 100});
-        STEP_LABELS.put("menuTooltipScale", "wynnlabs.setting.menuTooltipScale");
-        STEP_FORMAT.put("menuTooltipScale", "wynnlabs.settings.percent");
-        STEP_DEFAULT.put("menuTooltipScale", 85);
-        DESC.put("menuTooltipScale", "wynnlabs.setting_desc.menuTooltipScale");
         // crowd mode: how far from you spell effects and particles are still drawn; 0 draws none
         STEPS.put("crowdRadius", new int[] {0, 2, 3, 4, 6, 8, 12});
         STEP_LABELS.put("crowdRadius", "wynnlabs.setting.crowdRadius");

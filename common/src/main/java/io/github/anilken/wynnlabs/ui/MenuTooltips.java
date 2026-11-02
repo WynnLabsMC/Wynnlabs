@@ -1,31 +1,28 @@
 package io.github.anilken.wynnlabs.ui;
 
-import io.github.anilken.wynnlabs.core.Settings;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
 import org.joml.Vector2i;
 import org.joml.Vector2ic;
 
 /**
- * The "Tooltip size in menus" setting: while a menu is open (inventory, bank, a shop, any
- * container screen) tooltips are drawn at the chosen size, so the advice lines under them still
- * fit on screen. Elsewhere, and at 100%, nothing changes.
+ * Tooltip placement where the mod has a say: the mod's own screens draw their tooltip at full
+ * size on their pixel grid, and in the game's menus a tooltip is placed by us only while
+ * Wynnventory's price box is on the screen, so it keeps out from under it ({@link PriceBox}).
+ * Everywhere else the game and Wynntils place tooltips as usual.
  *
  * <p>Hooked through Wynntils' tooltip positioning ({@code WynntilsEvents.Tooltips}): Wynntils
  * asks for a positioner before it places a tooltip, and its own fitting (universal scale, fit to
- * screen) stands aside when one is set. So ours replaces that fitting in menus rather than
- * shrinking on top of it: the smaller of the two scales is drawn, and smaller still only when the
- * tooltip would not fit the window's height. The positioner places the scaled box beside the
- * mouse and inside the window, scales the pose and hands back that place in the pose's units, as
+ * screen) stands aside when one is set. So ours replaces that fitting rather than shrinking on
+ * top of it: the smaller of the two scales is drawn, and smaller still only when the tooltip
+ * would not fit the window's height. The positioner places the scaled box beside the mouse and
+ * inside the window, scales the pose and hands back that place in the pose's units, as
  * Wynntils' fitting does; {@link #end} undoes the pose once the tooltip is drawn.
  */
 public final class MenuTooltips {
 
-    /** The setting's key in {@link Settings#STEPS}. */
-    static final String KEY = "menuTooltipScale";
     /** The gap between the mouse and the tooltip, as the game draws it. */
     static final int OFFSET = 12;
     /** The frame around the text (3) and a pixel of air: kept inside the window too. */
@@ -36,15 +33,6 @@ public final class MenuTooltips {
     private static final ScaledTooltipPositioner POSITIONER = new ScaledTooltipPositioner();
 
     private MenuTooltips() {}
-
-    /** The size chosen for menus (0.7 … 1), or 1 when no menu is open. */
-    static float wanted() {
-        int pct = Settings.stepValue(KEY);
-        if (pct >= 100 || pct <= 0 || !(Minecraft.getInstance().screen instanceof AbstractContainerScreen<?>)) {
-            return 1f;
-        }
-        return pct / 100f;
-    }
 
     /**
      * The positioner for the tooltip about to be placed, or null to leave it to Wynntils and the
@@ -58,13 +46,12 @@ public final class MenuTooltips {
             POSITIONER.begin(g, 1f, 1f, grid);
             return POSITIONER;
         }
-        float s = wanted();
-        // at full size the game and Wynntils place it, unless Wynnventory's price box is on the
-        // screen: then ours places it (the same way), so it can keep out from under the box
-        if (s >= 1f && !PriceBox.fresh()) {
+        // the game and Wynntils place it, unless Wynnventory's price box is on the screen: then
+        // ours places it (the same way), so it can keep out from under the box
+        if (!PriceBox.fresh()) {
             return null;
         }
-        POSITIONER.begin(g, Math.min(s, 1f), wynntils > 0 ? wynntils : 1f, 0);
+        POSITIONER.begin(g, 1f, wynntils > 0 ? wynntils : 1f, 0);
         return POSITIONER;
     }
 
