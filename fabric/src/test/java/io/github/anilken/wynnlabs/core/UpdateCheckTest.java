@@ -105,7 +105,7 @@ class UpdateCheckTest {
     }
 
     @Test
-    void asksAgainEveryThreeHoursAndTellsOfAReleaseOnce() {
+    void asksAgainEveryHourAndTellsOfAReleaseOnce() {
         int[] started = fresh("0.2.0", true);
         assertTrue(UpdateCheck.firstJoin(1_000_000));
         assertEquals(1, started[0]);

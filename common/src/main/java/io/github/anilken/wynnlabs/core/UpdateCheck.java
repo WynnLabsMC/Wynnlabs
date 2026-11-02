@@ -39,8 +39,8 @@ public final class UpdateCheck {
     private static final int DELAY_TICKS = 100;
     /** The shortest time between two requests (a press on "Check again" sooner does nothing). */
     static final long DEBOUNCE_MS = 10_000;
-    /** How long after a check the automatic one asks again while the game stays open: three hours. */
-    static final long RECHECK_MS = 3L * 60 * 60 * 1000;
+    /** How long after a check the automatic one asks again while the game stays open: an hour. */
+    static final long RECHECK_MS = 60L * 60 * 1000;
 
     /**
      * A release as GitHub describes it: its tag ("v0.3.0"), its page, when it came out (0:
