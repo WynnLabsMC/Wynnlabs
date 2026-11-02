@@ -22,8 +22,6 @@ import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestGuides;
 import io.github.anilken.wynnlabs.quests.QuestTrail;
 import io.github.anilken.wynnlabs.ui.Hud;
-import io.github.anilken.wynnlabs.ui.Theme;
-import io.github.anilken.wynnlabs.ui.Ui;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -202,7 +200,7 @@ public final class Coach {
         }
         if (now < noteUntil && !noteText.isEmpty()) {
             // under the warning when both show
-            int y = g.guiHeight() / 2 - 40 - HUD_MARGIN + (now < warnUntil && !warnText.isEmpty() ? Ui.CHIP_H + Theme.SP_1 + Theme.SP_2 : 0);
+            int y = g.guiHeight() / 2 - 40 - HUD_MARGIN + (now < warnUntil && !warnText.isEmpty() ? Hud.noticeHeight() + 4 : 0);
             Hud.notice(g, font, g.guiWidth() / 2, y, noteWidth, noteIcon, noteText, noteColour);
         }
         if (huntTarget != null) {

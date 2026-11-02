@@ -70,6 +70,11 @@ public final class Hud {
         return 2 * PAD + 8 + Theme.SP_2 + Type.BODY.width(font, text);
     }
 
+    /** The notice pill's height. */
+    public static int noticeHeight() {
+        return Ui.CHIP_H + Theme.SP_1;
+    }
+
     /** A notice pill centred on {@code centreX} at {@code y}: the icon in the accent, the text cream. */
     public static void notice(GuiGraphics g, Font font, int centreX, int y, int w, String icon, String text, int accent) {
         int h = Ui.CHIP_H + Theme.SP_1;
