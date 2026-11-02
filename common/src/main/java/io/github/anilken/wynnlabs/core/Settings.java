@@ -30,7 +30,8 @@ public final class Settings {
             "boxCompactTooltip", "gearCompactTooltip", "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "trackedDrops", "mobTrack",
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "healerAdvice", "deathCoach", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
-            "feederHighlight", "miniQuests", "questGuides", "caveMapDone", "localApi", "apiWrite", "debug", "webFont", "menuResume"}) {
+            "feederHighlight", "miniQuests", "questGuides", "caveMapDone", "localApi", "apiWrite", "debug", "webFont", "menuResume",
+            "crowdMode"}) {
             LABELS.put(k, "wynnlabs.setting." + k);
             DESC.put(k, "wynnlabs.setting_desc." + k);
         }
@@ -86,6 +87,12 @@ public final class Settings {
         STEP_FORMAT.put("menuTooltipScale", "wynnlabs.settings.percent");
         STEP_DEFAULT.put("menuTooltipScale", 85);
         DESC.put("menuTooltipScale", "wynnlabs.setting_desc.menuTooltipScale");
+        // crowd mode: how far from you spell effects, particles and damage numbers are still drawn
+        STEPS.put("crowdRadius", new int[] {2, 3, 4, 6, 8, 12});
+        STEP_LABELS.put("crowdRadius", "wynnlabs.setting.crowdRadius");
+        STEP_FORMAT.put("crowdRadius", "wynnlabs.settings.blocks");
+        STEP_DEFAULT.put("crowdRadius", 4);
+        DESC.put("crowdRadius", "wynnlabs.setting_desc.crowdRadius");
         STEPS.put("powerupLabelSize", new int[] {75, 100, 125, 150});
         STEP_LABELS.put("powerupLabelSize", "wynnlabs.setting.powerupLabelSize");
         STEP_FORMAT.put("powerupLabelSize", "wynnlabs.settings.percent");
@@ -263,7 +270,8 @@ public final class Settings {
      */
     static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "priceApi",
             "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "rideRefresh",
-            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint", "chestBeams", "gearCompactTooltip");
+            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint", "chestBeams", "gearCompactTooltip",
+            "crowdMode");
 
     public static boolean on(String key) {
         load();

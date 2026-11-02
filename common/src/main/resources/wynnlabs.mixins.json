@@ -19,7 +19,9 @@
     "PowerupDisplayAccessor",
     "PowerupModelAccessor",
     "PowerupLayerAccessor",
-    "PowerupSpriteAccessor"
+    "PowerupSpriteAccessor",
+    "CrowdEntityMixin",
+    "CrowdParticleMixin"
   ],
   "injectors": {
     "defaultRequire": 1

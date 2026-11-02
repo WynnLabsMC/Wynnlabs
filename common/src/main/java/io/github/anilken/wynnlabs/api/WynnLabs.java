@@ -152,6 +152,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.Stamp", Stamp::onTick));
         platform.onEndTick(Perf.tick("tick.MenuWatcher", MenuWatcher::onTick));
         platform.onEndTick(Perf.tick("tick.Profile", Profile::onTick));
+        platform.onEndTick(Perf.tick("tick.Crowd", io.github.anilken.wynnlabs.ui.CrowdMode::onTick));
         platform.onEndTick(Perf.tick("tick.Setup", Setup::onTick));
         platform.onEndTick(Perf.tick("tick.Wyn", Wyn::onTick));
         platform.onEndTick(Perf.tick("tick.Prices", Prices::onTick));
