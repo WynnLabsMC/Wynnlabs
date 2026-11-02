@@ -168,6 +168,13 @@ final class BuildImportView {
                 Type.META.draw(g, ui.font, p.powders(), right - pw, y + 6, Theme.INK_3);
                 right -= pw + Theme.SP_3;
             }
+            if (row.crafted() != null) {
+                // made from the link's own recipe: there is no item of that name to look up
+                String from = L.t("wynnlabs.import.from_recipe");
+                int fw = Type.META.width(ui.font, from);
+                Type.META.draw(g, ui.font, from, right - fw, y + 6, Theme.INK_3);
+                right -= fw + Theme.SP_3;
+            }
         } else {
             String why = L.t(WHY[row.why().ordinal()]);
             int sw = Type.META.width(ui.font, why) + 2 * Theme.SP_2;
@@ -177,10 +184,11 @@ final class BuildImportView {
         int nx = x + 18 + Theme.SP_2;
         int room = right - nx;
         String name = p.kind() == WynnBuilderLink.Kind.ITEM ? (p.name() == null ? "#" + p.id() : p.name())
+                : row.crafted() != null ? row.crafted().name()
                 : L.t(p.kind() == WynnBuilderLink.Kind.CRAFTED ? "wynnlabs.import.crafted" : "wynnlabs.import.custom");
         Component nc = row.info() != null ? Component.literal(Type.BODY.fit(ui.font, row.info().name(), room)).withStyle(row.info().tier().colour())
                 : Component.literal(Type.BODY.fit(ui.font, name, room));
-        Kit.text(g, ui.font, nc, nx, y, row.info() != null && kept ? Theme.INK : Theme.INK_3);
+        Kit.text(g, ui.font, nc, nx, y, (row.info() != null || row.crafted() != null) && kept ? Theme.INK : Theme.INK_3);
         Type.META.draw(g, ui.font, L.t(SLOTS[Math.min(p.slot(), SLOTS.length - 1)]), nx, y + Type.BODY.lineHeight, Theme.INK_3);
         if (row.info() != null) {
             host.item(x, y, w, ROW_H, row.info(), icon, List.of());

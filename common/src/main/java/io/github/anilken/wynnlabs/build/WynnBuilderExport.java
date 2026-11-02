@@ -1,5 +1,7 @@
 package io.github.anilken.wynnlabs.build;
 
+import io.github.anilken.wynnlabs.crafting.RecipeCode;
+import io.github.anilken.wynnlabs.crafting.WynnBuilderCode;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.WornGear;
 import io.github.anilken.wynnlabs.model.ItemData;
@@ -20,8 +22,10 @@ import java.util.Optional;
 /**
  * WynnBuilder build links written by the mod's own code: the inverse of {@link WynnBuilderLink}
  * (the current form, in the newest data version the mod ships) and {@link WynnBuilderTree}.
- * Items and tomes go by WynnBuilder's ids from {@code wynnbuilder-items.json}; a crafted or
- * custom piece, or a name the table does not have, goes in as an empty slot. A later version
+ * Items and tomes go by WynnBuilder's ids from {@code wynnbuilder-items.json}; a crafted piece
+ * with its recipe (one read from a link) goes in as its crafter code, and one without (worn: the
+ * game does not show its ingredients), a custom piece or a name the table does not have as an
+ * empty slot. A later version
  * the site lacks (Ascended Immolation) goes in as the newest one it has, and an empty weapon
  * slot takes a weapon of the class: the site opens no link without a weapon.
  *
@@ -79,6 +83,17 @@ public final class WynnBuilderExport {
                 if (q.slot() == slot) {
                     p = q;
                 }
+            }
+            String craft = p == null ? null : craftCode(p);
+            if (craft != null) {
+                put(bits, 1, 2);
+                for (char c : craft.substring(WynnBuilderCode.PREFIX.length()).toCharArray()) {
+                    put(bits, DIGITS.indexOf(c), 6);
+                }
+                if (slot < 4 || slot == WynnBuilderLink.WEAPON) {
+                    powders(bits, p.powders(), w);
+                }
+                continue;
             }
             int id = p == null ? -1 : itemId(p);
             String powders = id < 0 ? "" : p.powders();
@@ -199,7 +214,7 @@ public final class WynnBuilderExport {
         for (int i = 0; i < Build.SLOTS.length; i++) {
             Damage.Piece p = set.get(Build.SLOTS[i]);
             if (p != null) {
-                pieces.add(p.crafted() ? new WynnBuilderLink.Piece(i, WynnBuilderLink.Kind.CRAFTED, -1, p.name(), null, "")
+                pieces.add(p.crafted() ? craftedPiece(i, p)
                         : new WynnBuilderLink.Piece(i, WynnBuilderLink.Kind.ITEM, -1, p.name(), null, judgedPowders(p, state)));
             }
         }
@@ -330,6 +345,32 @@ public final class WynnBuilderExport {
         }
         char c = element.toUpperCase(Locale.ROOT).charAt(0);
         return ELEMENTS.indexOf(c) < 0 ? "" : (String.valueOf(c) + Math.max(1, tier)).repeat(n);
+    }
+
+    /**
+     * A crafted model piece as a link piece: with its recipe and powders when it was made from a
+     * link's ({@link LinkImport#crafted}, its key "craft:CR-…|powders"), else by name alone.
+     */
+    private static WynnBuilderLink.Piece craftedPiece(int slot, Damage.Piece p) {
+        String key = p.key() == null ? "" : p.key();
+        int bar = key.indexOf('|');
+        if (key.startsWith("craft:") && bar > 0) {
+            return new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CRAFTED, -1, p.name(), null, key.substring(bar + 1),
+                    key.substring("craft:".length(), bar));
+        }
+        return new WynnBuilderLink.Piece(slot, WynnBuilderLink.Kind.CRAFTED, -1, p.name(), null, "");
+    }
+
+    /**
+     * A crafted piece's crafter code in the form a build link holds (an older "CR-1…" code
+     * written anew, as the site does); null for any other piece or a recipe the site has no id for.
+     */
+    private static String craftCode(WynnBuilderLink.Piece p) {
+        if (p.kind() != WynnBuilderLink.Kind.CRAFTED) {
+            return null;
+        }
+        RecipeCode.Recipe r = p.recipe();
+        return r == null ? null : WynnBuilderCode.encode(r);
     }
 
     private static int itemId(WynnBuilderLink.Piece p) {

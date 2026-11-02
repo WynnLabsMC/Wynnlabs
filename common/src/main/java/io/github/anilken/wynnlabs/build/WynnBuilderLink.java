@@ -4,6 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.anilken.wynnlabs.crafting.RecipeCode;
+import io.github.anilken.wynnlabs.crafting.WynnBuilderCode;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -23,11 +25,12 @@ import java.util.Map;
  *
  * <p>The current form is a bit string, lowest bit first, six bits per letter (0-9, A-Z, a-z, +,
  * -): 12 in six bits, the data version in ten, then per piece a 2-bit kind (an item by id + 1, 0
- * for none; a crafted or a custom item, skipped) and, for armour and the weapon, a powder flag and
+ * for none; a crafted item as its crafter code's bits; a custom item, skipped) and, for armour and
+ * the weapon, a powder flag and
  * the powders; a tome flag and one id per tome slot; a skill point flag and each skill's points;
  * a level flag and the level. The widths of the ids change with the data version. The older form
- * is "N_" and fixed-width letters, high letter first: 3 per item, 2 per skill, 2 for the level,
- * blocks of powders, then the tomes. The ids are WynnBuilder's, shipped in
+ * is "N_" and fixed-width letters, high letter first: 3 per item ("CR-" and a 17-letter crafter
+ * code for a crafted one), 2 per skill, 2 for the level, blocks of powders, then the tomes. The ids are WynnBuilder's, shipped in
  * {@code wynnbuilder-items.json}; nothing here acts in the game.
  */
 public final class WynnBuilderLink {
@@ -45,9 +48,20 @@ public final class WynnBuilderLink {
     /**
      * One piece of the link: its place (0 helmet … 8 weapon), its kind, the item's name as the game
      * writes it and WynnBuilder's own name when that differs (else null; both null for an id the
-     * table does not have), and its powders ("T6T6E6", empty for none).
+     * table does not have), its powders ("T6T6E6", empty for none) and, for a crafted piece, its
+     * crafter code ("CR-…", {@link WynnBuilderCode}; null otherwise).
      */
-    public record Piece(int slot, Kind kind, int id, String name, String alias, String powders) {}
+    public record Piece(int slot, Kind kind, int id, String name, String alias, String powders, String craft) {
+
+        public Piece(int slot, Kind kind, int id, String name, String alias, String powders) {
+            this(slot, kind, id, name, alias, powders, null);
+        }
+
+        /** A crafted piece's recipe; null for any other piece or a code that names something unknown. */
+        public RecipeCode.Recipe recipe() {
+            return craft == null ? null : WynnBuilderCode.decode(craft);
+        }
+    }
 
     /**
      * A decoded link: its WynnBuilder data version ("2.2.5.0"; {@code newer} when the mod's table
@@ -152,8 +166,7 @@ public final class WynnBuilderLink {
                     p = item(i, t.itemMoved().getOrDefault(id - 1, id - 1), "");
                 }
             } else if (kind == 1) {
-                skipCraft(b, i == WEAPON);
-                p = new Piece(i, Kind.CRAFTED, -1, null, null, "");
+                p = new Piece(i, Kind.CRAFTED, -1, null, null, "", craft(b, i == WEAPON));
             } else if (kind == 2) {
                 b.skip(b.take(12) * 6);
                 p = new Piece(i, Kind.CUSTOM, -1, null, null, "");
@@ -165,7 +178,7 @@ public final class WynnBuilderLink {
                 powders = powders(b, w);
             }
             if (p != null) {
-                pieces.add(new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), powders));
+                pieces.add(new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), powders, p.craft()));
             }
         }
         List<String> tomes = new ArrayList<>();
@@ -194,14 +207,19 @@ public final class WynnBuilderLink {
         return new Build(w.name(), newer, List.copyOf(pieces), List.copyOf(tomes), skills, level, b.rest());
     }
 
-    /** A crafted piece's bits: a 0 bit, 7-bit version, six ingredients and the recipe (12 each), two tiers, a weapon's speed, padding. */
-    private static void skipCraft(Bits b, boolean weapon) {
+    /**
+     * A crafted piece's bits as its crafter code ("CR-…"): the site writes the code's own letters
+     * here, a 0 bit, 7-bit version, six ingredients and the recipe (12 each), two tiers, a weapon's
+     * speed, then padding to a whole letter counted from the piece's start.
+     */
+    private static String craft(Bits b, boolean weapon) {
         int start = b.at;
         if (b.take(1) != 0) {
             throw new IllegalArgumentException("old crafted form inside a link");
         }
         b.skip(7 + 6 * 12 + 12 + 2 * 3 + (weapon ? 4 : 0));
         b.skip(6 - (b.at - start) % 6);
+        return WynnBuilderCode.PREFIX + b.letters(start, b.at);
     }
 
     /**
@@ -249,10 +267,10 @@ public final class WynnBuilderLink {
         int at = 0;
         for (int i = 0; i < PIECES; i++) {
             if (v == 4 && data.charAt(at) == '-') {
-                pieces.add(new Piece(i, Kind.CRAFTED, -1, null, null, ""));
+                pieces.add(new Piece(i, Kind.CRAFTED, -1, null, null, "", WynnBuilderCode.PREFIX + data.substring(at + 1, at + 18)));
                 at += 18;
             } else if (v > 4 && data.startsWith("CR-", at)) {
-                pieces.add(new Piece(i, Kind.CRAFTED, -1, null, null, ""));
+                pieces.add(new Piece(i, Kind.CRAFTED, -1, null, null, "", data.substring(at, at + 20)));
                 at += 20;
             } else if (v > 4 && data.startsWith("CI-", at + 3)) {
                 pieces.add(new Piece(i, Kind.CUSTOM, -1, null, null, ""));
@@ -298,7 +316,7 @@ public final class WynnBuilderLink {
                 for (int j = 0; j < pieces.size(); j++) {
                     Piece p = pieces.get(j);
                     if (p.slot() == slot) {
-                        pieces.set(j, new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), ps.toString()));
+                        pieces.set(j, new Piece(p.slot(), p.kind(), p.id(), p.name(), p.alias(), ps.toString(), p.craft()));
                     }
                 }
             }
@@ -400,6 +418,21 @@ public final class WynnBuilderLink {
                 throw new IllegalArgumentException("link too short");
             }
             at += n;
+        }
+
+        /** Bits {@code from} to {@code to} (a whole number of letters) as letters again. */
+        String letters(int from, int to) {
+            StringBuilder s = new StringBuilder((to - from) / 6);
+            for (int i = from; i < to; i += 6) {
+                int v = 0;
+                for (int j = 0; j < 6; j++) {
+                    if (bits[i + j]) {
+                        v |= 1 << j;
+                    }
+                }
+                s.append(DIGITS.charAt(v));
+            }
+            return s.toString();
         }
 
         /** The bits not read yet, as '0' and '1'. */
