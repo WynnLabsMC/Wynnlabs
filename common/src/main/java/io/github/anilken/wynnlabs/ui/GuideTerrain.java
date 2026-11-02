@@ -38,6 +38,8 @@ final class GuideTerrain implements GuidePath.Walkable {
     static final double SWIM = 3;
     /** A step onto a road costs this much of a plain one. */
     static final double ROAD_COST = GuidePath.ROAD;
+    /** ... and onto a road's edge (a block of it next to anything else): between, so the middle of the road wins. */
+    static final double ROAD_EDGE = (GuidePath.ROAD + 1) / 2;
     /** A step through a door or gate costs this much of a plain one: to be opened, so an open way wins. */
     static final double DOOR_COST = 1.5;
     /** A step up onto a slab or stair: half a block, no jump. */
@@ -132,7 +134,25 @@ final class GuideTerrain implements GuidePath.Walkable {
             return DOOR_COST;
         }
         char below = b.at(x, y - 1, z);
-        return below == ROAD || below == HALF ? ROAD_COST : 1;
+        if (below != ROAD && below != HALF) {
+            return 1;
+        }
+        return roadAround(x, y - 1, z) ? ROAD_COST : ROAD_EDGE;
+    }
+
+    /** Whether the four blocks beside ({@code x}, {@code y}, {@code z}) are road too (one up or down counts: a slope). */
+    private boolean roadAround(int x, int y, int z) {
+        return road(x + 1, y, z) && road(x - 1, y, z) && road(x, y, z + 1) && road(x, y, z - 1);
+    }
+
+    private boolean road(int x, int y, int z) {
+        for (int dy = -1; dy <= 1; dy++) {
+            char c = b.at(x, y + dy, z);
+            if (c == ROAD || c == HALF) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

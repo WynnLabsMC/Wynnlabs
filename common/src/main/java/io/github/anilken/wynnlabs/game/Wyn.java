@@ -1915,7 +1915,7 @@ public final class Wyn {
             for (int i = 0; i < points.size(); i++) {
                 int[] p = points.get(i);
                 int argb = (i < faintFrom ? 0xE0 : 0x70) << 24 | rgb & 0xFFFFFF;
-                out.add(new RouteDot(new com.wynntils.utils.mc.type.PoiLocation(p[0], p[1], p[2]), argb));
+                out.add(new RouteDot(new com.wynntils.utils.mc.type.PoiLocation(p[0], p[1], p[2]), argb, i));
             }
             registered.pois = List.copyOf(out);
             return true;
@@ -1938,12 +1938,24 @@ public final class Wyn {
     }
 
     /**
-     * One dot of the guide route, 2 pixels square at any zoom. It has no size to hover or click,
-     * so it never takes the mouse from a pin under it. A failure in our drawing turns the dots
-     * off and never reaches Wynntils' screen.
+     * One point of the guide route on the map. Wynntils draws the points in order, so each draws
+     * the line from the point before it (when that was drawn just now, in the same pass) and a
+     * joint at itself; a point off the map is skipped by Wynntils, and the line ends there. The
+     * size keeps it drawn (the minimap draws nothing with no size). A failure in our drawing
+     * turns the line off and never reaches Wynntils' screen.
      */
-    private record RouteDot(com.wynntils.utils.mc.type.PoiLocation location, int argb)
+    private record RouteDot(com.wynntils.utils.mc.type.PoiLocation location, int argb, int index)
             implements com.wynntils.services.map.pois.Poi {
+
+        /** A joint of the line is this many pixels across; the line this many wide. */
+        static final int WIDTH = 3;
+        /** A pass of the map draws its points within this long; later, the line starts over. */
+        static final long PASS_NANOS = 20_000_000L;
+        // the point drawn just before, in this pass of the map: the line runs from it to the next
+        private static int lastIndex = -1;
+        private static float lastX;
+        private static float lastZ;
+        private static long lastAt;
 
         @Override
         public com.wynntils.utils.mc.type.PoiLocation getLocation() {
@@ -1967,9 +1979,32 @@ public final class Wyn {
                 return;
             }
             try {
+                long now = System.nanoTime();
+                int half = WIDTH / 2;
+                if (lastIndex == index - 1 && now - lastAt < PASS_NANOS) {
+                    // the line from the point before: a rotated bar, with a joint at each end
+                    float dx = x - lastX;
+                    float dz = z - lastZ;
+                    int len = Math.round((float) Math.hypot(dx, dz));
+                    if (len > 0) {
+                        var pose = g.pose();
+                        pose.pushMatrix();
+                        try {
+                            pose.translate(lastX, lastZ);
+                            pose.rotate((float) Math.atan2(dz, dx));
+                            g.fill(0, -half, len, WIDTH - half, argb);
+                        } finally {
+                            pose.popMatrix();
+                        }
+                    }
+                }
                 int cx = Math.round(x);
                 int cz = Math.round(z);
-                g.fill(cx - 1, cz - 1, cx + 1, cz + 1, argb);
+                g.fill(cx - half, cz - half, cx - half + WIDTH, cz - half + WIDTH, argb);
+                lastIndex = index;
+                lastX = x;
+                lastZ = z;
+                lastAt = now;
             } catch (Throwable t) {
                 GuideRoute.broken = true;           // the map and the guide line keep working
                 System.out.println("[WynnLabs] guide route on the map is off: " + t);
@@ -1978,12 +2013,12 @@ public final class Wyn {
 
         @Override
         public int getWidth(float zoomRenderScale, float scale) {
-            return 0;
+            return WIDTH;
         }
 
         @Override
         public int getHeight(float zoomRenderScale, float scale) {
-            return 0;
+            return WIDTH;
         }
 
         @Override

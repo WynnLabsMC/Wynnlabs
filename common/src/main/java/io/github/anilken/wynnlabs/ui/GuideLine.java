@@ -218,6 +218,8 @@ public final class GuideLine {
     private static volatile Track track;
     /** Riding or gliding: the straight line through the air (faint while a ground route is shown). */
     private static volatile boolean airLine;
+    /** The route's colour on Wynntils' minimap and map: a road-sign yellow, which reads on grass, sand and stone. */
+    static final int MAP_RGB = 0xFFD23F;
     /** Riding or gliding with no ground under the player: why ({@code /guide}); null otherwise. */
     private static volatile String groundWhy;
     /** Riding or gliding: where the ground route starts, under the player (null: no ground there, or on foot). */
@@ -631,7 +633,7 @@ public final class GuideLine {
                 double[] q = line.get(i);
                 air.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
             }
-            Wyn.showGuideRoute(air, 0, BODY);
+            Wyn.showGuideRoute(air, 0, MAP_RGB);
             return;
         }
         if (g == mapShown) {
@@ -649,7 +651,7 @@ public final class GuideLine {
             }
             out.add(new int[] {(int) Math.floor(q[0]), (int) Math.floor(q[1]), (int) Math.floor(q[2])});
         }
-        Wyn.showGuideRoute(out, faint, BODY);
+        Wyn.showGuideRoute(out, faint, MAP_RGB);
     }
 
     /**
@@ -818,7 +820,8 @@ public final class GuideLine {
                 int th = g.height(tx, tz);
                 if (ph != WorldRoute.UNKNOWN && sy < ph - UNDER) {
                     why = "the player is under the map's surface";
-                } else if (th != WorldRoute.UNKNOWN && t.y() < th - UNDER) {
+                } else if (th != WorldRoute.UNKNOWN && t.y() > 0 && t.y() < th - UNDER) {
+                    // (a pin with no height, y 0, is taken as on the surface)
                     why = "the target is under the map's surface";
                 } else {
                     plan = g.plan(px, pz, tx, tz, WORLD_BUDGET, WORLD_MILLIS);

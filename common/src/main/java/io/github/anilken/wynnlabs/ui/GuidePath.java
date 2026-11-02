@@ -170,17 +170,18 @@ final class GuidePath {
 
     /**
      * The ground under a rider at feet height {@code y} in column (x, z): the highest standable spot
-     * there at or below {@code y}, looked for from the column's height {@code top} (the heightmap's
-     * first free block, {@link GuideLine#UNKNOWN} where not loaded) or from {@code y} when that is
-     * lower (gliding under an arch), down to {@code floor}, however deep; null with none. Where the
-     * ground route starts while riding or gliding.
+     * there below {@code y}, down to {@code floor}, however deep; null with none, or where the
+     * column is not loaded ({@code top} {@link GuideLine#UNKNOWN}; its value is not used otherwise:
+     * Wynncraft's chunks carry no heightmap). Where the ground route starts while riding or gliding.
      */
     static int[] surface(Walkable w, int x, int z, int y, int top, int floor) {
         if (top == GuideLine.UNKNOWN) {
             return null;
         }
-        // stand(fromY) looks from fromY + 1 down to fromY - 3, then down an open column
-        for (int from = Math.min(top, y) - 1; from + 1 >= floor; from -= 4) {
+        // from the feet down (the column's height says nothing: Wynncraft's chunks carry no
+        // heightmap, so it reads 0); stand(fromY) looks from fromY + 1 down to fromY - 3, then
+        // down an open column
+        for (int from = y - 1; from + 1 >= floor; from -= 4) {
             int f = w.stand(x, z, from);
             if (f != NONE) {
                 return new int[] {x, f, z};

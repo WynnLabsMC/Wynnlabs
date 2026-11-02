@@ -326,6 +326,14 @@ class GuidePathTest {
     }
 
     @Test
+    void aRiderStartsOnTheGroundBelowWhateverTheColumnHeightSays() {
+        // Wynncraft's chunks carry no heightmap: the column's height reads 0
+        GuideDump d = canyon();
+        assertArrayEquals(new int[] {5, 70, 3}, GuidePath.surface(GuideDumps.walkable(d), 5, 3, 110, 0, 0));
+        assertArrayEquals(new int[] {12, 30, 3}, GuidePath.surface(GuideDumps.walkable(d), 12, 3, 110, 0, 0));
+    }
+
+    @Test
     void aRiderOverACanyonStartsOnItsFloorHoweverFarDown() {
         GuideDump d = canyon();
         int[] s = surface(d, 12, 110, 3);
