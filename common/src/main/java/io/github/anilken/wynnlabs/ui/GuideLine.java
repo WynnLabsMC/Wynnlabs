@@ -14,6 +14,7 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.player.Player;
@@ -643,7 +644,8 @@ public final class GuideLine {
     /**
      * {@code /guide?dump=1}, on the game thread: the block codes in a box {@code flat} blocks each
      * way and {@code up} blocks up and down around the player, with the player, the target and the
-     * route settings ({@link GuideDump}); null without a player.
+     * route settings ({@link GuideDump}), and per code the blocks it stands for here, the most common
+     * first; null without a player.
      */
     public static JsonObject dump(int flat, int up) {
         Minecraft mc = Minecraft.getInstance();
@@ -659,11 +661,22 @@ public final class GuideLine {
         int sy = 2 * up + 1;
         GuideTerrain.Blocks b = blocks(level);
         char[][] cols = new char[sx * sx][];
+        // which blocks each code stands for here, so an odd one (a shaft of "non-solid") can be named
+        Map<Character, Map<String, Integer>> names = new java.util.TreeMap<>();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int k = 0; k < sx; k++) {
             for (int i = 0; i < sx; i++) {
                 char[] col = new char[sy];
                 for (int j = 0; j < sy; j++) {
-                    col[j] = b.at(px - flat + i, py - up + j, pz - flat + k);
+                    int x = px - flat + i;
+                    int y = py - up + j;
+                    int z = pz - flat + k;
+                    char code = b.at(x, y, z);
+                    col[j] = code;
+                    if (code != GuideTerrain.UNKNOWN && code != GuideTerrain.AIR) {
+                        String id = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos.set(x, y, z)).getBlock()).toString();
+                        names.computeIfAbsent(code, c -> new HashMap<>()).merge(id, 1, Integer::sum);
+                    }
                 }
                 cols[k * sx + i] = col;
             }
@@ -687,8 +700,17 @@ public final class GuideLine {
         set.addProperty("millis", SEARCH_MILLIS);
         set.addProperty("candidates", CANDIDATES);
         set.addProperty("drop", GuidePath.DROP);
-        return new GuideDump(px - flat, py - up, pz - flat, sx, sy, sx, cols,
+        JsonObject out = new GuideDump(px - flat, py - up, pz - flat, sx, sy, sx, cols,
                 new double[] {p.getX(), p.getY(), p.getZ()}, tj, set).toJson();
+        JsonObject named = new JsonObject();
+        names.forEach((code, ids) -> {
+            JsonObject j = new JsonObject();
+            ids.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(16)
+                    .forEach(e -> j.addProperty(e.getKey(), e.getValue()));
+            named.add(String.valueOf(code), j);
+        });
+        out.add("names", named);
+        return out;
     }
 
     /** A door, fence gate or trapdoor: the player opens it. */
