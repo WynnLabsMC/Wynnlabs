@@ -530,18 +530,6 @@
    "source": "https://wynncraft.wiki.gg/wiki/Troms_Jungle"
   },
   {
-   "name": "Troms Jungle",
-   "from": [
-    -749,
-    -919
-   ],
-   "to": [
-    -600,
-    -800
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Troms_Jungle"
-  },
-  {
    "name": "Alive Island",
    "from": [
     902,
@@ -636,18 +624,6 @@
     -1373
    ],
    "source": "https://wynncraft.wiki.gg/wiki/Pigmen's_Ravine"
-  },
-  {
-   "name": "Twain Lake",
-   "from": [
-    87,
-    -572
-   ],
-   "to": [
-    59,
-    -434
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Twain_Lake"
   },
   {
    "name": "Volmor's Tower",
