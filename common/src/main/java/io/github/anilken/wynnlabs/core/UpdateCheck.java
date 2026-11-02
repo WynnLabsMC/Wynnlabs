@@ -17,8 +17,10 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Once per game run, a few seconds after the player first shows up in a world, asks GitHub for
- * the newest release and, only when it is newer than this jar, says so in one chat line with
+ * A few seconds after the player first shows up in a world, and again every {@link #RECHECK_MS}
+ * while the game stays open (a long session would otherwise never hear of a release made during
+ * it), asks GitHub for the newest release and, only when it is newer than this jar, says so (once
+ * per release) in one chat line with
  * [Update] (download now, installed on exit), [Details] (the update window) and [GitHub] (the
  * release page). Settings {@code updateCheck} (the
  * reminder) and {@code autoUpdate} (download now, install on exit, no screen): while both are off
@@ -37,6 +39,8 @@ public final class UpdateCheck {
     private static final int DELAY_TICKS = 100;
     /** The shortest time between two requests (a press on "Check again" sooner does nothing). */
     static final long DEBOUNCE_MS = 10_000;
+    /** How long after a check the automatic one asks again while the game stays open: an hour. */
+    static final long RECHECK_MS = 60L * 60 * 1000;
 
     /**
      * A release as GitHub describes it: its tag ("v0.3.0"), its page, when it came out (0:
@@ -75,6 +79,8 @@ public final class UpdateCheck {
     private static volatile State state = new State(Status.IDLE, Reason.NONE, "", null, null, 0, 0);
     /** When the last request started (0: none yet), for the ten-second wait. */
     private static long lastStart;
+    /** The release the automatic check already told of (or started downloading): not said twice. */
+    private static volatile String announced;
 
     /** Runs a request; tests swap it for one that runs nothing or runs at once. */
     static Consumer<Runnable> starter = job -> {
@@ -108,7 +114,23 @@ public final class UpdateCheck {
         }
         if (!started && ++ticks >= DELAY_TICKS) {
             firstJoin(System.currentTimeMillis());
+        } else if (started && (++ticks & 63) == 0) {
+            again(System.currentTimeMillis());
         }
+    }
+
+    /**
+     * The automatic check again, {@link #RECHECK_MS} after the last request (whoever made it):
+     * true when a request started. Nothing while one runs, while the settings are off, or for a
+     * dev build.
+     */
+    static synchronized boolean again(long now) {
+        if (!started || !wanted() || !checkable(own) || state.status() == Status.CHECKING
+                || lastStart == 0 || now - lastStart < RECHECK_MS) {
+            return false;
+        }
+        start(own, true, now);
+        return true;
     }
 
     /** The reminder or the auto update is on: the automatic check may ask. */
@@ -265,15 +287,21 @@ public final class UpdateCheck {
         UpdateAsset asset = newer ? UpdateAsset.choose(r.assets(), r.tag()) : null;
         state = new State(newer ? Status.NEWER : Status.UP_TO_DATE, Reason.NONE, mine, r.tag(), r.url(), r.published(), now,
                 r.notes(), asset);
-        if (!newer || !auto || UpdatePrefs.silenced(r.tag())) {
+        if (!newer || !auto || UpdatePrefs.silenced(r.tag()) || r.tag().equals(announced)) {
             return;
         }
+        announced = r.tag();
         if (Settings.choice("updates") == 2 && UpdateDownload.start(asset, r.tag(), true)) {
             return;
         }
         if (Settings.choice("updates") >= 1) {
             pending = r;
         }
+    }
+
+    /** Tests: the release the automatic check has told of, null for none. */
+    static String announced() {
+        return announced;
     }
 
     /** No network (no route, no name, no connection) or GitHub not answering (a timeout, anything else). */
@@ -301,6 +329,7 @@ public final class UpdateCheck {
         state = new State(Status.IDLE, Reason.NONE, "", null, null, 0, 0);
         lastStart = 0;
         pending = null;
+        announced = null;
         started = false;
         ticks = 0;
     }

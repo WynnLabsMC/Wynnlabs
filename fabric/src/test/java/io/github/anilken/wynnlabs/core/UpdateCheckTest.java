@@ -105,6 +105,24 @@ class UpdateCheckTest {
     }
 
     @Test
+    void asksAgainEveryHourAndTellsOfAReleaseOnce() {
+        int[] started = fresh("0.2.0", true);
+        assertTrue(UpdateCheck.firstJoin(1_000_000));
+        assertEquals(1, started[0]);
+        UpdateCheck.finish("0.2.0", 200, NEWER.replace("v0.3.0", "v0.2.0"), true, 1_001_000);
+        assertFalse(UpdateCheck.again(1_000_000 + UpdateCheck.RECHECK_MS - 1), "too soon");
+        assertTrue(UpdateCheck.again(1_000_000 + UpdateCheck.RECHECK_MS));
+        assertEquals(2, started[0]);
+        assertFalse(UpdateCheck.again(1_000_000 + 2 * UpdateCheck.RECHECK_MS), "one request at a time");
+        // a release made during the session: told of once, not again on the next check
+        UpdateCheck.finish("0.2.0", 200, NEWER, true, 1_002_000 + UpdateCheck.RECHECK_MS);
+        assertEquals("v0.3.0", UpdateCheck.announced());
+        assertEquals(UpdateCheck.Status.NEWER, UpdateCheck.state().status());
+        assertTrue(UpdateCheck.again(1_000_000 + 2 * UpdateCheck.RECHECK_MS + 1));
+        assertEquals(3, started[0]);
+    }
+
+    @Test
     void checkAgainAsksOnceAndWaitsTenSeconds() {
         int[] started = fresh("0.2.0", true);
         assertEquals(UpdateCheck.Status.IDLE, UpdateCheck.state().status());

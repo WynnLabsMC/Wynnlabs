@@ -3068,7 +3068,7 @@
   "wynnlabs.settings.opt.treeHelp.1": "İpucu",
   "wynnlabs.settings.opt.treeHelp.2": "İpucu + parlama",
   "wynnlabs.setting.updates": "Yeni sürümler",
-  "wynnlabs.setting_desc.updates": "Haber ver: oturumda bir kez GitHub'a bakar, chat'te söyler. Kendi kursun: arka planda indirir, oyun kapanırken kurar",
+  "wynnlabs.setting_desc.updates": "Haber ver: oynarken saatte bir GitHub'a bakar, chat'te söyler. Kendi kursun: arka planda indirir, oyun kapanırken kurar",
   "wynnlabs.settings.example.updates": "Yeni sürüm çıkınca chat'te bir satır ve Hakkında sayfasında bir not",
   "wynnlabs.settings.opt.updates.0": "Kapalı",
   "wynnlabs.settings.opt.updates.1": "Haber ver",
