@@ -5587,6 +5587,20 @@
    "z": -5282,
    "level": 0,
    "source": "manual"
+  },
+  {
+   "name": "gate",
+   "x": -1997,
+   "z": -4404,
+   "level": 0,
+   "source": "manual"
+  },
+  {
+   "name": "gate",
+   "x": -1998,
+   "z": -4531,
+   "level": 0,
+   "source": "manual"
   }
  ],
  "corridors": [
@@ -5767,6 +5781,42 @@
    "to": [
     -1617,
     -596
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -1996,
+    -4404
+   ],
+   "to": [
+    -1997,
+    -4531
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -1976,
+    -5605
+   ],
+   "to": [
+    -1983,
+    -5654
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    313,
+    -5241
+   ],
+   "to": [
+    261,
+    -5241
    ],
    "source": "manual"
   }
