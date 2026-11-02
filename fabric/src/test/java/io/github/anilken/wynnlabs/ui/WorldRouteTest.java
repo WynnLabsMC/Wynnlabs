@@ -20,7 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * swims a river and never crosses lava, and the corridor hands the block-level route its waypoints.
  * The maps are written here, from character rows: '.' ground at 64, '~' water at 62, 'M' a
  * mountain top at 90, 'L' lava, ' ' unknown, a digit ground 2 blocks higher a step ('1' 66, '2' 68).
- * '#' ground at 64 with an invisible wall (impassable). A cell opens toward a neighbour that can
+ * '#' ground at 64 with an invisible wall (impassable), '=' a road at 64, 'h' ground at 64 in a
+ * high-level region. A cell opens toward a neighbour that can
  * be stood or swum on and is at most 2 blocks higher or 40 lower, the way the generator decides it
  * block by block on the real map.
  */
@@ -41,6 +42,8 @@ class WorldRouteTest {
         byte[] kinds = new byte[TILE * TILE / 4];
         byte[] edges = new byte[TILE * TILE / 2];
         byte[] walls = new byte[TILE * TILE / 8];
+        byte[] roads = new byte[TILE * TILE / 8];
+        byte[] highs = new byte[TILE * TILE / 8];
         int[] ys = new int[TILE * TILE];
         java.util.Arrays.fill(ys, WorldRoute.UNKNOWN);
         for (int z = 0; z < rows.length; z++) {
@@ -48,7 +51,13 @@ class WorldRouteTest {
                 char c = rows[z].charAt(x);
                 int kind;
                 int y;
-                if (c == '.' || c == '#') {
+                if (c == '.' || c == '#' || c == '=' || c == 'h') {
+                    if (c == '=') {
+                        roads[(z * TILE + x) >> 3] |= (byte) (1 << ((z * TILE + x) & 7));
+                    }
+                    if (c == 'h') {
+                        highs[(z * TILE + x) >> 3] |= (byte) (1 << ((z * TILE + x) & 7));
+                    }
                     kind = WorldRoute.GROUND;
                     y = 64;
                     if (c == '#') {
@@ -98,7 +107,7 @@ class WorldRouteTest {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(new GZIPOutputStream(bytes))) {
             out.writeBytes("WLWR");
-            out.writeByte(3);
+            out.writeByte(4);
             out.writeByte(CELL);
             out.writeByte(TILE);
             out.writeInt(BASE);
@@ -111,6 +120,8 @@ class WorldRouteTest {
             out.write(kinds);
             out.write(edges);
             out.write(walls);
+            out.write(roads);
+            out.write(highs);
         }
         return bytes.toByteArray();
     }
@@ -221,32 +232,32 @@ class WorldRouteTest {
 
     @Test
     void aBridgeIsTakenOverAShortDetourButNotALongOne() throws IOException {
-        // a river with a bridge two cells north of the straight way: cheaper than three cells of swimming
+        // a river three cells wide with a bridge two cells north of the straight way: cheaper than swimming it
         WorldRoute g = grid(
-                "....~....",
-                "....~....",
-                ".........",
-                "....~....",
-                "....~....",
-                "....~....");
-        WorldRoute.Plan p = g.plan(0, 4, 8, 4, 1000, 1000);
+                "....~~~....",
+                "....~~~....",
+                "...........",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....");
+        WorldRoute.Plan p = g.plan(0, 4, 10, 4, 1000, 1000);
         assertTrue(p.reached());
         assertTrue(p.cells().stream().noneMatch(c -> g.kind(c[0], c[1]) == WorldRoute.WATER), "over the bridge");
         // the bridge much farther off: the river is swum
         WorldRoute g2 = grid(
-                ".........",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....",
-                "....~....");
-        WorldRoute.Plan p2 = g2.plan(0, 11, 8, 11, 10_000, 1000);
+                "...........",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....",
+                "....~~~....");
+        WorldRoute.Plan p2 = g2.plan(0, 11, 10, 11, 10_000, 1000);
         assertTrue(p2.reached());
         assertTrue(p2.cells().stream().anyMatch(c -> g2.kind(c[0], c[1]) == WorldRoute.WATER), "swims");
     }
@@ -372,6 +383,71 @@ class WorldRouteTest {
         assertNull(WorldGates.parse("{\"corridors\": [{\"from\": [1, 2]}]}"));
         assertNull(WorldGates.parse("{\"corridors\": [{\"from\": [1, 2, 3], \"to\": [4, 5]}]}"));
         assertEquals(0, WorldGates.parse("{\"corridors\": []}").corridors().size());
+    }
+
+    @Test
+    void theRouteKeepsToTheRoadAndOffTheHighLevelLand() throws IOException {
+        // the straight way is plain ground; a road loops round it three rows south
+        WorldRoute g = grid(
+                "...........",
+                "...........",
+                "=.........=",
+                "=.........=",
+                "===========");
+        assertEquals(WorldRoute.ROAD_COST, g.cost(0, 4), 1e-9);
+        assertEquals(WorldRoute.PLAIN_COST, g.cost(5, 0), 1e-9);
+        assertTrue(g.road(0, 2) && !g.road(1, 2));
+        WorldRoute.Plan p = g.plan(0, 2, 10, 2, 1000, 1000);
+        assertTrue(p.reached());
+        assertTrue(p.cells().stream().anyMatch(c -> c[1] == 4), "along the road");
+        assertTrue(p.cells().stream().noneMatch(c -> c[1] < 2), "not across the plain");
+        // a road far off: a short link over the plain wins
+        WorldRoute far = grid(
+                "=.........=",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "...........",
+                "===========");
+        assertTrue(far.plan(0, 0, 10, 0, 1000, 1000).cells().stream().noneMatch(c -> c[1] == 10), "no long detour");
+        // high-level land between two roads: the road round it, though it is longer than with plain land
+        WorldRoute high = grid(
+                "=hhhhhhhhh=",
+                "=hhhhhhhhh=",
+                "=hhhhhhhhh=",
+                "=hhhhhhhhh=",
+                "===========");
+        assertTrue(high.highLevel(5, 0));
+        assertEquals(WorldRoute.HIGH_COST, high.cost(5, 0), 1e-9);
+        WorldRoute.Plan h = high.plan(0, 0, 10, 0, 1000, 1000);
+        assertTrue(h.reached());
+        assertTrue(h.cells().stream().anyMatch(c -> c[1] == 4), "round by the road");
+        // the same loop round plain land that is too long: straight over it
+        WorldRoute plain = grid(
+                "=...=",
+                "=...=",
+                "=...=",
+                "=...=",
+                "=...=",
+                "=...=",
+                "=...=",
+                "=====");
+        assertTrue(plain.plan(0, 0, 4, 0, 1000, 1000).cells().stream().noneMatch(c -> c[1] == 7), "straight over plain land");
+        WorldRoute highTall = grid(
+                "=hhh=",
+                "=hhh=",
+                "=hhh=",
+                "=hhh=",
+                "=hhh=",
+                "=hhh=",
+                "=hhh=",
+                "=====");
+        assertTrue(highTall.plan(0, 0, 4, 0, 1000, 1000).cells().stream().anyMatch(c -> c[1] == 7), "but round high-level land");
     }
 
     @Test

@@ -1,25 +1,6 @@
 {
- "comment": "Region entrances from the Wynncraft wiki (Location infobox access points, suggested level): the gates where a route may pass into or under a mountain wall. Lines are walls the terrain does not show; only the Silent Expanse snow ridge is seeded by hand until the recorded barriers are folded into world-route.bin.",
- "lines": [
-  [
-   [
-    480,
-    -1200
-   ],
-   [
-    599,
-    -1192
-   ],
-   [
-    800,
-    -1150
-   ],
-   [
-    1100,
-    -1000
-   ]
-  ]
- ],
+ "comment": "Region entrances from the Wynncraft wiki (Location infobox access points, with the suggested level) and the corridors under the mountains (each access point to its Location's point where that line runs through rock). Lines are walls the terrain does not show; none are needed while the map's high-mountain rule and the corridors hold the ridges, and recorded barriers go into world-route.bin.",
+ "lines": [],
  "gates": [
   {
    "name": "Alive Island",

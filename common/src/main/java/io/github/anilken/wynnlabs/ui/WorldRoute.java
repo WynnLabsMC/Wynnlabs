@@ -24,8 +24,12 @@ import java.util.zip.GZIPInputStream;
  * <p>Whether a player gets from a cell into each of its four neighbours was decided when the map
  * was made, block by block with the game's step rule (a block up, any drop, water swum, never lava),
  * so a narrow stair or a gate in a wall counts though the cells' heights differ; the map holds it as
- * four direction bits a cell ({@link #open}). Water costs {@link #WATER_COST} times ground, a climb
- * {@link #UP_COST} a block more and a deep drop {@link #DROP_COST} a block. Cells with an
+ * four direction bits a cell ({@link #open}). A step costs by what it lands on, so routes keep to
+ * the roads and leave them only for short links: a road {@link #ROAD_COST}, other ground
+ * {@link #PLAIN_COST}, water {@link #WATER_COST}, and ground off the roads of a high-level region
+ * (near a place the wiki gives a suggested level of 100 or more, where the open land between roads
+ * is cliffs and walls) {@link #HIGH_COST}; a climb costs {@link #UP_COST} a block more and a deep
+ * drop {@link #DROP_COST} a block. Cells with an
  * invisible wall (Wynncraft's barrier blocks at walk height, recorded in the game and folded in
  * offline) are impassable, and the hand-made walls of {@link WorldGates} may not be crossed away
  * from a gate. Roads under the mountains are the wiki's corridors: from a gate (an access point)
@@ -33,13 +37,13 @@ import java.util.zip.GZIPInputStream;
  * them ({@link #gates}); a gate is never a free way through rock on its own. Pure: no Minecraft
  * types, so it is tested on hand-made grids.
  *
- * <p>File: gzip over "WLWR", a version byte (3), the cell size, the tile size (cells a side), then
+ * <p>File: gzip over "WLWR", a version byte (4), the cell size, the tile size (cells a side), then
  * big-endian ints: the height base, the origin tile x and z, the tiles wide and high; a bitmap of
  * the tiles present (row-major, z outer, bit i of byte i / 8); then each present tile in that
  * order: tile² height bytes (0 unknown, else y - base + 1), tile² / 4 kind bytes (two bits a cell,
  * cell i in bits 2 (i mod 4)), tile² / 2 edge bytes (four bits a cell, cell i in nibble i mod 2:
- * bit 0 east +x, 1 south +z, 2 west -x, 3 north -z), tile² / 8 wall bytes (one bit a cell, cell i
- * in bit i mod 8: impassable).
+ * bit 0 east +x, 1 south +z, 2 west -x, 3 north -z), then three layers of tile² / 8 bytes, one bit
+ * a cell, cell i in bit i mod 8: impassable, a road surface, in a high-level region.
  */
 final class WorldRoute {
 
@@ -55,8 +59,12 @@ final class WorldRoute {
     static final int SOUTH = 2;
     static final int WEST = 4;
     static final int NORTH = 8;
-    /** A step onto water costs this much of one onto ground. */
-    static final double WATER_COST = 3;
+    /** A straight step onto a road costs this much, onto other ground this much, onto water this much, ... */
+    static final double ROAD_COST = 1;
+    static final double PLAIN_COST = 3;
+    static final double WATER_COST = 6;
+    /** ... and onto ground off the roads of a high-level region this much. */
+    static final double HIGH_COST = 8;
     /** A step up costs this much more a block, a drop deeper than a walk this much more a block. */
     static final double UP_COST = 0.5;
     static final double DROP_COST = 0.15;
@@ -80,6 +88,8 @@ final class WorldRoute {
     private final byte[][] kinds;
     private final byte[][] edges;
     private final byte[][] walls;
+    private final byte[][] roads;
+    private final byte[][] highs;
     /** How many cells are impassable. */
     private final int impassable;
     /** The hand-made walls, {@link WorldGates#NONE} without any. */
@@ -93,7 +103,7 @@ final class WorldRoute {
     private record Node(int x, int z, double g, double f, Node parent) {}
 
     WorldRoute(int cell, int tile, int base, int originX, int originZ, int wide, int high,
-               byte[][] heights, byte[][] kinds, byte[][] edges, byte[][] walls) {
+               byte[][] heights, byte[][] kinds, byte[][] edges, byte[][] walls, byte[][] roads, byte[][] highs) {
         this.cell = cell;
         this.tile = tile;
         this.base = base;
@@ -105,6 +115,8 @@ final class WorldRoute {
         this.kinds = kinds;
         this.edges = edges;
         this.walls = walls;
+        this.roads = roads;
+        this.highs = highs;
         int n = 0;
         for (byte[] w : walls) {
             if (w != null) {
@@ -178,7 +190,7 @@ final class WorldRoute {
             throw new IOException("not a world route map");
         }
         int version = in.readUnsignedByte();
-        if (version != 3) {
+        if (version != 4) {
             throw new IOException("world route map version " + version);
         }
         int cell = in.readUnsignedByte();
@@ -198,19 +210,25 @@ final class WorldRoute {
         byte[][] kinds = new byte[n][];
         byte[][] edges = new byte[n][];
         byte[][] walls = new byte[n][];
+        byte[][] roads = new byte[n][];
+        byte[][] highs = new byte[n][];
         for (int i = 0; i < n; i++) {
             if ((bitmap[i >> 3] >> (i & 7) & 1) != 0) {
                 heights[i] = new byte[tile * tile];
                 kinds[i] = new byte[tile * tile / 4];
                 edges[i] = new byte[tile * tile / 2];
                 walls[i] = new byte[tile * tile / 8];
+                roads[i] = new byte[tile * tile / 8];
+                highs[i] = new byte[tile * tile / 8];
                 in.readFully(heights[i]);
                 in.readFully(kinds[i]);
                 in.readFully(edges[i]);
                 in.readFully(walls[i]);
+                in.readFully(roads[i]);
+                in.readFully(highs[i]);
             }
         }
-        return new WorldRoute(cell, tile, base, ox, oz, wide, high, heights, kinds, edges, walls);
+        return new WorldRoute(cell, tile, base, ox, oz, wide, high, heights, kinds, edges, walls, roads, highs);
     }
 
     /** The cell a block coordinate lies in. */
@@ -271,12 +289,37 @@ final class WorldRoute {
 
     /** Whether an invisible wall stands in the cell. */
     boolean wall(int cx, int cz) {
+        return bit(walls, cx, cz);
+    }
+
+    /** Whether the cell's surface is a road (a path, gravel, cobble, stone bricks, planks). */
+    boolean road(int cx, int cz) {
+        return bit(roads, cx, cz);
+    }
+
+    /** Whether the cell lies in a high-level region. */
+    boolean highLevel(int cx, int cz) {
+        return bit(highs, cx, cz);
+    }
+
+    private boolean bit(byte[][] layer, int cx, int cz) {
         int t = tileOf(cx, cz);
         if (t < 0) {
             return false;
         }
         int i = index(cx, cz);
-        return (walls[t][i >> 3] >> (i & 7) & 1) != 0;
+        return (layer[t][i >> 3] >> (i & 7) & 1) != 0;
+    }
+
+    /** What a straight step onto the cell costs: {@link #ROAD_COST}, {@link #WATER_COST}, {@link #HIGH_COST} or {@link #PLAIN_COST}. */
+    double cost(int cx, int cz) {
+        if (kind(cx, cz) == WATER) {
+            return WATER_COST;
+        }
+        if (road(cx, cz)) {
+            return ROAD_COST;
+        }
+        return highLevel(cx, cz) ? HIGH_COST : PLAIN_COST;
     }
 
     /** Whether the cell can be stood or swum on: ground or water with a height, and no wall. */
@@ -321,7 +364,7 @@ final class WorldRoute {
             return -1;
         }
         int dy = to - from;
-        double c = dist * (k == WATER ? WATER_COST : 1);
+        double c = dist * cost(tx, tz);
         if (dy > 0) {
             c += UP_COST * dy;
         } else if (-dy > 3) {
