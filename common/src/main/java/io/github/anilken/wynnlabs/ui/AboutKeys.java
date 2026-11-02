@@ -20,6 +20,7 @@ final class AboutKeys {
         {"key.wynnlabs.roadmap", null, "wynnlabs.about.key_menu"},
         {"key.wynnlabs.search", null, "wynnlabs.about.key_search"},
         {"key.wynnlabs.box_guide", null, "wynnlabs.about.key_box"},
+        {"key.wynnlabs.crowd", null, "wynnlabs.about.key_crowd"},
         {null, "1–9", "wynnlabs.about.key_tabs"},
         {null, "/", "wynnlabs.about.key_find"},
         {null, "Esc", "wynnlabs.about.key_back"}};

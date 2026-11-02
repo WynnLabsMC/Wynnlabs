@@ -334,6 +334,8 @@ public final class WynnLabs {
         io.github.anilken.wynnlabs.ui.SearchKey.register(platform, category);
         // T over a gear box in a container: the box contents window over it
         io.github.anilken.wynnlabs.ui.BoxKey.register(platform, category);
+        // K in the world: crowd mode on or off, said on the action bar
+        io.github.anilken.wynnlabs.ui.CrowdMode.registerKey(platform, category);
         // files waiting in the background writer reach the disk before the game closes
         platform.onClientStopping(Saver::flush);
         // Wynntils' event bus only exists once the client has started.
