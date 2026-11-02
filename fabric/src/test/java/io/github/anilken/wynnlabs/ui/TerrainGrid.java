@@ -8,9 +8,8 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 
 /**
- * A patch of real Wynncraft terrain for the guide route's tests, read from a fixture that
- * tools/dh_lod_export.py wrote from a Distant Horizons LOD database: per column the runs of blocks
- * the player cannot walk through (solid ground, water, lava), top down, so the paths under arches,
+ * A terrain sample from Wynncraft for the guide route's tests: per column the runs of blocks the
+ * player cannot walk through (solid ground, water, lava), top down, so the paths under arches,
  * bridges and overhangs are there too. Walked with the game's rules (GuideLine's walkable): solid
  * ground below, two free blocks, no water or lava at the feet, at most one block up and three down,
  * or deeper down an open column; a road or stair block on top costs {@link GuidePath#ROAD}.

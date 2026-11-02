@@ -10,10 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The guide route on patches of real Wynncraft terrain ({@link TerrainGrid}, exported from a
- * Distant Horizons LOD database by tools/dh_lod_export.py): a coast with a bluff, a river, and a
- * moated hill with arches over its paths. Each case checks the route a player would walk; the
- * costs in {@link GuidePath} were checked against these (docs/guide-terrain.md).
+ * The guide route on three terrain samples from Wynncraft ({@link TerrainGrid}): a coast with a
+ * bluff, a river, and a mountain road with arches over it. Each case checks the route a player
+ * would walk.
  */
 class GuideTerrainTest {
 
