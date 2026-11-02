@@ -30,6 +30,16 @@ class PriceBoxTest {
     }
 
     @Test
+    void theBoxStandsAtTheLeftEdgeLevelWithTheScreensMiddle() {
+        float[] a = PriceBox.anchored(100, 60, 360);
+        assertEquals(6, a[0]);                                // 2 from the edge, then the frame
+        assertEquals((360 - 68) / 2f + 4, a[1]);
+        assertEquals(1f, a[2]);
+        float[] tall = PriceBox.anchored(100, 600, 360);
+        assertEquals(360 / 610f, tall[2], 1e-4);
+    }
+
+    @Test
     void theBoxGoesRightOfOurTooltipElseLeftLevelWithItsTop() {
         // ours at 100,50 drawn 120 x 80 on a 640 x 360 screen; a 100 x 60 box
         float[] r = PriceBox.beside(100, 50, 120, 80, 100, 60, 640, 360);

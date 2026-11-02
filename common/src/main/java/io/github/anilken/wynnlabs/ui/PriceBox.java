@@ -16,8 +16,9 @@ import java.util.List;
  * game's own tooltip would stand (that tooltip's size, at the mouse); our compact tooltip is
  * another size and lands elsewhere, so the box could sit under it. So, the way WynnChaYuan does
  * it: the box's lines are taken as Wynnventory is about to draw them ({@link #take}), and once
- * our tooltip is placed the box is drawn beside it ({@link #drawBeside}): to its right with a
- * gap, to its left when the right has no room. When no compact tooltip is shown for the item
+ * our tooltip is placed the box is drawn at the screen's left edge, level with the middle of
+ * the screen ({@link #drawBeside}, Wynnventory's own anchored spot), where it never meets the
+ * tooltip or the menu. When no compact tooltip is shown for the item
  * the lines are handed back and Wynnventory draws as usual ({@link #release}); with its
  * "anchor tooltips" setting on (the box at the screen's left edge) nothing is taken either,
  * and our tooltip only keeps out from under the anchored box ({@link #avoid}). Nothing of
@@ -125,10 +126,7 @@ public final class PriceBox {
             }
             int screenW = mc.getWindow().getGuiScaledWidth();
             int screenH = mc.getWindow().getGuiScaledHeight();
-            float[] spot = beside(placed[0], placed[1], placed[2], placed[3], w, h, screenW, screenH);
-            if (spot == null) {
-                return;
-            }
+            float[] spot = anchored(w, h, screenH);
             float s = spot[2];
             int fx = Math.round(spot[0] / s);
             int fy = Math.round(spot[1] / s);
@@ -140,11 +138,26 @@ public final class PriceBox {
             } finally {
                 pose.popMatrix();
             }
+            // where it stands, so a tooltip near the left edge keeps out from under it next frame
+            note(Math.round(spot[0] - FRAME * s), Math.round(spot[1] - FRAME * s),
+                    Math.round((w + 2 * FRAME) * s), Math.round((h + 2 * FRAME) * s));
         } catch (Throwable ignored) {
             // the box must never break the tooltip
         } finally {
             drawing = false;
         }
+    }
+
+    /**
+     * Where the box's text goes at the screen's left edge, level with the screen's middle:
+     * {@code {x, y, scale}}, the box {@code w} × {@code h} shrunk to the screen's height like
+     * Wynnventory does for its anchored box.
+     */
+    static float[] anchored(int w, int h, int screenH) {
+        float s = h + 10 > screenH ? screenH / (float) (h + 10) : 1f;
+        float bh = (h + 2 * FRAME) * s;
+        float by = Math.max(2, (screenH - bh) / 2f);
+        return new float[] {2 + FRAME * s, by + FRAME * s, s};
     }
 
     /**
