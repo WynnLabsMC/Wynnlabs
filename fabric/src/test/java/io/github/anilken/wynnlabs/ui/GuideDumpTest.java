@@ -85,7 +85,7 @@ class GuideDumpTest {
      * guide line said "dead end" there, and it is one. Its open air, followed block by block
      * from where the player can walk, never gets east of x 832 and leaves the dump only to the
      * sky; the expedition's pin, 182 blocks east and under the mountain, is not reached on foot
-     * from here. So the route is closed in, says why, and the line ends at its last spot.
+     * from here. So the route is closed in, says why, and leads out where the canyon's ground goes on.
      */
     @Test
     void theSilentExpanseCanyonIsClosedInAndSaysWhy() {
@@ -101,6 +101,14 @@ class GuideDumpTest {
         }
         // no rule about what is walked on would open it: no open air leads east
         assertEquals(832, eastmostAir(d, r.nodes().get(0)), report(r));
+        // so the line leads out of the canyon where its ground goes on past the dump (unloaded
+        // here), not to the eastern wall nearest the target
+        assertNotNull(r.exit(), report(r));
+        assertEquals(GuidePath.EXIT_UNLOADED, r.exitKind());
+        int[] e = r.exit();
+        assertTrue(e[0] < 800, report(r));
+        assertTrue(e[0] <= d.x0 + 1 || e[2] <= d.z0 + 1 || e[2] >= d.z0 + d.sz - 2, report(r));
+        assertArrayEquals(e, r.nodes().get(r.nodes().size() - 1));
     }
 
     /** The route over a dump as the game searches it: the player's feet to the target's, the dump's box and budget. */
@@ -119,7 +127,8 @@ class GuideDumpTest {
     private static String report(GuidePath.Route r) {
         int[] last = r.nodes().get(r.nodes().size() - 1);
         StringBuilder b = new StringBuilder("last spot " + last[0] + ", " + last[1] + ", " + last[2]
-                + "; expanded " + r.expanded() + ", enclosed " + r.enclosed() + ", columns " + r.columns());
+                + "; expanded " + r.expanded() + ", enclosed " + r.enclosed() + ", columns " + r.columns()
+                + ", exit " + java.util.Arrays.toString(r.exit()) + " (" + r.exitKind() + ")");
         for (GuidePath.Stuck st : r.stuck()) {
             b.append("\n  ").append(st.x()).append(", ").append(st.y()).append(", ").append(st.z())
                     .append(" ").append(st.rejected());

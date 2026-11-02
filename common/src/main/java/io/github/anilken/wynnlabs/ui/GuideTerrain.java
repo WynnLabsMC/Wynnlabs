@@ -139,6 +139,11 @@ final class GuideTerrain implements GuidePath.Walkable {
     }
 
     @Override
+    public boolean unknown(int x, int z, int fromY) {
+        return b.at(x, fromY, z) == UNKNOWN;
+    }
+
+    @Override
     public String why(int x, int z, int fromY) {
         if (b.at(x, fromY, z) == UNKNOWN) {
             return "unloaded";

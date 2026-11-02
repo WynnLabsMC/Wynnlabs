@@ -46,8 +46,10 @@ import java.util.concurrent.TimeUnit;
  * the loaded area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the
  * loaded area, or where no route goes on, it continues straight, laid on the highest block every
  * {@link #STEP} blocks. Where the walkable ground around the player is closed in (the search runs
- * out of spots before its budget) nothing is drawn into the rock: the pillar stands at the last
- * reachable spot with a short faint arrow toward the target. The route aims at the target's floor,
+ * out of spots before its budget) nothing is drawn into the rock: the route leads to an exit, where
+ * the ground goes on past the search box or into chunks not loaded yet (it grows from there as the
+ * player walks), or, with none, to the spot nearest the target; the pillar stands there with a short
+ * faint arrow toward the target. The route aims at the target's floor,
  * not only its column, swims, and climbs ladders and vines ({@link GuideTerrain}). While riding or gliding it is a straight line to the target; when the target
  * is well above or below the mount (a cliff city a wyvern cannot reach) and there is ground just
  * under the player, the ground route from there is drawn instead, so the player sees where to
@@ -142,7 +144,7 @@ public final class GuideLine {
      * whether the walkable ground was closed in, with the columns reached and the stuck spots.
      */
     record Search(boolean reached, int nodes, int expanded, int[] spot, int box, int budget, long millis,
-                  boolean enclosed, int columns, List<GuidePath.Stuck> stuck) {}
+                  boolean enclosed, int columns, List<GuidePath.Stuck> stuck, int[] exit, String exitKind) {}
 
     /**
      * A ground path: its points {x, y, z}, player end first, where its pillar stands (null: none),
@@ -448,6 +450,17 @@ public final class GuideLine {
             j.addProperty("enclosed", s.enclosed());
             if (s.enclosed()) {
                 j.addProperty("columns", s.columns());
+                // where the ground goes on out of sight, which the line leads to (null: sealed)
+                if (s.exit() == null) {
+                    j.add("exit", null);
+                } else {
+                    JsonArray e = new JsonArray();
+                    for (int v : s.exit()) {
+                        e.add(v);
+                    }
+                    j.add("exit", e);
+                }
+                j.addProperty("exitKind", s.exitKind());
                 JsonArray stuck = new JsonArray();
                 for (GuidePath.Stuck st : s.stuck()) {
                     JsonObject k = new JsonObject();
@@ -536,7 +549,7 @@ public final class GuideLine {
             lastChoice = c;
             lastCandidates = cands;
             if (c == null) {
-                lastSearch = new Search(false, 0, 0, null, box, BUDGET, millis, false, 0, List.of());
+                lastSearch = new Search(false, 0, 0, null, box, BUDGET, millis, false, 0, List.of(), null, null);
                 return;                                 // the straight line stays
             }
             for (GuidePath.Try tr : c.tried()) {
@@ -547,7 +560,7 @@ public final class GuideLine {
             GuidePath.Route r = c.route();
             int expanded = c.tried().stream().filter(tr -> !tr.cached()).mapToInt(tr -> tr.route().expanded()).sum();
             lastSearch = new Search(r.reached(), r.nodes().size(), expanded, r.nodes().get(r.nodes().size() - 1),
-                    box, BUDGET, millis, r.enclosed(), r.columns(), r.stuck());
+                    box, BUDGET, millis, r.enclosed(), r.columns(), r.stuck(), r.exit(), r.exitKind());
             if (r.nodes().size() < 2 || gen != generation) {
                 return;
             }
@@ -558,7 +571,8 @@ public final class GuideLine {
             int tail = pts.size();
             double[] arrow = null;
             if (r.enclosed()) {
-                // closed in: no line into the rock, an arrow from the last spot toward the target
+                // closed in: no line into the rock; the route ends at an exit (where the ground goes on
+                // out of sight) or, sealed, at the spot nearest the target, with an arrow toward it
                 arrow = new double[] {t.x(), t.y() + 1, t.z()};
             } else if (!r.reached() && walked < CAP) {
                 List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
