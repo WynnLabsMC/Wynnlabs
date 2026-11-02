@@ -5144,6 +5144,196 @@
     740,
     -4299
    ]
+  ],
+  [
+   [
+    -782,
+    -802
+   ],
+   [
+    -761,
+    -807
+   ],
+   [
+    -721,
+    -797
+   ],
+   [
+    -684,
+    -795
+   ],
+   [
+    -670,
+    -794
+   ],
+   [
+    -671,
+    -779
+   ],
+   [
+    -690,
+    -769
+   ],
+   [
+    -714,
+    -769
+   ],
+   [
+    -728,
+    -775
+   ],
+   [
+    -753,
+    -776
+   ],
+   [
+    -775,
+    -774
+   ],
+   [
+    -777,
+    -793
+   ],
+   [
+    -783,
+    -802
+   ]
+  ],
+  [
+   [
+    -659,
+    -796
+   ],
+   [
+    -659,
+    -778
+   ],
+   [
+    -629,
+    -778
+   ],
+   [
+    -597,
+    -790
+   ],
+   [
+    -606,
+    -808
+   ],
+   [
+    -623,
+    -805
+   ],
+   [
+    -659,
+    -796
+   ]
+  ],
+  [
+   [
+    -647,
+    -847
+   ],
+   [
+    -645,
+    -826
+   ],
+   [
+    -627,
+    -822
+   ],
+   [
+    -622,
+    -831
+   ],
+   [
+    -623,
+    -849
+   ],
+   [
+    -629,
+    -858
+   ],
+   [
+    -644,
+    -853
+   ],
+   [
+    -646,
+    -845
+   ]
+  ],
+  [
+   [
+    -582,
+    -825
+   ],
+   [
+    -566,
+    -804
+   ],
+   [
+    -537,
+    -819
+   ],
+   [
+    -514,
+    -822
+   ],
+   [
+    -494,
+    -820
+   ],
+   [
+    -494,
+    -840
+   ],
+   [
+    -520,
+    -840
+   ],
+   [
+    -535,
+    -851
+   ],
+   [
+    -548,
+    -854
+   ],
+   [
+    -558,
+    -839
+   ],
+   [
+    -578,
+    -827
+   ],
+   [
+    -582,
+    -825
+   ]
+  ],
+  [
+   [
+    -721,
+    -1018
+   ],
+   [
+    -721,
+    -989
+   ],
+   [
+    -667,
+    -989
+   ],
+   [
+    -665,
+    -1018
+   ],
+   [
+    -719,
+    -1019
+   ]
   ]
  ],
  "gates": [
@@ -5344,13 +5534,6 @@
    "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
   },
   {
-   "name": "Molten Heights",
-   "x": 965,
-   "z": -5305,
-   "level": 90,
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
    "name": "Pigmen's Ravine",
    "x": -875,
    "z": -1370,
@@ -5426,13 +5609,6 @@
    "z": -360,
    "level": 45,
    "source": "https://wynncraft.wiki.gg/wiki/The_House_of_Twain_(Location)"
-  },
-  {
-   "name": "The Moon",
-   "x": 1215,
-   "z": -4935,
-   "level": 96,
-   "source": "https://wynncraft.wiki.gg/wiki/The_Moon"
   },
   {
    "name": "The Silent Road",
@@ -5601,93 +5777,44 @@
    "z": -5282,
    "level": 0,
    "source": "manual"
+  },
+  {
+   "name": "gate",
+   "x": -1997,
+   "z": -4404,
+   "level": 0,
+   "source": "manual"
+  },
+  {
+   "name": "gate",
+   "x": -1998,
+   "z": -4531,
+   "level": 0,
+   "source": "manual"
+  },
+  {
+   "name": "gate",
+   "x": -675,
+   "z": -856,
+   "level": 0,
+   "source": "manual"
+  },
+  {
+   "name": "gate",
+   "x": -674,
+   "z": -829,
+   "level": 0,
+   "source": "manual"
+  },
+  {
+   "name": "gate",
+   "x": -788,
+   "z": -919,
+   "level": 0,
+   "source": "manual"
   }
  ],
  "corridors": [
-  {
-   "name": "Lower Molten Heights",
-   "from": [
-    1430,
-    -5000
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
-  },
-  {
-   "name": "Lower Molten Heights",
-   "from": [
-    1185,
-    -5020
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Lower_Molten_Heights"
-  },
-  {
-   "name": "Molten Heights",
-   "from": [
-    965,
-    -5305
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
-   "name": "Molten Heights",
-   "from": [
-    1430,
-    -5000
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
-   "name": "Molten Heights",
-   "from": [
-    1185,
-    -5020
-   ],
-   "to": [
-    1450,
-    -5500
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Molten_Heights"
-  },
-  {
-   "name": "Sky Islands",
-   "from": [
-    1430,
-    -5000
-   ],
-   "to": [
-    1200,
-    -4750
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Sky_Islands"
-  },
-  {
-   "name": "Sky Islands",
-   "from": [
-    1185,
-    -5020
-   ],
-   "to": [
-    1200,
-    -4750
-   ],
-   "source": "https://wynncraft.wiki.gg/wiki/Sky_Islands"
-  },
   {
    "name": "The Silent Road",
    "from": [
@@ -5817,6 +5944,114 @@
    "to": [
     1253,
     -5283
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -595,
+    -601
+   ],
+   "to": [
+    -651,
+    -543
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -773,
+    -663
+   ],
+   "to": [
+    -816,
+    -622
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -944,
+    -1594
+   ],
+   "to": [
+    -1000,
+    -1593
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -1652,
+    -595
+   ],
+   "to": [
+    -1617,
+    -596
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -1996,
+    -4404
+   ],
+   "to": [
+    -1997,
+    -4531
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -1976,
+    -5605
+   ],
+   "to": [
+    -1983,
+    -5654
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    313,
+    -5241
+   ],
+   "to": [
+    261,
+    -5241
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -675,
+    -856
+   ],
+   "to": [
+    -675,
+    -828
+   ],
+   "source": "manual"
+  },
+  {
+   "name": "corridor",
+   "from": [
+    -788,
+    -919
+   ],
+   "to": [
+    -749,
+    -919
    ],
    "source": "manual"
   }
