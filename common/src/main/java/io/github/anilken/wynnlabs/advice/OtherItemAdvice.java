@@ -104,6 +104,8 @@ final class OtherItemAdvice {
         String name = item.name() != null ? item.name() : stack.name();
         int level = item.level() != null ? item.level() : 0;
         String low = name.toLowerCase(Locale.ROOT);
+        // a material is priced with its quality tier ("Cinnabar Gem T3"): one name, three prices
+        String priceKey = Prices.key(item, name);
         for (QuestBook.Entry q : state.quests()) {
             if (!"COMPLETED".equals(q.status()) && q.task() != null && q.task().toLowerCase(Locale.ROOT).contains(low)) {
                 return new Advice.Entry(Verdict.KEEP, L.t("wynnlabs.auto.quest_wants", QuestGuides.title(q.name())));
@@ -118,7 +120,10 @@ final class OtherItemAdvice {
                 }
             }
         }
-        Prices.Price p = state.price(name);
+        Prices.Price p = state.price(priceKey);
+        if (p == null || System.currentTimeMillis() - p.seen() >= Prices.MAX_AGE) {
+            state.requestPrices(List.of(priceKey));      // asked by the plain name, only that tier's listings kept
+        }
         Double each = p == null ? null : p.typical();
         double min = Rules.sub("trade", "minTradeMarketPrice", 1920);
         if (each != null && each * stack.count() >= min) {

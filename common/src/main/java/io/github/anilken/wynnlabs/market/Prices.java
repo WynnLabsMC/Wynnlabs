@@ -486,7 +486,7 @@ public final class Prices {
     public static String past(String shown) {
         return L.t("wynnlabs.price.past_mark", shown);
     }
-    private static final long MAX_AGE = 60 * 60 * 1000L;
+    public static final long MAX_AGE = 60 * 60 * 1000L;
 
     /** Set when Wynnventory refused the key (401/403): no live requests until a new key is saved. */
     public static volatile boolean keyInvalid;
@@ -704,9 +704,56 @@ public final class Prices {
         }
     }
 
+    /** "Cinnabar Gem T3": a material's name with its quality tier, as Wynnventory keeps them. */
+    private static final java.util.regex.Pattern TIERED = java.util.regex.Pattern.compile("^(.+) T([0-3])$");
+
+    /**
+     * The price key of an item: a material carries its quality tier ("Cinnabar Gem T3"), since
+     * its three tiers sell at very different prices under one name; anything else its name.
+     */
+    public static String key(io.github.anilken.wynnlabs.model.ItemView item, String fallback) {
+        String name = item != null && item.name() != null ? item.name() : fallback;
+        if (item != null && item.kind() == io.github.anilken.wynnlabs.model.ItemView.Kind.MATERIAL
+                && item.qualityTier() != null && name != null && !TIERED.matcher(name).matches()) {
+            return name + " T" + item.qualityTier();
+        }
+        return name;
+    }
+
+    /** {@code {base, tier}} of a tiered key ("Cinnabar Gem T3" → "Cinnabar Gem", 3), or null for a plain name. */
+    static Object[] tiered(String key) {
+        if (key == null) {
+            return null;
+        }
+        java.util.regex.Matcher m = TIERED.matcher(key);
+        return m.matches() ? new Object[] {m.group(1), Integer.parseInt(m.group(2))} : null;
+    }
+
+    /** A listing's tier as a number (1–3 for a material), from a number or a "T3"-like string; null when it has none. */
+    static Integer listingTier(JsonObject l) {
+        if (l == null || !l.has("tier") || l.get("tier").isJsonNull()) {
+            return null;
+        }
+        var t = l.get("tier");
+        try {
+            if (t.isJsonPrimitive() && t.getAsJsonPrimitive().isNumber()) {
+                return t.getAsInt();
+            }
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("([0-9])").matcher(t.getAsString());
+            return m.find() ? Integer.parseInt(m.group(1)) : null;
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** One page of the listings; page 1 also sets the price. True when the answer was read. */
     private static boolean fetchPage(String name, String k, int page) throws Exception {
-        String q = java.net.URLEncoder.encode(name, StandardCharsets.UTF_8).replace("+", "%20");
+        // a material's key carries its tier: the market is asked by the plain name, and only the
+        // listings of that tier count (the three tiers sell at very different prices)
+        Object[] tiered = tiered(name);
+        String base = tiered == null ? name : (String) tiered[0];
+        Integer tier = tiered == null ? null : (Integer) tiered[1];
+        String q = java.net.URLEncoder.encode(base, StandardCharsets.UTF_8).replace("+", "%20");
         var req = java.net.http.HttpRequest.newBuilder(
                         java.net.URI.create("https://www.wynnventory.com/api/v2/market/listings?item_name=" + q
                                 + (page > 1 ? "&page=" + page : "")))
@@ -731,7 +778,7 @@ public final class Prices {
             return false;
         }
         JsonObject body = GSON.fromJson(res.body(), JsonObject.class);
-        Listings.accept(name, page, body);      // the box window's listings (no seller fields)
+        Listings.put(name, page, Listings.parse(base, body), System.currentTimeMillis());   // the box window's listings (no seller fields)
         if (page > 1) {
             return true;                        // later pages feed the listings only, not the price
         }
@@ -751,9 +798,12 @@ public final class Prices {
         java.util.List<Integer> prices = new java.util.ArrayList<>();
         for (var el : list) {
             JsonObject l = el.getAsJsonObject();
-            if (!name.equalsIgnoreCase(l.get("name").getAsString()) || l.has("shiny") && l.get("shiny").getAsBoolean()
+            if (!base.equalsIgnoreCase(l.get("name").getAsString()) || l.has("shiny") && l.get("shiny").getAsBoolean()
                     || l.get("listing_price").getAsInt() < 1) {
                 continue;                       // exact item, no shinies (they sell for far more), no 0 E uploads
+            }
+            if (tier != null && !tier.equals(listingTier(l))) {
+                continue;                       // another tier of the material (or one the upload did not say)
             }
             count++;
             long at = seenAt(l);
