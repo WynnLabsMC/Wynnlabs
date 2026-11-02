@@ -6,6 +6,7 @@ import static io.github.anilken.wynnlabs.ui.GuideTerrain.AIR;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.BARRIER;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.HALF;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.LAVA;
+import static io.github.anilken.wynnlabs.ui.GuideTerrain.ROAD;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.SOLID;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.TALL;
 import static io.github.anilken.wynnlabs.ui.GuideTerrain.THIN;
@@ -93,6 +94,32 @@ class GuideTerrainTest {
         assertEquals(10, w.stand(11, 5, 10));            // in the pool
         assertEquals(GuideTerrain.SWIM, w.cost(11, 10, 5));
         assertEquals(10, w.climb(11, 5, 9, 1));          // up from the pool's bottom
+    }
+
+    @Test
+    void theMiddleOfARoadIsCheaperThanItsEdge() {
+        // a road three wide along x at z 4..6, on solid ground at y 9, air above
+        GuideDumps.World w = new GuideDumps.World(12, 14, 10, SOLID);
+        w.fill(0, 10, 0, 11, 13, 9, AIR);
+        w.fill(0, 9, 4, 11, 9, 6, ROAD);
+        GuideTerrain g = GuideDumps.walkable(w.dump(5, 10, 5, 6, 10, 5));
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 5));     // the middle
+        assertEquals(GuideTerrain.ROAD_EDGE, g.cost(5, 10, 4));     // an edge
+        assertEquals(GuideTerrain.ROAD_EDGE, g.cost(5, 10, 6));
+        assertEquals(1, g.cost(5, 10, 7));                          // off the road
+    }
+
+    @Test
+    void aNarrowRoadHasNoEdge() {
+        // roads one and two wide along x (z 2, and z 5..6): every block of them is the road
+        GuideDumps.World w = new GuideDumps.World(12, 14, 10, SOLID);
+        w.fill(0, 10, 0, 11, 13, 9, AIR);
+        w.fill(0, 9, 2, 11, 9, 2, ROAD);
+        w.fill(0, 9, 5, 11, 9, 6, ROAD);
+        GuideTerrain g = GuideDumps.walkable(w.dump(5, 10, 5, 6, 10, 5));
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 2));
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 5));
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 6));
     }
 
     @Test

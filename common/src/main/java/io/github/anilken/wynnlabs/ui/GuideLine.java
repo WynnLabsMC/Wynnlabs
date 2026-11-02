@@ -55,11 +55,10 @@ import java.util.concurrent.TimeUnit;
  * so the way round a mountain or out of a sealed canyon is known before its chunks load: the
  * block-level route aims at the farthest waypoint of that corridor inside the loaded area, and past
  * it the corridor is drawn faint on the map's heights instead of a straight line. While riding or
- * gliding there is also a straight line through the air to the target, and the ground route is
+ * gliding a straight line through the air leads until a ground route is found, which is
  * searched the same way from the ground under the player (the highest spot to stand on in their
- * column, however far down: {@link GuidePath#surface}); where there is one it is the main line and
- * the air line is drawn faint, so the player sees where to land and walk (a cliff city a wyvern
- * cannot reach). Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
+ * column, however far down: {@link GuidePath#surface}); where there is one it is the only line,
+ * so the player sees where to land and walk (a cliff city a wyvern cannot reach). Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
  * path is laid on the ground every 2 ticks; each frame only moves the dashes along it and draws.
  * Drawing only: nothing is sent to the server.
  */
@@ -95,8 +94,6 @@ public final class GuideLine {
     private static final double DISC = 0.8;
     /** The first blocks from the player fade in over this length. */
     static final double FADE = 1.5;
-    /** Riding or gliding with a ground route shown: the air line's share of the opacity. */
-    private static final float AIR_DIM = 0.3f;
     /** Height of the pillar at the end of the path. */
     private static final float PILLAR = 6f;
     /** Light cyan for the glow, pillar and disc; the chevrons go from {@link #TAIL} to white at the tip. */
@@ -131,7 +128,7 @@ public final class GuideLine {
     private static final double WAYPOINT = 24;
     /** ... aims at waypoints this far inside the loaded area, ... */
     private static final int MARGIN = 8;
-    /** ... and is not used when the player or the target is this far under the map's surface (a cave). */
+    /** ... and is not used when the player is this far under the map's surface (a cave). */
     private static final int UNDER = 12;
     /** The arrow toward a target that cannot be walked to: its length, and its height over the last spot. */
     private static final double ARROW = 3;
@@ -215,6 +212,8 @@ public final class GuideLine {
     private static volatile Track track;
     /** Riding or gliding: the straight line through the air (faint while a ground route is shown). */
     private static volatile boolean airLine;
+    /** Riding or gliding with no ground under the player: why ({@code /guide}); null otherwise. */
+    private static volatile String groundWhy;
     /** Riding or gliding: where the ground route starts, under the player (null: no ground there, or on foot). */
     private static volatile int[] groundStart;
     /** The target the shown ground path was routed for (null: only the straight line so far). */
@@ -390,7 +389,10 @@ public final class GuideLine {
                 start = new int[] {px, py, pz};
             } else {
                 // the ground under the mount, however far down: where to land and walk on
-                start = GuidePath.surface(walkable(level), px, pz, py, heights(level).height(px, pz), level.getMinY());
+                int top = heights(level).height(px, pz);
+                start = GuidePath.surface(walkable(level), px, pz, py, top, level.getMinY());
+                groundWhy = start != null ? null : top == UNKNOWN ? "the player's column is not loaded"
+                        : "no spot to stand on below the player (feet " + py + ", column top " + top + ")";
             }
             airLine = t != null && air;
             groundStart = air ? start : null;
@@ -460,6 +462,7 @@ public final class GuideLine {
         int[] gs = groundStart;
         if (gs == null || !air) {
             o.add("groundStart", null);
+            o.addProperty("groundWhy", air ? groundWhy : null);
         } else {
             JsonArray a = new JsonArray();
             for (int v : gs) {
@@ -716,12 +719,11 @@ public final class GuideLine {
                 int tx = g.cellOf(t.x());
                 int tz = g.cellOf(t.z());
                 int ph = g.height(px, pz);
-                int th = g.height(tx, tz);
                 if (ph != WorldRoute.UNKNOWN && sy < ph - UNDER) {
                     why = "the player is under the map's surface";
-                } else if (th != WorldRoute.UNKNOWN && t.y() < th - UNDER) {
-                    why = "the target is under the map's surface";
                 } else {
+                    // a target under the map's surface (a valley floor under an overhang, a cave
+                    // mouth) is still aimed at over the map: the block route does the last part
                     plan = g.plan(px, pz, tx, tz, WORLD_BUDGET, WORLD_MILLIS);
                     if (plan == null) {
                         why = "no cell to start from or to aim at";
@@ -1098,9 +1100,9 @@ public final class GuideLine {
             double seconds = (mc.level.getGameTime() % 100_000 + pt) / 20.0;
             float glow = pulse(seconds);
             VertexConsumer quads = buffers.getBuffer(RenderTypes.debugQuads());
-            if (airLine && airborne(p)) {
-                // faint under a ground route, so that reads as the main line
-                float dim = routed != null && ground.points().size() >= 2 ? AIR_DIM : 1f;
+            if (airLine && airborne(p) && !(routed != null && ground.points().size() >= 2)) {
+                // only until a ground route is found: then the one line, on the ground, leads
+                float dim = 1f;
                 double dx = t.x() - me.x;
                 double dy = t.y() + 1 - me.y;
                 double dz = t.z() - me.z;
