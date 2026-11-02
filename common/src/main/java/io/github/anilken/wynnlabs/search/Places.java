@@ -27,6 +27,11 @@ public final class Places {
 
     public static final Places EMPTY = new Places(List.of(), Map.of(), Map.of(), List.of());
 
+    /** Only these (already levelled) chests, nothing else: for tests. */
+    static Places forTest(List<Area> chests) {
+        return new Places(List.of(), Map.of(), Map.of(), chests);
+    }
+
     /** Caves, grind spots with a known level and towns: named, with a level. */
     private final List<Area> leveled;
     /** Every named place by lower-case name. */
@@ -167,9 +172,13 @@ public final class Places {
         return leveled.stream().filter(a -> a.level() >= lo && a.level() <= hi).toList();
     }
 
-    /** Loot chests whose (estimated) level is in {@code lo..hi}, in the list's order. */
+    /**
+     * Loot chests whose (estimated) level is in {@code lo..hi}, in the list's order. Only chests
+     * with a known tier (one star or more): a tierless entry may be a shop or a chest nobody has
+     * opened, and an item's chest list is a place to go, not a guess.
+     */
     public List<Area> chestsInBand(int lo, int hi) {
-        return chests.stream().filter(a -> a.level() >= lo && a.level() <= hi).toList();
+        return chests.stream().filter(a -> a.stars() >= 1 && a.level() >= lo && a.level() <= hi).toList();
     }
 
     /** The named place (cave, dungeon, raid, town, ...) of this name, or null. */
