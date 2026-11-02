@@ -54,7 +54,7 @@ public final class AiLink {
                     "wynnlabs.ai.ep_discoveries", "world"),
             new Endpoint("/deaths", "recent deaths and what killed you", "wynnlabs.ai.ep_deaths", "world"),
             new Endpoint("/ground", "items on the ground around you (?r=12)", "wynnlabs.ai.ep_ground", "world"),
-            new Endpoint("/guide", "the guide line: its target, mode and last route search (why a route fails)",
+            new Endpoint("/guide", "the guide line: its target, mode and last route search (why a route fails); ?dump=1 writes the terrain around you to config/wynnlabs/guide-dump.json",
                     "wynnlabs.ai.ep_guide", "world"),
             new Endpoint("/vault", "every bank page you opened, with verdicts and what to sell", "wynnlabs.ai.ep_vault", "bank"),
             new Endpoint("/prices", "Trade Market prices the mod knows", "wynnlabs.ai.ep_prices", "bank"),

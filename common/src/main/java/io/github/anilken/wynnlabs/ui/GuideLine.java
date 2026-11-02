@@ -15,11 +15,14 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -41,8 +44,10 @@ import java.util.concurrent.TimeUnit;
  * <p>On foot the strip lies flat on the ground along a walkable route ({@link GuidePath}) through
  * the loaded area, worked out every {@link #ROUTE_EVERY} ticks on a thread of its own; past the
  * loaded area, or where no route goes on, it continues straight, laid on the highest block every
- * {@link #STEP} blocks. The route aims at the target's floor, not only its column, and climbs
- * ladders and vines. While riding or gliding it is a straight line to the target; when the target
+ * {@link #STEP} blocks. Where the walkable ground around the player is closed in (the search runs
+ * out of spots before its budget) nothing is drawn into the rock: the pillar stands at the last
+ * reachable spot with a short faint arrow toward the target. The route aims at the target's floor,
+ * not only its column, swims, and climbs ladders and vines ({@link GuideTerrain}). While riding or gliding it is a straight line to the target; when the target
  * is well above or below the mount (a cliff city a wyvern cannot reach) and there is ground just
  * under the player, the ground route from there is drawn instead, so the player sees where to
  * land and walk. Depth tested like {@link ChestBeams}, so terrain hides it. The dashes' stretch of
@@ -110,10 +115,14 @@ public final class GuideLine {
     private static final int CANDIDATES = 4;
     /** A candidate that could not be reached is not searched again while the player stays this close. */
     private static final double RETRY = 8;
-    /** A step through a door or gate costs this much of a plain one. */
-    private static final double DOOR = 1.5;
-    /** A block at most this tall (a flower pot) is stepped over at the feet. */
+    /** A block at most this tall (a carpet, a flower pot) is stepped over at the feet. */
     private static final double THIN = 0.375;
+    /** The arrow toward a target that cannot be walked to: its length, and its height over the last spot. */
+    private static final double ARROW = 3;
+    private static final double ARROW_UP = 1.2;
+    /** {@code /guide?dump=1}: the box written, this many blocks each way flat and up and down by default. */
+    public static final int DUMP_FLAT = 64;
+    public static final int DUMP_UP = 24;
 
     /** Height of the highest block at a column, or {@link #UNKNOWN} where the chunk is not loaded. */
     @FunctionalInterface
@@ -128,16 +137,23 @@ public final class GuideLine {
 
     /**
      * The last route search, for /guide: whether it reached the target, its spots, the spots
-     * looked at, the last reachable spot {x, feetY, z}, the box and budget, and how long it took.
+     * looked at, the last reachable spot {x, feetY, z}, the box and budget, how long it took, and
+     * whether the walkable ground was closed in, with the columns reached and the stuck spots.
      */
-    record Search(boolean reached, int nodes, int expanded, int[] spot, int box, int budget, long millis) {}
+    record Search(boolean reached, int nodes, int expanded, int[] spot, int box, int budget, long millis,
+                  boolean enclosed, int columns, List<GuidePath.Stuck> stuck) {}
 
     /**
      * A ground path: its points {x, y, z}, player end first, where its pillar stands (null: none),
-     * and the index from which the points are only the straight guess past the last reachable spot
-     * (the size when the route reaches the target).
+     * the index from which the points are only the straight guess past the last reachable spot
+     * (the size when the route reaches the target), and where a short arrow from the pillar points
+     * when the target cannot be walked to (null: no arrow).
      */
-    record Path(List<double[]> points, double[] end, int tail) {}
+    record Path(List<double[]> points, double[] end, int tail, double[] arrow) {
+        Path(List<double[]> points, double[] end, int tail) {
+            this(points, end, tail, null);
+        }
+    }
 
     private static final Path NO_PATH = new Path(List.of(), null, 0);
     /** The straight guess past the route is drawn at this share of the opacity, still. */
@@ -427,6 +443,23 @@ public final class GuideLine {
             j.addProperty("budget", s.budget());
             j.addProperty("millis", s.millis());
             j.addProperty("expandedPerMs", s.millis() == 0 ? s.expanded() : (double) s.expanded() / s.millis());
+            // closed in: the spots reached nearest the target and why each neighbour was refused
+            j.addProperty("enclosed", s.enclosed());
+            if (s.enclosed()) {
+                j.addProperty("columns", s.columns());
+                JsonArray stuck = new JsonArray();
+                for (GuidePath.Stuck st : s.stuck()) {
+                    JsonObject k = new JsonObject();
+                    k.addProperty("x", st.x());
+                    k.addProperty("y", st.y());
+                    k.addProperty("z", st.z());
+                    JsonObject why = new JsonObject();
+                    st.rejected().forEach(why::addProperty);
+                    k.add("rejected", why);
+                    stuck.add(k);
+                }
+                j.add("stuck", stuck);
+            }
             o.add("search", j);
         }
         // the candidate pins of the last round: which were searched, how far each got, which one leads
@@ -502,7 +535,7 @@ public final class GuideLine {
             lastChoice = c;
             lastCandidates = cands;
             if (c == null) {
-                lastSearch = new Search(false, 0, 0, null, box, BUDGET, millis);
+                lastSearch = new Search(false, 0, 0, null, box, BUDGET, millis, false, 0, List.of());
                 return;                                 // the straight line stays
             }
             for (GuidePath.Try tr : c.tried()) {
@@ -513,7 +546,7 @@ public final class GuideLine {
             GuidePath.Route r = c.route();
             int expanded = c.tried().stream().filter(tr -> !tr.cached()).mapToInt(tr -> tr.route().expanded()).sum();
             lastSearch = new Search(r.reached(), r.nodes().size(), expanded, r.nodes().get(r.nodes().size() - 1),
-                    box, BUDGET, millis);
+                    box, BUDGET, millis, r.enclosed(), r.columns(), r.stuck());
             if (r.nodes().size() < 2 || gen != generation) {
                 return;
             }
@@ -522,13 +555,17 @@ public final class GuideLine {
             double[] end = pts.get(pts.size() - 1);
             double walked = Math.hypot(end[0] - sx, end[2] - sz);
             int tail = pts.size();
-            if (!r.reached() && walked < CAP) {
+            double[] arrow = null;
+            if (r.enclosed()) {
+                // closed in: no line into the rock, an arrow from the last spot toward the target
+                arrow = new double[] {t.x(), t.y() + 1, t.z()};
+            } else if (!r.reached() && walked < CAP) {
                 List<double[]> rest = sample(end[0], end[1] - LIFT, end[2], t.x(), t.z(), STEP, CAP - walked, heights(level));
                 pts.addAll(rest.subList(1, rest.size()));
             }
             if (gen == generation) {
                 target = t;
-                ground = new Path(List.copyOf(pts), end, tail);
+                ground = new Path(List.copyOf(pts), end, tail, arrow);
                 routed = t;
             }
         } catch (Throwable e) {
@@ -543,93 +580,120 @@ public final class GuideLine {
 
     /** Columns the player can step to, read from loaded chunks only (an unloaded one has none). */
     private static GuidePath.Walkable walkable(ClientLevel level) {
+        return new GuideTerrain(blocks(level));
+    }
+
+    /** Every block's code ({@link GuideTerrain}), {@link GuideTerrain#UNKNOWN} where its chunk is not loaded. */
+    private static GuideTerrain.Blocks blocks(ClientLevel level) {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        return new GuidePath.Walkable() {
-            @Override
-            public int stand(int x, int z, int fromY) {
-                ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
-                if (chunk == null) {
-                    return GuidePath.NONE;
-                }
-                for (int y = fromY + 1; y >= fromY - 3; y--) {
-                    if (standable(chunk, pos, x, y, z) || onLadder(chunk, pos, x, y, z)) {
-                        return y;
-                    }
-                }
-                // no fall damage in Wynncraft: off a ledge, down an open column to the ground
-                if (chunk.getBlockState(pos.set(x, fromY + 1, z)).blocksMotion()) {
-                    return GuidePath.NONE;
-                }
-                for (int y = fromY; y >= fromY - GuidePath.DROP; y--) {
-                    BlockState feet = chunk.getBlockState(pos.set(x, y, z));
-                    if (!passable(chunk, pos, feet) || !feet.getFluidState().isEmpty()) {
-                        return GuidePath.NONE;
-                    }
-                    if (y < fromY - 3 && standable(chunk, pos, x, y, z)) {
-                        return y;
-                    }
-                }
-                return GuidePath.NONE;
-            }
+        return new GuideTerrain.Blocks() {
+            private int cx = Integer.MIN_VALUE;
+            private int cz;
+            private ChunkAccess chunk;
 
             @Override
-            public int climb(int x, int z, int y, int dy) {
-                ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
-                return chunk != null && onLadder(chunk, pos, x, y, z) && onLadder(chunk, pos, x, y + dy, z)
-                        ? y + dy : GuidePath.NONE;
-            }
-
-            @Override
-            public double cost(int x, int y, int z) {
-                ChunkAccess chunk = level.getChunk(x >> 4, z >> 4, ChunkStatus.FULL, false);
+            public char at(int x, int y, int z) {
+                if (x >> 4 != cx || z >> 4 != cz) {
+                    cx = x >> 4;
+                    cz = z >> 4;
+                    chunk = level.getChunk(cx, cz, ChunkStatus.FULL, false);
+                }
                 if (chunk == null) {
-                    return 1;
+                    return GuideTerrain.UNKNOWN;
                 }
-                // through a door or gate: to be opened, so an open way is preferred
-                if (door(chunk.getBlockState(pos.set(x, y, z))) || door(chunk.getBlockState(pos.set(x, y + 1, z)))) {
-                    return DOOR;
-                }
-                return road(chunk.getBlockState(pos.set(x, y - 1, z))) ? GuidePath.ROAD : 1;
+                pos.set(x, y, z);
+                return code(chunk, pos, chunk.getBlockState(pos));
             }
         };
     }
 
     /**
-     * Solid ground under feet height {@code y}, two free blocks from there, no water or lava at the
-     * feet. A stair or slab is ground like any block: the feet go one higher, on top of it.
+     * A block's code for the route: lava, climbable, door, slab or stair first; then whatever the
+     * player walks through (no collision, something thin like a carpet or snow layer, a chain, a
+     * cobweb) is water or a non-solid; the rest is a fence or wall (taller than a block), a road
+     * block or plain solid.
      */
-    private static boolean standable(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int y, int z) {
-        BlockState feet = chunk.getBlockState(pos.set(x, y, z));
-        if (!passable(chunk, pos, feet) || !feet.getFluidState().isEmpty()) {
-            return false;
+    static char code(BlockGetter level, BlockPos pos, BlockState s) {
+        if (s.isAir()) {
+            return GuideTerrain.AIR;
         }
-        if (!passable(chunk, pos.set(x, y + 1, z), chunk.getBlockState(pos))) {
-            return false;
+        FluidState fluid = s.getFluidState();
+        if (fluid.is(FluidTags.LAVA)) {
+            return GuideTerrain.LAVA;
         }
-        BlockState below = chunk.getBlockState(pos.set(x, y - 1, z));
-        return below.blocksMotion() && below.getFluidState().isEmpty();
+        if (s.is(BlockTags.CLIMBABLE)) {
+            return GuideTerrain.CLIMB;
+        }
+        if (door(s)) {
+            return GuideTerrain.DOOR;
+        }
+        if (s.is(BlockTags.SLABS) || s.is(BlockTags.STAIRS)) {
+            return GuideTerrain.HALF;
+        }
+        VoxelShape shape = s.getCollisionShape(level, pos);
+        if (!s.blocksMotion() || shape.isEmpty() || shape.max(Direction.Axis.Y) <= THIN || s.is(BlockTags.CHAINS)) {
+            return fluid.is(FluidTags.WATER) ? GuideTerrain.WATER : GuideTerrain.THIN;
+        }
+        if (shape.max(Direction.Axis.Y) > 1) {
+            return GuideTerrain.TALL;
+        }
+        return road(s) ? GuideTerrain.ROAD : GuideTerrain.SOLID;
     }
 
     /**
-     * Whether the player gets through the block at {@code pos}: nothing to bump into, something
-     * thin (a carpet, a pressure plate, a flower pot), or a door, gate or trapdoor, open or closed.
+     * {@code /guide?dump=1}, on the game thread: the block codes in a box {@code flat} blocks each
+     * way and {@code up} blocks up and down around the player, with the player, the target and the
+     * route settings ({@link GuideDump}); null without a player.
      */
-    private static boolean passable(ChunkAccess chunk, BlockPos pos, BlockState s) {
-        return !s.blocksMotion() || door(s) || s.getCollisionShape(chunk, pos).max(Direction.Axis.Y) <= THIN;
+    public static JsonObject dump(int flat, int up) {
+        Minecraft mc = Minecraft.getInstance();
+        Player p = mc.player;
+        ClientLevel level = mc.level;
+        if (p == null || level == null) {
+            return null;
+        }
+        int px = (int) Math.floor(p.getX());
+        int py = (int) Math.floor(p.getY() + 0.01);
+        int pz = (int) Math.floor(p.getZ());
+        int sx = 2 * flat + 1;
+        int sy = 2 * up + 1;
+        GuideTerrain.Blocks b = blocks(level);
+        char[][] cols = new char[sx * sx][];
+        for (int k = 0; k < sx; k++) {
+            for (int i = 0; i < sx; i++) {
+                char[] col = new char[sy];
+                for (int j = 0; j < sy; j++) {
+                    col[j] = b.at(px - flat + i, py - up + j, pz - flat + k);
+                }
+                cols[k * sx + i] = col;
+            }
+        }
+        Target t = target;
+        JsonObject tj = null;
+        if (t != null) {
+            tj = new JsonObject();
+            tj.addProperty("x", t.x());
+            tj.addProperty("y", t.y());
+            tj.addProperty("z", t.z());
+            tj.addProperty("label", t.label());
+            tj.addProperty("ours", t.ours());
+        }
+        JsonObject set = new JsonObject();
+        set.addProperty("guideLine", Settings.on("guideLine"));
+        set.addProperty("mode", airborne(p) ? "air" : "ground");
+        set.addProperty("box", Math.max(32, Math.min(256, mc.options.getEffectiveRenderDistance() * 16)));
+        set.addProperty("budget", BUDGET);
+        set.addProperty("each", EACH);
+        set.addProperty("millis", SEARCH_MILLIS);
+        set.addProperty("candidates", CANDIDATES);
+        set.addProperty("drop", GuidePath.DROP);
+        return new GuideDump(px - flat, py - up, pz - flat, sx, sy, sx, cols,
+                new double[] {p.getX(), p.getY(), p.getZ()}, tj, set).toJson();
     }
 
     /** A door, fence gate or trapdoor: the player opens it. */
     private static boolean door(BlockState s) {
         return s.is(BlockTags.DOORS) || s.is(BlockTags.FENCE_GATES) || s.is(BlockTags.TRAPDOORS);
-    }
-
-    /** Feet height {@code y} in a ladder, vines or scaffolding, with room for the head. */
-    private static boolean onLadder(ChunkAccess chunk, BlockPos.MutableBlockPos pos, int x, int y, int z) {
-        if (!chunk.getBlockState(pos.set(x, y, z)).is(BlockTags.CLIMBABLE)) {
-            return false;
-        }
-        BlockState head = chunk.getBlockState(pos.set(x, y + 1, z));
-        return !head.blocksMotion() || head.is(BlockTags.CLIMBABLE);
     }
 
     /** A road or stair block, which the route prefers. */
@@ -858,6 +922,9 @@ public final class GuideLine {
                     disc(pose, quads, c, e, glow);
                     Beams.draw(pose, quads, (float) (e[0] - c.x), (float) (e[1] - c.y), (float) (e[2] - c.z),
                             PILLAR, BODY, 1f);
+                    if (g.arrow() != null) {
+                        arrow(pose, quads, c, e, g.arrow());
+                    }
                 }
             }
         } catch (Throwable e) {
@@ -1029,6 +1096,39 @@ public final class GuideLine {
             v.addVertex(p, cx + (float) (DISC * Math.cos(a1)), cy, cz + (float) (DISC * Math.sin(a1))).setColor(r, g, b, 0);
             v.addVertex(p, cx + (float) (DISC * Math.cos(a0)), cy, cz + (float) (DISC * Math.sin(a0))).setColor(r, g, b, 0);
             v.addVertex(p, cx, cy, cz).setColor(r, g, b, mid);
+        }
+    }
+
+    /**
+     * A short faint arrow from over the last reachable spot {@code e} toward the target {@code to}
+     * (the target cannot be walked to from here): a shaft and two barbs, turned to the camera.
+     */
+    private static void arrow(PoseStack pose, VertexConsumer v, Vec3 c, double[] e, double[] to) {
+        double ax = e[0], ay = e[1] + ARROW_UP, az = e[2];
+        double dx = to[0] - ax, dy = to[1] - ay, dz = to[2] - az;
+        double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (len < 1e-6) {
+            return;
+        }
+        double k = Math.min(ARROW, len) / len;
+        double bx = ax + dx * k, by = ay + dy * k, bz = az + dz * k;
+        // across the arrow, square to the line of sight at its tip
+        double vx = c.x - bx, vy = c.y - by, vz = c.z - bz;
+        double ox = dy * vz - dz * vy, oy = dz * vx - dx * vz, oz = dx * vy - dy * vx;
+        double ol = Math.sqrt(ox * ox + oy * oy + oz * oz);
+        float a = 0.55f * TAIL_ALPHA * 2;
+        strip(pose, v, (float) (ax - c.x), (float) (ay - c.y), (float) (az - c.z),
+                (float) (bx - c.x), (float) (by - c.y), (float) (bz - c.z), 0.06f, 0.06f, a, a, false);
+        if (ol < 1e-9) {
+            return;
+        }
+        double back = 0.7 / len;
+        for (int side = -1; side <= 1; side += 2) {
+            double hx = bx - dx * back + ox / ol * 0.45 * side;
+            double hy = by - dy * back + oy / ol * 0.45 * side;
+            double hz = bz - dz * back + oz / ol * 0.45 * side;
+            strip(pose, v, (float) (hx - c.x), (float) (hy - c.y), (float) (hz - c.z),
+                    (float) (bx - c.x), (float) (by - c.y), (float) (bz - c.z), 0.06f, 0.06f, a, a, false);
         }
     }
 
