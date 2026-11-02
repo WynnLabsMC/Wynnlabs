@@ -487,6 +487,10 @@ public final class Advice {
                 priceLines(stack, gear, out);
             }
         }
+        // the verdict line alone (setting adviceOnly): "✦ Advice: KEEP", and a red "Can't equip" with it
+        if (Settings.on("adviceOnly")) {
+            return brief(out, TooltipListener.marker());
+        }
         if (out.size() <= 5 || net.minecraft.client.Minecraft.getInstance().hasShiftDown()) {
             return out;
         }
@@ -534,6 +538,23 @@ public final class Advice {
             shortList.add(L.cn("wynnlabs.advice.shift_more", dropped).withStyle(ChatFormatting.DARK_GRAY));
         }
         return shortList;
+    }
+
+    /**
+     * Only the verdict lines of {@code out} (the ones carrying the "✦ Advice: " marker) and the red
+     * warnings (a "Can't equip", which may wrap over lines): no reasons, upgrades, prices or hints.
+     */
+    static List<Component> brief(List<Component> out, String markerText) {
+        List<Component> kept = new ArrayList<>();
+        for (Component c : out) {
+            String t = c.getString();
+            var colour = c.getStyle().getColor();
+            boolean red = colour != null && colour.equals(net.minecraft.network.chat.TextColor.fromLegacyFormat(ChatFormatting.RED));
+            if (!t.isEmpty() && (t.contains(markerText) || red)) {
+                kept.add(c);
+            }
+        }
+        return kept;
     }
 
     /**

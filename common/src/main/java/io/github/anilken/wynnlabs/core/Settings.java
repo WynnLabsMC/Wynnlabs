@@ -26,7 +26,7 @@ public final class Settings {
     public static final Map<String, String> DESC = new LinkedHashMap<>();
 
     static {
-        for (String k : new String[] {"itemAdvice", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
+        for (String k : new String[] {"itemAdvice", "adviceOnly", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
             "boxCompactTooltip", "gearCompactTooltip", "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "trackedDrops", "mobTrack",
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "healerAdvice", "deathCoach", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
@@ -272,7 +272,7 @@ public final class Settings {
     static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "priceApi",
             "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "rideRefresh",
             "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint", "chestBeams", "gearCompactTooltip",
-            "crowdMode");
+            "crowdMode", "adviceOnly");
 
     public static boolean on(String key) {
         load();
