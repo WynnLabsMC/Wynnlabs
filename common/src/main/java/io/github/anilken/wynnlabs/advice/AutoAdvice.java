@@ -89,7 +89,9 @@ public final class AutoAdvice {
                 burstSpent = 0;
             }
             if (burstSpent >= BUDGET_MS) {
-                return PENDING;                 // not kept: asked again next frame
+                // over budget: the verdict from before stays on show (stale for a frame or two)
+                // rather than blinking off; a stack never decided shows nothing until its turn
+                return c != null ? c : PENDING;
             }
         }
         long t = Perf.start();                  // a miss: /perf counts them as advice.decide
