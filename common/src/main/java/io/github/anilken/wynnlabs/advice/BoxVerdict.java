@@ -60,7 +60,7 @@ public final class BoxVerdict {
 
     /** The verdict for a box, as the tooltip has it, for the player's class and level. */
     public static Result of(ItemView.Box box, Klass cls, int level) {
-        return from(BoxAdvice.decide(box, cls, level), box);
+        return from(BoxAdvice.decide(box, cls, level, true), box);
     }
 
     static Result from(BoxAdvice.Decision d, ItemView.Box box) {

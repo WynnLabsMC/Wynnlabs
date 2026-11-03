@@ -122,22 +122,63 @@ final class BoxAdvice {
      */
     private static final Map<Key, Kept> DECIDED = new ConcurrentHashMap<>();
 
-    /** {@link #box}, with the route behind it: the box window's verdict chip reads the same call. */
+    /** Boxes being judged in the background now, so each is asked for once. */
+    private static final java.util.Set<Key> JUDGING = ConcurrentHashMap.newKeySet();
+
+    /** Judges boxes for tooltips and slot badges in the background in the game; one at a time. */
+    private static final java.util.concurrent.ExecutorService WORKER =
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "wynnlabs-box");
+                t.setDaemon(true);
+                return t;
+            });
+
+    /** What {@link #decide} returns while the box is still being judged: no verdict yet. */
+    static final Decision PENDING = new Decision(null, null);
+
+    /** Set on this thread when {@link #decide} answered {@link #PENDING}: the caller keeps nothing. */
+    static final ThreadLocal<boolean[]> WAITING = ThreadLocal.withInitial(() -> new boolean[1]);
+
+    /**
+     * {@link #box}, with the route behind it. In the game a box not judged yet is judged on a
+     * background thread and {@link #PENDING} comes back meanwhile (a chest of new boxes used to
+     * stop the frame it opened in); the badge fills in once it is done.
+     */
     static Decision decide(ItemView.Box box, Klass cls, int level) {
+        return decide(box, cls, level, false);
+    }
+
+    /** {@link #decide}, judged here when {@code now} (the box window, which shows one box). */
+    static Decision decide(ItemView.Box box, Klass cls, int level, boolean now) {
         if (!AutoAdvice.budgeted) {
             return judge(box, cls, level);
         }
-        long now = System.currentTimeMillis();
+        long at = System.currentTimeMillis();
         Key key = new Key(box, cls, level, Stamp.now());
         Kept k = DECIDED.get(key);
-        if (k != null && now < k.until()) {
+        if (k != null && at < k.until()) {
             return k.decision();
         }
         if (DECIDED.size() > 256) {
             DECIDED.clear();
         }
+        if (!now && !Thread.currentThread().getName().startsWith("wynnlabs-")) {
+            if (JUDGING.add(key)) {
+                WORKER.execute(() -> {
+                    try {
+                        DECIDED.put(key, new Kept(judge(box, cls, level), System.currentTimeMillis() + 30_000));
+                    } catch (Throwable ignored) {
+                        // judged again when asked next
+                    } finally {
+                        JUDGING.remove(key);
+                    }
+                });
+            }
+            WAITING.get()[0] = true;
+            return PENDING;
+        }
         Decision d = judge(box, cls, level);
-        DECIDED.put(key, new Kept(d, now + 30_000));
+        DECIDED.put(key, new Kept(d, at + 30_000));
         return d;
     }
 

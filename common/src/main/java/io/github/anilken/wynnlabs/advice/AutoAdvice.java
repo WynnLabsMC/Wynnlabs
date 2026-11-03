@@ -99,10 +99,16 @@ public final class AutoAdvice {
         double[] noted = GAIN.get();
         double outer = noted[0];                // a verdict that asks for another stack's keeps its own
         noted[0] = Double.NaN;
+        boolean[] waiting = BoxAdvice.WAITING.get();
+        waiting[0] = false;
         Advice.Entry e = decide(stack);
         double gain = noted[0];
         noted[0] = outer;
         Perf.end("advice.decide", t);
+        if (waiting[0]) {
+            waiting[0] = false;
+            return c != null ? c : PENDING;     // a box still being judged: asked again next frame
+        }
         if (budget) {
             burstSpent += (System.nanoTime() - t) / 1_000_000.0;
         }
