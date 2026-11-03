@@ -494,6 +494,17 @@ public final class TooltipListener {
                 changed = true;
             }
             changed |= bannerHeads(out);
+            if (Prices.coins) {
+                // prices are written with letters; the tooltip's font has the game's coin glyphs
+                for (int i = 0; i < out.size(); i++) {
+                    Component line = out.get(i);
+                    String text = line.getString();
+                    if (!Prices.glyphs(text).equals(text)) {
+                        out.set(i, glyphs(line));
+                        changed = true;
+                    }
+                }
+            }
             return changed ? out : null;
         } catch (Throwable ignored) {
             // a broken advice line must never break the tooltip
@@ -528,6 +539,18 @@ public final class TooltipListener {
                         net.minecraft.resources.Identifier.withDefaultNamespace("banner/box"))).withColor(box).withItalic(false))
                 .append(Component.literal(front.toString())
                         .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(0x000000).withShadowColor(0xFFFFFF)));
+    }
+
+    /** The component with its prices' coins as glyphs ({@link Prices#glyphs}), styles kept. */
+    private static Component glyphs(Component c) {
+        net.minecraft.network.chat.MutableComponent out =
+                c.getContents() instanceof net.minecraft.network.chat.contents.PlainTextContents.LiteralContents lit
+                        ? Component.literal(Prices.glyphs(lit.text())).setStyle(c.getStyle())
+                        : c.plainCopy().setStyle(c.getStyle());
+        for (Component sib : c.getSiblings()) {
+            out.append(glyphs(sib));
+        }
+        return out;
     }
 
     /**
