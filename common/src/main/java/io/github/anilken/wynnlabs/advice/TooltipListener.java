@@ -599,6 +599,7 @@ public final class TooltipListener {
                     .withStyle(s -> s.withFont(net.minecraft.network.chat.FontDescription.DEFAULT));
             if (blank >= 0) {
                 out.set(blank, price);
+                out.add(blank + 1, Component.empty());  // the stats keep their gap under it
             } else if (header >= 0) {
                 out.set(header, out.get(header).copy().append(price));
             } else {
