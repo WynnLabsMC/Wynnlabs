@@ -580,7 +580,7 @@ public final class Roadmap {
     }
 
     /** Tests: the saved map is looked for again, and nothing is kept in memory. */
-    static synchronized void forget() {
+    public static synchronized void forget() {
         lastSteps = List.of();
         lastFor = "";
         loadedFor = null;

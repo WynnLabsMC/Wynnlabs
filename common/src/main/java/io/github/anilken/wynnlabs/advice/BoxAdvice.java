@@ -122,6 +122,12 @@ final class BoxAdvice {
      */
     private static final Map<Key, Kept> DECIDED = new ConcurrentHashMap<>();
 
+    /**
+     * The last decision for each kind of box, whatever the stamp: shown while a new one is
+     * judged, so a badge never blinks off (opening a chest sends the bag's stacks anew).
+     */
+    private static final Map<Key, Decision> LATEST = new ConcurrentHashMap<>();
+
     /** Boxes being judged in the background now, so each is asked for once. */
     private static final java.util.Set<Key> JUDGING = ConcurrentHashMap.newKeySet();
 
@@ -166,7 +172,9 @@ final class BoxAdvice {
             if (JUDGING.add(key)) {
                 WORKER.execute(() -> {
                     try {
-                        DECIDED.put(key, new Kept(judge(box, cls, level), System.currentTimeMillis() + 30_000));
+                        Decision d = judge(box, cls, level);
+                        DECIDED.put(key, new Kept(d, System.currentTimeMillis() + 30_000));
+                        LATEST.put(new Key(box, cls, level, 0), d);
                     } catch (Throwable ignored) {
                         // judged again when asked next
                     } finally {
@@ -174,11 +182,13 @@ final class BoxAdvice {
                     }
                 });
             }
-            WAITING.get()[0] = true;
-            return PENDING;
+            WAITING.get()[0] = true;            // not kept: asked again until the fresh one is in
+            Decision last = LATEST.get(new Key(box, cls, level, 0));
+            return last != null ? last : PENDING;
         }
         Decision d = judge(box, cls, level);
         DECIDED.put(key, new Kept(d, at + 30_000));
+        LATEST.put(new Key(box, cls, level, 0), d);
         return d;
     }
 

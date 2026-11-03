@@ -104,6 +104,19 @@ public final class FixtureState implements GameState {
      * character's rules from the fixture, then the build plan as the game would have it.
      */
     public void install(String language) {
+        // whatever a test before left (a road map, a Build window list, a saved map file) is
+        // gone: character files go to a folder of this run's own unless the test chose one
+        if (io.github.anilken.wynnlabs.build.Locks.rootOverride == null) {
+            try {
+                io.github.anilken.wynnlabs.build.Locks.rootOverride = java.nio.file.Files.createTempDirectory("wynnlabs-fixture");
+                ownRoot = true;
+            } catch (java.io.IOException e) {
+                throw new java.io.UncheckedIOException(e);
+            }
+        }
+        io.github.anilken.wynnlabs.build.roadmap.Roadmap.forget();
+        io.github.anilken.wynnlabs.build.Around.forget();
+        io.github.anilken.wynnlabs.build.Around.forgetCheck();
         JsonObject settings = data.settings().deepCopy();
         settings.addProperty("langOverride", language.equals("tr") ? 2 : 1);
         Settings.use(settings);
@@ -131,12 +144,23 @@ public final class FixtureState implements GameState {
         Build.use(Build.compute());
     }
 
+    /** Whether {@link #install} set the character files' folder itself (and {@link #uninstall} clears it). */
+    private static boolean ownRoot;
+
     public static void uninstall() {
         GameState.install(null);
         for (io.github.anilken.wynnlabs.model.Klass k : io.github.anilken.wynnlabs.model.Klass.values()) {
             TreeConnectors.use(k, null);
         }
         Build.use(null);
+        // a road map or a Build window list one test made must not judge the next one's items
+        io.github.anilken.wynnlabs.build.roadmap.Roadmap.forget();
+        if (ownRoot) {
+            io.github.anilken.wynnlabs.build.Locks.rootOverride = null;
+            ownRoot = false;
+        }
+        io.github.anilken.wynnlabs.build.Around.forget();
+        io.github.anilken.wynnlabs.build.Around.forgetCheck();
         Settings.use(new JsonObject());
         Rules.use(new JsonObject());
     }
