@@ -173,6 +173,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.KeptMarks", io.github.anilken.wynnlabs.ui.KeptMarksSync::onTick));
         platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
         platform.onEndTick(Perf.tick("tick.AutoAdvice", WornGear::snapshotArmour));
+        io.github.anilken.wynnlabs.advice.AutoAdvice.budgeted = true;   // verdicts a few a frame, never a frozen chest
         platform.onGameMessage(QuestBook::onChat);
         platform.onGameMessage(io.github.anilken.wynnlabs.quests.CaveMap::onChat);
         platform.onGameMessage(DeathCoach::onChat);

@@ -46,6 +46,20 @@ public final class Sources {
      * {@code pos} the player's {x, z} or null (rows then keep the data's order of places).
      */
     public static List<Source> of(Entry e, Places places, Owned owned, Prices.Price price, double[] pos) {
+        return of(e, places, owned, price, pos, chestStars(e));
+    }
+
+    /**
+     * The least stars a loot chest needs for the item: 3 for accessories (rings, bracelets and
+     * necklaces come only from tier 3 and 4 chests), 1 for the rest.
+     */
+    public static int chestStars(Entry e) {
+        String t = e.type() == null ? "" : e.type().toLowerCase(java.util.Locale.ROOT);
+        return t.equals("ring") || t.equals("bracelet") || t.equals("necklace") || t.equals("accessory") ? 3 : 1;
+    }
+
+    /** {@link #of} with the loot chest row holding only chests of at least {@code chestStars}. */
+    public static List<Source> of(Entry e, Places places, Owned owned, Prices.Price price, double[] pos, int chestStars) {
         List<Source> out = new ArrayList<>();
         Owned have = owned == null ? Owned.NONE : owned;
         if (have.bag() > 0) {
@@ -104,7 +118,7 @@ public final class Sources {
             out.add(row(Source.Type.MOB_BAND, null, near, 0, null, lo, hi));
         }
         if (chests && e.level() > 0) {
-            List<Area> near = places == null ? List.of() : near(places.chestsInBand(lo, hi), pos, e.level(), true);
+            List<Area> near = places == null ? List.of() : near(places.chestsInBand(lo, hi, chestStars), pos, e.level(), true);
             out.add(row(Source.Type.LOOT_CHEST, null, near, 0, null, lo, hi));
         }
         boolean market = out.stream().anyMatch(s -> s.type() == Source.Type.MARKET);

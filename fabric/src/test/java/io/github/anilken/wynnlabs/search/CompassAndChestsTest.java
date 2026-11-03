@@ -66,6 +66,9 @@ class CompassAndChestsTest {
                 new Area(4, 5, 6, 0, 80, 1, null),
                 new Area(7, 8, 9, 0, 120, 3, null));        // out of the band
         assertEquals(List.of(chests.get(1)), Places.forTest(chests).chestsInBand(70, 90));
+        // the star filter: a chest below the least stars asked for is left out
+        assertEquals(chests.get(1).stars() >= 3 ? List.of(chests.get(1)) : List.of(), Places.forTest(chests).chestsInBand(70, 90, 3));
+        assertEquals(List.of(chests.get(1)), Places.forTest(chests).chestsInBand(70, 90, chests.get(1).stars()));
     }
 
     @Test
