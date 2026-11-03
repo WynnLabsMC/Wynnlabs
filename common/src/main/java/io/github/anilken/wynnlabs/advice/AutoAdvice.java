@@ -167,7 +167,9 @@ public final class AutoAdvice {
             return null;
         }
         try {
+            long tv = Perf.start();
             Optional<ItemView> parsed = state.view(stack);
+            Perf.end("advice.view", tv);
             if (parsed.isEmpty()) {
                 return null;
             }
@@ -193,13 +195,28 @@ public final class AutoAdvice {
             int level = state.level();
             switch (item.kind()) {
                 case GEAR -> {
-                    return GearAdvice.gear(stack, item, cls, level);
+                    long tg = Perf.start();
+                    try {
+                        return GearAdvice.gear(stack, item, cls, level);
+                    } finally {
+                        Perf.end("advice.gear", tg);
+                    }
                 }
                 case BOX -> {
-                    return BoxAdvice.box(item.box(), cls, level);
+                    long tb = Perf.start();
+                    try {
+                        return BoxAdvice.box(item.box(), cls, level);
+                    } finally {
+                        Perf.end("advice.box", tb);
+                    }
                 }
                 case CRAFTED -> {
-                    return GearAdvice.crafted(stack.stack(), item.crafted(), cls, level);
+                    long tc = Perf.start();
+                    try {
+                        return GearAdvice.crafted(stack.stack(), item.crafted(), cls, level);
+                    } finally {
+                        Perf.end("advice.crafted", tc);
+                    }
                 }
                 case SKILL_POINT -> {
                     return OtherItemAdvice.skillButton(item.skillPoint().skill());
