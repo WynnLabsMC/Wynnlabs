@@ -35,6 +35,8 @@ public final class CrowdMode {
     private static volatile int radius;
     private static volatile double radiusSq;
     private static volatile String me = "";
+    /** The players on the server now (the tab list), lower-cased: a label is a summon only when its owner is one of them. */
+    private static volatile java.util.Set<String> players = java.util.Set.of();
     /** The root display of every labelled stack → true to hide it (another player's summon). */
     private static volatile Map<Integer, Boolean> bodies = Map.of();
 
@@ -64,6 +66,13 @@ public final class CrowdMode {
         radius = Settings.number("crowdRadius", 0);
         radiusSq = (double) radius * radius;
         me = mc.getUser().getName();
+        java.util.Set<String> online = new java.util.HashSet<>();
+        if (mc.getConnection() != null) {
+            for (var info : mc.getConnection().getOnlinePlayers()) {
+                online.add(info.getProfile().name().toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+        players = online;
         Map<Integer, Boolean> found = new HashMap<>();
         for (Entity e : mc.level.entitiesForRendering()) {
             if (!(e instanceof Display.TextDisplay t)) {
@@ -123,10 +132,18 @@ public final class CrowdMode {
         return m.find() ? m.group(1) : null;
     }
 
-    /** Whether the label names another player's summon. */
+    /**
+     * Whether the label names another player's summon: its owner is a player on the server, not
+     * you. A boss or a quest mob named with an apostrophe ("Greg's Ghost") is nobody's summon and
+     * stays drawn, raid bosses included.
+     */
     static boolean othersSummon(String text) {
+        return othersSummon(text, me, players);
+    }
+
+    static boolean othersSummon(String text, String me, java.util.Set<String> players) {
         String owner = owner(text);
-        return owner != null && !owner.equalsIgnoreCase(me);
+        return owner != null && !owner.equalsIgnoreCase(me) && players.contains(owner.toLowerCase(java.util.Locale.ROOT));
     }
 
     /** Whether to leave this entity undrawn. */
