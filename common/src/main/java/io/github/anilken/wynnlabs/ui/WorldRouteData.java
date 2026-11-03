@@ -34,14 +34,20 @@ import java.util.Set;
  * not tried again for {@link #RETRY_MILLIS}. Each hop stays over https to GitHub's own hosts, as
  * the update check does. The hand-made walls ({@value #GATES_URL}, {@link WorldGates}) come along
  * with every fetch of the map and every daily look, to {@value #GATES}; a failure keeps the old
- * file, and a malformed one is ignored.
+ * file, and a malformed one is ignored. So do the roads ({@value #ROADS_URL}, {@link WorldRoads}),
+ * to {@value #ROADS}, fetched only when the hash at {@value #ROADS_HASH_URL} is not the one on
+ * disk ({@value #ROADS_SHA}).
  */
 final class WorldRouteData {
 
     static final String URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-route.bin";
     static final String HASH_URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-route.sha256";
     static final String GATES_URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-gates.json";
+    static final String ROADS_URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-roads.bin";
+    static final String ROADS_HASH_URL = "https://raw.githubusercontent.com/WynnLabsMC/Wynnlabs/main/data/world-roads.sha256";
     static final String FILE = "world-route.bin";
+    static final String ROADS = "world-roads.bin";
+    static final String ROADS_SHA = "world-roads.sha256";
     static final String META = "world-route.bin.meta";
     static final String GATES = "world-gates.json";
     /** The repository is asked for a newer map at most this often, ... */
@@ -90,6 +96,8 @@ final class WorldRouteData {
     static java.util.function.LongSupplier clock = System::currentTimeMillis;
 
     private static volatile WorldRoute map;
+    private static volatile WorldRoads roads;
+    private static volatile String roadsSha;
     private static volatile Meta loaded;
     private static volatile State state = State.MISSING;
     private static volatile String why;
@@ -109,6 +117,87 @@ final class WorldRouteData {
 
     static Path gatesFile(Path dir) {
         return dir.resolve(GATES);
+    }
+
+    static Path roadsFile(Path dir) {
+        return dir.resolve(ROADS);
+    }
+
+    static Path roadsShaFile(Path dir) {
+        return dir.resolve(ROADS_SHA);
+    }
+
+    /** The roads in memory (null: none yet), for the block-level route and /guide. */
+    static WorldRoads roads() {
+        return roads;
+    }
+
+    /** The roads' hash prefix, for /guide (null: none). */
+    static String roadsHash() {
+        String s = roadsSha;
+        return s == null ? null : s.substring(0, 8);
+    }
+
+    /**
+     * The roads file: read from {@code dir} when it is there and matches its hash file; then,
+     * with {@code look}, the repository's hash is read and the file fetched when it differs (a
+     * failure keeps what is on disk). Never throws.
+     */
+    private static void roadsSync(Path dir, boolean look) {
+        if (roads == null) {
+            readRoads(dir);
+        }
+        if (!look) {
+            return;
+        }
+        try {
+            String fresh = new String(fetcher.get(ROADS_HASH_URL), StandardCharsets.UTF_8).trim().toLowerCase(Locale.ROOT);
+            if (!fresh.matches("[0-9a-f]{64}") || fresh.equals(roadsSha)) {
+                return;
+            }
+            byte[] bytes = fetcher.get(ROADS_URL);
+            String sha = sha256(bytes);
+            if (!sha.equals(fresh)) {
+                throw new IOException("the roads file does not match its hash");
+            }
+            WorldRoads r = WorldRoads.load(new java.io.ByteArrayInputStream(bytes));
+            Files.createDirectories(dir);
+            Path part = dir.resolve(ROADS + ".part");
+            Files.write(part, bytes);
+            try {
+                Files.move(part, roadsFile(dir), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(part, roadsFile(dir), StandardCopyOption.REPLACE_EXISTING);
+            }
+            Files.writeString(roadsShaFile(dir), sha + "\n", StandardCharsets.UTF_8);
+            roads = r;
+            roadsSha = sha;
+            System.out.println("[WynnLabs] guide: the world roads " + sha.substring(0, 8) + " are ready (" + bytes.length / 1024 + " KB, "
+                    + r.tiles() + " tiles)");
+        } catch (IOException | RuntimeException e) {
+            System.out.println("[WynnLabs] guide: the world roads could not be fetched: " + e);
+        }
+    }
+
+    /** The roads file on disk into memory when it matches its hash file; a mismatch deletes both. */
+    private static void readRoads(Path dir) {
+        Path f = roadsFile(dir);
+        try {
+            if (!Files.isRegularFile(f) || !Files.isRegularFile(roadsShaFile(dir))) {
+                return;
+            }
+            String want = Files.readString(roadsShaFile(dir), StandardCharsets.UTF_8).trim().toLowerCase(Locale.ROOT);
+            byte[] bytes = Files.readAllBytes(f);
+            if (!sha256(bytes).equals(want)) {
+                throw new IOException("hash mismatch");
+            }
+            roads = WorldRoads.load(new java.io.ByteArrayInputStream(bytes));
+            roadsSha = want;
+        } catch (IOException | RuntimeException e) {
+            deleteQuietly(f);
+            deleteQuietly(roadsShaFile(dir));
+            System.out.println("[WynnLabs] guide: the world roads on disk could not be read, fetching them again: " + e);
+        }
     }
 
     /** The map in memory (null: none yet), for /guide. */
@@ -176,6 +265,7 @@ final class WorldRouteData {
                 try {
                     WorldRoute g = load(file(dir));
                     readWalls(dir, g);
+                    roadsSync(dir, false);
                     map = g;
                     loaded = m;
                     state = State.READY;
@@ -201,6 +291,7 @@ final class WorldRouteData {
                     loaded = m = new Meta(m.sha256(), m.downloaded(), now);
                     m.write(sidecar(dir));
                     walls(dir, map);
+                    roadsSync(dir, true);
                     return map;
                 }
             } catch (IOException e) {
@@ -217,6 +308,7 @@ final class WorldRouteData {
             Meta fm = new Meta(sha, now, now);
             store(dir, bytes, fm);
             walls(dir, fresh);
+            roadsSync(dir, true);
             map = fresh;
             loaded = fm;
             state = State.READY;
@@ -339,6 +431,8 @@ final class WorldRouteData {
     /** Tests: as a fresh run. */
     static synchronized void reset() {
         map = null;
+        roads = null;
+        roadsSha = null;
         loaded = null;
         state = State.MISSING;
         why = null;

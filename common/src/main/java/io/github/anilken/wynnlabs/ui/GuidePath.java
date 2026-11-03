@@ -14,8 +14,8 @@ import java.util.PriorityQueue;
 /**
  * The guide line's walking route: an A* over block columns. A step goes to one of the eight
  * neighbouring columns where there is ground to stand on at most one block up or three down
- * ({@link Walkable}); a diagonal step needs both columns beside it walkable, so it never cuts a
- * corner, and ladders and vines are climbed one block at a time. Roads and stairs cost less, so
+ * ({@link Walkable}); a diagonal step needs both columns beside it walkable at the same height,
+ * so it never cuts a corner nor brushes a step or a kerb, and ladders and vines are climbed one block at a time. Roads and stairs cost less, so
  * the route keeps to them. The goal is the target's column and floor. The search is bounded (a
  * box around the start, a node budget); when it cannot reach the target it returns the route to
  * the reachable spot nearest the target. Pure: no Minecraft types.
@@ -165,8 +165,25 @@ final class GuidePath {
                 best = f;
             }
         }
+        if (best == NONE) {
+            // the height given is off (the world map's cell height, a pin without one): the
+            // nearest spot to stand on in the column, up to FEET_RANGE away, so the goal is not
+            // put inside the ground, where no search can reach it and the whole budget goes
+            for (int d = 4; d <= FEET_RANGE && best == NONE; d += 4) {
+                int up = w.stand(x, z, y + d + 1);
+                int down = w.stand(x, z, y - d + 1);
+                if (up != NONE && up > y + d - 4) {
+                    best = up;
+                } else if (down != NONE) {
+                    best = down;
+                }
+            }
+        }
         return best == NONE ? y : best;
     }
+
+    /** How far up or down {@link #feet} looks for the ground when the height it is given has none. */
+    static final int FEET_RANGE = 48;
 
     /**
      * The ground under a rider at feet height {@code y} in column (x, z): the highest standable spot
@@ -261,11 +278,11 @@ final class GuidePath {
                     continue;
                 }
                 boolean diagonal = m[0] != 0 && m[1] != 0;
-                if (diagonal && (w.stand(n.x() + m[0], n.z(), n.y()) == NONE
-                        || w.stand(n.x(), n.z() + m[1], n.y()) == NONE)) {
-                    continue;
-                }
                 int ny = w.stand(nx, nz, n.y());
+                if (diagonal && (ny == NONE || corner(w.stand(n.x() + m[0], n.z(), n.y()), n.y(), ny)
+                        || corner(w.stand(n.x(), n.z() + m[1], n.y()), n.y(), ny))) {
+                    continue;                       // past a kerb or a step up: round it, not across its corner
+                }
                 if (ny == NONE) {
                     if (w.unknown(nx, nz, n.y())) {
                         double score = flat(n.x(), n.z(), tx, tz) + EXIT_WALK * n.g();
@@ -428,6 +445,16 @@ final class GuidePath {
     }
 
     /** Whether a straight walk from a to b stays on walkable ground, column by column. */
+    /**
+     * Whether a column beside a diagonal step from feet {@code y} to {@code ny} is in the way: no
+     * standing there, or its feet {@code side} above both (a kerb, a stair's upper step beside a
+     * flat move), which the step would clip the corner of. A slope's side columns, between the two
+     * heights, are fine.
+     */
+    static boolean corner(int side, int y, int ny) {
+        return side == NONE || side > Math.max(y, ny);
+    }
+
     static boolean straight(Walkable w, int[] a, int[] b) {
         double dx = b[0] - a[0];
         double dz = b[2] - a[2];
@@ -442,12 +469,12 @@ final class GuidePath {
             if (x == px && z == pz) {
                 continue;
             }
-            // crossing a corner: both columns beside it must be walkable too
-            if (x != px && z != pz && (w.stand(x, pz, y) == NONE || w.stand(px, z, y) == NONE)) {
-                return false;
-            }
             int ny = w.stand(x, z, y);
             if (ny == NONE) {
+                return false;
+            }
+            // crossing a corner: both columns beside it must be walkable too, and not stick up
+            if (x != px && z != pz && (corner(w.stand(x, pz, y), y, ny) || corner(w.stand(px, z, y), y, ny))) {
                 return false;
             }
             y = ny;
