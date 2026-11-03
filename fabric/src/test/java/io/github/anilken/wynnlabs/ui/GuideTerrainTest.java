@@ -106,7 +106,19 @@ class GuideTerrainTest {
         assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 5));     // the middle
         assertEquals(GuideTerrain.ROAD_EDGE, g.cost(5, 10, 4));     // an edge
         assertEquals(GuideTerrain.ROAD_EDGE, g.cost(5, 10, 6));
-        assertEquals(1, g.cost(5, 10, 7));                          // off the road
+        assertEquals(1, g.cost(5, 10, 8));                          // off the road
+    }
+
+    @Test
+    void theMiddleOfACorridorIsCheaperThanItsWalls() {
+        // a corridor along x, walls at z 0 and z 5, floor at y 9
+        GuideDumps.World w = new GuideDumps.World(12, 14, 6, SOLID);
+        w.fill(0, 10, 1, 11, 13, 4, AIR);
+        GuideTerrain g = GuideDumps.walkable(w.dump(5, 10, 2, 6, 10, 2));
+        assertEquals(1 + GuideTerrain.WALL, g.cost(5, 10, 1));
+        assertEquals(1 + GuideTerrain.WALL_FAR, g.cost(5, 10, 2));
+        assertEquals(1 + GuideTerrain.WALL_FAR, g.cost(5, 10, 3));
+        assertEquals(1 + GuideTerrain.WALL, g.cost(5, 10, 4));
     }
 
     @Test

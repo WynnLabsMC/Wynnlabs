@@ -92,14 +92,15 @@ class GuideSampleTest {
     @Test
     void theHillRoadUnderTheArches() {
         // the start lies under an arch (its highest floor is the arch top, 58 blocks up): the
-        // route starts on the ground below and keeps mostly to the road round the hill (a short
-        // swim across the stream beats a bend of the road)
+        // route starts on the ground below and keeps to the road round the hill for a good part
+        // (a short swim across the stream beats a bend of the road, and the road's side along
+        // the cliff is left for a block or two: the route keeps off walls)
         TerrainGrid g = TerrainGrid.load("mountain");
         assertTrue(g.top(8, 88) > g.floor(8, 88) + 40);
         Walk w = walk(g, 8, g.floor(8, 88), 88, 44, g.floor(44, 90), 90);
         assertTrue(w.route().reached());
         assertEquals(g.floor(8, 88), w.route().nodes().get(0)[1]);
-        assertTrue(w.road() >= 0.4, "road share " + w.road());
+        assertTrue(w.road() >= 0.35, "road share " + w.road());
         assertTrue(w.maxDrop() <= 3, "walked, not jumped");
     }
 }
