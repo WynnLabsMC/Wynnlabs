@@ -1071,6 +1071,23 @@ public final class Prices {
         return exact(e);
     }
 
+    /**
+     * Emeralds in one coin, for the corner of an item slot: "40E", "14EB", "2.3LE", "1.2stx" (a
+     * tenth below ten, whole above). {@link #fmt} has the rest.
+     */
+    public static String slot(double emeralds) {
+        long e = Math.round(emeralds);
+        String[] names = coins ? GLYPHS : LETTERS;
+        long[] sizes = {262_144, 4096, 64, 1};
+        for (int k = 0; k < sizes.length - 1; k++) {
+            if (e >= sizes[k]) {
+                double v = (double) e / sizes[k];
+                return (v < 10 ? String.format(java.util.Locale.ROOT, "%.1f", v) : String.valueOf(Math.round(v))) + names[k];
+            }
+        }
+        return e + names[3];
+    }
+
     /** Emeralds to the emerald, every coin that is not 0: "1stx 12LE 34EB 1E", "40E", "0E". */
     public static String exact(long emeralds) {
         if (emeralds < 0) {

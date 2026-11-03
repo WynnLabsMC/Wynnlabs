@@ -260,7 +260,7 @@ public final class TooltipListener {
                 Prices.Price pr = GameState.current().price(view.get().data().name());
                 Double typical = pr == null ? null : pr.typical();
                 if (typical != null) {
-                    Component c = styled(Prices.fmt(typical).replace(" ", ""));
+                    Component c = styled(Prices.slot(typical));
                     return new BadgeFacts(until, rules, advice, null, 0, 0, 0, null, c, font.width(c), false);
                 }
             }
@@ -271,7 +271,7 @@ public final class TooltipListener {
                 if (pr == null) {
                     GameState.current().requestPrices(List.of(name));
                 } else if (pr.typical() != null) {
-                    Component c = styled(Prices.fmt(pr.typical()).replace(" ", ""));
+                    Component c = styled(Prices.slot(pr.typical()));
                     return new BadgeFacts(until, rules, advice, null, 0, 0, 0, null, c, font.width(c), true);
                 }
             }
