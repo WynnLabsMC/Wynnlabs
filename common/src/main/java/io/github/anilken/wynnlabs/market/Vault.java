@@ -87,10 +87,12 @@ public final class Vault {
 
     private Vault() {}
 
+    private static int looks;
+
     public static void onTick(Minecraft mc) {
-        // a read every tick: two in a row that agree (a page whose items have all arrived) save
-        // it, about a tenth of a second after it opens
-        if (mc.player == null || mc.screen == null) {
+        // a look every other tick: two in a row that agree (a page whose items have all arrived)
+        // save it, about a tenth of a second after it opens
+        if (mc.player == null || mc.screen == null || (++looks & 1) != 0) {
             return;
         }
         var menu = mc.player.containerMenu;
@@ -129,13 +131,10 @@ public final class Vault {
             if (stack.isEmpty()) {
                 continue;
             }
-            String name;
-            try {
-                name = nameOf(stack);
-            } catch (Throwable t) {
-                name = clean(stack.getHoverName().getString());
-            }
-            if (name == null) {
+            // the shown name is enough to tell a page that is still arriving from one that has
+            // (parsing every stack through Wynntils twenty times a second cost a frame's worth)
+            String name = clean(stack.getHoverName().getString());
+            if (name.isBlank()) {
                 continue;
             }
             names.append(shown++ == 0 ? "" : ";").append(name).append('x').append(stack.getCount());
