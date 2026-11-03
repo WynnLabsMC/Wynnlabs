@@ -50,6 +50,8 @@ final class SearchCardPanel extends MenuPaint {
     Sources.Owned have = Sources.Owned.NONE;
     /** The row the map and "open on map" follow (0: the easiest). */
     int picked;
+    /** The least stars the loot chest row's chests have (1 to 4): the item's own by default, cycled by its chip. */
+    int chestStars = 1;
     private CompletableFuture<ItemWiki.Info> wikiLoad;
     ItemWiki.Info wiki;
     private Double gain;
@@ -98,8 +100,9 @@ final class SearchCardPanel extends MenuPaint {
             return;
         }
         have = SearchCardSections.owned(e.name());
+        chestStars = Sources.chestStars(e);
         Prices.Price price = e.tradable() ? Prices.of(e.name()) : null;
-        rows = Sources.of(e, ItemIndex.get().places(), have, price, SearchTab.position());
+        rows = Sources.of(e, ItemIndex.get().places(), have, price, SearchTab.position(), chestStars);
         rowLinks = rows.stream().map(SearchThingCard::linked).toList();
         wikiLoad = ItemWiki.load(e.name());
         wiki = null;
@@ -462,6 +465,22 @@ final class SearchCardPanel extends MenuPaint {
             }
         }
         return true;
+    }
+
+    /** The chest chip: the next star count (1 → 2 → 3 → 4 → 1), the rows worked out again; a route on the old set ends. */
+    void cycleChestStars() {
+        if (entry == null) {
+            return;
+        }
+        chestStars = chestStars % 4 + 1;
+        if (!Waypoints.route().isEmpty()) {
+            Waypoints.clearRoute();
+        }
+        Prices.Price price = entry.tradable() ? Prices.of(entry.name()) : null;
+        rows = Sources.of(entry, ItemIndex.get().places(), have, price, SearchTab.position(), chestStars);
+        rowLinks = rows.stream().map(SearchThingCard::linked).toList();
+        marks.reset(rows, label());
+        marks();
     }
 
     /** "Route ✔" again: the route is over, its pins leave the map. */

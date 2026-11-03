@@ -43,6 +43,19 @@ public final class AutoAdvice {
             java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
     /**
+     * In the game, verdicts are worked out {@link #BUDGET_MS} a frame at most: a chest full of
+     * items used to decide every slot in the frame it opened (a second or two frozen); now the
+     * badges fill in over a few frames. Tests leave this off. A frame here is {@link #FRAME_NS}
+     * from the first verdict of a burst.
+     */
+    public static volatile boolean budgeted;
+    static final double BUDGET_MS = 5;
+    static final long FRAME_NS = 16_000_000L;
+    private static final Cached PENDING = new Cached(0, 0, null, Double.NaN);
+    private static long burstStart;
+    private static double burstSpent;
+
+    /**
      * {@link #decide}, remembered until something it depends on changes ({@link Stamp}: rules,
      * settings, prices, advice, what you carry and wear, your level), and at most about half a
      * minute for what the stamp does not cover, staggered per stack so a full menu never
@@ -69,6 +82,16 @@ public final class AutoAdvice {
         if (c != null && now < c.until() && c.stamp() == stamp) {
             return c;
         }
+        if (budgeted) {
+            long ns = System.nanoTime();
+            if (ns - burstStart > FRAME_NS) {
+                burstStart = ns;
+                burstSpent = 0;
+            }
+            if (burstSpent >= BUDGET_MS) {
+                return PENDING;                 // not kept: asked again next frame
+            }
+        }
         long t = Perf.start();                  // a miss: /perf counts them as advice.decide
         double[] noted = GAIN.get();
         double outer = noted[0];                // a verdict that asks for another stack's keeps its own
@@ -77,6 +100,9 @@ public final class AutoAdvice {
         double gain = noted[0];
         noted[0] = outer;
         Perf.end("advice.decide", t);
+        if (budgeted) {
+            burstSpent += (System.nanoTime() - t) / 1_000_000.0;
+        }
         c = new Cached(now + 30_000 + (System.identityHashCode(stack) & 4095), stamp, e, gain);
         CACHE.put(stack, c);
         return c;

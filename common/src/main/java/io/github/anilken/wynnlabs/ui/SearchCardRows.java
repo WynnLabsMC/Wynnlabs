@@ -104,6 +104,15 @@ final class SearchCardRows extends MenuPaint {
                 card.tip(r - pw, py, pw, Ui.SMALL_H, mx, my, L.t(route ? "wynnlabs.search.route_on_tip" : "wynnlabs.search.route_tip"));
             }
             r -= pw + Theme.SP_2;
+            if (s.type() == Source.Type.LOOT_CHEST) {
+                // the least stars a chest needs: ★1+ … ★4, a click goes to the next
+                String stars = card.chestStars >= 4 ? "★4" : "★" + card.chestStars + "+";
+                int sw = Ui.chipWidth(font(), stars);
+                Ui.small(g, font(), stars, r - sw, py, sw, card.over(mx, my) ? mx : -1, my);
+                card.click(r - sw, py, sw, Ui.SMALL_H, card::cycleChestStars);
+                card.tip(r - sw, py, sw, Ui.SMALL_H, mx, my, L.t("wynnlabs.search.stars_tip"));
+                r -= sw + Theme.SP_2;
+            }
             int bw = Ui.CHIP_H + 2;
             int iy = Type.BODY.onCaps(ty, Ui.CHIP_H);
             boolean marked = card.marks.marked(i);

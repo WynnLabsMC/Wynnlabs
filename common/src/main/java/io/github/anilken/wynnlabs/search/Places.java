@@ -178,7 +178,13 @@ public final class Places {
      * opened, and an item's chest list is a place to go, not a guess.
      */
     public List<Area> chestsInBand(int lo, int hi) {
-        return chests.stream().filter(a -> a.stars() >= 1 && a.level() >= lo && a.level() <= hi).toList();
+        return chestsInBand(lo, hi, 1);
+    }
+
+    /** {@link #chestsInBand}, only chests of at least {@code minStars} (1 to 4). */
+    public List<Area> chestsInBand(int lo, int hi, int minStars) {
+        int min = Math.max(1, minStars);
+        return chests.stream().filter(a -> a.stars() >= min && a.level() >= lo && a.level() <= hi).toList();
     }
 
     /** The named place (cave, dungeon, raid, town, ...) of this name, or null. */

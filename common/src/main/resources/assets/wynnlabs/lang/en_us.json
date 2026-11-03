@@ -2502,6 +2502,7 @@
   "wynnlabs.search.mark_all_tip": "Marks every spot on the map; they stay after you close the menu",
   "wynnlabs.search.route_on": "Route ✔",
   "wynnlabs.search.route_tip": "A route through these spots: the nearby ones go on the map, each is ticked off when you open its chest",
+  "wynnlabs.search.stars_tip": "Only chests of at least this many stars; click for the next. Rings, bracelets and necklaces come from 3 and 4 star chests only",
   "wynnlabs.search.route_on_tip": "This route is on; click to end it",
   "wynnlabs.search.route_off": "Route ended",
   "wynnlabs.route.taken": "✔ %s · %s spots left",

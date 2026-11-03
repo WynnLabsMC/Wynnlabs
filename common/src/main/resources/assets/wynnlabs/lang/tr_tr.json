@@ -2502,6 +2502,7 @@
   "wynnlabs.search.mark_all_tip": "Bütün yerler haritada; menü kapanınca da kalır",
   "wynnlabs.search.route_on": "Rota ✔",
   "wynnlabs.search.route_tip": "Bu yerlerden geçen rota: yakındakiler haritaya düşer, sandığını açtığın her yer sıradan çıkar",
+  "wynnlabs.search.stars_tip": "Sadece en az bu kadar yıldızlı sandıklar; tıklayınca bir sonraki. Yüzük, bileklik ve kolye yalnızca 3 ve 4 yıldızlı sandıklardan çıkar",
   "wynnlabs.search.route_on_tip": "Bu rota açık; tıklayınca biter",
   "wynnlabs.search.route_off": "Rota bitti",
   "wynnlabs.route.taken": "✔ %s · %s yer kaldı",
