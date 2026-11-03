@@ -1054,8 +1054,8 @@ public final class Prices {
 
     /**
      * Emeralds as Wynnventory writes them: from a stack up, stacks and liquid emeralds to a tenth
-     * ("3stx 12.5LE"); below, every coin that is not 0 ("12LE 34EB 1E", "40E"). 1 stx = 64 LE,
-     * 1 LE = 64 EB = 4096 E.
+     * ("3stx 12.5LE"); below, the two largest coins, the rest rounded ("12LE 34EB", "5EB 30E",
+     * "40E"). 1 stx = 64 LE, 1 LE = 64 EB = 4096 E.
      */
     public static String fmt(double emeralds) {
         long e = Math.round(emeralds);
@@ -1068,7 +1068,7 @@ public final class Prices {
             return rest == 0 ? stx : stx + String.format(java.util.Locale.ROOT, " %.1f", rest / 4096.0)
                     + (coins ? GLYPHS : LETTERS)[1];
         }
-        return exact(e);
+        return exact(e >= 4096 ? Math.round(e / 64.0) * 64 : e);
     }
 
     /**

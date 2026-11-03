@@ -21,6 +21,7 @@ class ExactPriceTest {
         assertEquals("1.2stx", io.github.anilken.wynnlabs.market.Prices.slot(1.2 * 262_144));
         // short: from a stack up, liquid emeralds to a tenth
         assertEquals("3stx 12.5LE", io.github.anilken.wynnlabs.market.Prices.fmt(3 * 262_144 + 12.5 * 4096));
-        assertEquals("12LE 34EB 1E", io.github.anilken.wynnlabs.market.Prices.fmt(12 * 4096 + 34 * 64 + 1));
+        assertEquals("12LE 34EB", io.github.anilken.wynnlabs.market.Prices.fmt(12 * 4096 + 34 * 64 + 1));
+        assertEquals("2LE 52EB", io.github.anilken.wynnlabs.market.Prices.fmt(2 * 4096 + 52 * 64 + 30));
     }
 }
