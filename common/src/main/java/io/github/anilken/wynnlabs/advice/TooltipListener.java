@@ -493,6 +493,7 @@ public final class TooltipListener {
                 out.addAll(mounts);
                 changed = true;
             }
+            changed |= bannerHeads(out);
             return changed ? out : null;
         } catch (Throwable ignored) {
             // a broken advice line must never break the tooltip
@@ -501,6 +502,63 @@ public final class TooltipListener {
     }
 
     private static final String PRICE_TAG = "◇ ";
+
+    /**
+     * A word in a coloured box, as Wynncraft draws "LE" and "CURRENCY" under an item's name: in
+     * its banner font, a left cap, a cell per letter, a right cap, a step back over them, then the
+     * letters on top in black. Letters A-Z only (Turkish ones are written plain).
+     */
+    static net.minecraft.network.chat.MutableComponent banner(String word, int box) {
+        String plain = word.toUpperCase(java.util.Locale.ROOT).replace('Ç', 'C').replace('Ğ', 'G').replace('İ', 'I')
+                .replace('Ö', 'O').replace('Ş', 'S').replace('Ü', 'U');
+        StringBuilder back = new StringBuilder().append('');
+        StringBuilder front = new StringBuilder();
+        int letters = 0;
+        for (char c : plain.toCharArray()) {
+            if (c >= 'A' && c <= 'Z') {
+                back.appendCodePoint(0xcffff).append((char) (0xe030 + c - 'A'));
+                front.append((char) (0xe000 + c - 'A'));
+                letters++;
+            }
+        }
+        back.appendCodePoint(0xcffff).append('').appendCodePoint(0xd0000 - (6 * letters + 2));
+        front.appendCodePoint(0xd0002);
+        return Component.literal(back.toString())
+                .setStyle(net.minecraft.network.chat.Style.EMPTY.withFont(new net.minecraft.network.chat.FontDescription.Resource(
+                        net.minecraft.resources.Identifier.withDefaultNamespace("banner/box"))).withColor(box).withItalic(false))
+                .append(Component.literal(front.toString())
+                        .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(0x000000).withShadowColor(0xFFFFFF)));
+    }
+
+    /**
+     * The advice head lines ("✦ Advice: KEEP → Trade Market") as banners: a pink "ADVICE" box,
+     * the verdict in a box of its colour, the rest as it was. Other lines are left alone; true
+     * when one changed.
+     */
+    private static boolean bannerHeads(List<Component> out) {
+        String marker = marker();
+        boolean changed = false;
+        for (int i = 0; i < out.size(); i++) {
+            Component c = out.get(i);
+            if (c.getSiblings().isEmpty() || !(c.getContents() instanceof net.minecraft.network.chat.contents.PlainTextContents.LiteralContents lit)
+                    || !lit.text().equals(marker)) {
+                continue;
+            }
+            Component verdict = c.getSiblings().get(0);
+            var colour = verdict.getStyle().getColor();
+            String word = L.t("wynnlabs.tooltip.advice_banner");
+            var line = Component.empty().append(banner(word.startsWith("wynnlabs.") ? "ADVICE" : word, 0xFF55FF));
+            for (String part : verdict.getString().strip().split("\s+")) {   // "BUY LATER": a box a word
+                line.append(Component.literal(" ")).append(banner(part, colour == null ? 0xFFFFFF : colour.getValue()));
+            }
+            for (int k = 1; k < c.getSiblings().size(); k++) {
+                line.append(c.getSiblings().get(k));
+            }
+            out.set(i, line);
+            changed = true;
+        }
+        return changed;
+    }
     private static long debugCheckedAt;
     private static boolean debugOn;
     private static String lastDumped = "";
@@ -554,7 +612,7 @@ public final class TooltipListener {
             return false;
         }
         for (Component c : out) {
-            if (c.getString().contains(PRICE_TAG)) {
+            if (c.getString().contains(PRICE_TAG) || c.getString().startsWith("")) {
                 return false;                       // done already
             }
         }
@@ -579,7 +637,9 @@ public final class TooltipListener {
                 // a stack of ingredients: what the whole stack is worth too
                 p += " ×" + stack.getCount() + " ≈ " + Prices.fmt(known.typical() * stack.getCount());
             }
-            if (known != null && known.uncertain()) {
+            String bare = p;
+            boolean old = known != null && known.uncertain();
+            if (old) {
                 p = Prices.past(p);                 // nothing listed now, or only old listings
             }
             // Line 0 is a hidden copy of the name; the visible header ("Dusk Painter [57.9%]",
@@ -598,8 +658,31 @@ public final class TooltipListener {
             Component price = Component.literal((blank >= 0 ? "" : "  ") + PRICE_TAG + p).withStyle(net.minecraft.ChatFormatting.GOLD)
                     .withStyle(s -> s.withFont(net.minecraft.network.chat.FontDescription.DEFAULT));
             if (blank >= 0) {
-                out.set(blank, price);
+                // on its own line: a gold "MARKET" box like the game's own banners ("LE", "CURRENCY"
+                // in Wynncraft's banner font: a left cap, a cell per letter A-Z, a right cap, a step
+                // back over them, the letters on top), the price, and a grey "PAST" box when no
+                // listing backs it now
+                String[] words = {L.t("wynnlabs.tooltip.market_banner"), old ? L.t("wynnlabs.tooltip.past_banner") : null};
+                String[] fallback = {"MARKET", "PAST"};
+                int[] boxes = {0xFFAA00, 0xAAAAAA};
+                Component[] tags = new Component[2];
+                for (int k = 0; k < 2; k++) {
+                    if (words[k] == null) {
+                        continue;
+                    }
+                    String word = words[k].startsWith("wynnlabs.") ? fallback[k] : words[k];
+                    tags[k] = banner(word, boxes[k]);
+                }
+                net.minecraft.network.chat.MutableComponent line = Component.empty().append(tags[0])
+                        .append(Component.literal(" " + bare + (tags[1] != null ? " " : ""))
+                                .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.GOLD)
+                                        .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)));
+                if (tags[1] != null) {
+                    line.append(tags[1]);
+                }
+                out.set(blank, line);
                 out.add(blank + 1, Component.empty());  // the stats keep their gap under it
+                out.add(blank, Component.empty());      // and the banners one over it
             } else if (header >= 0) {
                 out.set(header, out.get(header).copy().append(price));
             } else {
