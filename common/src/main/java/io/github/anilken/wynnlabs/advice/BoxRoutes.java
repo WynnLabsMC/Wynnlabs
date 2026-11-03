@@ -1,5 +1,7 @@
 package io.github.anilken.wynnlabs.advice;
 
+import io.github.anilken.wynnlabs.market.Prices;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -150,11 +152,12 @@ final class BoxRoutes {
         return new Choice(Route.REVEAL_MARKET, v, null, below ? List.copyOf(above) : List.of());
     }
 
-    /** "76 E", or "76-79 E" when the fee depends on which level the item inside is. */
+    /** "1EB 12E", or "1EB 12E - 1EB 15E" when the fee depends on which level the item inside is. */
     static String cost(Value v) {
         if (v.outcomes() == 0) {
             return "?";
         }
-        return v.costLow() == v.costHigh() ? v.costLow() + " E" : v.costLow() + "-" + v.costHigh() + " E";
+        return v.costLow() == v.costHigh() ? Prices.fmt(v.costLow())
+                : Prices.fmt(v.costLow()) + " - " + Prices.fmt(v.costHigh());
     }
 }

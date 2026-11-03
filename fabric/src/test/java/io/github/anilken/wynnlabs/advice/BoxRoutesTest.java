@@ -40,8 +40,8 @@ class BoxRoutesTest {
         assertEquals(77, Tier.RARE.identificationCost(57));
         assertEquals(79, Tier.RARE.identificationCost(59));
         assertEquals(33, Tier.UNIQUE.identificationCost(60));
-        assertEquals("76-79 E", BoxRoutes.cost(BoxRoutes.value(rareChest(), FEE)));
-        assertEquals("33 E", BoxRoutes.cost(BoxRoutes.value(List.of(o("Autumn", 33, 48.0 * 64)), FEE)));
+        assertEquals("1EB 12E - 1EB 15E", BoxRoutes.cost(BoxRoutes.value(rareChest(), FEE)));
+        assertEquals("33E", BoxRoutes.cost(BoxRoutes.value(List.of(o("Autumn", 33, 48.0 * 64)), FEE)));
     }
 
     @Test

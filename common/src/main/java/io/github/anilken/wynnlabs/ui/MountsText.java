@@ -52,7 +52,7 @@ final class MountsText {
         return r == null ? "—" : r.low() == r.high() ? "~" + r.low() : "~" + r.low() + "–" + r.high();
     }
 
-    /** Emeralds, short: "40 E", "14 EB", "2.1 LE"; "—" when unknown. */
+    /** Emeralds, short: "40E", "14EB", "2LE 6EB"; "—" when unknown. */
     static String em(double e) {
         return e < 0 ? "—" : Prices.fmt(e);
     }

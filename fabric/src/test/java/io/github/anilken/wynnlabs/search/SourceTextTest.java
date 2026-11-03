@@ -26,7 +26,7 @@ class SourceTextTest {
 
     @Test
     void marketPriceWhenItIsTheEasiest() {
-        assertEquals("From: Trade Market ~2.1 LE", SourceText.tooltip(List.of(row(Source.Type.MARKET, null, PRICE, 0, 0)), null));
+        assertEquals("From: Trade Market ~2LE 6EB 26E", SourceText.tooltip(List.of(row(Source.Type.MARKET, null, PRICE, 0, 0)), null));
     }
 
     @Test
@@ -52,7 +52,7 @@ class SourceTextTest {
     void cardRowsAndBriefHints() {
         assertEquals("In inventory ×3", SourceText.row(row(Source.Type.BAG, null, null, 0, 0), null));
         assertEquals("Lv 73–81 loot chests", SourceText.row(row(Source.Type.LOOT_CHEST, null, null, 73, 81), null));
-        assertEquals("~2.1 LE", SourceText.brief(Source.Type.MARKET, PRICE, 77));
+        assertEquals("~2LE 6EB 26E", SourceText.brief(Source.Type.MARKET, PRICE, 77));
         assertEquals("Lv 73–81", SourceText.brief(Source.Type.MOB_BAND, null, 77));
         assertEquals("Merchant", SourceText.brief(Source.Type.MERCHANT, null, 77));
     }

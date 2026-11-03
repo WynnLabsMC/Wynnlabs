@@ -57,7 +57,7 @@ final class GuideTail {
                 facts.add(GuidePane.compact(info.xp()) + " XP");
             }
             if (info.emeralds() > 0) {
-                facts.add(info.emeralds() + " E");
+                facts.add(io.github.anilken.wynnlabs.market.Prices.fmt(info.emeralds()));
             }
             String line = String.join("  ·  ", facts);
             blocks.add(new GuideRows.Block(Theme.SP_2, Type.META.lineHeight, (g, y, mx, my) -> Type.META.draw(g, font, Type.META.fit(font, line, w), x, y)));

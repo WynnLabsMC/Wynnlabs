@@ -14,7 +14,7 @@
       "restriction": "NONE",
       "powderSlots": 3,
       "price": 1344,
-      "priceText": "21 EB"
+      "priceText": "21EB"
     },
     {
       "slot": "CHESTPLATE",
@@ -29,7 +29,7 @@
       "restriction": "NONE",
       "powderSlots": 2,
       "price": 1,
-      "priceText": "1 E"
+      "priceText": "1E"
     },
     {
       "slot": "CHESTPLATE",
@@ -65,7 +65,7 @@
       "restriction": "NONE",
       "powderSlots": 3,
       "price": 1573,
-      "priceText": "25 EB"
+      "priceText": "24EB 37E"
     },
     {
       "slot": "CHESTPLATE",
@@ -83,7 +83,7 @@
       "restriction": "NONE",
       "powderSlots": 2,
       "price": 525,
-      "priceText": "8 EB"
+      "priceText": "8EB 13E"
     },
     {
       "slot": "BOOTS",
@@ -154,7 +154,7 @@
       "restriction": "NONE",
       "powderSlots": 0,
       "price": 2623,
-      "priceText": "41 EB"
+      "priceText": "40EB 63E"
     },
     {
       "slot": "RING",
@@ -186,7 +186,7 @@
       "restriction": "NONE",
       "powderSlots": 0,
       "price": 1113,
-      "priceText": "17 EB"
+      "priceText": "17EB 25E"
     },
     {
       "slot": "RING",
@@ -221,7 +221,7 @@
       "restriction": "NONE",
       "powderSlots": 2,
       "price": 1166,
-      "priceText": "18 EB"
+      "priceText": "18EB 14E"
     },
     {
       "slot": "RELIK",

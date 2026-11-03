@@ -75,7 +75,7 @@
     "where": "bag 16",
     "name": "Pink Wool",
     "verdict": "KEEP",
-    "note": "Only ~5 EB, not worth listing: trash it if you need space"
+    "note": "Only ~4EB 38E, not worth listing: trash it if you need space"
   },
   {
     "where": "bag 17",
@@ -548,8 +548,8 @@
   {
     "where": "bank acct:Account Bank p. 4#0",
     "name": "Unidentified Leggings",
-    "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv 66"
+    "verdict": "SELL",
+    "note": "Unique box: its market prices are too thin to trust, the Blacksmith takes it"
   },
   {
     "where": "bank acct:Account Bank p. 4#1",
@@ -693,7 +693,7 @@
     "where": "bank acct:Account Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~471-485 E), then list it · No prices yet. Nothing in it drops for Shaman"
+    "note": "Reveal it at the Trade Market (~7EB 23E - 7EB 37E), then list it · No prices yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#1",
@@ -711,7 +711,7 @@
     "where": "bank acct:Account Bank p. 6#3",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~444-458 E), then list it · No prices yet. Nothing in it drops for Shaman"
+    "note": "Reveal it at the Trade Market (~6EB 60E - 7EB 10E), then list it · No prices yet. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 6#4",
@@ -741,7 +741,7 @@
     "where": "bank acct:Account Bank p. 6#8",
     "name": "Gleaming Titanium Boots",
     "verdict": "SELL",
-    "note": "Normal item, still weak at Lv 118. Sell it on the Trade Market, ~21.0 LE"
+    "note": "Normal item, still weak at Lv 118. Sell it on the Trade Market, ~21LE"
   },
   {
     "where": "bank acct:Account Bank p. 6#9",
@@ -753,43 +753,43 @@
     "where": "bank acct:Account Bank p. 6#10",
     "name": "Lotus Seedpod",
     "verdict": "KEEP",
-    "note": "Only ~3 EB, not worth listing: trash it if you need space"
+    "note": "Only ~3EB 18E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 7#0",
     "name": "Diamond Gem",
-    "verdict": "KEEP",
-    "note": "Only ~3 EB, not worth listing: trash it if you need space"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 7#1",
     "name": "Diamond Gem",
-    "verdict": "KEEP",
-    "note": "Only ~12 EB, not worth listing: trash it if you need space"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 7#2",
     "name": "Copper Ingot",
-    "verdict": "KEEP",
-    "note": "Only ~13 EB, not worth listing: trash it if you need space"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 7#3",
     "name": "Copper Ingot",
-    "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~50 EB (all of them)"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 7#4",
     "name": "Diamond Gem",
-    "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~1.4 LE (all of them)"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 7#5",
     "name": "Copper Ingot",
-    "verdict": "KEEP",
-    "note": "Only ~15 EB, not worth listing: trash it if you need space"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 8#0",
@@ -873,121 +873,121 @@
     "where": "bank acct:Account Bank p. 9#0",
     "name": "River Clay",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~1.8 LE (all of them)"
+    "note": "Sell it on the Trade Market, ~1LE 53EB (all of them)"
   },
   {
     "where": "bank acct:Account Bank p. 9#1",
     "name": "Oat String",
-    "verdict": "KEEP",
-    "note": "Only ~5 EB, not worth listing: trash it if you need space"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 9#2",
     "name": "Oat Grains",
-    "verdict": "KEEP",
-    "note": "Only ~18 EB, not worth listing: trash it if you need space"
+    "verdict": "PRICE",
+    "note": "No price yet: hover it once at the Trade Market for a verdict"
   },
   {
     "where": "bank acct:Account Bank p. 9#3",
     "name": "Coagulated Clot",
     "verdict": "KEEP",
-    "note": "Only ~12 EB, not worth listing: trash it if you need space"
+    "note": "Only ~12EB 2E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#4",
     "name": "Sticky Fern",
     "verdict": "KEEP",
-    "note": "Only ~11 EB, not worth listing: trash it if you need space"
+    "note": "Only ~11EB 26E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#5",
     "name": "Putrid Gunk",
     "verdict": "KEEP",
-    "note": "Only ~18 EB, not worth listing: trash it if you need space"
+    "note": "Only ~18EB 18E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#6",
     "name": "Poison Sac",
     "verdict": "KEEP",
-    "note": "Only ~2 E, not worth listing: trash it if you need space"
+    "note": "Only ~2E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#7",
     "name": "Mashed Insect",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~40 EB (all of them)"
+    "note": "Sell it on the Trade Market, ~39EB 60E (all of them)"
   },
   {
     "where": "bank acct:Account Bank p. 9#8",
     "name": "Thick Mud",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~38 EB (all of them)"
+    "note": "Sell it on the Trade Market, ~37EB 47E (all of them)"
   },
   {
     "where": "bank acct:Account Bank p. 9#9",
     "name": "Waterlogged Branch",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~1.3 LE (all of them)"
+    "note": "Sell it on the Trade Market, ~1LE 16EB 16E (all of them)"
   },
   {
     "where": "bank acct:Account Bank p. 9#10",
     "name": "Viscous Slime",
     "verdict": "KEEP",
-    "note": "Only ~9 EB, not worth listing: trash it if you need space"
+    "note": "Only ~8EB 34E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#11",
     "name": "Pink Pelulite",
     "verdict": "KEEP",
-    "note": "Only ~9 EB, not worth listing: trash it if you need space"
+    "note": "Only ~9EB 24E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#12",
     "name": "Pink Pelute",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~1.2 LE (all of them)"
+    "note": "Sell it on the Trade Market, ~1LE 13EB 57E (all of them)"
   },
   {
     "where": "bank acct:Account Bank p. 9#13",
     "name": "Death Whistle Leaf",
     "verdict": "KEEP",
-    "note": "Only ~11 EB, not worth listing: trash it if you need space"
+    "note": "Only ~10EB 32E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#14",
     "name": "Cyclone Blue Leaves",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~1.5 LE (all of them)"
+    "note": "Sell it on the Trade Market, ~1LE 29EB 33E (all of them)"
   },
   {
     "where": "bank acct:Account Bank p. 9#15",
     "name": "Tropical Honeysuckle",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~1.2 LE"
+    "note": "Sell it on the Trade Market, ~1LE 13EB 16E"
   },
   {
     "where": "bank acct:Account Bank p. 9#16",
     "name": "Iridescent Elytra",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~56 EB"
+    "note": "Sell it on the Trade Market, ~55EB 50E"
   },
   {
     "where": "bank acct:Account Bank p. 9#17",
     "name": "Mineral Cinder",
     "verdict": "KEEP",
-    "note": "Only ~20 EB, not worth listing: trash it if you need space"
+    "note": "Only ~20EB 30E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#18",
     "name": "Ghostly Essence",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~46 EB (all of them)"
+    "note": "Sell it on the Trade Market, ~46EB 12E (all of them)"
   },
   {
     "where": "bank acct:Account Bank p. 9#19",
     "name": "Crumbly Rock",
     "verdict": "KEEP",
-    "note": "Only ~3 EB, not worth listing: trash it if you need space"
+    "note": "Only ~2EB 40E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#20",
@@ -999,55 +999,55 @@
     "where": "bank acct:Account Bank p. 9#21",
     "name": "Rotten Flesh",
     "verdict": "KEEP",
-    "note": "Only ~12 E, not worth listing: trash it if you need space"
+    "note": "Only ~12E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#22",
     "name": "Owl Feather",
     "verdict": "KEEP",
-    "note": "Only ~1 E, not worth listing: trash it if you need space"
+    "note": "Only ~1E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#23",
     "name": "Pykrete",
     "verdict": "KEEP",
-    "note": "Only ~4 EB, not worth listing: trash it if you need space"
+    "note": "Only ~4EB 16E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#24",
     "name": "Large Lapis",
     "verdict": "KEEP",
-    "note": "Only ~7 EB, not worth listing: trash it if you need space"
+    "note": "Only ~7EB 5E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#25",
     "name": "Chitin Plate",
     "verdict": "KEEP",
-    "note": "Only ~4 EB, not worth listing: trash it if you need space"
+    "note": "Only ~3EB 42E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#26",
     "name": "Mellow Mango",
     "verdict": "KEEP",
-    "note": "Only ~30 EB, not worth listing: trash it if you need space"
+    "note": "Only ~29EB 34E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#27",
     "name": "Gelatinous Slime Chunk",
     "verdict": "KEEP",
-    "note": "Only ~20 EB, not worth listing: trash it if you need space"
+    "note": "Only ~20EB 22E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#28",
     "name": "Broken Antic Bead",
     "verdict": "KEEP",
-    "note": "Only ~7 EB, not worth listing: trash it if you need space"
+    "note": "Only ~7EB 10E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#29",
     "name": "Adventurer's Diary",
     "verdict": "KEEP",
-    "note": "Only ~24 EB, not worth listing: trash it if you need space"
+    "note": "Only ~24EB 9E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#30",
@@ -1059,19 +1059,19 @@
     "where": "bank acct:Account Bank p. 9#31",
     "name": "Egg",
     "verdict": "KEEP",
-    "note": "Only ~22 E, not worth listing: trash it if you need space"
+    "note": "Only ~22E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#32",
     "name": "Eye of The Beast",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~31 EB"
+    "note": "Sell it on the Trade Market, ~30EB 57E"
   },
   {
     "where": "bank acct:Account Bank p. 9#33",
     "name": "Zombie Eye",
     "verdict": "KEEP",
-    "note": "Only ~22 EB, not worth listing: trash it if you need space"
+    "note": "Only ~21EB 63E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#34",
@@ -1083,19 +1083,19 @@
     "where": "bank acct:Account Bank p. 9#35",
     "name": "Thick Vines",
     "verdict": "KEEP",
-    "note": "Only ~5 EB, not worth listing: trash it if you need space"
+    "note": "Only ~5EB 16E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#36",
     "name": "Rotten Log",
     "verdict": "KEEP",
-    "note": "Only ~3 EB, not worth listing: trash it if you need space"
+    "note": "Only ~2EB 40E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#37",
     "name": "Pillaged Fragment",
     "verdict": "KEEP",
-    "note": "Only ~4 EB, not worth listing: trash it if you need space"
+    "note": "Only ~3EB 39E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#38",
@@ -1107,13 +1107,13 @@
     "where": "bank acct:Account Bank p. 9#39",
     "name": "Penguin Egg",
     "verdict": "KEEP",
-    "note": "Only ~4 EB, not worth listing: trash it if you need space"
+    "note": "Only ~4EB 18E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 9#40",
     "name": "Yeti Fur",
     "verdict": "KEEP",
-    "note": "Only ~2 EB, not worth listing: trash it if you need space"
+    "note": "Only ~1EB 51E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank acct:Account Bank p. 10#0",
@@ -1155,7 +1155,7 @@
     "where": "bank acct:Account Bank p. 10#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~130-131 E), then list it · Expected ~40 EB. Nothing in it drops for Shaman"
+    "note": "Reveal it at the Trade Market (~2EB 2E - 2EB 3E), then list it · Expected ~40EB 4E. Nothing in it drops for Shaman"
   },
   {
     "where": "bank acct:Account Bank p. 10#7",
@@ -1178,14 +1178,14 @@
   {
     "where": "bank acct:Account Bank p. 10#10",
     "name": "Unidentified Boots",
-    "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv 101"
+    "verdict": "SELL",
+    "note": "Unique box: its market prices are too thin to trust, the Blacksmith takes it"
   },
   {
     "where": "bank acct:Account Bank p. 10#11",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: it only nets ~3 EB on the Trade Market, under your 10 EB minimum. Lv 1-5, way below your level"
+    "note": "Sell it to the Blacksmith: it only nets ~2EB 63E on the Trade Market, under your 10EB minimum. Lv 1-5, way below your level"
   },
   {
     "where": "bank acct:Account Bank p. 10#12",
@@ -1275,7 +1275,7 @@
     "where": "bank char:char0001:Character Bank p. 1#11",
     "name": "The Chapel",
     "verdict": "SELL",
-    "note": "The best build runs Nemract's Ruin. Sell it to the Blacksmith (market ~7 EB)"
+    "note": "The best build runs Nemract's Ruin. Sell it to the Blacksmith (market ~6EB 57E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#12",
@@ -1293,7 +1293,7 @@
     "where": "bank char:char0001:Character Bank p. 1#14",
     "name": "Soft Sand",
     "verdict": "KEEP",
-    "note": "Only ~7 EB, not worth listing: trash it if you need space"
+    "note": "Only ~7EB 24E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#15",
@@ -1305,19 +1305,19 @@
     "where": "bank char:char0001:Character Bank p. 1#16",
     "name": "Vindicator",
     "verdict": "SELL",
-    "note": "The best build runs Grisly Gauntlet. Sell it on the Trade Market, ~33 EB"
+    "note": "The best build runs Grisly Gauntlet. Sell it on the Trade Market, ~32EB 52E"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#17",
     "name": "Grindcore",
     "verdict": "SELL",
-    "note": "The best build runs Heavensent. Sell it to the Blacksmith (market ~2 EB)"
+    "note": "The best build runs Heavensent. Sell it to the Blacksmith (market ~1EB 58E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#18",
     "name": "Gold Bar",
     "verdict": "KEEP",
-    "note": "Only ~5 EB, not worth listing: trash it if you need space"
+    "note": "Only ~5EB 21E, not worth listing: trash it if you need space"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#19",
@@ -1347,43 +1347,43 @@
     "where": "bank char:char0001:Character Bank p. 2#0",
     "name": "Meanderthal",
     "verdict": "SELL",
-    "note": "The best build runs Galloping Spurs. Sell it to the Blacksmith (market ~7 EB)"
+    "note": "The best build runs Galloping Spurs. Sell it to the Blacksmith (market ~6EB 57E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#1",
     "name": "Conductor",
     "verdict": "SELL",
-    "note": "The best build runs Chained Pixels. Sell it to the Blacksmith (market ~5 EB)"
+    "note": "The best build runs Chained Pixels. Sell it to the Blacksmith (market ~4EB 59E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#2",
     "name": "Adigard's Snowshoes",
     "verdict": "SELL",
-    "note": "The best build runs Galloping Spurs. Sell it to the Blacksmith (market ~17 EB)"
+    "note": "The best build runs Galloping Spurs. Sell it to the Blacksmith (market ~16EB 34E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#3",
     "name": "Dynamic",
     "verdict": "SELL",
-    "note": "The best build runs Grisly Gauntlet. Sell it to the Blacksmith (market ~23 EB)"
+    "note": "The best build runs Grisly Gauntlet. Sell it to the Blacksmith (market ~22EB 62E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#4",
     "name": "Relic Chestplate",
     "verdict": "SELL",
-    "note": "The best build runs Nemract's Ruin. 89% roll: beats the cheapest listing (~20 EB), so list it on the Trade Market"
+    "note": "The best build runs Nemract's Ruin. 89% roll: beats the cheapest listing (~19EB 51E), so list it on the Trade Market"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#5",
     "name": "Sylar",
     "verdict": "SELL",
-    "note": "Archer item; you're playing Shaman. Sell it on the Trade Market, ~33 EB"
+    "note": "Archer item; you're playing Shaman. Sell it on the Trade Market, ~32EB 52E"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#6",
     "name": "Reversal",
     "verdict": "SELL",
-    "note": "The best build runs Heavensent. Sell it to the Blacksmith (market ~8 EB)"
+    "note": "The best build runs Heavensent. Sell it to the Blacksmith (market ~8EB 11E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#0",
@@ -1407,13 +1407,13 @@
     "where": "bank char:char0003:Character Bank p. 1#3",
     "name": "Morph-Topaz",
     "verdict": "SELL",
-    "note": "The best build runs Warsong, Precious. Sell it on the Trade Market, ~1.0 LE"
+    "note": "The best build runs Warsong, Precious. Sell it on the Trade Market, ~1LE 1EB 58E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#4",
     "name": "Morph-Topaz",
     "verdict": "SELL",
-    "note": "The best build runs Warsong, Precious. Sell it on the Trade Market, ~1.0 LE"
+    "note": "The best build runs Warsong, Precious. Sell it on the Trade Market, ~1LE 1EB 58E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#5",
@@ -1425,19 +1425,19 @@
     "where": "bank char:char0003:Character Bank p. 1#6",
     "name": "Holy Greaves",
     "verdict": "SELL",
-    "note": "The best build runs Chained Pixels. Sell it to the Blacksmith (market ~16 EB)"
+    "note": "The best build runs Chained Pixels. Sell it to the Blacksmith (market ~15EB 37E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#7",
     "name": "Little Inferno",
     "verdict": "SELL",
-    "note": "The best build runs Yume. Sell it to the Blacksmith (market ~8 EB)"
+    "note": "The best build runs Yume. Sell it to the Blacksmith (market ~7EB 50E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#8",
     "name": "Darkiron Ring",
     "verdict": "SELL",
-    "note": "The best build runs Warsong, Precious. 100% roll: beats the cheapest listing (~16 EB), so list it on the Trade Market"
+    "note": "The best build runs Warsong, Precious. 100% roll: beats the cheapest listing (~16EB 30E), so list it on the Trade Market"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#9",
@@ -1461,7 +1461,7 @@
     "where": "bank char:char0003:Character Bank p. 1#12",
     "name": "Sage",
     "verdict": "SELL",
-    "note": "Mage item; you're playing Shaman. Sell it on the Trade Market, ~1.5 LE"
+    "note": "Mage item; you're playing Shaman. Sell it on the Trade Market, ~1LE 34EB 44E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#13",
@@ -1550,8 +1550,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 1#44",
     "name": "Gigabyte",
-    "verdict": "KEEP",
-    "note": "Equippable at Lv 93"
+    "verdict": "SELL",
+    "note": "Your build uses Generator Amulet here. Sell it to the Blacksmith (untradable)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#0",
@@ -1586,8 +1586,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 2#5",
     "name": "Multitool",
-    "verdict": "KEEP",
-    "note": "Equippable at Lv 76"
+    "verdict": "SELL",
+    "note": "Your build uses Grisly Gauntlet here. Sell it to the Blacksmith (no price yet)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#6",
@@ -1628,20 +1628,20 @@
   {
     "where": "bank char:char0003:Character Bank p. 3#0",
     "name": "Unidentified Boots",
-    "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv 71"
+    "verdict": "SELL",
+    "note": "Unique box: its market prices are too thin to trust, the Blacksmith takes it"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#1",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: it only nets ~5 EB on the Trade Market, under your 10 EB minimum. Lv 11-15, way below your level"
+    "note": "Sell it to the Blacksmith: it only nets ~5EB 1E on the Trade Market, under your 10EB minimum. Lv 11-15, way below your level"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#2",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: it's only worth ~13 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~13EB 1E on the Trade Market, below your 30EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#3",
@@ -1653,7 +1653,7 @@
     "where": "bank char:char0003:Character Bank p. 3#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: it's only worth ~16 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~16EB 21E on the Trade Market, below your 30EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#5",
@@ -1665,25 +1665,25 @@
     "where": "bank char:char0003:Character Bank p. 3#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: it's only worth ~29 EB on the Trade Market, below your 30 EB minimum (2/6 have a price). Nothing in it drops for Shaman"
+    "note": "Reveal it at the Trade Market (~34E - 36E): list it if it turns out to be Precedence (over your 30EB minimum), otherwise sell it to the Blacksmith (2/6 have a price). Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#7",
     "name": "Unidentified Necklace",
-    "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv 61"
+    "verdict": "SELL",
+    "note": "Unique box: its market prices are too thin to trust, the Blacksmith takes it"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#9",
     "name": "Unidentified Chestplate",
-    "verdict": "KEEP",
-    "note": "Identify it once you're close to Lv 71"
+    "verdict": "SELL",
+    "note": "Unique box: its market prices are too thin to trust, the Blacksmith takes it"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#10",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: it's only worth ~16 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~16EB 21E on the Trade Market, below your 30EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#27",
@@ -1724,8 +1724,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 4#28",
     "name": "Ozoth's Breath",
-    "verdict": "KEEP",
-    "note": "Equippable at Lv 49"
+    "verdict": "SELL",
+    "note": "Your build uses Warsong here. 95% roll: beats the cheapest listing (~20EB 55E), so list it on the Trade Market"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#29",
@@ -1766,8 +1766,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 5#2",
     "name": "Rycar's Bravado",
-    "verdict": "KEEP",
-    "note": "Equippable at Lv 58"
+    "verdict": "SELL",
+    "note": "Your build uses Grisly Gauntlet here. Sell it to the Blacksmith (no price yet)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#3",
@@ -1803,7 +1803,7 @@
     "where": "bank char:char0003:Character Bank p. 5#13",
     "name": "Afterimage",
     "verdict": "SELL",
-    "note": "Mage item; you're playing Shaman. Sell it to the Blacksmith (market ~8 EB)"
+    "note": "Mage item; you're playing Shaman. Sell it to the Blacksmith (market ~7EB 39E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#28",
@@ -1833,7 +1833,7 @@
     "where": "bank char:char0003:Character Bank p. 5#36",
     "name": "Lichclaw",
     "verdict": "SELL",
-    "note": "Mage item; you're playing Shaman. Sell it on the Trade Market, ~1.0 LE"
+    "note": "Mage item; you're playing Shaman. Sell it on the Trade Market, ~1LE 1EB 40E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#37",
@@ -1863,7 +1863,7 @@
     "where": "bank char:char0003:Character Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Sell it to the Blacksmith: it's only worth ~16 EB on the Trade Market, below your 30 EB minimum. Nothing in it drops for Shaman"
+    "note": "Sell it to the Blacksmith: it's only worth ~16EB 21E on the Trade Market, below your 30EB minimum. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#1",
@@ -1893,7 +1893,7 @@
     "where": "bank char:char0003:Character Bank p. 6#5",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~71-74 E), then list it · Expected ~41 EB. Nothing in it drops for Shaman"
+    "note": "Reveal it at the Trade Market (~1EB 7E - 1EB 10E): list it if it turns out to be Air Relic Wand, Doomsday, Earth Relic Wand, Fire Relic Wand, Relic Wand, Thunder Relic Wand, Water Relic Wand (over your 30EB minimum), otherwise sell it to the Blacksmith. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#6",
@@ -1947,7 +1947,7 @@
     "where": "bank char:char0003:Character Bank p. 6#14",
     "name": "Prismatic Spores",
     "verdict": "SELL",
-    "note": "Sell it on the Trade Market, ~1.0 LE"
+    "note": "Sell it on the Trade Market, ~1LE 3EB 12E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#15",

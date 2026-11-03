@@ -75,7 +75,7 @@
     "where": "bag 16",
     "name": "Pink Wool",
     "verdict": "KEEP",
-    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~4EB 38E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bag 17",
@@ -548,8 +548,8 @@
   {
     "where": "bank acct:Account Bank p. 4#0",
     "name": "Unidentified Leggings",
-    "verdict": "KEEP",
-    "note": "Lv 66 seviyesine yaklaşınca tanımla"
+    "verdict": "SELL",
+    "note": "Unique kutu: market fiyatları güvenilmez, demirciye"
   },
   {
     "where": "bank acct:Account Bank p. 4#1",
@@ -693,7 +693,7 @@
     "where": "bank acct:Account Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te aç (~471-485 E), sonra listele · Fiyat yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Önce Trade Market'te aç (~7EB 23E - 7EB 37E), sonra listele · Fiyat yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#1",
@@ -711,7 +711,7 @@
     "where": "bank acct:Account Bank p. 6#3",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te aç (~444-458 E), sonra listele · Fiyat yok. İçinden Shaman için bir şey çıkmaz"
+    "note": "Önce Trade Market'te aç (~6EB 60E - 7EB 10E), sonra listele · Fiyat yok. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 6#4",
@@ -741,7 +741,7 @@
     "where": "bank acct:Account Bank p. 6#8",
     "name": "Gleaming Titanium Boots",
     "verdict": "SELL",
-    "note": "Normal item, Lv 118 olsan bile zayıf. Trade Market'te sat, ~21.0 LE"
+    "note": "Normal item, Lv 118 olsan bile zayıf. Trade Market'te sat, ~21LE"
   },
   {
     "where": "bank acct:Account Bank p. 6#9",
@@ -753,43 +753,43 @@
     "where": "bank acct:Account Bank p. 6#10",
     "name": "Lotus Seedpod",
     "verdict": "KEEP",
-    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~3EB 18E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 7#0",
     "name": "Diamond Gem",
-    "verdict": "KEEP",
-    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 7#1",
     "name": "Diamond Gem",
-    "verdict": "KEEP",
-    "note": "Sadece ~12 EB, listelemeye değmez: yer lazımsa at"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 7#2",
     "name": "Copper Ingot",
-    "verdict": "KEEP",
-    "note": "Sadece ~13 EB, listelemeye değmez: yer lazımsa at"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 7#3",
     "name": "Copper Ingot",
-    "verdict": "SELL",
-    "note": "Trade Market'te sat, ~50 EB (hepsi)"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 7#4",
     "name": "Diamond Gem",
-    "verdict": "SELL",
-    "note": "Trade Market'te sat, ~1.4 LE (hepsi)"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 7#5",
     "name": "Copper Ingot",
-    "verdict": "KEEP",
-    "note": "Sadece ~15 EB, listelemeye değmez: yer lazımsa at"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 8#0",
@@ -873,121 +873,121 @@
     "where": "bank acct:Account Bank p. 9#0",
     "name": "River Clay",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~1.8 LE (hepsi)"
+    "note": "Trade Market'te sat, ~1LE 53EB (hepsi)"
   },
   {
     "where": "bank acct:Account Bank p. 9#1",
     "name": "Oat String",
-    "verdict": "KEEP",
-    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 9#2",
     "name": "Oat Grains",
-    "verdict": "KEEP",
-    "note": "Sadece ~18 EB, listelemeye değmez: yer lazımsa at"
+    "verdict": "PRICE",
+    "note": "Fiyat yok: karar için Trade Market'te bir kez üstüne gel"
   },
   {
     "where": "bank acct:Account Bank p. 9#3",
     "name": "Coagulated Clot",
     "verdict": "KEEP",
-    "note": "Sadece ~12 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~12EB 2E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#4",
     "name": "Sticky Fern",
     "verdict": "KEEP",
-    "note": "Sadece ~11 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~11EB 26E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#5",
     "name": "Putrid Gunk",
     "verdict": "KEEP",
-    "note": "Sadece ~18 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~18EB 18E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#6",
     "name": "Poison Sac",
     "verdict": "KEEP",
-    "note": "Sadece ~2 E, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~2E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#7",
     "name": "Mashed Insect",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~40 EB (hepsi)"
+    "note": "Trade Market'te sat, ~39EB 60E (hepsi)"
   },
   {
     "where": "bank acct:Account Bank p. 9#8",
     "name": "Thick Mud",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~38 EB (hepsi)"
+    "note": "Trade Market'te sat, ~37EB 47E (hepsi)"
   },
   {
     "where": "bank acct:Account Bank p. 9#9",
     "name": "Waterlogged Branch",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~1.3 LE (hepsi)"
+    "note": "Trade Market'te sat, ~1LE 16EB 16E (hepsi)"
   },
   {
     "where": "bank acct:Account Bank p. 9#10",
     "name": "Viscous Slime",
     "verdict": "KEEP",
-    "note": "Sadece ~9 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~8EB 34E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#11",
     "name": "Pink Pelulite",
     "verdict": "KEEP",
-    "note": "Sadece ~9 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~9EB 24E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#12",
     "name": "Pink Pelute",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~1.2 LE (hepsi)"
+    "note": "Trade Market'te sat, ~1LE 13EB 57E (hepsi)"
   },
   {
     "where": "bank acct:Account Bank p. 9#13",
     "name": "Death Whistle Leaf",
     "verdict": "KEEP",
-    "note": "Sadece ~11 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~10EB 32E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#14",
     "name": "Cyclone Blue Leaves",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~1.5 LE (hepsi)"
+    "note": "Trade Market'te sat, ~1LE 29EB 33E (hepsi)"
   },
   {
     "where": "bank acct:Account Bank p. 9#15",
     "name": "Tropical Honeysuckle",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~1.2 LE"
+    "note": "Trade Market'te sat, ~1LE 13EB 16E"
   },
   {
     "where": "bank acct:Account Bank p. 9#16",
     "name": "Iridescent Elytra",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~56 EB"
+    "note": "Trade Market'te sat, ~55EB 50E"
   },
   {
     "where": "bank acct:Account Bank p. 9#17",
     "name": "Mineral Cinder",
     "verdict": "KEEP",
-    "note": "Sadece ~20 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~20EB 30E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#18",
     "name": "Ghostly Essence",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~46 EB (hepsi)"
+    "note": "Trade Market'te sat, ~46EB 12E (hepsi)"
   },
   {
     "where": "bank acct:Account Bank p. 9#19",
     "name": "Crumbly Rock",
     "verdict": "KEEP",
-    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~2EB 40E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#20",
@@ -999,55 +999,55 @@
     "where": "bank acct:Account Bank p. 9#21",
     "name": "Rotten Flesh",
     "verdict": "KEEP",
-    "note": "Sadece ~12 E, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~12E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#22",
     "name": "Owl Feather",
     "verdict": "KEEP",
-    "note": "Sadece ~1 E, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~1E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#23",
     "name": "Pykrete",
     "verdict": "KEEP",
-    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~4EB 16E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#24",
     "name": "Large Lapis",
     "verdict": "KEEP",
-    "note": "Sadece ~7 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~7EB 5E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#25",
     "name": "Chitin Plate",
     "verdict": "KEEP",
-    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~3EB 42E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#26",
     "name": "Mellow Mango",
     "verdict": "KEEP",
-    "note": "Sadece ~30 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~29EB 34E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#27",
     "name": "Gelatinous Slime Chunk",
     "verdict": "KEEP",
-    "note": "Sadece ~20 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~20EB 22E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#28",
     "name": "Broken Antic Bead",
     "verdict": "KEEP",
-    "note": "Sadece ~7 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~7EB 10E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#29",
     "name": "Adventurer's Diary",
     "verdict": "KEEP",
-    "note": "Sadece ~24 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~24EB 9E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#30",
@@ -1059,19 +1059,19 @@
     "where": "bank acct:Account Bank p. 9#31",
     "name": "Egg",
     "verdict": "KEEP",
-    "note": "Sadece ~22 E, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~22E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#32",
     "name": "Eye of The Beast",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~31 EB"
+    "note": "Trade Market'te sat, ~30EB 57E"
   },
   {
     "where": "bank acct:Account Bank p. 9#33",
     "name": "Zombie Eye",
     "verdict": "KEEP",
-    "note": "Sadece ~22 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~21EB 63E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#34",
@@ -1083,19 +1083,19 @@
     "where": "bank acct:Account Bank p. 9#35",
     "name": "Thick Vines",
     "verdict": "KEEP",
-    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~5EB 16E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#36",
     "name": "Rotten Log",
     "verdict": "KEEP",
-    "note": "Sadece ~3 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~2EB 40E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#37",
     "name": "Pillaged Fragment",
     "verdict": "KEEP",
-    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~3EB 39E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#38",
@@ -1107,13 +1107,13 @@
     "where": "bank acct:Account Bank p. 9#39",
     "name": "Penguin Egg",
     "verdict": "KEEP",
-    "note": "Sadece ~4 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~4EB 18E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 9#40",
     "name": "Yeti Fur",
     "verdict": "KEEP",
-    "note": "Sadece ~2 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~1EB 51E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank acct:Account Bank p. 10#0",
@@ -1155,7 +1155,7 @@
     "where": "bank acct:Account Bank p. 10#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te aç (~130-131 E), sonra listele · Beklenen ~40 EB. İçinden Shaman için bir şey çıkmaz"
+    "note": "Önce Trade Market'te aç (~2EB 2E - 2EB 3E), sonra listele · Beklenen ~40EB 4E. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank acct:Account Bank p. 10#7",
@@ -1178,14 +1178,14 @@
   {
     "where": "bank acct:Account Bank p. 10#10",
     "name": "Unidentified Boots",
-    "verdict": "KEEP",
-    "note": "Lv 101 seviyesine yaklaşınca tanımla"
+    "verdict": "SELL",
+    "note": "Unique kutu: market fiyatları güvenilmez, demirciye"
   },
   {
     "where": "bank acct:Account Bank p. 10#11",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te eline sadece ~3 EB geçer, alt sınırın (10 EB) altında. Lv 1-5, level'ının çok altında"
+    "note": "Blacksmith'e sat: Trade Market'te eline sadece ~2EB 63E geçer, alt sınırın (10EB) altında. Lv 1-5, level'ının çok altında"
   },
   {
     "where": "bank acct:Account Bank p. 10#12",
@@ -1275,7 +1275,7 @@
     "where": "bank char:char0001:Character Bank p. 1#11",
     "name": "The Chapel",
     "verdict": "SELL",
-    "note": "En iyi build'de Nemract's Ruin var. Blacksmith'e sat (market ~7 EB)"
+    "note": "En iyi build'de Nemract's Ruin var. Blacksmith'e sat (market ~6EB 57E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#12",
@@ -1293,7 +1293,7 @@
     "where": "bank char:char0001:Character Bank p. 1#14",
     "name": "Soft Sand",
     "verdict": "KEEP",
-    "note": "Sadece ~7 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~7EB 24E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#15",
@@ -1305,19 +1305,19 @@
     "where": "bank char:char0001:Character Bank p. 1#16",
     "name": "Vindicator",
     "verdict": "SELL",
-    "note": "En iyi build'de Grisly Gauntlet var. Trade Market'te sat, ~33 EB"
+    "note": "En iyi build'de Grisly Gauntlet var. Trade Market'te sat, ~32EB 52E"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#17",
     "name": "Grindcore",
     "verdict": "SELL",
-    "note": "En iyi build'de Heavensent var. Blacksmith'e sat (market ~2 EB)"
+    "note": "En iyi build'de Heavensent var. Blacksmith'e sat (market ~1EB 58E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#18",
     "name": "Gold Bar",
     "verdict": "KEEP",
-    "note": "Sadece ~5 EB, listelemeye değmez: yer lazımsa at"
+    "note": "Sadece ~5EB 21E, listelemeye değmez: yer lazımsa at"
   },
   {
     "where": "bank char:char0001:Character Bank p. 1#19",
@@ -1347,43 +1347,43 @@
     "where": "bank char:char0001:Character Bank p. 2#0",
     "name": "Meanderthal",
     "verdict": "SELL",
-    "note": "En iyi build'de Galloping Spurs var. Blacksmith'e sat (market ~7 EB)"
+    "note": "En iyi build'de Galloping Spurs var. Blacksmith'e sat (market ~6EB 57E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#1",
     "name": "Conductor",
     "verdict": "SELL",
-    "note": "En iyi build'de Chained Pixels var. Blacksmith'e sat (market ~5 EB)"
+    "note": "En iyi build'de Chained Pixels var. Blacksmith'e sat (market ~4EB 59E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#2",
     "name": "Adigard's Snowshoes",
     "verdict": "SELL",
-    "note": "En iyi build'de Galloping Spurs var. Blacksmith'e sat (market ~17 EB)"
+    "note": "En iyi build'de Galloping Spurs var. Blacksmith'e sat (market ~16EB 34E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#3",
     "name": "Dynamic",
     "verdict": "SELL",
-    "note": "En iyi build'de Grisly Gauntlet var. Blacksmith'e sat (market ~23 EB)"
+    "note": "En iyi build'de Grisly Gauntlet var. Blacksmith'e sat (market ~22EB 62E)"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#4",
     "name": "Relic Chestplate",
     "verdict": "SELL",
-    "note": "En iyi build'de Nemract's Ruin var. %89 roll: en ucuz ilandan (~20 EB) fazlasına gider, Trade Market'e koy"
+    "note": "En iyi build'de Nemract's Ruin var. %89 roll: en ucuz ilandan (~19EB 51E) fazlasına gider, Trade Market'e koy"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#5",
     "name": "Sylar",
     "verdict": "SELL",
-    "note": "Archer item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~33 EB"
+    "note": "Archer item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~32EB 52E"
   },
   {
     "where": "bank char:char0001:Character Bank p. 2#6",
     "name": "Reversal",
     "verdict": "SELL",
-    "note": "En iyi build'de Heavensent var. Blacksmith'e sat (market ~8 EB)"
+    "note": "En iyi build'de Heavensent var. Blacksmith'e sat (market ~8EB 11E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#0",
@@ -1407,13 +1407,13 @@
     "where": "bank char:char0003:Character Bank p. 1#3",
     "name": "Morph-Topaz",
     "verdict": "SELL",
-    "note": "En iyi build'de Warsong, Precious var. Trade Market'te sat, ~1.0 LE"
+    "note": "En iyi build'de Warsong, Precious var. Trade Market'te sat, ~1LE 1EB 58E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#4",
     "name": "Morph-Topaz",
     "verdict": "SELL",
-    "note": "En iyi build'de Warsong, Precious var. Trade Market'te sat, ~1.0 LE"
+    "note": "En iyi build'de Warsong, Precious var. Trade Market'te sat, ~1LE 1EB 58E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#5",
@@ -1425,19 +1425,19 @@
     "where": "bank char:char0003:Character Bank p. 1#6",
     "name": "Holy Greaves",
     "verdict": "SELL",
-    "note": "En iyi build'de Chained Pixels var. Blacksmith'e sat (market ~16 EB)"
+    "note": "En iyi build'de Chained Pixels var. Blacksmith'e sat (market ~15EB 37E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#7",
     "name": "Little Inferno",
     "verdict": "SELL",
-    "note": "En iyi build'de Yume var. Blacksmith'e sat (market ~8 EB)"
+    "note": "En iyi build'de Yume var. Blacksmith'e sat (market ~7EB 50E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#8",
     "name": "Darkiron Ring",
     "verdict": "SELL",
-    "note": "En iyi build'de Warsong, Precious var. %100 roll: en ucuz ilandan (~16 EB) fazlasına gider, Trade Market'e koy"
+    "note": "En iyi build'de Warsong, Precious var. %100 roll: en ucuz ilandan (~16EB 30E) fazlasına gider, Trade Market'e koy"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#9",
@@ -1461,7 +1461,7 @@
     "where": "bank char:char0003:Character Bank p. 1#12",
     "name": "Sage",
     "verdict": "SELL",
-    "note": "Mage item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~1.5 LE"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~1LE 34EB 44E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 1#13",
@@ -1550,8 +1550,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 1#44",
     "name": "Gigabyte",
-    "verdict": "KEEP",
-    "note": "Lv 93 olunca giyebilirsin"
+    "verdict": "SELL",
+    "note": "Build'in burada Generator Amulet kullanıyor. Blacksmith'e sat (takas edilemez)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#0",
@@ -1586,8 +1586,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 2#5",
     "name": "Multitool",
-    "verdict": "KEEP",
-    "note": "Lv 76 olunca giyebilirsin"
+    "verdict": "SELL",
+    "note": "Build'in burada Grisly Gauntlet kullanıyor. Blacksmith'e sat (henüz fiyat yok)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 2#6",
@@ -1628,20 +1628,20 @@
   {
     "where": "bank char:char0003:Character Bank p. 3#0",
     "name": "Unidentified Boots",
-    "verdict": "KEEP",
-    "note": "Lv 71 seviyesine yaklaşınca tanımla"
+    "verdict": "SELL",
+    "note": "Unique kutu: market fiyatları güvenilmez, demirciye"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#1",
     "name": "Unidentified Leggings",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te eline sadece ~5 EB geçer, alt sınırın (10 EB) altında. Lv 11-15, level'ının çok altında"
+    "note": "Blacksmith'e sat: Trade Market'te eline sadece ~5EB 1E geçer, alt sınırın (10EB) altında. Lv 11-15, level'ının çok altında"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#2",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te sadece ~13 EB eder, alt sınırın (30 EB) altında. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: Trade Market'te sadece ~13EB 1E eder, alt sınırın (30EB) altında. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#3",
@@ -1653,7 +1653,7 @@
     "where": "bank char:char0003:Character Bank p. 3#4",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te sadece ~16 EB eder, alt sınırın (30 EB) altında. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: Trade Market'te sadece ~16EB 21E eder, alt sınırın (30EB) altında. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#5",
@@ -1665,25 +1665,25 @@
     "where": "bank char:char0003:Character Bank p. 3#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te sadece ~29 EB eder, alt sınırın (30 EB) altında (2/6 drop'un fiyatı var). İçinden Shaman için bir şey çıkmaz"
+    "note": "Trade Market'te aç (~34E - 36E): Precedence çıkarsa listele (alt sınırın 30EB üstünde), başka bir şey çıkarsa Blacksmith'e sat (2/6 drop'un fiyatı var). İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#7",
     "name": "Unidentified Necklace",
-    "verdict": "KEEP",
-    "note": "Lv 61 seviyesine yaklaşınca tanımla"
+    "verdict": "SELL",
+    "note": "Unique kutu: market fiyatları güvenilmez, demirciye"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#9",
     "name": "Unidentified Chestplate",
-    "verdict": "KEEP",
-    "note": "Lv 71 seviyesine yaklaşınca tanımla"
+    "verdict": "SELL",
+    "note": "Unique kutu: market fiyatları güvenilmez, demirciye"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#10",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te sadece ~16 EB eder, alt sınırın (30 EB) altında. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: Trade Market'te sadece ~16EB 21E eder, alt sınırın (30EB) altında. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#27",
@@ -1724,8 +1724,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 4#28",
     "name": "Ozoth's Breath",
-    "verdict": "KEEP",
-    "note": "Lv 49 olunca giyebilirsin"
+    "verdict": "SELL",
+    "note": "Build'in burada Warsong kullanıyor. %95 roll: en ucuz ilandan (~20EB 55E) fazlasına gider, Trade Market'e koy"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#29",
@@ -1766,8 +1766,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 5#2",
     "name": "Rycar's Bravado",
-    "verdict": "KEEP",
-    "note": "Lv 58 olunca giyebilirsin"
+    "verdict": "SELL",
+    "note": "Build'in burada Grisly Gauntlet kullanıyor. Blacksmith'e sat (henüz fiyat yok)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#3",
@@ -1803,7 +1803,7 @@
     "where": "bank char:char0003:Character Bank p. 5#13",
     "name": "Afterimage",
     "verdict": "SELL",
-    "note": "Mage item'ı, sen Shaman oynuyorsun. Blacksmith'e sat (market ~8 EB)"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Blacksmith'e sat (market ~7EB 39E)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#28",
@@ -1833,7 +1833,7 @@
     "where": "bank char:char0003:Character Bank p. 5#36",
     "name": "Lichclaw",
     "verdict": "SELL",
-    "note": "Mage item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~1.0 LE"
+    "note": "Mage item'ı, sen Shaman oynuyorsun. Trade Market'te sat, ~1LE 1EB 40E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 5#37",
@@ -1863,7 +1863,7 @@
     "where": "bank char:char0003:Character Bank p. 6#0",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Blacksmith'e sat: Trade Market'te sadece ~16 EB eder, alt sınırın (30 EB) altında. İçinden Shaman için bir şey çıkmaz"
+    "note": "Blacksmith'e sat: Trade Market'te sadece ~16EB 21E eder, alt sınırın (30EB) altında. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#1",
@@ -1893,7 +1893,7 @@
     "where": "bank char:char0003:Character Bank p. 6#5",
     "name": "Unidentified Wand",
     "verdict": "SELL",
-    "note": "Önce Trade Market'te aç (~71-74 E), sonra listele · Beklenen ~41 EB. İçinden Shaman için bir şey çıkmaz"
+    "note": "Trade Market'te aç (~1EB 7E - 1EB 10E): Air Relic Wand, Doomsday, Earth Relic Wand, Fire Relic Wand, Relic Wand, Thunder Relic Wand, Water Relic Wand çıkarsa listele (alt sınırın 30EB üstünde), başka bir şey çıkarsa Blacksmith'e sat. İçinden Shaman için bir şey çıkmaz"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#6",
@@ -1947,7 +1947,7 @@
     "where": "bank char:char0003:Character Bank p. 6#14",
     "name": "Prismatic Spores",
     "verdict": "SELL",
-    "note": "Trade Market'te sat, ~1.0 LE"
+    "note": "Trade Market'te sat, ~1LE 3EB 12E"
   },
   {
     "where": "bank char:char0003:Character Bank p. 6#15",
