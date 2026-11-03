@@ -40,7 +40,7 @@ class EndgameSessionTest {
     void theChipSaysTheRaidsAndOnlyWhatThereIsInTurkish() {
         turkish();
         assertEquals("Bu oturum: 3 raid · seri 5", EndgameTitleBar.sessionText(3, 0, 5, false));
-        assertEquals("Bu oturum: 3 raid · 1 başarısız", EndgameTitleBar.sessionText(3, 1, 0, false));
-        assertEquals("3 raid · 1 başarısız · seri 2", EndgameTitleBar.sessionText(3, 1, 2, true));
+        assertEquals("Bu oturum: 3 raid · 1 fail", EndgameTitleBar.sessionText(3, 1, 0, false));
+        assertEquals("3 raid · 1 fail · seri 2", EndgameTitleBar.sessionText(3, 1, 2, true));
     }
 }
