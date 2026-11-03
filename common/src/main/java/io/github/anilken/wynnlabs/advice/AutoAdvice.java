@@ -107,7 +107,9 @@ public final class AutoAdvice {
         Perf.end("advice.decide", t);
         if (waiting[0]) {
             waiting[0] = false;
-            return c != null ? c : PENDING;     // a box still being judged: asked again next frame
+            // a box still being judged: the stack's own verdict from before, else the last one
+            // for a box of its kind, shown but not kept, so it is asked again next frame
+            return c != null ? c : e == null ? PENDING : new Cached(0, 0, e, gain);
         }
         if (budget) {
             burstSpent += (System.nanoTime() - t) / 1_000_000.0;
