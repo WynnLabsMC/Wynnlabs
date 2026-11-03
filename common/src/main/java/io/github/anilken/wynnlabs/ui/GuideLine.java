@@ -79,6 +79,8 @@ public final class GuideLine {
     static final int DASHES = 64;
     /** The walkable path is walked in steps this long, laid on the block tops under it, ... */
     static final double SAMPLE = 0.25;
+    /** A turn of the drawn line is rounded over this many blocks to either side (the route's own corners are block-sharp). */
+    static final double ROUND = 2.5;
     /** ... with a step's edge eased into a slope this steep (a block up a block along: a stair's run). */
     static final double EASE = 1.0;
     /** The base ribbon lies this far above the ground and the chevrons this far, riding on it. */
@@ -472,6 +474,15 @@ public final class GuideLine {
         }
         o.addProperty("routed", routed != null && routed.equals(t));
         o.addProperty("points", ground.points().size());
+        JsonArray route = new JsonArray();
+        for (double[] q : ground.points()) {
+            JsonArray a = new JsonArray();
+            a.add(Math.round(q[0] * 10) / 10.0);
+            a.add(Math.round(q[1] * 10) / 10.0);
+            a.add(Math.round(q[2] * 10) / 10.0);
+            route.add(a);
+        }
+        o.add("route", route);
         Search s = lastSearch;
         if (s == null) {
             o.add("search", null);
@@ -562,6 +573,9 @@ public final class GuideLine {
         data.addProperty("wallSegments", wm == null ? null : wm.gates().segments());
         data.addProperty("gates", wm == null ? null : wm.gates().gates());
         data.addProperty("corridors", wm == null ? null : wm.tunnels());
+        WorldRoads roads = WorldRouteData.roads();
+        data.addProperty("roads", WorldRouteData.roadsHash());
+        data.addProperty("roadTiles", roads == null ? null : roads.tiles());
         o.add("data", data);
         // the world plan: whether the coarse map led the way, how long it is and the next waypoint
         World w = lastWorld;
@@ -615,6 +629,7 @@ public final class GuideLine {
                 FAILED.clear();
                 failedFor = pinsNow;
             }
+            WorldRouteData.map();                   // the map and the roads: in memory, from disk, or fetched (throttled)
             GuidePath.Walkable w = walkable(level);
             // one target beyond the loaded area: the way there over the coarse map first, and the
             // block-level route aims at the farthest waypoint of its corridor that is loaded
@@ -718,12 +733,11 @@ public final class GuideLine {
                 int pz = g.cellOf(sz);
                 int tx = g.cellOf(t.x());
                 int tz = g.cellOf(t.z());
-                int ph = g.height(px, pz);
-                if (ph != WorldRoute.UNKNOWN && sy < ph - UNDER) {
-                    why = "the player is under the map's surface";
-                } else {
-                    // a target under the map's surface (a valley floor under an overhang, a cave
-                    // mouth) is still aimed at over the map: the block route does the last part
+                {
+                    // the player or the target under the map's surface (a canyon town, a valley
+                    // floor under an overhang, a cave mouth) still gets a way over the map: the
+                    // block route does the first and last parts, and a cell with no way out of it
+                    // just gives no plan
                     plan = g.plan(px, pz, tx, tz, WORLD_BUDGET, WORLD_MILLIS);
                     if (plan == null) {
                         why = "no cell to start from or to aim at";
@@ -767,12 +781,16 @@ public final class GuideLine {
 
     /** Columns the player can step to, read from loaded chunks only (an unloaded one has none). */
     private static GuidePath.Walkable walkable(ClientLevel level) {
-        return new GuideTerrain(blocks(level));
+        WorldRoads r = WorldRouteData.roads();
+        return new GuideTerrain(blocks(level), r == null ? null : r::at);
     }
 
     /** Every block's code ({@link GuideTerrain}), {@link GuideTerrain#UNKNOWN} where its chunk is not loaded. */
     private static GuideTerrain.Blocks blocks(ClientLevel level) {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        // a block's code is asked for many times over in one search (every column from several
+        // heights, every spot's neighbours for the step cost): worked out once and kept
+        it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap seen = new it.unimi.dsi.fastutil.longs.Long2ByteOpenHashMap(1 << 16);
         return new GuideTerrain.Blocks() {
             private int cx = Integer.MIN_VALUE;
             private int cz;
@@ -780,16 +798,25 @@ public final class GuideLine {
 
             @Override
             public char at(int x, int y, int z) {
+                long key = BlockPos.asLong(x, y, z);
+                byte known = seen.get(key);
+                if (known != 0) {
+                    return (char) known;
+                }
                 if (x >> 4 != cx || z >> 4 != cz) {
                     cx = x >> 4;
                     cz = z >> 4;
                     chunk = level.getChunk(cx, cz, ChunkStatus.FULL, false);
                 }
+                char c;
                 if (chunk == null) {
-                    return GuideTerrain.UNKNOWN;
+                    c = GuideTerrain.UNKNOWN;
+                } else {
+                    pos.set(x, y, z);
+                    c = code(chunk, pos, chunk.getBlockState(pos));
                 }
-                pos.set(x, y, z);
-                return code(chunk, pos, chunk.getBlockState(pos));
+                seen.put(key, (byte) c);
+                return c;
             }
         };
     }
@@ -1053,12 +1080,40 @@ public final class GuideLine {
             return;
         }
         Track raw = resample(fromFeet(pts.subList(0, tail), p.getX(), p.getZ()), SAMPLE, CAP);
+        // the turns rounded: each point the mean of the points within ROUND of it along the line
+        // (a shrinking window toward the ends, so they stay put); a rounded point that would stand
+        // in a block (a corner cut into a gate post) goes back where it was
+        int n = raw.s().length;
+        double[] x = raw.x().clone();
+        double[] z = raw.z().clone();
+        int r = (int) Math.round(ROUND / SAMPLE);
+        if (n > 2 && r > 0) {
+            double[] px = new double[n + 1];
+            double[] pz = new double[n + 1];
+            for (int i = 0; i < n; i++) {
+                px[i + 1] = px[i] + raw.x()[i];
+                pz[i + 1] = pz[i] + raw.z()[i];
+            }
+            BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
+            for (int i = 1; i < n - 1; i++) {
+                int k = Math.min(r, Math.min(i, n - 1 - i));
+                double mx = (px[i + k + 1] - px[i - k]) / (2 * k + 1);
+                double mz = (pz[i + k + 1] - pz[i - k]) / (2 * k + 1);
+                int by = (int) Math.floor(raw.y()[i] - LIFT + 0.5);
+                boolean free = mc.level.getBlockState(at.set(Math.floor(mx), by, Math.floor(mz))).getCollisionShape(mc.level, at).isEmpty()
+                        && mc.level.getBlockState(at.set(Math.floor(mx), by + 1, Math.floor(mz))).getCollisionShape(mc.level, at).isEmpty();
+                if (free) {
+                    x[i] = mx;
+                    z[i] = mz;
+                }
+            }
+        }
         double[] y = raw.y().clone();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int i = 0; i < y.length; i++) {
-            y[i] = surface(mc.level, pos, raw.x()[i], raw.z()[i], y[i] - LIFT);
+            y[i] = surface(mc.level, pos, x[i], z[i], y[i] - LIFT);
         }
-        track = new Track(raw.s(), raw.x(), ease(y, SAMPLE), raw.z(), raw.toEnd());
+        track = new Track(raw.s(), x, ease(y, SAMPLE), z, raw.toEnd());
     }
 
     /**

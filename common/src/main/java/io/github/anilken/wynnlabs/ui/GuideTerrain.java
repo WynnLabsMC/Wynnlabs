@@ -40,6 +40,11 @@ final class GuideTerrain implements GuidePath.Walkable {
     static final double ROAD_COST = GuidePath.ROAD;
     /** ... and onto the edge of a road at least three wide: between, so the middle of the road wins. */
     static final double ROAD_EDGE = (GuidePath.ROAD + 1) / 2;
+    /** A step beside a wall (a block at the feet or head next to it) costs this much more, and one two blocks from a wall this much. */
+    static final double WALL = 0.25;
+    static final double WALL_FAR = 0.1;
+    /** ... and one three blocks from a wall this much, so the middle of a wider way still wins. */
+    static final double WALL_FAR2 = 0.04;
     /** A step through a door or gate costs this much of a plain one: to be opened, so an open way wins. */
     static final double DOOR_COST = 1.5;
     /** A step up onto a slab or stair: half a block, no jump. */
@@ -51,9 +56,20 @@ final class GuideTerrain implements GuidePath.Walkable {
         char at(int x, int y, int z);
     }
 
+    /** The roads at block resolution, as {@link WorldRoads#at}: {@code UNKNOWN} (negative) where not known. */
+    interface Roads {
+        int at(int x, int z);
+    }
+
     private final Blocks b;
+    private final Roads roads;
 
     GuideTerrain(Blocks b) {
+        this(b, null);
+    }
+
+    GuideTerrain(Blocks b, Roads roads) {
+        this.roads = roads;
         this.b = b;
     }
 
@@ -134,11 +150,40 @@ final class GuideTerrain implements GuidePath.Walkable {
             return DOOR_COST;
         }
         char below = b.at(x, y - 1, z);
-        if (below != ROAD && below != HALF) {
-            return 1;
+        int known = roads == null ? -1 : roads.at(x, z);
+        double base;
+        if (known >= 0) {
+            // the roads file knows this ground: its word, so a cobble on its own among the dirt is
+            // not a road and the middle of a real one is; stairs and slabs (bridges, steps) stay
+            base = known == WorldRoads.INNER || below == HALF ? ROAD_COST : known == WorldRoads.EDGE ? ROAD_EDGE : 1;
+        } else {
+            base = below == ROAD || below == HALF ? edge(x, y - 1, z) ? ROAD_EDGE : ROAD_COST : 1;
         }
-        return edge(x, y - 1, z) ? ROAD_EDGE : ROAD_COST;
+        return base + walls(x, y, z);
     }
+
+    /**
+     * The extra for walking along walls: {@link #WALL} for each of the four sides with a block at
+     * the feet or head right beside, {@link #WALL_FAR} for one two blocks away, so the route keeps
+     * to the middle of a street, a corridor or a gate rather than brushing its sides.
+     */
+    private double walls(int x, int y, int z) {
+        double extra = 0;
+        extra += wall(x + 1, y, z) ? WALL : wall(x + 2, y, z) ? WALL_FAR : wall(x + 3, y, z) ? WALL_FAR2 : 0;
+        extra += wall(x - 1, y, z) ? WALL : wall(x - 2, y, z) ? WALL_FAR : wall(x - 3, y, z) ? WALL_FAR2 : 0;
+        extra += wall(x, y, z + 1) ? WALL : wall(x, y, z + 2) ? WALL_FAR : wall(x, y, z + 3) ? WALL_FAR2 : 0;
+        extra += wall(x, y, z - 1) ? WALL : wall(x, y, z - 2) ? WALL_FAR : wall(x, y, z - 3) ? WALL_FAR2 : 0;
+        return extra;
+    }
+
+    /** A block that stops a walker at feet or head height: solid, a barrier, a fence or wall, a closed door. */
+    private boolean wall(int x, int y, int z) {
+        char feet = b.at(x, y, z);
+        char head = b.at(x, y + 1, z);
+        return feet == SOLID || feet == BARRIER || feet == TALL || feet == DOOR
+                || head == SOLID || head == BARRIER || head == TALL || head == DOOR;
+    }
+
 
     /**
      * Whether the road block ({@code x}, {@code y}, {@code z}) is the edge of a road with a middle to

@@ -106,7 +106,41 @@ class GuideTerrainTest {
         assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 5));     // the middle
         assertEquals(GuideTerrain.ROAD_EDGE, g.cost(5, 10, 4));     // an edge
         assertEquals(GuideTerrain.ROAD_EDGE, g.cost(5, 10, 6));
-        assertEquals(1, g.cost(5, 10, 7));                          // off the road
+        assertEquals(1, g.cost(5, 10, 8));                          // off the road
+    }
+
+    @Test
+    void theRoadsFileOverrulesTheBlockUnderfootWhereItKnowsTheGround() {
+        // a cobble on its own in the dirt (z 2) and dirt in the middle of a known road (z 6)
+        GuideDumps.World w = new GuideDumps.World(12, 14, 10, SOLID);
+        w.fill(0, 10, 0, 11, 13, 9, AIR);
+        w.set(5, 9, 2, ROAD);
+        w.fill(0, 9, 5, 11, 9, 5, ROAD);
+        w.fill(0, 9, 7, 11, 9, 7, ROAD);
+        GuideTerrain.Roads roads = (x, z) -> z == 2 ? WorldRoads.NONE : z == 5 || z == 7 ? WorldRoads.EDGE
+                : z == 6 ? WorldRoads.INNER : z == 9 ? WorldRoads.UNKNOWN : WorldRoads.NONE;
+        GuideTerrain g = GuideDumps.walkable(w.dump(5, 10, 5, 6, 10, 5), roads);
+        assertEquals(1, g.cost(5, 10, 2), "a cobble the file does not call a road");
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 6), "the middle of a road, whatever the block");
+        assertEquals(GuideTerrain.ROAD_EDGE, g.cost(5, 10, 5), "its edge");
+        assertEquals(1, g.cost(5, 10, 9), "unknown ground: the block underfoot, plain here");
+        w.set(5, 9, 9, ROAD);
+        w.set(4, 9, 9, ROAD);
+        w.set(6, 9, 9, ROAD);
+        g = GuideDumps.walkable(w.dump(5, 10, 5, 6, 10, 5), roads);
+        assertEquals(GuideTerrain.ROAD_COST, g.cost(5, 10, 9), "unknown ground: the block underfoot, a road here");
+    }
+
+    @Test
+    void theMiddleOfACorridorIsCheaperThanItsWalls() {
+        // a corridor along x, walls at z 0 and z 5, floor at y 9
+        GuideDumps.World w = new GuideDumps.World(12, 14, 6, SOLID);
+        w.fill(0, 10, 1, 11, 13, 4, AIR);
+        GuideTerrain g = GuideDumps.walkable(w.dump(5, 10, 2, 6, 10, 2));
+        assertEquals(1 + GuideTerrain.WALL, g.cost(5, 10, 1));
+        assertEquals(1 + GuideTerrain.WALL_FAR + GuideTerrain.WALL_FAR2, g.cost(5, 10, 2));
+        assertEquals(1 + GuideTerrain.WALL_FAR + GuideTerrain.WALL_FAR2, g.cost(5, 10, 3));
+        assertEquals(1 + GuideTerrain.WALL, g.cost(5, 10, 4));
     }
 
     @Test

@@ -298,7 +298,7 @@ class GuidePathTest {
         House h = new House();
         assertEquals(70, GuidePath.feet(h, 7, 7, 73));     // 3 above the floor: still found
         assertEquals(64, GuidePath.feet(h, 2, 2, 66));
-        assertEquals(90, GuidePath.feet(h, 2, 2, 90));     // nothing within 4: the pin height
+        assertEquals(64, GuidePath.feet(h, 2, 2, 90));     // nothing within 4: the ground of the column, further down
     }
 
     /**
@@ -323,6 +323,15 @@ class GuidePathTest {
     @Test
     void aRiderHighAboveAPlateauStartsOnThePlateau() {
         assertArrayEquals(new int[] {5, 70, 3}, surface(canyon(), 5, 110, 3));
+    }
+
+    @Test
+    void aGoalWithAWrongHeightIsPutOnTheGroundOfItsColumn() {
+        // the world map's cell height says 100 where the plateau stands at 70: the goal goes there,
+        // not into the rock (where a search burns its whole budget and never arrives)
+        GuideDump d = canyon();
+        assertEquals(70, GuidePath.feet(GuideDumps.walkable(d), 5, 3, 100));
+        assertEquals(70, GuidePath.feet(GuideDumps.walkable(d), 5, 3, 50));
     }
 
     @Test

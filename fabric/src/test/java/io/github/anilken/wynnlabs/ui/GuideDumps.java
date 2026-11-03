@@ -38,6 +38,10 @@ final class GuideDumps {
         return new GuideTerrain(d.blocks());
     }
 
+    static GuideTerrain walkable(GuideDump d, GuideTerrain.Roads roads) {
+        return new GuideTerrain(d.blocks(), roads);
+    }
+
     /** A box of blocks built by hand, all of one code to start with; corner (0, 0, 0). */
     static final class World {
         final int sx, sy, sz;
