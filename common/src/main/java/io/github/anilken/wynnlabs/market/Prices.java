@@ -1037,15 +1037,57 @@ public final class Prices {
         return p;
     }
 
-    /** 1 LE = 64 EB = 4096 E. "2.3 LE", "14 EB", "40 E". */
+    /**
+     * In the game: coins are written with the glyphs Wynncraft's font draws as emerald, block
+     * and liquid emerald (as Wynntils and Wynnventory do); elsewhere (tests, the local API) with
+     * letters. {@link #letters} turns the glyphs back.
+     */
+    public static volatile boolean coins;
+
+    private static final String[] GLYPHS = {"stx", "¼²", "²½", "²"};
+    private static final String[] LETTERS = {"stx", "LE", "EB", "E"};
+
+    /** Text with the coin glyphs written as letters ("2LE 52EB 30E"), for readers without the game's font. */
+    public static String letters(String text) {
+        return text.replace(GLYPHS[1], LETTERS[1]).replace(GLYPHS[2], LETTERS[2]).replace(GLYPHS[3], LETTERS[3]);
+    }
+
+    /**
+     * Emeralds as Wynnventory writes them: from a stack up, stacks and liquid emeralds to a tenth
+     * ("3stx 12.5LE"); below, every coin that is not 0 ("12LE 34EB 1E", "40E"). 1 stx = 64 LE,
+     * 1 LE = 64 EB = 4096 E.
+     */
     public static String fmt(double emeralds) {
-        if (emeralds >= 4096) {
-            return String.format(java.util.Locale.ROOT, "%.1f LE", emeralds / 4096);
+        long e = Math.round(emeralds);
+        if (e < 0) {
+            return "-" + fmt(-e);
         }
-        if (emeralds >= 64) {
-            return String.format(java.util.Locale.ROOT, "%.0f EB", emeralds / 64);
+        if (e >= 262_144) {
+            long rest = e % 262_144;
+            String stx = e / 262_144 + "stx";
+            return rest == 0 ? stx : stx + String.format(java.util.Locale.ROOT, " %.1f", rest / 4096.0)
+                    + (coins ? GLYPHS : LETTERS)[1];
         }
-        return Math.round(emeralds) + " E";
+        return exact(e);
+    }
+
+    /** Emeralds to the emerald, every coin that is not 0: "1stx 12LE 34EB 1E", "40E", "0E". */
+    public static String exact(long emeralds) {
+        if (emeralds < 0) {
+            return "-" + exact(-emeralds);
+        }
+        long[] sizes = {262_144, 4096, 64, 1};
+        String[] names = coins ? GLYPHS : LETTERS;
+        StringBuilder b = new StringBuilder();
+        long left = emeralds;
+        for (int k = 0; k < sizes.length; k++) {
+            long n = left / sizes[k];
+            left %= sizes[k];
+            if (n > 0) {
+                b.append(b.length() > 0 ? " " : "").append(n).append(names[k]);
+            }
+        }
+        return b.length() == 0 ? "0" + names[3] : b.toString();
     }
 
     public static JsonObject json() {

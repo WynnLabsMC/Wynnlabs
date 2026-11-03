@@ -47,7 +47,7 @@ final class BoxAdvice {
     /** The verdict and note for the way {@link BoxRoutes} picked: the way first, then why. */
     static Advice.Entry boxRoute(ItemView.Box box, BoxRoutes.Choice c, String why, int fits, int all) {
         BoxRoutes.Value v = c.value();
-        String cost = v.outcomes() == 0 ? box.tier().identificationCost(box.high()) + " E" : BoxRoutes.cost(v);
+        String cost = v.outcomes() == 0 ? Prices.fmt(box.tier().identificationCost(box.high())) : BoxRoutes.cost(v);
         String tail = why == null || why.isEmpty() ? "" : ". " + why;
         return switch (c.route()) {
             case IDENTIFIER -> new Advice.Entry(Verdict.IDENTIFY,

@@ -200,7 +200,7 @@ final class BoxSummary {
     /** "Worth identifying · expected ~3.2 LE · fee 57 E · 6/8 items priced", or why there is no answer. */
     private static String[] identifyLine(BoxInsight.Identify id, boolean compact) {
         String exp = id.expected() == null ? "?" : "~" + Prices.fmt(id.expected());
-        String fee = id.costLow() == id.costHigh() ? id.costLow() + " E" : id.costLow() + "-" + id.costHigh() + " E";
+        String fee = id.costLow() == id.costHigh() ? Prices.fmt(id.costLow()) : Prices.fmt(id.costLow()) + " - " + Prices.fmt(id.costHigh());
         return switch (id.answer()) {
             case WORTH, SELL -> new String[] {"coin", L.t(id.answer() == BoxInsight.Answer.WORTH ? "wynnlabs.box.answer_worth" : "wynnlabs.box.answer_sell"),
                 compact ? L.t("wynnlabs.box.answer_short", exp, fee) : L.t("wynnlabs.box.answer_numbers", exp, fee, id.priced(), id.outcomes())};

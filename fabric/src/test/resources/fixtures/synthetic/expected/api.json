@@ -7,7 +7,7 @@
         "count": 1,
         "key": "gear:Keen Measure:2ndSpellCost=11:manaRegen=5:rawAgility=3:rawIntelligence=3:walkSpeed=-4",
         "marketPrice": 320,
-        "marketPriceText": "5 EB",
+        "marketPriceText": "5EB",
         "kind": "gear",
         "type": "RELIK",
         "tier": "UNIQUE",
@@ -80,10 +80,10 @@
         "count": 1,
         "key": "gear:Butterfly Wings:rawAgility=2:rawDefence=2:rawDexterity=2:rawIntelligence=2:rawStrength=2:reflection=8:thorns=8",
         "marketPrice": 2500,
-        "marketPriceText": "39 EB",
+        "marketPriceText": "39EB 4E",
         "ruleAdvice": {
           "verdict": "SELL",
-          "note": "The best build runs Keen Measure. Sell it on the Trade Market, ~39 EB"
+          "note": "The best build runs Keen Measure. Sell it on the Trade Market, ~39EB 4E"
         },
         "kind": "gear",
         "type": "RELIK",
@@ -378,7 +378,7 @@
         "count": 1,
         "key": "gear:Albakaya:fireDefence=8:healthRegenRaw=6:manaRegen=4:rawHealth=24:rawIntelligence=3",
         "marketPrice": 900,
-        "marketPriceText": "14 EB",
+        "marketPriceText": "14EB 4E",
         "ruleAdvice": {
           "verdict": "SELL",
           "note": "Mage item; you're playing Shaman. Sell it to the Blacksmith (no price yet)"
@@ -457,8 +457,8 @@
         "count": 1,
         "key": "gearbox:RELIK:UNIQUE:18-22",
         "ruleAdvice": {
-          "verdict": "IDENTIFY",
-          "note": "Identify it at the Item Identifier (~13-14 E): you could equip Remembrance · 4/4 outcomes fit you"
+          "verdict": "SELL",
+          "note": "Unique box: its market prices are too thin to trust, the Blacksmith takes it"
         },
         "kind": "gearbox",
         "type": "RELIK",
@@ -692,7 +692,7 @@
         "count": 1,
         "key": "gear:Brainy Beanie:combatExperience=15:manaRegen=7:manaSteal=4:rawIntelligence=5:rawStrength=-5:spellDamage=-6",
         "marketPrice": 3100,
-        "marketPriceText": "48 EB",
+        "marketPriceText": "48EB 28E",
         "ruleAdvice": {
           "verdict": "KEEP",
           "note": "Equippable at Lv 22"
@@ -834,10 +834,10 @@
         "count": 1,
         "key": "gear:Aged Golden Boots",
         "marketPrice": 40,
-        "marketPriceText": "40 E",
+        "marketPriceText": "40E",
         "ruleAdvice": {
           "verdict": "SELL",
-          "note": "Normal item, still weak at Lv 22. Sell it to the Blacksmith (market ~40 E)"
+          "note": "Normal item, still weak at Lv 22. Sell it to the Blacksmith (market ~40E)"
         },
         "kind": "gear",
         "type": "BOOTS",
@@ -864,7 +864,7 @@
         "count": 4,
         "key": "ingredient:Wybel Fluff",
         "marketPrice": 12,
-        "marketPriceText": "12 E",
+        "marketPriceText": "12E",
         "ruleAdvice": {
           "verdict": "KEEP",
           "note": "Needed for the quest 'Grave Digger'"
@@ -882,10 +882,10 @@
         "count": 20,
         "key": "ingredient:Spider Silk",
         "marketPrice": 40,
-        "marketPriceText": "40 E",
+        "marketPriceText": "40E",
         "ruleAdvice": {
           "verdict": "KEEP",
-          "note": "Only ~13 EB, not worth listing: trash it if you need space"
+          "note": "Only ~12EB 32E, not worth listing: trash it if you need space"
         },
         "kind": "ingredient",
         "tier": 1,
@@ -900,7 +900,7 @@
         "count": 1,
         "key": "gear:Gnocchi:combatExperience=8:mainAttackDamage=-4:manaRegen=6:spellDamage=8",
         "marketPrice": 1800,
-        "marketPriceText": "28 EB",
+        "marketPriceText": "28EB 8E",
         "ruleAdvice": {
           "verdict": "WEAR",
           "note": "Replaces Confusing Cap (build +141%). SP: Int 10→8, Def 4→25, Agi 0→5"
@@ -1288,7 +1288,7 @@
       "count": 1,
       "key": "gear:Keen Measure:2ndSpellCost=11:manaRegen=5:rawAgility=3:rawIntelligence=3:walkSpeed=-4",
       "marketPrice": 320,
-      "marketPriceText": "5 EB",
+      "marketPriceText": "5EB",
       "kind": "gear",
       "type": "RELIK",
       "tier": "UNIQUE",
@@ -1498,7 +1498,7 @@
             "level": 17,
             "tier": "RARE",
             "gain": 11.0,
-            "from": "Add 2 tier III powders (any element, same HP), ~2 EB",
+            "from": "Add 2 tier III powders (any element, same HP), ~2EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1509,7 +1509,7 @@
             "level": 19,
             "tier": "RARE",
             "gain": 5.5,
-            "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
+            "from": "Add 1 tier III powder (any element, same HP), ~1EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1520,7 +1520,7 @@
             "level": 17,
             "tier": "UNIQUE",
             "gain": 5.5,
-            "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
+            "from": "Add 1 tier III powder (any element, same HP), ~1EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1531,7 +1531,7 @@
             "level": 20,
             "tier": "RARE",
             "gain": 5.5,
-            "from": "Add 1 tier III powder (any element, same HP), ~1 EB",
+            "from": "Add 1 tier III powder (any element, same HP), ~1EB",
             "price": null,
             "tradable": true,
             "options": []
@@ -1542,7 +1542,7 @@
             "level": 17,
             "tier": "UNIQUE",
             "gain": 26.7,
-            "from": "Add 1× Water III powder, ~1 EB",
+            "from": "Add 1× Water III powder, ~1EB",
             "price": null,
             "tradable": true,
             "options": []

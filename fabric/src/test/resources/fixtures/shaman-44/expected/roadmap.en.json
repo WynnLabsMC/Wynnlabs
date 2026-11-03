@@ -9,7 +9,7 @@
           "level": 42,
           "tier": "LEGENDARY",
           "gain": 14.9,
-          "from": "Add 2× Air V powder, ~10 EB",
+          "from": "Add 2× Air V powder, ~10EB",
           "price": null,
           "tradable": true,
           "options": []
@@ -605,7 +605,7 @@
           "tier": "UNIQUE",
           "gain": 4.1,
           "from": "Trade Market",
-          "price": "~25 EB (median 33 EB)",
+          "price": "~24EB 37E (median 33EB 5E)",
           "tradable": true,
           "options": [
             {
@@ -659,7 +659,7 @@
           "tier": "LEGENDARY",
           "gain": 1.8,
           "from": "Trade Market",
-          "price": "~25 EB",
+          "price": "~24EB 39E",
           "tradable": true,
           "options": [
             {
@@ -887,7 +887,7 @@
           "tier": "RARE",
           "gain": 5.6,
           "from": "Troms merchant",
-          "price": "~1 E · Past price",
+          "price": "~1E · Past price",
           "tradable": true,
           "alternative": "Matryoshka Shell (Lv. 55, dropped by Matryoshka Idol)",
           "options": [
@@ -1823,7 +1823,7 @@
           "tier": "UNIQUE",
           "gain": 2.2,
           "from": "Trade Market",
-          "price": "~1.4 LE (median 2.2 LE)",
+          "price": "~1LE 24EB 12E (median 2LE 13EB 7E)",
           "tradable": true,
           "options": [
             {
@@ -1877,7 +1877,7 @@
           "tier": "UNIQUE",
           "gain": 2.2,
           "from": "Trade Market",
-          "price": "~1.4 LE (median 2.2 LE)",
+          "price": "~1LE 24EB 12E (median 2LE 13EB 7E)",
           "tradable": true,
           "options": [
             {
@@ -2726,7 +2726,7 @@
           "tier": "UNIQUE",
           "gain": 0.2,
           "from": "Trade Market",
-          "price": "~1.4 LE (median 2.2 LE)",
+          "price": "~1LE 24EB 12E (median 2LE 13EB 7E)",
           "tradable": true,
           "options": [
             {

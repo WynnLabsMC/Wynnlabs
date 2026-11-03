@@ -603,24 +603,8 @@ final class BoxListingsPanel {
         }
     }
 
-    /**
-     * A listing's price to the emerald, the way the Trade Market writes it: "2 EB 49 E",
-     * "1 LE 12 EB 3 E" (1 LE = 64 EB = 4096 E); parts that are 0 are left out.
-     */
+    /** A listing's price to the emerald, the way the Trade Market writes it ({@link io.github.anilken.wynnlabs.market.Prices#exact}). */
     static String exact(long emeralds) {
-        long le = emeralds / 4096;
-        long eb = emeralds % 4096 / 64;
-        long e = emeralds % 64;
-        StringBuilder b = new StringBuilder();
-        if (le > 0) {
-            b.append(le).append(" LE");
-        }
-        if (eb > 0) {
-            b.append(b.length() > 0 ? " " : "").append(eb).append(" EB");
-        }
-        if (e > 0 || b.length() == 0) {
-            b.append(b.length() > 0 ? " " : "").append(e).append(" E");
-        }
-        return b.toString();
+        return io.github.anilken.wynnlabs.market.Prices.exact(emeralds);
     }
 }

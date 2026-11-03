@@ -137,7 +137,7 @@ final class BoxBar {
             }
             int low = s.verdict != null ? s.verdict.costLow() : s.box.tier().identificationCost(s.box.low());
             int high = s.verdict != null ? s.verdict.costHigh() : s.box.tier().identificationCost(s.box.high());
-            parts.add(L.t("wynnlabs.box.identify_cost", low == high ? low + " E" : low + "–" + high + " E"));
+            parts.add(L.t("wynnlabs.box.identify_cost", low == high ? io.github.anilken.wynnlabs.market.Prices.fmt(low) : io.github.anilken.wynnlabs.market.Prices.fmt(low) + " – " + io.github.anilken.wynnlabs.market.Prices.fmt(high)));
             return String.join(" · ", parts);
         }
         BoxMarket.Item it = s.single.item();

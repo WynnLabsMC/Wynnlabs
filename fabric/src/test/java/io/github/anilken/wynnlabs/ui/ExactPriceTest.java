@@ -8,10 +8,14 @@ class ExactPriceTest {
 
     @Test
     void pricesReadToTheEmerald() {
-        assertEquals("2 EB 49 E", BoxListingsPanel.exact(177));
-        assertEquals("27 E", BoxListingsPanel.exact(27));
-        assertEquals("1 LE", BoxListingsPanel.exact(4096));
-        assertEquals("1 LE 12 EB 3 E", BoxListingsPanel.exact(4096 + 12 * 64 + 3));
-        assertEquals("0 E", BoxListingsPanel.exact(0));
+        assertEquals("2EB 49E", BoxListingsPanel.exact(177));
+        assertEquals("27E", BoxListingsPanel.exact(27));
+        assertEquals("1LE", BoxListingsPanel.exact(4096));
+        assertEquals("1LE 12EB 3E", BoxListingsPanel.exact(4096 + 12 * 64 + 3));
+        assertEquals("3stx 12LE", BoxListingsPanel.exact(3 * 262_144 + 12 * 4096));
+        assertEquals("0E", BoxListingsPanel.exact(0));
+        // short: from a stack up, liquid emeralds to a tenth
+        assertEquals("3stx 12.5LE", io.github.anilken.wynnlabs.market.Prices.fmt(3 * 262_144 + 12.5 * 4096));
+        assertEquals("12LE 34EB 1E", io.github.anilken.wynnlabs.market.Prices.fmt(12 * 4096 + 34 * 64 + 1));
     }
 }

@@ -105,9 +105,9 @@ class MountPricesTest {
     @Test
     void englishText() {
         language(1);
-        assertEquals("~5.5 LE for ~1,000 potential (3 listings)",
+        assertEquals("~5LE 32EB for ~1,000 potential (3 listings)",
                 MountPrices.text(new MountPrices.Estimate(5.5 * LE, 1000, 3)));
-        assertEquals("~14 EB for ~240 potential (1 listing)", MountPrices.text(new MountPrices.Estimate(14 * 64, 240, 1)));
+        assertEquals("~14EB for ~240 potential (1 listing)", MountPrices.text(new MountPrices.Estimate(14 * 64, 240, 1)));
         assertEquals("Depends on potential", MountPrices.text((io.github.anilken.wynnlabs.model.Mount) null));
     }
 
@@ -115,6 +115,6 @@ class MountPricesTest {
     @EnabledIfSystemProperty(named = Turkish.PROPERTY, matches = "true")
     void turkishText() {
         language(2);
-        assertEquals("~1.000 Potential için ~5.5 LE (3 ilan)", MountPrices.text(new MountPrices.Estimate(5.5 * LE, 1000, 3)));
+        assertEquals("~1.000 Potential için ~5LE 32EB (3 ilan)", MountPrices.text(new MountPrices.Estimate(5.5 * LE, 1000, 3)));
     }
 }

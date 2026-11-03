@@ -174,6 +174,7 @@ public final class WynnLabs {
         platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
         platform.onEndTick(Perf.tick("tick.AutoAdvice", WornGear::snapshotArmour));
         io.github.anilken.wynnlabs.advice.AutoAdvice.budgeted = true;   // verdicts a few a frame, never a frozen chest
+        io.github.anilken.wynnlabs.market.Prices.coins = true;          // prices in the game's emerald glyphs
         platform.onGameMessage(QuestBook::onChat);
         platform.onGameMessage(io.github.anilken.wynnlabs.quests.CaveMap::onChat);
         platform.onGameMessage(DeathCoach::onChat);
@@ -1203,7 +1204,8 @@ public final class WynnLabs {
     }
 
     private static void send(HttpExchange ex, int code, JsonObject body) throws IOException {
-        byte[] bytes = GSON.toJson(body).getBytes(StandardCharsets.UTF_8);
+        // prices in letters: the emerald glyphs mean something only in the game's font
+        byte[] bytes = io.github.anilken.wynnlabs.market.Prices.letters(GSON.toJson(body)).getBytes(StandardCharsets.UTF_8);
         ex.getResponseHeaders().set("Content-Type", "application/json; charset=utf-8");
         ex.sendResponseHeaders(code, bytes.length);
         try (OutputStream os = ex.getResponseBody()) {
