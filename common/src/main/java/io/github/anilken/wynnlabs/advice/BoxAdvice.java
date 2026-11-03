@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.GearScore;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Rules;
+import io.github.anilken.wynnlabs.core.Stamp;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.WornGear;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -14,6 +15,8 @@ import io.github.anilken.wynnlabs.model.Klass;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Verdicts for unidentified gear boxes: open, keep or sell, from the routes {@link BoxRoutes}
@@ -107,8 +110,38 @@ final class BoxAdvice {
         return new Decision(e, null);
     }
 
+    private record Key(ItemView.Box box, Klass cls, int level, int stamp) {}
+
+    private record Kept(Decision decision, long until) {}
+
+    /**
+     * Decisions by what the box is, in the game: every box of one tier, slot and level range is
+     * judged alike, and judging one weighs each outcome against the build (up to a fifth of a
+     * second). A chest of the same boxes used to pay that once a box; now once. Kept while the
+     * {@link Stamp} holds, half a minute at most.
+     */
+    private static final Map<Key, Kept> DECIDED = new ConcurrentHashMap<>();
+
     /** {@link #box}, with the route behind it: the box window's verdict chip reads the same call. */
     static Decision decide(ItemView.Box box, Klass cls, int level) {
+        if (!AutoAdvice.budgeted) {
+            return judge(box, cls, level);
+        }
+        long now = System.currentTimeMillis();
+        Key key = new Key(box, cls, level, Stamp.now());
+        Kept k = DECIDED.get(key);
+        if (k != null && now < k.until()) {
+            return k.decision();
+        }
+        if (DECIDED.size() > 256) {
+            DECIDED.clear();
+        }
+        Decision d = judge(box, cls, level);
+        DECIDED.put(key, new Kept(d, now + 30_000));
+        return d;
+    }
+
+    private static Decision judge(ItemView.Box box, Klass cls, int level) {
         int tooLow = (int) Rules.num("tooLowLevels", 4);
         int tooHigh = (int) Rules.num("tooHighLevels", 5);
         int low = box.low();

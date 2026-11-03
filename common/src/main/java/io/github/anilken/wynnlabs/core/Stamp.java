@@ -1,6 +1,7 @@
 package io.github.anilken.wynnlabs.core;
 
 import io.github.anilken.wynnlabs.advice.Advice;
+import io.github.anilken.wynnlabs.advice.AutoAdvice;
 import io.github.anilken.wynnlabs.advice.MarketSlots;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.game.WynntilsItems;
@@ -34,10 +35,19 @@ public final class Stamp {
      */
     public static volatile int bag;
 
+    /**
+     * {@link Prices#version} as the game sees it, taken once a second: prices arrive one item at a
+     * time (a box asks for all it can hold), and each used to throw every cached verdict away, so
+     * a chest of boxes was judged again and again while they came in.
+     */
+    static volatile int prices;
+    private static int tick;
+
     private Stamp() {}
 
     public static int now() {
-        return (((Rules.version * 31 + Prices.version) * 31 + Advice.version) * 31 + inventory) * 31 + language;
+        int p = AutoAdvice.budgeted ? prices : Prices.version;
+        return (((Rules.version * 31 + p) * 31 + Advice.version) * 31 + inventory) * 31 + language;
     }
 
     /**
@@ -48,6 +58,9 @@ public final class Stamp {
      */
     public static void onTick(Minecraft mc) {
         language = L.code().hashCode();
+        if (++tick % 20 == 0) {
+            prices = Prices.version;
+        }
         if (mc.player == null) {
             inventory = 0;
             bag = 0;

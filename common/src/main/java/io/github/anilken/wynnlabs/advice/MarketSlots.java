@@ -265,7 +265,27 @@ public final class MarketSlots {
         return k * 31 + Profile.id().hashCode();
     }
 
-    /** The ranking for now: rebuilt when its key changes, or after half a minute like the verdicts. */
+    private static final String WORKER_NAME = "wynnlabs-market";
+
+    /** Ranks in the background in the game; one at a time. */
+    private static final java.util.concurrent.ExecutorService WORKER =
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, WORKER_NAME);
+                t.setDaemon(true);
+                return t;
+            });
+
+    /** True on the thread that ranks: its verdicts are not held to the frame budget. */
+    static boolean onWorker() {
+        return WORKER_NAME.equals(Thread.currentThread().getName());
+    }
+
+    /**
+     * The ranking for now: rebuilt when its key changes, or after half a minute like the verdicts.
+     * In the game ({@link AutoAdvice#budgeted}) it is rebuilt on a background thread and the one
+     * from before is used meanwhile: opening a chest used to rank the bag and the bank in that
+     * frame (up to a tenth of a second frozen).
+     */
     private static Ranking current() {
         long key = key();
         long now = System.currentTimeMillis();
@@ -282,24 +302,38 @@ public final class MarketSlots {
                 return r;
             }
             building = true;
-            long t = Perf.start();
-            try {
-                r = build(key, now);
-            } catch (Throwable ignored) {
-                r = new Ranking(key, now, Map.of(), Map.of(), Map.of(), List.of(), MAX);  // no limit rather than a broken tooltip
-            } finally {
-                building = false;
-            }
-            Perf.end("advice.marketSlots", t);
-            ranking = r;
+        }
+        List<ItemStack> bag = new ArrayList<>(GameState.current().inventory());
+        if (AutoAdvice.budgeted) {
+            WORKER.execute(() -> rank(key, now, bag));
             return r;
         }
+        return rank(key, now, bag);
     }
 
-    private static Ranking build(long key, long now) {
+    private static Ranking rank(long key, long now, List<ItemStack> inventory) {
+        long t = Perf.start();
+        Ranking r = ranking;
+        try {
+            r = build(key, now, inventory);
+        } catch (Throwable ignored) {
+            if (r == null) {
+                r = new Ranking(key, now, Map.of(), Map.of(), Map.of(), List.of(), MAX);  // no limit rather than a broken tooltip
+            }
+        } finally {
+            Perf.end("advice.marketSlots", t);
+            ranking = r;
+            synchronized (MarketSlots.class) {
+                building = false;
+            }
+        }
+        return r;
+    }
+
+    private static Ranking build(long key, long now, List<ItemStack> inventory) {
         GameState state = GameState.current();
         List<Candidate> all = new ArrayList<>();
-        for (ItemStack s : state.inventory()) {
+        for (ItemStack s : inventory) {
             if (s == null || s.isEmpty() || !toMarket(AutoAdvice.uncapped(s))) {
                 continue;
             }

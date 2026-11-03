@@ -82,7 +82,8 @@ public final class AutoAdvice {
         if (c != null && now < c.until() && c.stamp() == stamp) {
             return c;
         }
-        if (budgeted) {
+        boolean budget = budgeted && !MarketSlots.onWorker();     // the ranking thread keeps no frame
+        if (budget) {
             long ns = System.nanoTime();
             if (ns - burstStart > FRAME_NS) {
                 burstStart = ns;
@@ -102,7 +103,7 @@ public final class AutoAdvice {
         double gain = noted[0];
         noted[0] = outer;
         Perf.end("advice.decide", t);
-        if (budgeted) {
+        if (budget) {
             burstSpent += (System.nanoTime() - t) / 1_000_000.0;
         }
         c = new Cached(now + 30_000 + (System.identityHashCode(stack) & 4095), stamp, e, gain);
