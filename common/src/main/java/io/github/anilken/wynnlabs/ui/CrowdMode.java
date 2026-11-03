@@ -31,6 +31,8 @@ public final class CrowdMode {
     /** Damage numbers: digits (and the pack's glyphs) and nothing else. */
     private static final Pattern NUMBER = Pattern.compile("^[\\d,.\\s\\p{Co}\\x{D0000}-\\x{DFFFF}]+$");
 
+    /** An item display older than this many ticks is no spell effect, whatever it is made of. */
+    static final int LASTING_TICKS = 60;
     private static volatile boolean on;
     private static volatile int radius;
     private static volatile double radiusSq;
@@ -164,6 +166,11 @@ public final class CrowdMode {
             return NUMBER.matcher(text).matches() && !text.isBlank() && far(e, Math.max(radius, 4));
         }
         if (e instanceof Display.ItemDisplay d) {
+            // a spell effect is gone within a few seconds; what stands longer is a body: a boss
+            // built of boat models, a totem, a decoration
+            if (e.tickCount > LASTING_TICKS) {
+                return false;
+            }
             Entity root = root(e);
             Boolean body = bodies.get(root.getId());
             if (body != null) {
