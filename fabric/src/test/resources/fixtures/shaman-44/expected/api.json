@@ -3101,7 +3101,7 @@
             "tier": "UNIQUE",
             "gain": 2.2,
             "from": "Trade Market",
-            "price": "~1LE 24EB 12E (median 2LE 13EB 7E)",
+            "price": "~1LE 24EB (median 2LE 13EB)",
             "tradable": true,
             "options": [
               {
@@ -3155,7 +3155,7 @@
             "tier": "UNIQUE",
             "gain": 2.2,
             "from": "Trade Market",
-            "price": "~1LE 24EB 12E (median 2LE 13EB 7E)",
+            "price": "~1LE 24EB (median 2LE 13EB)",
             "tradable": true,
             "options": [
               {
@@ -4004,7 +4004,7 @@
             "tier": "UNIQUE",
             "gain": 0.2,
             "from": "Trade Market",
-            "price": "~1LE 24EB 12E (median 2LE 13EB 7E)",
+            "price": "~1LE 24EB (median 2LE 13EB)",
             "tradable": true,
             "options": [
               {
