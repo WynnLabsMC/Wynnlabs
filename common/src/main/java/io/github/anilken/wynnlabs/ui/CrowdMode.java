@@ -32,7 +32,7 @@ public final class CrowdMode {
     private static final Pattern NUMBER = Pattern.compile("^[\\d,.\\s\\p{Co}\\x{D0000}-\\x{DFFFF}]+$");
 
     /** A stack of this many displays or more is a body (a boss, a pet, a decoration), not a spell effect. */
-    static final int BODY_PARTS = 3;
+    static final int BODY_PARTS = 4;
     /** The root display of every stack → how many displays ride in it (one tick old). */
     private static volatile Map<Integer, Integer> stacks = Map.of();
     private static volatile boolean on;
@@ -226,7 +226,7 @@ public final class CrowdMode {
             if (body != null) {
                 return body;                  // a labelled stack: another player's summon, or kept
             }
-            // a spell effect is a stack of one or two displays (an empty root and one boat model),
+            // a spell effect is a stack of up to three displays (an empty root and one or two boat models),
             // whatever its age: a totem's rings linger for a minute. A body is built of more: a
             // boss of boat models, a decoration, a pet
             if (stacks.getOrDefault(root.getId(), 1) >= BODY_PARTS) {
