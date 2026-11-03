@@ -254,18 +254,22 @@ public final class CraftSearch {
 
     /**
      * The ingredients a tier may use for a request: the recipe's profession, at or below the
-     * recipe's level, within the player's profession level unless locked ones are allowed, owned
+     * recipe's level, within the player's profession level (or the recipe's first level, when
+     * higher) unless locked ones are allowed, owned
      * for the own-only tier, and of some use: a goal identification, a position effect, positive
      * durability, a lower requirement where one is capped, or a positive filtered identification.
      */
     public static List<Ingredient> candidates(Request q, Tier tier) {
         List<Ingredient> out = new ArrayList<>();
         boolean consumable = q.recipe().consumable();
+        // a recipe above the player's level is one they plan to craft once they reach it: its
+        // own level unlocks the ingredients up to it (else a low profession leaves none at all)
+        int lockLevel = Math.max(q.professionLevel(), q.recipe().minLevel());
         for (Ingredient ing : q.ingredients()) {
             if (ing.empty() || !ing.usableBy(q.recipe().profession()) || ing.level() > q.recipe().maxLevel()) {
                 continue;
             }
-            if (!q.allowLocked() && ing.level() > q.professionLevel()) {
+            if (!q.allowLocked() && ing.level() > lockLevel) {
                 continue;
             }
             if (tier == Tier.OWN && q.own(ing.name()) <= 0) {

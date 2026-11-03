@@ -8,9 +8,9 @@ import java.util.function.Function;
 
 /**
  * What the current recipe still lacks: materials at the chosen tiers and ingredients on the
- * grid the player does not own, with counts and what the ingredients cost on the market.
- * Materials have no market price here (they are gathered or bought in bulk), so only
- * ingredients add to the cost; an ingredient without a price is named.
+ * grid the player does not own, with counts and what they cost on the market. Materials are
+ * priced at their tier ({@link #materialKey}, the way Wynnventory keeps them); anything without
+ * a price is named so it can be asked for.
  */
 public final class Shopping {
 
@@ -21,7 +21,7 @@ public final class Shopping {
         }
     }
 
-    /** The lines, the cost of the priced ones, and the ingredients whose price is unknown. */
+    /** The lines, the cost of the priced ones, and the price keys whose price is unknown (materials with their tier). */
     public record Needs(List<Line> lines, long cost, List<String> unpriced) {
         public boolean empty() {
             return lines.isEmpty();
@@ -30,11 +30,26 @@ public final class Shopping {
 
     private Shopping() {}
 
+    /** A material's price key at a tier: "Mahseer Meat T1", as Wynnventory lists materials. */
+    public static String materialKey(String shown, int tier) {
+        return shown + " T" + tier;
+    }
+
     public static Needs of(CraftData.Recipe recipe, int tier1, int tier2, List<Ingredient> slots, WhatCanICraft.Stock stock,
                            Function<String, CraftSearch.Price> prices) {
         List<Line> lines = new ArrayList<>();
+        long cost = 0;
+        List<String> unpriced = new ArrayList<>();
         for (StockView.Short s : StockView.missing(recipe, tier1, tier2, stock)) {
-            lines.add(new Line(s.material(), s.tier(), s.missing(), null, false));
+            String key = materialKey(s.material(), s.tier());
+            CraftSearch.Price p = prices == null ? null : prices.apply(key);
+            Long c = p == null ? null : p.emeralds() * s.missing();
+            if (c == null) {
+                unpriced.add(key);
+            } else {
+                cost += c;
+            }
+            lines.add(new Line(s.material(), s.tier(), s.missing(), c, p != null && p.old()));
         }
         Map<String, Integer> need = new LinkedHashMap<>();
         for (Ingredient i : slots) {
@@ -42,8 +57,6 @@ public final class Shopping {
                 need.merge(i.name(), 1, Integer::sum);
             }
         }
-        long cost = 0;
-        List<String> unpriced = new ArrayList<>();
         for (Map.Entry<String, Integer> e : need.entrySet()) {
             Integer owned = stock.ingredients().get(e.getKey());
             int lacking = e.getValue() - (owned == null ? 0 : owned);
