@@ -1038,11 +1038,31 @@ public final class Prices {
     }
 
     /**
-     * In the game: coins are written with the glyphs Wynncraft's font draws as emerald, block
-     * and liquid emerald (as Wynntils and Wynnventory do); elsewhere (tests, the local API) with
-     * letters. {@link #letters} turns the glyphs back.
+     * In the game: an item slot's price ({@link #slot}) is written with the glyphs Wynncraft's
+     * font draws as emerald, block and liquid emerald (as Wynntils and Wynnventory do). Every
+     * other price is written with letters, since the mod's own menus draw in a font without
+     * them; item tooltips turn them into glyphs ({@link #glyphs}). {@link #letters} turns
+     * glyphs back.
      */
     public static volatile boolean coins;
+
+    /** A price written with letters: a number right before its coin ("2LE", "52EB", "3stx", "12.5LE"). */
+    private static final java.util.regex.Pattern COIN = java.util.regex.Pattern.compile("(\\d)(LE|EB|E)\\b");
+
+    /** Text with prices' coins written as the game's glyphs ("2¼² 52²½"), for the game's own font. */
+    public static String glyphs(String text) {
+        if (!text.contains("E")) {
+            return text;
+        }
+        java.util.regex.Matcher m = COIN.matcher(text);
+        StringBuilder out = new StringBuilder();
+        while (m.find()) {
+            String coin = m.group(2).equals("LE") ? GLYPHS[1] : m.group(2).equals("EB") ? GLYPHS[2] : GLYPHS[3];
+            m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(m.group(1) + coin));
+        }
+        m.appendTail(out);
+        return out.toString();
+    }
 
     private static final String[] GLYPHS = {"stx", "¼²", "²½", "²"};
     private static final String[] LETTERS = {"stx", "LE", "EB", "E"};
@@ -1066,7 +1086,7 @@ public final class Prices {
             long rest = e % 262_144;
             String stx = e / 262_144 + "stx";
             return rest == 0 ? stx : stx + String.format(java.util.Locale.ROOT, " %.1f", rest / 4096.0)
-                    + (coins ? GLYPHS : LETTERS)[1];
+                    + LETTERS[1];
         }
         return exact(e >= 4096 ? Math.round(e / 64.0) * 64 : e);
     }
@@ -1094,7 +1114,7 @@ public final class Prices {
             return "-" + exact(-emeralds);
         }
         long[] sizes = {262_144, 4096, 64, 1};
-        String[] names = coins ? GLYPHS : LETTERS;
+        String[] names = LETTERS;
         StringBuilder b = new StringBuilder();
         long left = emeralds;
         for (int k = 0; k < sizes.length; k++) {
