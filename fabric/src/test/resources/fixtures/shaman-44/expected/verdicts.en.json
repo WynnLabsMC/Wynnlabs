@@ -1736,8 +1736,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 4#30",
     "name": "Royal Dusty Amulet",
-    "verdict": "KEEP",
-    "note": "Equippable at Lv 75"
+    "verdict": "SELL",
+    "note": "Your build uses Generator Amulet here. Sell it to the Blacksmith (no price yet)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#37",

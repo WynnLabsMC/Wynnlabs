@@ -1736,8 +1736,8 @@
   {
     "where": "bank char:char0003:Character Bank p. 4#30",
     "name": "Royal Dusty Amulet",
-    "verdict": "KEEP",
-    "note": "Lv 75 olunca giyebilirsin"
+    "verdict": "SELL",
+    "note": "Build'in burada Generator Amulet kullanıyor. Blacksmith'e sat (henüz fiyat yok)"
   },
   {
     "where": "bank char:char0003:Character Bank p. 4#37",
