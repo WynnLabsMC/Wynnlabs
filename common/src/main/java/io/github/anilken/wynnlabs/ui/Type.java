@@ -88,9 +88,13 @@ enum Type {
         return Ui.onCaps(lineY, h, px(), shift(), !io.github.anilken.wynnlabs.core.Settings.on("webFont"));
     }
 
-    /** The text in this role's font. */
+    /**
+     * The text in this role's font. The web font has no emerald glyphs: prices in it are written
+     * with letters ("2stx 60.9LE"); the game's own font draws the glyphs.
+     */
     MutableComponent of(String text) {
-        return of(Component.literal(text));
+        boolean web = io.github.anilken.wynnlabs.core.Settings.on("webFont");
+        return of(Component.literal(web ? io.github.anilken.wynnlabs.market.Prices.letters(text) : text));
     }
 
     MutableComponent of(Component text) {
