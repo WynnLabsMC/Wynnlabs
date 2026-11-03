@@ -31,8 +31,10 @@ public final class CrowdMode {
     /** Damage numbers: digits (and the pack's glyphs) and nothing else. */
     private static final Pattern NUMBER = Pattern.compile("^[\\d,.\\s\\p{Co}\\x{D0000}-\\x{DFFFF}]+$");
 
-    /** An item display older than this many ticks is no spell effect, whatever it is made of. */
-    static final int LASTING_TICKS = 60;
+    /** A stack of this many displays or more is a body (a boss, a pet, a decoration), not a spell effect. */
+    static final int BODY_PARTS = 3;
+    /** The root display of every stack → how many displays ride in it (one tick old). */
+    private static volatile Map<Integer, Integer> stacks = Map.of();
     private static volatile boolean on;
     private static volatile int radius;
     private static volatile double radiusSq;
@@ -65,6 +67,9 @@ public final class CrowdMode {
             bodies = Map.of();
             return;
         }
+        if (++ticks % 20 == 0) {
+            dumpIfAsked(mc);
+        }
         radius = Settings.number("crowdRadius", 0);
         radiusSq = (double) radius * radius;
         me = mc.getUser().getName();
@@ -76,7 +81,11 @@ public final class CrowdMode {
         }
         players = online;
         Map<Integer, Boolean> found = new HashMap<>();
+        Map<Integer, Integer> sizes = new HashMap<>();
         for (Entity e : mc.level.entitiesForRendering()) {
+            if (e instanceof Display.ItemDisplay) {
+                sizes.merge(root(e).getId(), 1, Integer::sum);
+            }
             if (!(e instanceof Display.TextDisplay t)) {
                 continue;
             }
@@ -96,6 +105,52 @@ public final class CrowdMode {
             }
         }
         bodies = found;
+        stacks = sizes;
+    }
+
+    private static int ticks;
+
+    /**
+     * Study aid: when {@code config/wynnlabs/crowd-dump.request} exists, every display entity
+     * within 48 blocks is written to {@code crowd-dump.txt} (id, kind, age in ticks, item, model
+     * data, ride root, height over the player, the nearest label) and the request file removed.
+     */
+    private static void dumpIfAsked(Minecraft mc) {
+        try {
+            java.nio.file.Path dir = io.github.anilken.wynnlabs.core.Dirs.config();
+            java.nio.file.Path ask = dir.resolve("crowd-dump.request");
+            if (!java.nio.file.Files.exists(ask)) {
+                return;
+            }
+            java.nio.file.Files.deleteIfExists(ask);
+            StringBuilder out = new StringBuilder();
+            Vec3 me0 = mc.player.position();
+            for (Entity e : mc.level.entitiesForRendering()) {
+                if (!(e instanceof Display) || e.distanceToSqr(me0) > 48 * 48) {
+                    continue;
+                }
+                String kind = e instanceof Display.TextDisplay ? "text" : e instanceof Display.ItemDisplay ? "item" : "block";
+                String item = "";
+                String model = "";
+                if (e instanceof Display.ItemDisplay d) {
+                    ItemStack st = d.getSlot(0).get();
+                    item = st.isEmpty() ? "-" : net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).toString();
+                    var cmd = st.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
+                    model = cmd == null ? "" : String.valueOf(cmd.floats());
+                }
+                String text = e instanceof Display.TextDisplay t ? t.getText().getString().replace('\n', ' ') : "";
+                Entity root = root(e);
+                out.append(e.getId()).append('\t').append(kind).append('\t').append(e.tickCount).append('\t')
+                        .append(item).append('\t').append(model).append('\t').append(root.getId())
+                        .append('\t').append(String.format(java.util.Locale.ROOT, "%.1f", e.getY() - me0.y))
+                        .append('\t').append(String.format(java.util.Locale.ROOT, "%.1f", Math.sqrt(e.distanceToSqr(me0))))
+                        .append('\t').append(bodies.containsKey(root.getId()) ? "labelled:" + bodies.get(root.getId()) : "")
+                        .append('\t').append(hideEntity(e) ? "HIDDEN" : "").append('\t').append(text).append('\n');
+            }
+            java.nio.file.Files.writeString(dir.resolve("crowd-dump.txt"), out.toString());
+        } catch (Throwable t) {
+            System.out.println("[WynnLabs] crowd dump failed: " + t);
+        }
     }
 
     /** The bottom of the entity's ride chain. */
@@ -166,15 +221,16 @@ public final class CrowdMode {
             return NUMBER.matcher(text).matches() && !text.isBlank() && far(e, Math.max(radius, 4));
         }
         if (e instanceof Display.ItemDisplay d) {
-            // a spell effect is gone within a few seconds; what stands longer is a body: a boss
-            // built of boat models, a totem, a decoration
-            if (e.tickCount > LASTING_TICKS) {
-                return false;
-            }
             Entity root = root(e);
             Boolean body = bodies.get(root.getId());
             if (body != null) {
                 return body;                  // a labelled stack: another player's summon, or kept
+            }
+            // a spell effect is a stack of one or two displays (an empty root and one boat model),
+            // whatever its age: a totem's rings linger for a minute. A body is built of more: a
+            // boss of boat models, a decoration, a pet
+            if (stacks.getOrDefault(root.getId(), 1) >= BODY_PARTS) {
+                return false;
             }
             // a cosmetic rides a player, a prop is no boat: drawn; a label-less stack is an effect
             if (!(root instanceof Display) || !vfx(d)) {
