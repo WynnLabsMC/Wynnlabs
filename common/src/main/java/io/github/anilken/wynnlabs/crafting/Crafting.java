@@ -146,11 +146,30 @@ public final class Crafting {
 
     /** Prices for some names, read now, for a search on another thread. */
     public static Map<String, CraftSearch.Price> prices(Iterable<Ingredient> ingredients) {
+        return prices(ingredients, null);
+    }
+
+    /**
+     * The same, plus a recipe's two materials at every tier under their price keys
+     * ({@link Shopping#materialKey}), for the shopping list. Only prices already kept are read.
+     */
+    public static Map<String, CraftSearch.Price> prices(Iterable<Ingredient> ingredients, CraftData.Recipe recipe) {
         Map<String, CraftSearch.Price> out = new HashMap<>();
         for (Ingredient i : ingredients) {
             CraftSearch.Price p = price(i.name());
             if (p != null) {
                 out.put(i.name(), p);
+            }
+        }
+        if (recipe != null) {
+            for (CraftData.Material m : recipe.materials()) {
+                for (int t = 1; t <= 3; t++) {
+                    String key = Shopping.materialKey(m.shown(), t);
+                    CraftSearch.Price p = price(key);
+                    if (p != null) {
+                        out.put(key, p);
+                    }
+                }
             }
         }
         return out;

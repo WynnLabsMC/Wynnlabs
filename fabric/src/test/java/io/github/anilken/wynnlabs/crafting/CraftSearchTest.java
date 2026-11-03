@@ -73,6 +73,34 @@ class CraftSearchTest {
     }
 
     @Test
+    void aRecipeAboveTheProfessionLevelStillFindsLayouts() {
+        // cooking 1 with Food 117-119 picked: the recipe's own level unlocks its ingredients
+        // (values from Wynntils' ingredient data, November 2026)
+        List<String> cook = List.of("cooking");
+        Ingredient crabLegs = new Ingredient("Crab Legs", 2, 115, cook,
+                Map.of("combatExperience", new Ingredient.Stat(10, 12, "Combat Experience", "%")), NO_POS, 0, 0, -620, NO_REQ);
+        Ingredient soldierRations = new Ingredient("Soldier Rations", 0, 113, cook,
+                Map.of("combatExperience", new Ingredient.Stat(3, 4, "Combat Experience", "%")), NO_POS, 0, 0, -240, NO_REQ);
+        Ingredient driedGill = new Ingredient("Dried Gill", 2, 15, cook,
+                Map.of("combatExperience", new Ingredient.Stat(8, 10, "Combat Experience", "%")), NO_POS, 0, 0, -270, NO_REQ);
+        Ingredient above = new Ingredient("Above The Bracket", 2, 118, cook,
+                Map.of("combatExperience", new Ingredient.Stat(30, 40, "Combat Experience", "%")), NO_POS, 0, 0, 0, NO_REQ);
+        CraftSearch.Request q = new CraftSearch.Request(CraftData.byId("Food117-119"), 1, 1, Craft.Speed.NORMAL,
+                CraftSearch.Goal.of("combatExperience"), List.of(crabLegs, soldierRations, driedGill, above), Map.of(), 1, false,
+                name -> null);
+        assertEquals(List.of("Crab Legs", "Soldier Rations", "Dried Gill"),
+                CraftSearch.candidates(q, CraftSearch.Tier.ANY).stream().map(Ingredient::name).toList(),
+                "up to the recipe's first level, not the profession's 1");
+        CraftSearch.Outcome any = CraftSearch.search(q, CraftSearch.Tier.ANY, new CraftSearch.Budget(5_000));
+        assertNotNull(any.best());
+        assertTrue(any.best().slots().stream().filter(i -> !i.empty()).allMatch(i -> i == crabLegs), names(any.best()));
+        assertTrue(any.best().score() > 0);
+        CraftSearch.Outcome two = CraftSearch.search(q, CraftSearch.Tier.OWN_PLUS_TWO, new CraftSearch.Budget(5_000));
+        assertNotNull(two.best());
+        assertEquals(2, two.best().bought().size());
+    }
+
+    @Test
     void agreesWithBruteForce() {
         Map<String, Integer> owned = Map.of("Strong", 2, "Mana Eater", 3, "Inverter", 1, "Cursed", 2, "Sturdy", 1);
         List<CraftSearch.Goal> goals = List.of(

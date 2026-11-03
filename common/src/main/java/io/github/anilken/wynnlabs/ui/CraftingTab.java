@@ -182,7 +182,11 @@ public final class CraftingTab {
         } catch (Throwable t) {
             // a recording without a bank or skills: an empty stock
         }
-        prices = Crafting.prices(all);
+        if (type == null) {
+            type = defaultType();
+            minLevel = bestBracket(type).minLevel();
+        }
+        prices = Crafting.prices(all, recipe());
         if (!wantedPrices.isEmpty()) {
             // ask Wynnventory (with the player's own key, when switched on) for prices shown without one
             List<String> ask = new ArrayList<>();
@@ -195,10 +199,6 @@ public final class CraftingTab {
             if (!ask.isEmpty()) {
                 GameState.current().requestPrices(ask);
             }
-        }
-        if (type == null) {
-            type = defaultType();
-            minLevel = bestBracket(type).minLevel();
         }
     }
 

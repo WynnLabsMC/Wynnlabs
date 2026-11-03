@@ -84,12 +84,17 @@ class CraftingStockTest {
         Ingredient rare = new Ingredient("Rare Thing", 3, 4, List.of("scribing"), Map.of(), new int[6], 0, 0, 0, new int[5]);
         Ingredient priced = new Ingredient("Priced Thing", 1, 4, List.of("scribing"), Map.of(), new int[6], 0, 0, 0, new int[5]);
         Shopping.Needs n = Shopping.of(CraftData.byId("Scroll1-3"), 1, 1, List.of(gunk, rare, priced, priced,
-                Ingredient.NONE, Ingredient.NONE), stock, name -> name.equals("Priced Thing")
-                        ? new CraftSearch.Price(300, true) : null);
+                Ingredient.NONE, Ingredient.NONE), stock, name -> switch (name) {
+                    case "Priced Thing" -> new CraftSearch.Price(300, true);
+                    case "Oak Paper T1" -> new CraftSearch.Price(50, false);  // a material, priced at its tier
+                    default -> null;
+                });
         assertEquals(2, n.lines().stream().filter(Shopping.Line::material).count(), "oil and paper are both short");
         assertTrue(n.lines().stream().noneMatch(l -> l.name().equals("Putrid Gunk")), "45 gunk owned");
-        assertEquals(600, n.cost());
-        assertEquals(List.of("Rare Thing"), n.unpriced());
+        Shopping.Line paper = n.lines().stream().filter(l -> l.name().equals("Oak Paper")).findFirst().orElseThrow();
+        assertEquals(Long.valueOf(50L * paper.count()), paper.cost(), "a material shows its Trade Market price");
+        assertEquals(600 + 50L * paper.count(), n.cost(), "materials count towards the total");
+        assertEquals(List.of("Gudgeon Oil T1", "Rare Thing"), n.unpriced(), "an unpriced material is asked for with its tier");
         assertTrue(n.lines().stream().anyMatch(l -> l.name().equals("Priced Thing") && l.count() == 2 && l.old()));
     }
 
