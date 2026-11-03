@@ -513,15 +513,15 @@ public final class TooltipListener {
                 .replace('Ö', 'O').replace('Ş', 'S').replace('Ü', 'U');
         StringBuilder back = new StringBuilder().append('');
         StringBuilder front = new StringBuilder();
-        int letters = 0;
+        int span = 0;                               // the cells' width: 6 a letter, 4 for the narrow I
         for (char c : plain.toCharArray()) {
             if (c >= 'A' && c <= 'Z') {
                 back.appendCodePoint(0xcffff).append((char) (0xe030 + c - 'A'));
                 front.append((char) (0xe000 + c - 'A'));
-                letters++;
+                span += c == 'I' ? 4 : 6;
             }
         }
-        back.appendCodePoint(0xcffff).append('').appendCodePoint(0xd0000 - (6 * letters + 2));
+        back.appendCodePoint(0xcffff).append('').appendCodePoint(0xd0000 - (span + 2));
         front.appendCodePoint(0xd0002);
         return Component.literal(back.toString())
                 .setStyle(net.minecraft.network.chat.Style.EMPTY.withFont(new net.minecraft.network.chat.FontDescription.Resource(
