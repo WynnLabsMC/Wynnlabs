@@ -77,8 +77,9 @@ final class CraftDropdowns extends CraftPanel {
                 }
             }
             case GOAL -> {
-                for (String id : idsForProfession()) {
-                    items.add(UiMenu.Item.of(id, null, tab.statName(id), null, tab.weights.containsKey(id)));
+                List<String> ids = idsForProfession();
+                for (String id : picksFirst(ids, tab.weights::containsKey)) {
+                    items.add(UiMenu.Item.of(id, null, menuName(id, ids), null, tab.weights.containsKey(id)));
                 }
             }
             case CONDITIONS -> {
@@ -89,8 +90,9 @@ final class CraftDropdowns extends CraftPanel {
                 items.divide();
                 items.add(UiMenu.Item.of("cap", null, L.t("wynnlabs.craft.cond_points"), null, tab.capToPoints));
                 items.divide();
-                for (String id : idsForProfession()) {
-                    items.add(UiMenu.Item.of("neg:" + id, null, L.t("wynnlabs.craft.cond_no_negative_id", tab.statName(id)), null,
+                List<String> ids = idsForProfession();
+                for (String id : picksFirst(ids, tab.noNegative::contains)) {
+                    items.add(UiMenu.Item.of("neg:" + id, null, L.t("wynnlabs.craft.cond_no_negative_id", menuName(id, ids)), null,
                             tab.noNegative.contains(id)));
                 }
             }
@@ -198,6 +200,39 @@ final class CraftDropdowns extends CraftPanel {
             }
             default -> { }
         }
+    }
+
+    /** The ids picked now first, in their order, then the rest: what is chosen stays in sight. */
+    private static List<String> picksFirst(List<String> ids, java.util.function.Predicate<String> picked) {
+        List<String> out = new ArrayList<>();
+        for (String id : ids) {
+            if (picked.test(id)) {
+                out.add(id);
+            }
+        }
+        for (String id : ids) {
+            if (!picked.test(id)) {
+                out.add(id);
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The stat's name in the menus, told apart from another of the same name: the game shows
+     * "Spell Damage" for the per cent and the raw one alike, so the per cent one says "%".
+     */
+    private String menuName(String id, List<String> ids) {
+        String name = tab.statName(id);
+        if (!"%".equals(tab.unit(id))) {
+            return name;
+        }
+        for (String other : ids) {
+            if (!other.equals(id) && tab.statName(other).equals(name)) {
+                return name + " %";
+            }
+        }
+        return name;
     }
 
     /** Identifications the recipe's profession can get, for the goal and the conditions. */
