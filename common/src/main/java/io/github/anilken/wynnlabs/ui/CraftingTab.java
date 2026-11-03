@@ -71,7 +71,7 @@ public final class CraftingTab {
     final String[] slots = new String[Craft.SLOTS];
 
     // ---- the goal ----
-    final LinkedHashMap<String, Double> weights = new LinkedHashMap<>(Map.of("spellDamage", 1.0));
+    final LinkedHashMap<String, Double> weights = new LinkedHashMap<>();
     final Set<String> noNegative = new LinkedHashSet<>();
     boolean capToPoints;
     int floorIndex;
