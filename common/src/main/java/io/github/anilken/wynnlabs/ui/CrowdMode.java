@@ -1,23 +1,11 @@
 package io.github.anilken.wynnlabs.ui;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import io.github.anilken.wynnlabs.core.Settings;
-import io.github.anilken.wynnlabs.mixin.PowerupLayerAccessor;
-import io.github.anilken.wynnlabs.mixin.PowerupModelAccessor;
-import io.github.anilken.wynnlabs.mixin.PowerupSpriteAccessor;
-import io.github.anilken.wynnlabs.mounts.PowerupPrint;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.item.ItemStackRenderState;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.BoatItem;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.CustomModelData;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
@@ -55,12 +43,6 @@ public final class CrowdMode {
     private static volatile java.util.Set<String> players = java.util.Set.of();
     /** The root display of every labelled stack → true to hide it (another player's summon). */
     private static volatile Map<Integer, Boolean> bodies = Map.of();
-    /** The root displays of stacks with a part in a known effect texture ({@link CrowdEffects}), one tick old. */
-    private static volatile java.util.Set<Integer> effects = java.util.Set.of();
-    /** A boat model number → whether its texture is a known effect: each model is looked at once. */
-    private static final Map<Float, Boolean> EFFECT_MODELS = new HashMap<>();
-    /** The largest texture side fingerprinted: effect sheets run to 256 (a flame's frames 512 tall). */
-    private static final int MAX_SPRITE = 1024;
 
     /** Whether a Shift key is held now. */
     public static boolean shiftDown(Minecraft client) {
@@ -100,14 +82,9 @@ public final class CrowdMode {
         players = online;
         Map<Integer, Boolean> found = new HashMap<>();
         Map<Integer, Integer> sizes = new HashMap<>();
-        java.util.Set<Integer> marked = new java.util.HashSet<>();
         for (Entity e : mc.level.entitiesForRendering()) {
-            if (e instanceof Display.ItemDisplay d) {
-                int rootId = root(e).getId();
-                sizes.merge(rootId, 1, Integer::sum);
-                if (effect(mc, d.getSlot(0).get())) {
-                    marked.add(rootId);
-                }
+            if (e instanceof Display.ItemDisplay) {
+                sizes.merge(root(e).getId(), 1, Integer::sum);
             }
             if (!(e instanceof Display.TextDisplay t)) {
                 continue;
@@ -129,54 +106,6 @@ public final class CrowdMode {
         }
         bodies = found;
         stacks = sizes;
-        effects = marked;
-    }
-
-    /** Whether the stack is a boat model whose texture {@link CrowdEffects} knows as a spell effect. */
-    private static boolean effect(Minecraft mc, ItemStack stack) {
-        if (stack.isEmpty() || !(stack.getItem() instanceof BoatItem)) {
-            return false;
-        }
-        CustomModelData c = stack.get(DataComponents.CUSTOM_MODEL_DATA);
-        if (c == null || c.floats().isEmpty()) {
-            return false;
-        }
-        return EFFECT_MODELS.computeIfAbsent(c.floats().get(0), k -> {
-            try {
-                return CrowdEffects.effect(print(mc, stack)) != null;
-            } catch (Throwable t) {
-                return false;
-            }
-        });
-    }
-
-    /** The fingerprint of the stack's main sprite as drawn ({@link PowerupPrint}), null when it has none. */
-    private static String print(Minecraft mc, ItemStack stack) {
-        ItemStackRenderState state = new ItemStackRenderState();
-        mc.getItemModelResolver().updateForTopItem(state, stack, ItemDisplayContext.FIXED, mc.level, null, 0);
-        TextureAtlasSprite main = null;
-        PowerupModelAccessor acc = (PowerupModelAccessor) state;
-        ItemStackRenderState.LayerRenderState[] layers = acc.wynnlabs$layers();
-        for (int i = 0; i < acc.wynnlabs$layerCount() && main == null; i++) {
-            java.util.List<BakedQuad> quads = ((PowerupLayerAccessor) layers[i]).wynnlabs$quads();
-            for (BakedQuad q : quads) {
-                if (!q.sprite().contents().name().getPath().endsWith("empty")) {
-                    main = q.sprite();
-                    break;
-                }
-            }
-        }
-        if (main == null) {
-            main = state.pickParticleIcon(RandomSource.create(0));
-        }
-        if (main == null) {
-            return null;
-        }
-        NativeImage img = ((PowerupSpriteAccessor) main.contents()).wynnlabs$image();
-        if (img == null || img.getWidth() > MAX_SPRITE || img.getHeight() > MAX_SPRITE) {
-            return null;
-        }
-        return PowerupPrint.of(img.getWidth(), img.getHeight(), img::getPixel);
     }
 
     private static int ticks;
@@ -197,14 +126,6 @@ public final class CrowdMode {
             StringBuilder out = new StringBuilder();
             Vec3 me0 = mc.player.position();
             for (Entity e : mc.level.entitiesForRendering()) {
-                if (e instanceof net.minecraft.world.entity.item.ItemEntity it && e.distanceToSqr(me0) <= 64 * 64) {
-                    out.append("DROP\t").append(e.getId()).append('\t').append(e.tickCount).append('\t')
-                            .append(io.github.anilken.wynnlabs.game.ItemJson.clean(it.getItem().getHoverName().getString()))
-                            .append(" x").append(it.getItem().getCount()).append('\t')
-                            .append(String.format(java.util.Locale.ROOT, "%.1f %.1f %.1f", e.getX(), e.getY(), e.getZ()))
-                            .append('\t').append(String.format(java.util.Locale.ROOT, "%.1f", Math.sqrt(e.distanceToSqr(me0)))).append('\n');
-                    continue;
-                }
                 if (!(e instanceof Display) || e.distanceToSqr(me0) > 48 * 48) {
                     continue;
                 }
@@ -304,10 +225,6 @@ public final class CrowdMode {
             Boolean body = bodies.get(root.getId());
             if (body != null) {
                 return body;                  // a labelled stack: another player's summon, or kept
-            }
-            // a known effect texture: a spell effect however many displays it is built of
-            if (effects.contains(root.getId())) {
-                return radius == 0 || far(e, radius);
             }
             // a spell effect is a stack of up to three displays (an empty root and one or two boat models),
             // whatever its age: a totem's rings linger for a minute. A body is built of more: a
