@@ -433,9 +433,8 @@ final class GearAdvice {
             if (w == except || w.isEmpty()) {
                 continue;
             }
-            Optional<ItemView> p = GameState.current().view(w);
-            if (p.isPresent() && p.get().isGear() && p.get().data().set().isPresent()
-                    && p.get().data().set().get().name().equals(set)) {
+            if (GameState.current().view(w).flatMap(ItemView::gearData).flatMap(ItemData::set)
+                    .filter(s -> s.name().equals(set)).isPresent()) {
                 n++;
             }
         }
@@ -473,10 +472,10 @@ final class GearAdvice {
             int others = setCount(set.name(), replaced);
             d += setScore(set, others + 1) - setScore(set, others);
         }
-        Optional<ItemView> rp = replaced == null || replaced.isEmpty() ? Optional.empty()
-                : GameState.current().view(replaced);
-        if (rp.isPresent() && rp.get().isGear() && rp.get().data().set().isPresent()) {
-            var set = rp.get().data().set().get();
+        Optional<SetData> rs = replaced == null || replaced.isEmpty() ? Optional.empty()
+                : GameState.current().view(replaced).flatMap(ItemView::gearData).flatMap(ItemData::set);
+        if (rs.isPresent()) {
+            var set = rs.get();
             boolean same = info.set().isPresent() && info.set().get().name().equals(set.name());
             if (!same) {
                 int withIt = setCount(set.name(), null);

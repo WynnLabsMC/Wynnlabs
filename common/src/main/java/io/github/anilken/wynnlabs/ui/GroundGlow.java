@@ -110,11 +110,13 @@ public final class GroundGlow {
         Optional<ItemView> parsed = WynntilsItems.view(stack);
         Tier tier = null;
         String gearName = null;
-        if (parsed.isPresent() && parsed.get().isGear()) {
-            tier = parsed.get().data().tier();
-            gearName = parsed.get().data().name();
-        } else if (parsed.isPresent() && parsed.get().isBox()) {
-            tier = parsed.get().box().tier();
+        var gear = parsed.flatMap(ItemView::gearData);
+        var box = parsed.flatMap(ItemView::boxPart);
+        if (gear.isPresent()) {
+            tier = gear.get().tier();
+            gearName = gear.get().name();
+        } else if (box.isPresent()) {
+            tier = box.get().tier();
         } else if (parsed.isPresent() && !parsed.get().plain()) {
             ItemView v = parsed.get();
             if (v.type() != null && v.type().contains("Emerald")) {
