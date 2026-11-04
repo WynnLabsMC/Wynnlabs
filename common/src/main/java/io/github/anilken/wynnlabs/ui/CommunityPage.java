@@ -43,6 +43,7 @@ final class CommunityPage {
     static final int MENU_BUDGET = 2;
     static final int MENU_OWN = 3;
     static final int MENU_STAT = 4;
+    static final int MENU_CLASS = 5;
     /** A row's thin rule, a family's band, the goal row's face. */
     static final int RULE = 0x559A855C;
     static final int BAND = 0xFFDCCB9C;
@@ -233,6 +234,31 @@ final class CommunityPage {
         return sign + n + (a < 1e6 ? "k" : "M");
     }
 
+    /** "Shaman (you)" for your class, else its name. */
+    static String classLabel(Klass c, Klass yours) {
+        return c == yours ? L.t("wynnlabs.community.your_class", className(c)) : className(c);
+    }
+
+    /** The picked classes in one line: "Shaman (you)", "All classes" or "Mage, Shaman". */
+    private String classesText(Klass yours) {
+        Set<Klass> picked = filter.picked(yours);
+        if (picked.size() == CommunityFilter.CLASSES.size()) {
+            return L.t("wynnlabs.community.all_classes");
+        }
+        List<String> names = new ArrayList<>();
+        for (Klass c : CommunityFilter.CLASSES) {
+            if (picked.contains(c)) {
+                names.add(picked.size() == 1 ? classLabel(c, yours) : className(c));
+            }
+        }
+        return String.join(", ", names);
+    }
+
+    /** "Mage": a class as the game writes it. */
+    static String className(Klass c) {
+        return c.name().charAt(0) + c.name().substring(1).toLowerCase(Locale.ROOT);
+    }
+
     /** "Lv 41-50", or "Lv 106" when the build is for one level. */
     static String levels(CommunityBuilds.Entry e) {
         return e.levelMin() == e.levelMax() ? "Lv " + e.levelMin() : L.t("wynnlabs.community.levels", e.levelMin(), e.levelMax());
@@ -375,11 +401,17 @@ final class CommunityPage {
             cy += Type.LABEL.lineHeight + gap;
         }
         Klass k = klass();
-        String cls = k == Klass.NONE ? L.t("wynnlabs.community.your_class_none")
-                : L.t("wynnlabs.community.your_class", k.name().charAt(0) + k.name().substring(1).toLowerCase(Locale.ROOT));
         cy = head(g, "wynnlabs.community.f_class", x, cy);
-        cy = check(g, cls, null, !filter.allClasses(), x, cy, w, "c.classes", false, null, host, mx, my);
-        cy = check(g, L.t("wynnlabs.community.all_classes"), null, filter.allClasses(), x, cy, w, "c.classes", true, null, host, mx, my) + gap;
+        Set<Klass> picked = filter.picked(k);
+        if (tab.compact) {
+            // the small menu: one line that opens the five classes, so the rail still fits
+            cy = value(g, classesText(k), !filter.classes().isEmpty(), x, cy, w, MENU_CLASS, mx, my) + gap;
+        } else {
+            for (Klass c : CommunityFilter.CLASSES) {
+                cy = check(g, classLabel(c, k), null, picked.contains(c), x, cy, w, "c.class", c, null, host, mx, my);
+            }
+            cy += gap;
+        }
 
         cy = head(g, "wynnlabs.community.f_level", x, cy);
         cy = value(g, levelText(filter.level()), filter.level() != 0, x, cy, w, MENU_LEVEL, mx, my) + gap;
@@ -1013,8 +1045,15 @@ final class CommunityPage {
             String shown = q.regionMatches(true, 0, "uses", 0, 4) ? q.substring(4).replaceFirst("^:?\\s*", "") : q;
             out.add(new String[] {"search", L.t("wynnlabs.community.chip_uses", shown)});
         }
-        if (filter.allClasses()) {
-            out.add(new String[] {"classes", L.t("wynnlabs.community.all_classes")});
+        if (!filter.classes().isEmpty()) {
+            List<String> names = new ArrayList<>();
+            for (Klass c : CommunityFilter.CLASSES) {
+                if (filter.classes().contains(c)) {
+                    names.add(className(c));
+                }
+            }
+            out.add(new String[] {"classes", names.size() == CommunityFilter.CLASSES.size() ? L.t("wynnlabs.community.all_classes")
+                    : String.join(", ", names)});
         }
         if (filter.level() != 0) {
             out.add(new String[] {"level", levelText(filter.level())});
@@ -1072,6 +1111,10 @@ final class CommunityPage {
     void click(String act, Object arg, long now) {
         switch (act) {
             case "c.classes" -> set(filter.withClasses((boolean) arg));
+            case "c.class" -> {
+                Klass c = (Klass) arg;
+                set(filter.withClass(c, !filter.picked(klass()).contains(c), klass()));
+            }
             case "c.role" -> {
                 String r = (String) arg;
                 set(filter.withRole(r, !filter.roles().contains(r)));
@@ -1179,6 +1222,13 @@ final class CommunityPage {
                     items.add(UiMenu.Item.of(String.valueOf(i), i > 0 ? "coin" : null, budgetText(i), null, i == filter.budget()));
                 }
             }
+            case MENU_CLASS -> {
+                Set<Klass> picked = filter.picked(klass());
+                for (int i = 0; i < CommunityFilter.CLASSES.size(); i++) {
+                    Klass c = CommunityFilter.CLASSES.get(i);
+                    items.add(UiMenu.Item.of(String.valueOf(i), null, classLabel(c, klass()), null, picked.contains(c)));
+                }
+            }
             case MENU_OWN -> {
                 for (int i = 0; i < CommunityFilter.OWN.length; i++) {
                     items.add(UiMenu.Item.of(String.valueOf(i), null, ownText(i), null, i == filter.own()));
@@ -1198,6 +1248,10 @@ final class CommunityPage {
             case MENU_LEVEL -> set(filter.withLevel(i));
             case MENU_BUDGET -> set(filter.withBudget(i));
             case MENU_OWN -> set(filter.withOwn(i));
+            case MENU_CLASS -> {
+                Klass c = CommunityFilter.CLASSES.get(i);
+                set(filter.withClass(c, !filter.picked(klass()).contains(c), klass()));
+            }
             default -> {
                 stat = i;
                 sortCol = 2;

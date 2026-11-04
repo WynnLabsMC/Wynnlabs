@@ -119,6 +119,11 @@ final class Pieces {
         return piece(info, null, true);
     }
 
+    /** {@link #bestRoll(ItemData)} with the link's powders in it. */
+    static Piece bestRoll(ItemData info, String powders) {
+        return piece(info, powders, true);
+    }
+
     private static Piece piece(ItemData info, String powders, boolean best) {
         Map<String, Double> stats = new HashMap<>();
         for (StatRange v : info.stats()) {

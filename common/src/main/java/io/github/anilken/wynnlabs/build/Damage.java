@@ -162,6 +162,11 @@ public final class Damage {
     }
 
     /** {@link #piece(ItemData)} with the powders a WynnBuilder link gives it ("T6T6E7") instead of assumed ones. */
+    /** {@link #piece(ItemData, String)} with every roll at its best. */
+    public static Piece bestRoll(ItemData info, String powders) {
+        return Pieces.bestRoll(info, powders);
+    }
+
     public static Piece piece(ItemData info, String powders) {
         return Pieces.piece(info, powders);
     }

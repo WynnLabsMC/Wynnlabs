@@ -5,3 +5,5 @@ fabric/src/test/resources/fixtures/**/*.gz binary
 # the community build list is published byte for byte: its .sha256 must match the bytes on GitHub
 data/community-builds.json -text
 data/community-builds.sha256 -text
+# the language files are edited by tools on Windows: keep them LF so a one-key change stays a one-line diff
+common/src/main/resources/assets/wynnlabs/lang/*.json text eol=lf
