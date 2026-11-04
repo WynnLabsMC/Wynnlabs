@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.build.ClassProfiles;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.build.DamageReport;
 import io.github.anilken.wynnlabs.core.L;
+import io.github.anilken.wynnlabs.core.PerCharacter;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.core.Settings;
@@ -463,22 +464,22 @@ public final class Coach {
         return s.has(key) ? s.get(key).getAsDouble() + (x - s.get(key).getAsDouble()) / k : x;
     }
 
-    private static JsonObject measuredCache;
-    private static String measuredFor = "";
+    private static final PerCharacter<JsonObject> MEASURED = new PerCharacter<>(Coach::loadMeasured);
 
     public static JsonObject measured() {
-        if (!Profile.id().equals(measuredFor) || measuredCache == null) {
-            measuredFor = Profile.id();
-            measuredCache = new JsonObject();
-            try {
-                Path f = Profile.dir().resolve("measured.json");
-                if (Files.exists(f)) {
-                    measuredCache = JsonParser.parseString(Files.readString(f)).getAsJsonObject();
-                }
-            } catch (Exception ignored) {
+        return MEASURED.get();
+    }
+
+    private static JsonObject loadMeasured() {
+        JsonObject m = new JsonObject();
+        try {
+            Path f = Profile.dir().resolve("measured.json");
+            if (Files.exists(f)) {
+                m = JsonParser.parseString(Files.readString(f)).getAsJsonObject();
             }
+        } catch (Exception ignored) {
         }
-        return measuredCache;
+        return m;
     }
 
     private static long measuredSavedAt;

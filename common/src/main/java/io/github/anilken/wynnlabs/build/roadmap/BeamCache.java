@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.github.anilken.wynnlabs.build.Damage;
+import io.github.anilken.wynnlabs.core.PerCharacter;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.game.GameState;
 
@@ -42,8 +43,7 @@ public final class BeamCache {
     }
 
     /** The loaded entries and whose they are; access-ordered, so the oldest drop first. */
-    private static Map<String, Map<String, String>> entries = new LinkedHashMap<>(16, 0.75f, true);
-    private static String loadedFor;
+    private static final PerCharacter<Map<String, Map<String, String>>> ENTRIES = new PerCharacter<>(BeamCache::load);
     private static boolean dirty;
 
     /**
@@ -66,22 +66,22 @@ public final class BeamCache {
     }
 
     private static synchronized Map<String, Map<String, String>> entries() {
-        String id = Profile.id();
-        if (!id.equals(loadedFor)) {
-            loadedFor = id;
-            entries = new LinkedHashMap<>(16, 0.75f, true);
-            dirty = false;
-            Path f = file();
-            if (f != null && Files.exists(f)) {
-                try {
-                    Map<String, Map<String, String>> read = GSON.fromJson(Files.readString(f, StandardCharsets.UTF_8),
-                            new TypeToken<Map<String, Map<String, String>>>() {}.getType());
-                    if (read != null) {
-                        entries.putAll(read);
-                    }
-                } catch (Exception e) {
-                    // a broken cache is an empty one
+        return ENTRIES.get();
+    }
+
+    private static Map<String, Map<String, String>> load() {
+        Map<String, Map<String, String>> entries = new LinkedHashMap<>(16, 0.75f, true);
+        dirty = false;
+        Path f = file();
+        if (f != null && Files.exists(f)) {
+            try {
+                Map<String, Map<String, String>> read = GSON.fromJson(Files.readString(f, StandardCharsets.UTF_8),
+                        new TypeToken<Map<String, Map<String, String>>>() {}.getType());
+                if (read != null) {
+                    entries.putAll(read);
                 }
+            } catch (Exception e) {
+                // a broken cache is an empty one
             }
         }
         return entries;
@@ -246,7 +246,7 @@ public final class BeamCache {
         }
         try {
             Files.createDirectories(f.getParent());
-            Files.writeString(f, GSON.toJson(entries), StandardCharsets.UTF_8);
+            Files.writeString(f, GSON.toJson(ENTRIES.loaded()), StandardCharsets.UTF_8);
             dirty = false;
         } catch (Exception e) {
             // kept in memory; written next time
@@ -256,8 +256,7 @@ public final class BeamCache {
     /** Tests only: forget everything, and share nothing until the next {@link #share}. */
     public static synchronized void clear() {
         shared = null;
-        entries = new LinkedHashMap<>(16, 0.75f, true);
-        loadedFor = null;
+        ENTRIES.clear();
         dirty = false;
     }
 }
