@@ -63,9 +63,7 @@ public final class UpdateDownload {
 
     /** Runs a download; tests swap it for one that runs nothing or runs at once. */
     static Consumer<Runnable> starter = job -> {
-        Thread t = new Thread(job, "wynnlabs-update-download");
-        t.setDaemon(true);
-        t.start();
+        Workers.factory("wynnlabs-update-download", false).newThread(job).start();
     };
     static Opener opener = UpdateDownload::get;
     /** This jar's path when it can be replaced; tests give their own. */

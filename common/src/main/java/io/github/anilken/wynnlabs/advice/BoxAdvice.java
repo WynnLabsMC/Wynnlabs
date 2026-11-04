@@ -142,11 +142,7 @@ final class BoxAdvice {
 
     /** Judges boxes for tooltips and slot badges in the background in the game; one at a time. */
     private static final java.util.concurrent.ExecutorService WORKER =
-            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "wynnlabs-box");
-                t.setDaemon(true);
-                return t;
-            });
+            io.github.anilken.wynnlabs.core.Workers.single("box");
 
     /** What {@link #decide} returns while the box is still being judged: no verdict yet. */
     static final Decision PENDING = new Decision(null, null);

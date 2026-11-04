@@ -164,11 +164,7 @@ public final class Build {
 
     /** Works the plan out in the background; one at a time. */
     private static final java.util.concurrent.ExecutorService WORKER =
-            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "wynnlabs-build");
-                t.setDaemon(true);
-                return t;
-            });
+            io.github.anilken.wynnlabs.core.Workers.single("build");
     private static volatile boolean computing;
 
     /**

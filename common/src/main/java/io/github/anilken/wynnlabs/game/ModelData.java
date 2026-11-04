@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.game;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.anilken.wynnlabs.core.Workers;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -44,7 +45,7 @@ public final class ModelData {
         reading = true;
         lastTry = now;
         Path f = wynntilsCacheDir.resolve(FILE);
-        Thread t = new Thread(() -> {
+        Workers.factory("wynnlabs-models", false).newThread(() -> {
             try {
                 if (Files.isRegularFile(f)) {
                     Map<String, Float> table = parse(Files.readString(f, StandardCharsets.UTF_8));
@@ -57,9 +58,7 @@ public final class ModelData {
             } finally {
                 reading = false;
             }
-        }, "wynnlabs-models");
-        t.setDaemon(true);
-        t.start();
+        }).start();
     }
 
     /** The float for this model key; {@link Float#NaN} when unknown or not loaded. */

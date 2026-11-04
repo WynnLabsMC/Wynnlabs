@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.github.anilken.wynnlabs.core.Settings;
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.model.Pin;
 import io.github.anilken.wynnlabs.quests.Waypoints;
@@ -222,11 +223,8 @@ public final class GuideLine {
     private static volatile Target routed;
     /** One thread for route searches; a new request replaces one still waiting. */
     private static final ThreadPoolExecutor ROUTER = new ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(1), r -> {
-                Thread t = new Thread(r, "WynnLabs guide route");
-                t.setDaemon(true);
-                return t;
-            }, new ThreadPoolExecutor.DiscardOldestPolicy());
+            new ArrayBlockingQueue<>(1), Workers.factory("WynnLabs guide route", false),
+            new ThreadPoolExecutor.DiscardOldestPolicy());
 
     private GuideLine() {}
 

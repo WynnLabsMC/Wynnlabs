@@ -1,5 +1,6 @@
 package io.github.anilken.wynnlabs.ui;
 
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.quests.GuideImages;
 import io.github.anilken.wynnlabs.quests.QuestWiki;
 
@@ -18,11 +19,8 @@ final class QuestPictures {
 
     private static final Map<String, Map<String, List<GuideImages.Image>>> READ = new ConcurrentHashMap<>();
     private static final Map<String, Boolean> ASKED = new ConcurrentHashMap<>();
-    private static final ExecutorService ONE = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "WynnLabs quest pictures");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final ExecutorService ONE =
+            Executors.newSingleThreadExecutor(Workers.factory("WynnLabs quest pictures", false));
 
     private QuestPictures() {}
 

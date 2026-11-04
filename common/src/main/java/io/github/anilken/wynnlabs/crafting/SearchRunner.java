@@ -1,8 +1,9 @@
 package io.github.anilken.wynnlabs.crafting;
 
+import io.github.anilken.wynnlabs.core.Workers;
+
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 /**
@@ -12,12 +13,7 @@ import java.util.function.Consumer;
  */
 public final class SearchRunner {
 
-    private final ExecutorService exec = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "wynnlabs-craft");
-        t.setDaemon(true);
-        t.setPriority(Thread.MIN_PRIORITY);
-        return t;
-    });
+    private final ExecutorService exec = Workers.singleLow("craft");
     private volatile CraftSearch.Budget current;
 
     /** Starts a search of all three tiers within {@code millis}; {@code done} gets them unless a newer search replaced it. */

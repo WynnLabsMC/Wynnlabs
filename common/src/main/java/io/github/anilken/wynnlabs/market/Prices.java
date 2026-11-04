@@ -403,11 +403,8 @@ public final class Prices {
     /** The most price lookups in flight at once: one as a rule, {@code rules.chestPriceThreads} (5) with a loot chest open. */
     private static final int MAX_LANES = 8;
     private static final java.util.concurrent.ExecutorService FETCHER =
-            java.util.concurrent.Executors.newFixedThreadPool(MAX_LANES, r -> {
-                Thread t = new Thread(r, "wynninv-prices");
-                t.setDaemon(true);
-                return t;
-            });
+            java.util.concurrent.Executors.newFixedThreadPool(MAX_LANES,
+                    io.github.anilken.wynnlabs.core.Workers.factory("wynninv-prices", false));
     private static final java.util.concurrent.atomic.AtomicInteger IN_FLIGHT = new java.util.concurrent.atomic.AtomicInteger();
     private static volatile int lanes = 1;
 
@@ -425,11 +422,8 @@ public final class Prices {
      * never waits behind the bag's background price lookups; those wait while any is pending.
      */
     private static final java.util.concurrent.ExecutorService LISTINGS_FETCHER =
-            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "wynninv-listings");
-                t.setDaemon(true);
-                return t;
-            });
+            java.util.concurrent.Executors.newSingleThreadExecutor(
+                    io.github.anilken.wynnlabs.core.Workers.factory("wynninv-listings", false));
     private static final java.util.concurrent.atomic.AtomicInteger LISTINGS_PENDING = new java.util.concurrent.atomic.AtomicInteger();
     private static final java.util.Set<String> QUEUED = ConcurrentHashMap.newKeySet();
     private static final Map<String, Long> MISSES = new ConcurrentHashMap<>();

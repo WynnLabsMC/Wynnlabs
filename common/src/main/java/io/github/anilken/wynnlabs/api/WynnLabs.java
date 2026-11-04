@@ -34,6 +34,7 @@ import io.github.anilken.wynnlabs.core.Saver;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.core.Stamp;
 import io.github.anilken.wynnlabs.core.UpdateCheck;
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.endgame.AspectBook;
 import io.github.anilken.wynnlabs.endgame.LootrunLog;
 import io.github.anilken.wynnlabs.endgame.RaidLog;
@@ -72,7 +73,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -466,11 +466,7 @@ public final class WynnLabs {
         try {
             HttpServer s = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), port), 0);
             s.createContext("/", ex -> route(ex));
-            serverThreads = Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "wynnlabs-api");
-                t.setDaemon(true);
-                return t;
-            });
+            serverThreads = Workers.single("api");
             s.setExecutor(serverThreads);
             s.start();
             server = s;

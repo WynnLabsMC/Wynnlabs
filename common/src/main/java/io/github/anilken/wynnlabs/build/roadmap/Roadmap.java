@@ -737,12 +737,7 @@ public final class Roadmap {
     private static volatile boolean again;
     private static volatile int version;
     private static final java.util.concurrent.ExecutorService BUILDER =
-            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, "wynnlabs-roadmap");
-                t.setDaemon(true);
-                t.setPriority(Thread.MIN_PRIORITY);
-                return t;
-            });
+            io.github.anilken.wynnlabs.core.Workers.singleLow("roadmap");
 
     /** The inputs key the character's map was built for. */
     private static volatile String cachedKey = "";

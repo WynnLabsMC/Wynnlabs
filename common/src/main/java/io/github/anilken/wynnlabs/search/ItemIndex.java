@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.quests.QuestWiki;
 
@@ -86,7 +87,7 @@ public final class ItemIndex {
             return;
         }
         started = true;
-        Thread t = new Thread(() -> {
+        Workers.factory("wynnlabs-item-index", true).newThread(() -> {
             Path cache = gameDir.resolve("wynntils/cache");
             try {
                 List<Area> chests = LootChests.load(userChests);
@@ -104,10 +105,7 @@ public final class ItemIndex {
                     current = new ItemIndex(List.of(), List.of(), Map.of(), Places.EMPTY, "error: " + e);
                 }
             }
-        }, "wynnlabs-item-index");
-        t.setDaemon(true);
-        t.setPriority(Thread.MIN_PRIORITY);
-        t.start();
+        }).start();
     }
 
     /** Reads every file now, on the calling thread (the loading thread and tests), without the wiki's mobs. */

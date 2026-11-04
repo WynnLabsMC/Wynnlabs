@@ -2,11 +2,11 @@ package io.github.anilken.wynnlabs.build;
 
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.Rules;
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.game.GameState;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -31,12 +31,7 @@ public final class Around {
             Locks.Problem problem, boolean budgetCut, boolean check) {}
 
     private static final AtomicInteger GEN = new AtomicInteger();
-    private static final ExecutorService SEARCH = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "wynnlabs-around");
-        t.setDaemon(true);
-        t.setPriority(Thread.MIN_PRIORITY);
-        return t;
-    });
+    private static final ExecutorService SEARCH = Workers.singleLow("around");
 
     private static volatile Roadmap.Job job;
     private static volatile int jobGen = -1;
