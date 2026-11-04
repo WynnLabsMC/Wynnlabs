@@ -13,12 +13,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The Community tab's filters as values: class (yours or every class), level range, the play
+ * The Community tab's filters as values: the classes (empty: yours), level range, the play
  * style roles (each picked one must be on the build), the budget to finish, the owned share, and
  * outdated / crafted; the search over build names, item names and crafted ingredients; the sort;
  * and, when nothing matches, the one filter change that brings back the most builds.
  */
-record CommunityFilter(boolean allClasses, int level, Set<String> roles, int budget, int own, boolean hideOutdated,
+record CommunityFilter(Set<Klass> classes, int level, Set<String> roles, int budget, int own, boolean hideOutdated,
         boolean crafted, String query) {
 
     /** Level ranges: 0 your level, then fixed ranges, the last any level. */
@@ -29,7 +29,7 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
     static final int[] OWN = {0, 25, 50, 75, 100};
 
     static CommunityFilter defaults() {
-        return new CommunityFilter(false, 0, Set.of(), 0, 0, false, false, "");
+        return new CommunityFilter(Set.of(), 0, Set.of(), 0, 0, false, false, "");
     }
 
     /** The search words without a leading "uses ". */
@@ -39,8 +39,14 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
     }
 
     boolean matches(CommunityBuilds.Entry e, CommunityBuilds.Compare c, Klass k, int lv) {
-        if (!allClasses && k != null && k != Klass.NONE && !e.forClass(k)) {
-            return false;
+        if (k != null && k != Klass.NONE || !classes.isEmpty()) {
+            boolean any = false;
+            for (Klass pick : picked(k)) {
+                any |= e.forClass(pick);
+            }
+            if (!any) {
+                return false;
+            }
         }
         if (level == 0) {
             // above the list's highest builds (gear stops before the level cap) the top builds are yours
@@ -112,12 +118,33 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
         return n;
     }
 
+    /** The five classes, in the game's order. */
+    static final List<Klass> CLASSES = List.of(Klass.WARRIOR, Klass.MAGE, Klass.ARCHER, Klass.ASSASSIN, Klass.SHAMAN);
+
+    /** The classes the list shows: the picked ones, or yours when none is picked. */
+    Set<Klass> picked(Klass yours) {
+        return !classes.isEmpty() ? classes : yours == null || yours == Klass.NONE ? Set.copyOf(CLASSES) : Set.of(yours);
+    }
+
+    /** {@code c} ticked or unticked; the last class stays; your class alone is the default again. */
+    CommunityFilter withClass(Klass c, boolean on, Klass yours) {
+        Set<Klass> s = new java.util.LinkedHashSet<>(picked(yours));
+        if (on) {
+            s.add(c);
+        } else if (s.size() > 1) {
+            s.remove(c);
+        }
+        boolean mine = yours != null && yours != Klass.NONE && s.equals(Set.of(yours));
+        return new CommunityFilter(mine ? Set.of() : Set.copyOf(s), level, roles, budget, own, hideOutdated, crafted, query);
+    }
+
+    /** Every class, or back to yours. */
     CommunityFilter withClasses(boolean all) {
-        return new CommunityFilter(all, level, roles, budget, own, hideOutdated, crafted, query);
+        return new CommunityFilter(all ? Set.copyOf(CLASSES) : Set.of(), level, roles, budget, own, hideOutdated, crafted, query);
     }
 
     CommunityFilter withLevel(int l) {
-        return new CommunityFilter(allClasses, l, roles, budget, own, hideOutdated, crafted, query);
+        return new CommunityFilter(classes, l, roles, budget, own, hideOutdated, crafted, query);
     }
 
     CommunityFilter withRole(String role, boolean on) {
@@ -127,27 +154,27 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
         } else {
             r.remove(role);
         }
-        return new CommunityFilter(allClasses, level, Set.copyOf(r), budget, own, hideOutdated, crafted, query);
+        return new CommunityFilter(classes, level, Set.copyOf(r), budget, own, hideOutdated, crafted, query);
     }
 
     CommunityFilter withBudget(int b) {
-        return new CommunityFilter(allClasses, level, roles, b, own, hideOutdated, crafted, query);
+        return new CommunityFilter(classes, level, roles, b, own, hideOutdated, crafted, query);
     }
 
     CommunityFilter withOwn(int o) {
-        return new CommunityFilter(allClasses, level, roles, budget, o, hideOutdated, crafted, query);
+        return new CommunityFilter(classes, level, roles, budget, o, hideOutdated, crafted, query);
     }
 
     CommunityFilter withOutdatedHidden(boolean on) {
-        return new CommunityFilter(allClasses, level, roles, budget, own, on, crafted, query);
+        return new CommunityFilter(classes, level, roles, budget, own, on, crafted, query);
     }
 
     CommunityFilter withCrafted(boolean on) {
-        return new CommunityFilter(allClasses, level, roles, budget, own, hideOutdated, on, query);
+        return new CommunityFilter(classes, level, roles, budget, own, hideOutdated, on, query);
     }
 
     CommunityFilter withQuery(String q) {
-        return new CommunityFilter(allClasses, level, roles, budget, own, hideOutdated, crafted, q);
+        return new CommunityFilter(classes, level, roles, budget, own, hideOutdated, crafted, q);
     }
 
     /** Whether nothing narrows the list beyond the defaults (your class, your level). */
@@ -164,7 +191,7 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
         if (!words().isEmpty()) {
             tries.add(new Suggestion("search", null, withQuery(""), 0));
         }
-        if (!allClasses) {
+        if (classes.size() < CLASSES.size()) {
             tries.add(new Suggestion("classes", null, withClasses(true), 0));
         }
         if (level != ANY_LEVEL) {
