@@ -3,14 +3,13 @@ package io.github.anilken.wynnlabs.coach;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import io.github.anilken.wynnlabs.core.JsonFile;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.quests.Grind;
 
 import net.minecraft.client.Minecraft;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -133,9 +132,7 @@ public final class XpMeter {
         return sessionStart == 0 || t < 120_000 ? -1 : sessionXp / (t / 3_600_000.0);
     }
 
-    private static Path file() {
-        return Profile.dir().resolve("xprates.json");
-    }
+    private static final JsonFile FILE = new JsonFile(() -> Profile.dir().resolve("xprates.json"));
 
     private static void load() {
         String id = Profile.id();
@@ -148,21 +145,14 @@ public final class XpMeter {
         sessionXp = 0;
         sessionStart = 0;
         RECENT.clear();
-        try {
-            if (Files.exists(file())) {
-                JsonObject o = JsonParser.parseString(Files.readString(file())).getAsJsonObject();
-                o.entrySet().forEach(e -> {
-                    var a = e.getValue().getAsJsonArray();
-                    RATES.put(e.getKey(), new double[] {a.get(0).getAsDouble(), a.get(1).getAsDouble()});
-                });
-            }
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not read xprates.json: " + e);
-        }
+        FILE.read(text -> JsonParser.parseString(text).getAsJsonObject().entrySet().forEach(e -> {
+            var a = e.getValue().getAsJsonArray();
+            RATES.put(e.getKey(), new double[] {a.get(0).getAsDouble(), a.get(1).getAsDouble()});
+        }));
     }
 
     private static void save() {
-        try {
+        FILE.writeNow(() -> {
             JsonObject o = new JsonObject();
             RATES.forEach((k, v) -> {
                 var a = new com.google.gson.JsonArray();
@@ -170,10 +160,7 @@ public final class XpMeter {
                 a.add(Math.round(v[1]));
                 o.add(k, a);
             });
-            Files.createDirectories(file().getParent());
-            Files.writeString(file(), o.toString());
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not save xprates.json: " + e);
-        }
+            return o.toString();
+        });
     }
 }

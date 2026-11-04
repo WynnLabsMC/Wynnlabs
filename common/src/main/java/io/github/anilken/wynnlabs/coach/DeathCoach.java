@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.Damage;
 import io.github.anilken.wynnlabs.core.Chat;
+import io.github.anilken.wynnlabs.core.JsonFile;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.core.Rules;
@@ -23,8 +24,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -283,9 +282,7 @@ public final class DeathCoach {
 
     // ---- files ----
 
-    private static Path file() {
-        return Profile.dir().resolve("deaths.json");
-    }
+    private static final JsonFile FILE = new JsonFile(() -> Profile.dir().resolve("deaths.json"));
 
     private static void load() {
         String id = Profile.id();
@@ -294,13 +291,8 @@ public final class DeathCoach {
         }
         loadedFor = id;
         DEATHS.clear();
-        try {
-            if (id.isEmpty() || !Files.exists(file())) {
-                return;
-            }
-            DEATHS.addAll(read(Files.readString(file())));
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not read deaths.json: " + e);
+        if (!id.isEmpty()) {
+            FILE.read(text -> DEATHS.addAll(read(text)));
         }
     }
 
@@ -386,12 +378,7 @@ public final class DeathCoach {
         if (Profile.id().isEmpty()) {
             return;
         }
-        try {
-            Files.createDirectories(file().getParent());
-            Files.writeString(file(), write(DEATHS));
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not save deaths.json: " + e);
-        }
+        FILE.writeNow(() -> write(DEATHS));
     }
 
     public static JsonObject json() {

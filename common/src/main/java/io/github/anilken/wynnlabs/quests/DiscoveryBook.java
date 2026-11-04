@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 
 import io.github.anilken.wynnlabs.core.Dirs;
+import io.github.anilken.wynnlabs.core.JsonFile;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.game.ContentBook;
 
@@ -12,9 +13,6 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -84,9 +82,8 @@ public final class DiscoveryBook {
         }
     }
 
-    private static Path file() {
-        return Dirs.config().resolve("characters").resolve(Profile.id()).resolve("discoveries-book.json");
-    }
+    private static final JsonFile FILE =
+            new JsonFile(() -> Dirs.config().resolve("characters").resolve(Profile.id()).resolve("discoveries-book.json"));
 
     private static void load() {
         String id = Profile.id();
@@ -99,28 +96,17 @@ public final class DiscoveryBook {
         if (id.isEmpty()) {
             return;
         }
-        try {
-            if (Files.exists(file())) {
-                JsonParser.parseString(Files.readString(file(), StandardCharsets.UTF_8)).getAsJsonArray()
-                        .forEach(e -> FOUND.add(e.getAsString()));
-                seen = true;
-            }
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not read discoveries-book.json: " + e);
-        }
+        seen = FILE.read(text -> JsonParser.parseString(text).getAsJsonArray().forEach(e -> FOUND.add(e.getAsString())));
     }
 
     private static void save() {
         if (Profile.id().isEmpty()) {
             return;
         }
-        JsonArray a = new JsonArray();
-        FOUND.forEach(a::add);
-        try {
-            Files.createDirectories(file().getParent());
-            Files.writeString(file(), a.toString(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not save discoveries-book.json: " + e);
-        }
+        FILE.writeNow(() -> {
+            JsonArray a = new JsonArray();
+            FOUND.forEach(a::add);
+            return a.toString();
+        });
     }
 }
