@@ -3188,7 +3188,7 @@
   "wynnlabs.community.col_level": "Lv",
   "wynnlabs.community.col_build": "Build",
   "wynnlabs.community.crafted_piece": "Crafted %s",
-  "wynnlabs.community.col_gear": "Key item · owned",
+  "wynnlabs.community.col_gear": "Key item (owned)",
   "wynnlabs.community.col_cost": "Cost",
   "wynnlabs.community.col_tags": "Tags",
   "wynnlabs.community.stat.health": "Health",
