@@ -94,6 +94,9 @@ final class BoxAdvice {
 
     /** Sell it: the route {@link SellAdvice#boxChoice} picks, with {@code why}. */
     private static Decision sell(ItemView.Box box, String why) {
+        if (Rules.list("trade", "blacksmithTiers").contains(box.tier().name())) {
+            return blacksmith(box, why);        // a thin market's price is no reason to list it
+        }
         BoxRoutes.Choice c = SellAdvice.boxChoice(box);
         return new Decision(boxRoute(box, c, why, 0, 0), c);
     }
