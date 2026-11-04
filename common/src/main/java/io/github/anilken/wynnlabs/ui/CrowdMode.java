@@ -228,6 +228,13 @@ public final class CrowdMode {
                     item = st.isEmpty() ? "-" : net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(st.getItem()).toString();
                     var cmd = st.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
                     model = cmd == null ? "" : String.valueOf(cmd.floats());
+                    if (st.getItem() instanceof BoatItem) {
+                        try {
+                            model += " " + print(mc, st);
+                        } catch (Throwable ignored) {
+                            // no fingerprint for this one
+                        }
+                    }
                 }
                 String text = e instanceof Display.TextDisplay t ? t.getText().getString().replace('\n', ' ') : "";
                 Entity root = root(e);
