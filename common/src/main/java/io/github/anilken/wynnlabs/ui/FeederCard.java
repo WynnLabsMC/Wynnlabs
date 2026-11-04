@@ -147,7 +147,8 @@ final class FeederCard {
             Art.icon(g, "heart", x + 2, y + 2, 8, 0xFFD9534F);
             String with = partner == null ? L.t("wynnlabs.mounts.breeding") : L.t("wynnlabs.mounts.breeding_with", partner.mount().name());
             Type.META.draw(g, font, Type.META.fit(font, with, x + w - tx), tx, y, Theme.INK);
-            Type.MICRO.draw(g, font, L.t("wynnlabs.mounts.breeding_sub"), tx, y + Type.META.lineHeight, Theme.INK_2);
+            Type.MICRO.draw(g, font, Type.MICRO.fit(font, L.t("wynnlabs.mounts.breeding_sub"), x + w - tx), tx, y + Type.META.lineHeight,
+                    Theme.INK_2);
         } else if (next != null) {
             MountsText.item(g, next.name(), x, y + 1, 12);
             Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.mounts.next_food", next.name(), next.level()), x + w - tx), tx, y,
@@ -165,9 +166,21 @@ final class FeederCard {
                 place = p < 0 ? L.t("wynnlabs.mounts.place_buy") : L.t("wynnlabs.mounts.place_buy_at", MountsText.em(p));
                 ink = Theme.PRICE;
             }
-            Type.MICRO.draw(g, font, place, tx, y + Type.META.lineHeight, ink);
+            Type.MICRO.draw(g, font, Type.MICRO.fit(font, place, x + w - tx), tx, y + Type.META.lineHeight, ink);
         } else {
-            Type.META.draw(g, font, L.t("wynnlabs.mounts.next_none"), x, y, Theme.INK_3);
+            // nothing to feed: the best partner in the feeder to breed with, and the child it would give
+            Pair best = bestPartner(row, o);
+            if (best != null) {
+                Art.icon(g, "heart", x + 2, y + 2, 8, 0xFFD9534F);
+                Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.mounts.breed_pick", best.row(), best.potential()), x + w - tx), tx, y,
+                        Theme.INK);
+                Type.MICRO.draw(g, font, Type.MICRO.fit(font, L.t("wynnlabs.mounts.breed_child", best.child().low(), best.child().high(),
+                        MountsText.durShort(best.sec())), x + w - tx), tx, y + Type.META.lineHeight, Theme.INK_2);
+            } else {
+                Type.META.draw(g, font, Type.META.fit(font, L.t("wynnlabs.mounts.next_none"), w), x, y, Theme.INK_3);
+                Type.MICRO.draw(g, font, Type.MICRO.fit(font, L.t("wynnlabs.mounts.breed_later",
+                        io.github.anilken.wynnlabs.mounts.Breeding.constants().eligibleAvgLimit()), w), x, y + Type.META.lineHeight, Theme.INK_3);
+            }
         }
         y += Type.META.lineHeight + Type.MICRO.lineHeight + thenH + Theme.SP_3;
         // the plan: where it stands, and its button (never started by itself)
@@ -193,7 +206,7 @@ final class FeederCard {
             Type.MICRO.draw(g, font, Type.MICRO.fit(font, state, btx - x - Theme.SP_2), x, Type.MICRO.yIn(y, Ui.SMALL_H),
                     v.state() == MountsModel.FeedState.STALE ? Theme.WARN : Theme.INK_2);
         } else {
-            Type.MICRO.draw(g, font, state, x, Type.MICRO.yIn(y, Ui.SMALL_H), Theme.INK_2);
+            Type.MICRO.draw(g, font, Type.MICRO.fit(font, state, w), x, Type.MICRO.yIn(y, Ui.SMALL_H), Theme.INK_2);
         }
         return new int[][] {{x0, y0, W, h}, button, pin};
     }
@@ -214,5 +227,34 @@ final class FeederCard {
             g.fill(px, py, px + 1, py + 1, done ? 0xFFD9A93A : 0x809A855C);
         }
         g.pose().popMatrix();
+    }
+
+    /** A partner to breed with: its feeder row, its potential, the child's potential range and the time. */
+    private record Pair(int row, int potential, io.github.anilken.wynnlabs.mounts.Range child, long sec) {}
+
+    /**
+     * The mount in another row of the feeder, of the same kind and free, whose child with this one
+     * would have the highest potential; null when none can breed with it now.
+     */
+    private static Pair bestPartner(MountBook.Live row, MountsModel.Owned o) {
+        if (o == null) {
+            return null;
+        }
+        Pair best = null;
+        for (MountBook.Live other : MountBook.live()) {
+            if (other == row || other.partnerKey() != null || other.mountKey() == null || other.mountKey().equals(row.mountKey())) {
+                continue;
+            }
+            MountsModel.Owned p = FeederOverlay.owned(other);
+            if (p == null || p.mount().type() != o.mount().type()) {
+                continue;
+            }
+            io.github.anilken.wynnlabs.mounts.BreedEstimate est =
+                    io.github.anilken.wynnlabs.mounts.Breeding.estimate(o.mount().stats(), p.mount().stats());
+            if (est.eligible() && (best == null || est.potential().high() > best.child().high())) {
+                best = new Pair(other.row().number(), p.mount().potential(), est.potential(), est.durationSec());
+            }
+        }
+        return best;
     }
 }
