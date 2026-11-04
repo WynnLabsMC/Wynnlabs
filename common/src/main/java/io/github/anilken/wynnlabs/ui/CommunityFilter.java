@@ -24,6 +24,8 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
     /** Level ranges: 0 your level, then fixed ranges, the last any level. */
     static final int[][] LEVELS = {{0, 0}, {1, 20}, {21, 40}, {41, 60}, {61, 80}, {81, 99}, {100, 121}, {1, 121}};
     static final int ANY_LEVEL = LEVELS.length - 1;
+    /** The XP bonus % (combat or gathering) from which a build counts as an XP build. */
+    static final int XP_BUILD = 20;
     static final int[] OWN = {0, 25, 50, 75, 100};
 
     static CommunityFilter defaults() {
@@ -53,7 +55,10 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
             }
         }
         for (String role : roles) {
-            if (!e.hasRole(role)) {
+            // XP: a tagged XP set, or any build whose pieces give a real XP bonus
+            boolean xp = role.equals("xp") && c != null && c.totals() != null
+                    && (c.totals().xpBonus() >= XP_BUILD || c.totals().gatherXp() >= XP_BUILD);
+            if (!e.hasRole(role) && !xp) {
                 return false;
             }
         }
