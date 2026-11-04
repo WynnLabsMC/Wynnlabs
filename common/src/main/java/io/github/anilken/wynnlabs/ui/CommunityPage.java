@@ -38,7 +38,7 @@ import java.util.Set;
  */
 final class CommunityPage {
 
-    static final String[] STATS = {"dps", "ehp", "mana", "speed"};
+    static final String[] STATS = {"health", "ehp", "mana", "speed"};
     static final int MENU_LEVEL = 1;
     static final int MENU_BUDGET = 2;
     static final int MENU_OWN = 3;
@@ -186,10 +186,10 @@ final class CommunityPage {
         }
         CommunityBuilds.Totals t = c.totals();
         return switch (stat) {
-            case 0 -> t.dps() > 0 ? t.dps() : null;
-            case 1 -> t.ehp();
+            case 0 -> t.health() > 0 ? t.health() : null;
+            case 1 -> t.ehp() > 0 ? t.ehp() : null;
             case 2 -> t.manaRegen();
-            default -> t.speed();
+            default -> t.id("walkSpeed");
         };
     }
 
