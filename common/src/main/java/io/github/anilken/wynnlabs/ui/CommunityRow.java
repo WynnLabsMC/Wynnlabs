@@ -298,10 +298,13 @@ final class CommunityRow {
         boolean below = pillsBelow(e, c, inner);
         int pillsW = headerW(c);
         int textRoom = below ? inner : inner - pillsW - Theme.SP_3;
+        if (pillsW == 0 && !below) {
+            textRoom -= Type.META.width(ui.font, L.t("wynnlabs.community.no_totals")) + Theme.SP_3;   // the note at the right
+        }
         String name = Type.LABEL.fit(ui.font, e.name(), textRoom / 2 + textRoom / 4);
         Type.LABEL.draw(g, ui.font, name, ix, cy, Theme.INK);
         int nw = Type.LABEL.width(ui.font, name);
-        String rest = " · " + L.t("wynnlabs.community.levels", e.levelMin(), e.levelMax()) + " · " + CommunityPage.source(e)
+        String rest = " · " + CommunityPage.levels(e) + " · " + CommunityPage.source(e)
                 + (e.description().isBlank() ? "" : " · " + e.description());
         Type.META.draw(g, ui.font, Type.META.fit(ui.font, rest, textRoom - nw), ix + nw, cy + 1, Theme.INK_3);
         if (!e.description().isBlank()) {
@@ -484,7 +487,7 @@ final class CommunityRow {
                 new Line(L.t("wynnlabs.community.st.mana_steal"), CommunityPage.signed(t.id("manaSteal")) + "/3s"),
                 new Line(L.t("wynnlabs.community.st.walk_speed"), L.pct(CommunityPage.signed(t.id("walkSpeed")))),
                 new Line(L.t("wynnlabs.community.st.loot_bonus"), L.pct(CommunityPage.signed(t.id("lootBonus")))),
-                new Line(L.t("wynnlabs.community.st.xp_bonus"), L.pct(CommunityPage.signed(t.id("xpBonus")))));
+                new Line(L.t("wynnlabs.community.st.xp_bonus"), L.pct(CommunityPage.signed(t.xpBonus()))));
         return List.of(off, def, util);
     }
 

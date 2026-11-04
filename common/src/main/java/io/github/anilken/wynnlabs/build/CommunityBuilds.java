@@ -75,7 +75,8 @@ public final class CommunityBuilds {
 
         /** Listed for {@code k} (null: every class): its own class, or "any". */
         public boolean forClass(Klass k) {
-            return k == null || any() || klassType() == k;
+            // an XP set is its armour and accessories: any class wears them with its own weapon
+            return k == null || any() || klassType() == k || tags.contains("xp-bonus") || tags.contains("gathering-xp");
         }
 
         public boolean hasTag(String t) {
@@ -288,6 +289,16 @@ public final class CommunityBuilds {
             return ids.getOrDefault(key, 0.0);
         }
 
+        /** Combat XP bonus % the pieces give (the item data names it either way). */
+        public double xpBonus() {
+            return id("xpBonus") + id("combatExperience");
+        }
+
+        /** Gathering XP bonus % the pieces give. */
+        public double gatherXp() {
+            return id("gatherXpBonus") + id("gatheringExperience");
+        }
+
         /** The Mana Regen the pieces give, per 5 s. */
         public double manaRegen() {
             return id("manaRegen");
@@ -304,7 +315,8 @@ public final class CommunityBuilds {
 
     /** The identifications {@link Totals} keeps. */
     static final List<String> ID_KEYS = List.of("spellDamage", "rawSpellDamage", "mainAttackDamage", "rawMainAttackDamage",
-            "healthRegen", "healthRegenRaw", "lifeSteal", "manaRegen", "manaSteal", "walkSpeed", "lootBonus", "xpBonus",
+            "healthRegen", "healthRegenRaw", "lifeSteal", "manaRegen", "manaSteal", "walkSpeed", "lootBonus", "xpBonus", "combatExperience",
+            "gatherXpBonus", "gatheringExperience",
             "earthDefence", "thunderDefence", "waterDefence", "fireDefence", "airDefence", "elementalDefence");
 
     /**
