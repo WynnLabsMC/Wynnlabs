@@ -1,26 +1,14 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.Dirs;
-import io.github.anilken.wynnlabs.core.UpdateCheck;
+import io.github.anilken.wynnlabs.core.RepoData;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.util.HexFormat;
-import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 /**
  * The coarse map of the walkable world ({@link WorldRoute}) on disk: {@code config/wynnlabs/}
@@ -51,14 +39,11 @@ final class WorldRouteData {
     static final String META = "world-route.bin.meta";
     static final String GATES = "world-gates.json";
     /** The repository is asked for a newer map at most this often, ... */
-    static final long RECHECK_MILLIS = 24L * 60 * 60 * 1000;
+    static final long RECHECK_MILLIS = RepoData.RECHECK_MILLIS;
     /** ... and after a failed download the next try waits this long. */
-    static final long RETRY_MILLIS = 10 * 60 * 1000;
-    static final Duration TIMEOUT = Duration.ofSeconds(20);
+    static final long RETRY_MILLIS = RepoData.RETRY_MILLIS;
     /** The map is at most this big; more is not the file we asked for. */
     static final long MAX_BYTES = 16L << 20;
-    private static final int MAX_HOPS = 5;
-    private static final Set<String> HOSTS = Set.of("raw.githubusercontent.com", "github.com", "objects.githubusercontent.com");
 
     enum State { MISSING, DOWNLOADING, READY, FAILED }
 
@@ -67,19 +52,12 @@ final class WorldRouteData {
 
         /** Reads the sidecar; null when there is none or it does not parse. */
         static Meta read(Path file) {
-            try {
-                List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-                if (lines.size() < 3 || !lines.get(0).matches("[0-9a-f]{64}")) {
-                    return null;
-                }
-                return new Meta(lines.get(0), Long.parseLong(lines.get(1).trim()), Long.parseLong(lines.get(2).trim()));
-            } catch (IOException | RuntimeException e) {
-                return null;
-            }
+            RepoData.Meta m = RepoData.Meta.read(file);
+            return m == null ? null : new Meta(m.sha256(), m.downloaded(), m.checked());
         }
 
         void write(Path file) throws IOException {
-            Files.writeString(file, sha256 + "\n" + downloaded + "\n" + checked + "\n", StandardCharsets.UTF_8);
+            new RepoData.Meta(sha256, downloaded, checked).write(file);
         }
     }
 
@@ -161,14 +139,7 @@ final class WorldRouteData {
                 throw new IOException("the roads file does not match its hash");
             }
             WorldRoads r = WorldRoads.load(new java.io.ByteArrayInputStream(bytes));
-            Files.createDirectories(dir);
-            Path part = dir.resolve(ROADS + ".part");
-            Files.write(part, bytes);
-            try {
-                Files.move(part, roadsFile(dir), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(part, roadsFile(dir), StandardCopyOption.REPLACE_EXISTING);
-            }
+            RepoData.write(roadsFile(dir), bytes);
             Files.writeString(roadsShaFile(dir), sha + "\n", StandardCharsets.UTF_8);
             roads = r;
             roadsSha = sha;
@@ -325,7 +296,7 @@ final class WorldRouteData {
 
     /** Whether the repository is due to be asked for a newer map. */
     static boolean due(Meta m, long now) {
-        return m == null || now - m.checked() >= RECHECK_MILLIS;
+        return RepoData.due(m == null ? 0 : m.checked(), m != null, now);
     }
 
     /**
@@ -333,33 +304,13 @@ final class WorldRouteData {
      * otherwise, a map that does not match (corrupt, or cut short) being deleted with its sidecar.
      */
     static Meta verified(Path dir) {
-        Path f = file(dir);
-        Meta m = Meta.read(sidecar(dir));
-        if (m == null || !Files.isRegularFile(f)) {
-            return null;
-        }
-        try {
-            if (sha256(Files.readAllBytes(f)).equals(m.sha256())) {
-                return m;
-            }
-        } catch (IOException ignored) {
-            // treated as corrupt
-        }
-        deleteQuietly(f);
-        deleteQuietly(sidecar(dir));
-        return null;
+        RepoData.Meta m = RepoData.verified(file(dir), sidecar(dir));
+        return m == null ? null : new Meta(m.sha256(), m.downloaded(), m.checked());
     }
 
     /** Writes the map and its sidecar, the map through a part file moved into place. */
     static void store(Path dir, byte[] bytes, Meta m) throws IOException {
-        Files.createDirectories(dir);
-        Path part = dir.resolve(FILE + ".part");
-        Files.write(part, bytes);
-        try {
-            Files.move(part, file(dir), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException e) {
-            Files.move(part, file(dir), StandardCopyOption.REPLACE_EXISTING);
-        }
+        RepoData.write(file(dir), bytes);
         m.write(sidecar(dir));
     }
 
@@ -370,62 +321,16 @@ final class WorldRouteData {
     }
 
     static String sha256(byte[] bytes) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
+        return RepoData.sha256(bytes);
     }
 
     private static void deleteQuietly(Path p) {
-        try {
-            Files.deleteIfExists(p);
-        } catch (IOException ignored) {
-            // nothing more to do
-        }
+        RepoData.deleteQuietly(p);
     }
 
-    /** One GET, redirects followed by hand, each hop over https to GitHub's own hosts, at most {@link #MAX_BYTES}. */
+    /** One GET over https to GitHub's own hosts ({@link RepoData#fetch}), at most {@link #MAX_BYTES}. */
     static byte[] fetch(String url) throws IOException {
-        URI u = URI.create(url);
-        HttpClient http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NEVER).connectTimeout(TIMEOUT).build();
-        for (int hop = 0; hop <= MAX_HOPS; hop++) {
-            String host = u.getHost() == null ? "" : u.getHost().toLowerCase(Locale.ROOT);
-            if (!"https".equalsIgnoreCase(u.getScheme()) || !HOSTS.contains(host)) {
-                throw new IOException("refused a hop to " + u.getScheme() + "://" + host);
-            }
-            HttpRequest req = HttpRequest.newBuilder(u)
-                    .header("User-Agent", "WynnLabs/" + UpdateCheck.version.get()
-                            + " (Minecraft client mod; world route data; https://github.com/WynnLabsMC/Wynnlabs)")
-                    .timeout(TIMEOUT).GET().build();
-            HttpResponse<InputStream> res;
-            try {
-                res = http.send(req, HttpResponse.BodyHandlers.ofInputStream());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IOException("interrupted");
-            }
-            int s = res.statusCode();
-            try (InputStream body = res.body()) {
-                if (s == 301 || s == 302 || s == 303 || s == 307 || s == 308) {
-                    String location = res.headers().firstValue("location").orElse(null);
-                    if (location == null) {
-                        throw new IOException("redirect without a location");
-                    }
-                    u = u.resolve(location);
-                    continue;
-                }
-                if (s != 200) {
-                    throw new IOException("HTTP " + s);
-                }
-                byte[] bytes = body.readNBytes((int) MAX_BYTES + 1);
-                if (bytes.length > MAX_BYTES) {
-                    throw new IOException("more than " + MAX_BYTES + " bytes");
-                }
-                return bytes;
-            }
-        }
-        throw new IOException("too many redirects");
+        return RepoData.fetch(url, MAX_BYTES, "world route data");
     }
 
     /** Tests: as a fresh run. */
