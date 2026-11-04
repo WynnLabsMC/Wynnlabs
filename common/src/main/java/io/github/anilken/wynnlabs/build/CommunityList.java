@@ -100,6 +100,23 @@ public final class CommunityList {
         return doc;
     }
 
+    /** The highest level any build of the list is for (the level cap when no list is loaded). */
+    public static int topLevel() {
+        CommunityBuilds.Doc d = doc;
+        if (d != topOf) {
+            int top = 0;
+            for (CommunityBuilds.Entry e : d == null ? List.<CommunityBuilds.Entry>of() : d.builds()) {
+                top = Math.max(top, e.levelMax());
+            }
+            topOf = d;
+            topLevel = top == 0 ? io.github.anilken.wynnlabs.build.Damage.MAX_LEVEL : top;
+        }
+        return topLevel;
+    }
+
+    private static volatile CommunityBuilds.Doc topOf;
+    private static volatile int topLevel = io.github.anilken.wynnlabs.build.Damage.MAX_LEVEL;
+
     /** Millis since the copy in memory was downloaded (0: none). */
     public static long age() {
         RepoData.Meta m = loaded;

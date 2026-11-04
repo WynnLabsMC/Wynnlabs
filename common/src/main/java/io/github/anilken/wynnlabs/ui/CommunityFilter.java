@@ -41,7 +41,9 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
             return false;
         }
         if (level == 0) {
-            if (lv > 0 && (lv < e.levelMin() || lv > e.levelMax())) {
+            // above the list's highest builds (gear stops before the level cap) the top builds are yours
+            int at = Math.min(lv, io.github.anilken.wynnlabs.build.CommunityList.topLevel());
+            if (lv > 0 && (at < e.levelMin() || at > e.levelMax())) {
                 return false;
             }
         } else if (level != ANY_LEVEL) {
