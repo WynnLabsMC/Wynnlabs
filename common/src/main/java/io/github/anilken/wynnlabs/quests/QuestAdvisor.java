@@ -6,8 +6,8 @@ import com.google.gson.JsonObject;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.core.Settings;
+import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
-import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.market.Shopping;
 
 import net.minecraft.client.Minecraft;
@@ -68,7 +68,7 @@ public final class QuestAdvisor {
             }
         } catch (Throwable ignored) {
         }
-        int level = Wyn.level();
+        int level = GameState.current().level();
         List<QuestBook.Entry> candidates = new ArrayList<>();
         long maxRate = 1;
         for (QuestBook.Entry q : QuestBook.all()) {

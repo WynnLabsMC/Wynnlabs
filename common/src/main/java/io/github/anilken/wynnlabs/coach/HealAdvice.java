@@ -101,9 +101,10 @@ final class HealAdvice {
         if (!Settings.on("healerAdvice")) {
             return Stance.NONE;
         }
-        Klass cls = Wyn.classType();
-        List<String> unlocked = GameState.current().unlockedAbilities();
-        List<AbilityNode> tree = Wyn.abilityTree(cls);
+        GameState state = GameState.current();
+        Klass cls = state.classType();
+        List<String> unlocked = state.unlockedAbilities();
+        List<AbilityNode> tree = state.abilityTree();
         Healer h = selfHeal(cls, Setup.goal(), TreePlanner.chosen(), unlocked, tree);
         int max = Wyn.health().map(c -> c.max()).orElse(0);
         boolean boss = bossFight(Wyn.focusedMobMaxHealth(), max);

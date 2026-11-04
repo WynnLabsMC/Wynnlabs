@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 
 import io.github.anilken.wynnlabs.core.JsonFile;
 import io.github.anilken.wynnlabs.core.Profile;
+import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.quests.Grind;
 
@@ -43,7 +44,7 @@ public final class XpMeter {
         }
         try {
             load();
-            int level = Wyn.level();
+            int level = GameState.current().level();
             var xp = Wyn.xp();
             long cur = xp.current();
             long max = xp.max();

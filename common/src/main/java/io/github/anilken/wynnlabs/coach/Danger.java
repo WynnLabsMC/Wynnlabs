@@ -2,7 +2,7 @@ package io.github.anilken.wynnlabs.coach;
 
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Settings;
-import io.github.anilken.wynnlabs.game.Wyn;
+import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.quests.Grind;
 
 import net.minecraft.ChatFormatting;
@@ -35,7 +35,7 @@ public final class Danger {
     /** Risk of the nearest place within 120 blocks for you now (0 when none is near). */
     static int riskHere(Minecraft mc) {
         try {
-            int level = Wyn.level();
+            int level = GameState.current().level();
             double px = mc.player.getX();
             double pz = mc.player.getZ();
             Grind.Spot best = null;
@@ -58,7 +58,7 @@ public final class Danger {
             return;
         }
         try {
-            int level = Wyn.level();
+            int level = GameState.current().level();
             double px = mc.player.getX();
             double pz = mc.player.getZ();
             Grind.Spot near = Grind.spots().stream()
