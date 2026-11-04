@@ -12,7 +12,6 @@ import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.core.Rules;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
-import io.github.anilken.wynnlabs.game.Wyn;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
@@ -201,7 +200,7 @@ public final class Grind {
         // a fragile character (low effective HP for the level) needs a wider margin
         Build.Plan plan = Build.plan();
         if (plan != null && plan.current() != null) {
-            int level = Wyn.level();
+            int level = GameState.current().level();
             double norm = 45.0 * level;                    // a sturdy build at this level
             if (plan.current().ehp() < norm) {
                 h += 2;
@@ -234,7 +233,7 @@ public final class Grind {
 
     public static JsonObject json() {
         JsonObject o = new JsonObject();
-        int level = Minecraft.getInstance().player == null ? 0 : Wyn.level();
+        int level = Minecraft.getInstance().player == null ? 0 : GameState.current().level();
         JsonArray arr = new JsonArray();
         for (Spot s : near(level, 12)) {
             JsonObject j = new JsonObject();

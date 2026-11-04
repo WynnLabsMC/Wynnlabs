@@ -257,8 +257,9 @@ public final class Today {
             }
         }
         Boolean r = utcDate().equals(rewardDate) ? reward : null;
-        return new Day(Profile.id(), Wyn.classType().name(),
-                Wyn.level(), utcDate(), objs, r, tickets, System.currentTimeMillis());
+        GameState state = GameState.current();
+        return new Day(Profile.id(), state.classType().name(),
+                state.level(), utcDate(), objs, r, tickets, System.currentTimeMillis());
     }
 
     private static Path file(String id) {
