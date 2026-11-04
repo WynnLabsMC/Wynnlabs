@@ -153,6 +153,7 @@ final class ShotRun {
         m.put("guide", "quests");           // the full quest guide, a window of its own
         m.put("tree", "tree");
         m.put("damage", "tree");            // the tree page's damage drawer
+        m.put("community", "community");
         m.put("endgame", "endgame");
         m.put("bank", "bank");
         m.put("crafting", "craft");
@@ -298,7 +299,7 @@ final class ShotRun {
                 out.add(shot(page, t, null, w, List.of("window:box"), null, List.of()));
                 out.add(shot(page, t, "stats", WAIT, List.of("window:box", "box:stats"), null, List.of()));
             }
-            case "mounts", "road", "places" -> out.add(shot(page, t, null, w, List.of(), null, List.of()));
+            case "mounts", "road", "places", "community" -> out.add(shot(page, t, null, w, List.of(), null, List.of()));
             case "ai" -> {
                 out.add(shot(page, t, null, w, List.of(), null, List.of()));
                 out.add(view(page, t, "reads", "ai:reads"));
