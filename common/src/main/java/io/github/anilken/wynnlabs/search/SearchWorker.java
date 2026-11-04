@@ -1,7 +1,8 @@
 package io.github.anilken.wynnlabs.search;
 
+import io.github.anilken.wynnlabs.core.Workers;
+
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -11,11 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class SearchWorker {
 
-    private final ExecutorService exec = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "wynnlabs-search");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ExecutorService exec = Workers.single("search");
     private final AtomicInteger generation = new AtomicInteger();
     private volatile SearchQuery.Result latest = SearchQuery.Result.EMPTY;
     private volatile int latestGeneration;

@@ -269,11 +269,8 @@ public final class MarketSlots {
 
     /** Ranks in the background in the game; one at a time. */
     private static final java.util.concurrent.ExecutorService WORKER =
-            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-                Thread t = new Thread(r, WORKER_NAME);
-                t.setDaemon(true);
-                return t;
-            });
+            java.util.concurrent.Executors.newSingleThreadExecutor(
+                    io.github.anilken.wynnlabs.core.Workers.factory(WORKER_NAME, false));
 
     /** True on the thread that ranks: its verdicts are not held to the frame budget. */
     static boolean onWorker() {

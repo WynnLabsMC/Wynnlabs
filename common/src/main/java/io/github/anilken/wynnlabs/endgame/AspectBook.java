@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.build.TreePlanner;
 import io.github.anilken.wynnlabs.core.Dirs;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Platform;
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.model.AbilityNode;
@@ -385,7 +386,7 @@ public final class AspectBook {
         }
         reading = true;
         lastTry = System.currentTimeMillis();
-        Thread t = new Thread(() -> {
+        Workers.factory("wynnlabs-aspects", false).newThread(() -> {
             try {
                 Path f = Platform.get().gameDir().resolve(CACHE);
                 if (Files.isRegularFile(f)) {
@@ -397,9 +398,7 @@ public final class AspectBook {
             } finally {
                 reading = false;
             }
-        }, "wynnlabs-aspects");
-        t.setDaemon(true);
-        t.start();
+        }).start();
     }
 
     /**

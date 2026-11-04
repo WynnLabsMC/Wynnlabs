@@ -37,11 +37,8 @@ public final class Saver {
     private static final Map<Path, String> LAST = new ConcurrentHashMap<>();
     /** Real writes, for tests and /perf. */
     static final AtomicInteger WRITES = new AtomicInteger();
-    private static final ScheduledExecutorService EXEC = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "WynnLabs saver");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final ScheduledExecutorService EXEC =
+            Executors.newSingleThreadScheduledExecutor(Workers.factory("WynnLabs saver", false));
 
     private Saver() {}
 

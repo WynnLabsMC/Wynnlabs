@@ -10,6 +10,7 @@ import io.github.anilken.wynnlabs.core.Dirs;
 import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.core.Saver;
 import io.github.anilken.wynnlabs.core.Settings;
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.model.PoolItem;
 import io.github.anilken.wynnlabs.model.PoolRegion;
@@ -34,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * This week's raid and lootrun pools from Wynnventory (openspec raid-lootrun-tracking, design
@@ -145,11 +145,7 @@ public final class WynnventoryPools {
     private static String testKey;
     private static boolean testGate;
 
-    private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "wynnlabs-pools");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final ExecutorService WORKER = Workers.single("pools");
     private static final java.net.http.HttpClient HTTP = java.net.http.HttpClient.newBuilder()
             .connectTimeout(java.time.Duration.ofSeconds(10)).build();
 

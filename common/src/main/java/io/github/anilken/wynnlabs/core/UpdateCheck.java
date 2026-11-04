@@ -84,9 +84,7 @@ public final class UpdateCheck {
 
     /** Runs a request; tests swap it for one that runs nothing or runs at once. */
     static Consumer<Runnable> starter = job -> {
-        Thread t = new Thread(job, "wynnlabs-update");
-        t.setDaemon(true);
-        t.start();
+        Workers.factory("wynnlabs-update", false).newThread(job).start();
     };
     /** This jar's version ("" when unknown); tests give their own. */
     public static Supplier<String> version = () -> Platform.get().modVersion("wynnlabs").orElse("");

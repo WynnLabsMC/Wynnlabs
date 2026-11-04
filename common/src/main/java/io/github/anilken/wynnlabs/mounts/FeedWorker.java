@@ -1,5 +1,7 @@
 package io.github.anilken.wynnlabs.mounts;
 
+import io.github.anilken.wynnlabs.core.Workers;
+
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -56,9 +58,7 @@ final class FeedWorker {
         if (thread != null && thread.isAlive()) {
             return;
         }
-        Thread t = new Thread(FeedWorker::loop, "WynnLabs mount planner");
-        t.setDaemon(true);
-        t.setPriority(Thread.MIN_PRIORITY);
+        Thread t = Workers.factory("WynnLabs mount planner", true).newThread(FeedWorker::loop);
         thread = t;
         t.start();
     }

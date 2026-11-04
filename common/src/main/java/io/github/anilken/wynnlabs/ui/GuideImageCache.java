@@ -1,5 +1,6 @@
 package io.github.anilken.wynnlabs.ui;
 
+import io.github.anilken.wynnlabs.core.Workers;
 import io.github.anilken.wynnlabs.quests.GuideImages;
 
 import com.mojang.blaze3d.platform.NativeImage;
@@ -11,7 +12,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * A guide picture as a texture: fetched one at a time in the background (one request at a time
@@ -25,11 +25,7 @@ final class GuideImageCache {
     private static final Object LOADING = new Object();
     private static final Object FAILED = new Object();
     private static final Map<String, Object> STATE = new ConcurrentHashMap<>();
-    private static final ExecutorService ONE = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "wynnlabs-guide-images");
-        t.setDaemon(true);
-        return t;
-    });
+    private static final ExecutorService ONE = Workers.single("guide-images");
 
     private GuideImageCache() {}
 
