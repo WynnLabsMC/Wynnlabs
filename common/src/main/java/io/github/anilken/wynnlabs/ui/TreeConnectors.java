@@ -203,6 +203,15 @@ public final class TreeConnectors {
      * to, the pieces are the other items in the 9 x 6 grid. Nothing happens on any other menu.
      * Returns how many pieces were read.
      */
+    /** The character whose tree menu was last seen open (null: none yet), for the first steps. */
+    private static volatile String openedFor;
+
+    /** True once the current character's tree menu was seen open this session, nodes unlocked or not. */
+    public static boolean openedNow() {
+        String id = io.github.anilken.wynnlabs.core.Profile.id();
+        return !id.isEmpty() && id.equals(openedFor);
+    }
+
     public static int capture(AbstractContainerScreen<?> screen) {
         GameState gs = GameState.current();
         var tree = gs.abilityTree();
@@ -237,6 +246,9 @@ public final class TreeConnectors {
             if (piece != null) {
                 pieces.put(slot.index, piece);
             }
+        }
+        if (!votes.isEmpty()) {
+            openedFor = io.github.anilken.wynnlabs.core.Profile.id();  // the tree menu is open
         }
         if (votes.isEmpty() || pieces.isEmpty()) {
             return 0;

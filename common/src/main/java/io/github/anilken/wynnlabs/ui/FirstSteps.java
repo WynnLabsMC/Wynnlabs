@@ -91,14 +91,15 @@ final class FirstSteps {
         return out.equals(saved) ? saved : out;
     }
 
-    /** What the mod knows right now: skill points read, quests in the book, abilities read, bank pages read. */
+    /** What the mod knows right now: skill points read, quests in the book, the tree read or opened, bank pages read. */
     private static boolean[] live() {
         boolean[] out = new boolean[STEPS.size()];
         try {
             out[0] = MenuWatcher.skillsKnown();
             out[1] = QuestAdvisor.known() > 0;
             List<String> unlocked = GameState.current().unlockedAbilities();
-            out[2] = unlocked != null && !unlocked.isEmpty();
+            // a new character has nothing unlocked: the tree menu seen open counts too
+            out[2] = unlocked != null && !unlocked.isEmpty() || TreeConnectors.openedNow();
             out[3] = Vault.count() > 0;
         } catch (Throwable ignored) {
             // unknown counts as not done yet
