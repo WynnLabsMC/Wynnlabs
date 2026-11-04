@@ -40,6 +40,7 @@ final class QuestsTab extends MenuTab {
         popups = new QuestsPopups(menu, this);
         secrets = new QuestsSecrets(menu, this);
         secretPane = new QuestsSecretPane(menu, this);
+        nearestView = new QuestsNearest(menu, this);
         map = new QuestMap(menu);
     }
 
@@ -52,6 +53,7 @@ final class QuestsTab extends MenuTab {
     final QuestsPopups popups;
     final QuestsSecrets secrets;
     final QuestsSecretPane secretPane;
+    final QuestsNearest nearestView;
     final QuestMap map;
     /** The list's and the places' scroll bars: dragged, clicked or wheeled. */
     final ScrollBar railBar = new ScrollBar();
@@ -63,6 +65,11 @@ final class QuestsTab extends MenuTab {
     String questFilter = "RECOMMENDED";
     /** The kind shown, as the content book's filter (Recommended: the advisor's quests and places). */
     ContentType questType = ContentType.RECOMMENDED;
+    /** The nearest list shown instead of a kind ({@link QuestsNearest}); its "Higher level" choice; its scroll and rows' rect. */
+    boolean nearest;
+    boolean nearOver;
+    int nearScroll;
+    int[] nearRect;
     /** The picked quest or place (null: none yet), and the picked place's kind (null: a quest). */
     String questSelected;
     ContentType pickedType;
@@ -192,6 +199,8 @@ final class QuestsTab extends MenuTab {
             return;
         } else if (pointsRect != null && in(x, y, pointsRect)) {
             pointScroll = Math.max(0, pointScroll - dir);
+        } else if (nearRect != null && in(x, y, nearRect)) {
+            nearScroll = Math.max(0, nearScroll - dir);
         } else if (railRect != null && in(x, y, railRect)) {
             railScroll = Math.max(0, railScroll - dir);
         }
@@ -209,7 +218,7 @@ final class QuestsTab extends MenuTab {
      * the rescan, pins, the session plan, the map's zoom); false when {@code c} is not one of them.
      */
     boolean action(String c) {
-        if (types.action(c) || secrets.action(c)) {
+        if (nearestView.action(c) || types.action(c) || secrets.action(c)) {
             return true;
         }
         if (c.startsWith("#qfilter:")) {
@@ -397,6 +406,7 @@ final class QuestsTab extends MenuTab {
     private void drawQuests(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         railRect = null;
         pointsRect = null;
+        nearRect = null;
         map.rect = null;
         secretPane.stepRect = null;
         if (!Wyn.up(Wyn.Feature.QUESTS)) {
@@ -410,7 +420,8 @@ final class QuestsTab extends MenuTab {
         List<QuestsRail.Row> rows = rail.rows();
         boolean listed = rows.stream().anyMatch(r -> r.name() != null && r.name().equals(questSelected)
                 && (r.line() == null ? pickedType == null : r.line().type() == pickedType));
-        if (questSelected == null || !listed && (pickedType != null || QuestsData.entry(questSelected) == null)) {
+        // the nearest list: nothing picked shows the whole list on the right
+        if (!nearest && (questSelected == null || !listed && (pickedType != null || QuestsData.entry(questSelected) == null))) {
             QuestsRail.Row first = rows.stream().filter(r -> r.name() != null).findFirst().orElse(null);
             questSelected = first == null ? null : first.name();
             pickedType = first == null || first.line() == null ? null : first.line().type();
@@ -428,7 +439,9 @@ final class QuestsTab extends MenuTab {
             px = x + railW + 2 * Theme.SP_6;
             pw = w - railW - 2 * Theme.SP_6;
         }
-        if (questSelected != null && pickedType == ContentType.SECRET_DISCOVERY) {
+        if (nearest && questSelected == null) {
+            nearestView.draw(g, px, py, pw, y + h - py, mx, my);
+        } else if (questSelected != null && pickedType == ContentType.SECRET_DISCOVERY) {
             secretPane.draw(g, px, py, pw, y + h - py, mx, my);
         } else if (questSelected != null && pickedType != null) {
             place.draw(g, px, py, pw, y + h - py, mx, my);

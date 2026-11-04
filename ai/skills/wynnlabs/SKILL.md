@@ -33,6 +33,7 @@ curl -s http://127.0.0.1:47591/            # every endpoint with one line each
 | `/quests` | tracked quest and the quest book with status and requirements |
 | `/grind` | caves, dungeons, boss altars and grind spots near the level |
 | `/discoveries` | every secret discovery in the order the player chose: done (Wynntils or a hand tick), minimum level, region, distance, requirements met or not, wiki link |
+| `/nearest?limit=25&over=1` | the not-yet-done content (quest and mini-quest starts, caves, dungeons, boss altars, raids, lootrun camps, time trials, secret discoveries) nearest by walking distance over the world route map: `kind`, `name`, `level`, `x`/`y`/`z`, `walk` (blocks, absent when not reached), `straight`, `estimate`; `mode` is `route` or `straight` (route map not ready, see `routeState`); `limit` 1 to 200 (25 by default), `over=1` adds content more than 5 levels above the player; `computing: true` means a newer list is being worked out, ask again in a moment |
 | `/vault` | every bank page the player opened, with verdicts and what to sell |
 | `/prices` | Trade Market prices the mod knows |
 | `/prices/history?item=<name>` | one item's daily Trade Market prices over 14 days (median, lowest, listings seen) with a summary; `{"status":"pending"}` means ask again in a few seconds |

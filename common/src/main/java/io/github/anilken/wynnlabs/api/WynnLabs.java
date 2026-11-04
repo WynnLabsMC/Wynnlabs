@@ -68,6 +68,7 @@ import java.util.function.Supplier;
  *   GET /damage     model vs measured damage, DPS breakdown, what-ifs, live DPS meter
  *   GET /quests     tracked quest, quest book (status, level, requirements, next task)
  *   GET /discoveries  secret discoveries in the chosen order: done, level, distance, requirements
+ *   GET /nearest    not-yet-done content nearest by walking distance (?limit=25&over=1)
  *   GET /advice     advice shown in tooltips
  *   POST /advice    {"items":[{"key","verdict","note"}]}  (header X-Wynninv: 1)
  *   DELETE /advice  clear all advice                   (header X-Wynninv: 1)
@@ -306,6 +307,13 @@ public final class WynnLabs {
                 case "/shopping" -> send(ex, 200, onGameThread(Shopping::json));
                 case "/grind" -> send(ex, 200, onGameThread(Grind::json));
                 case "/discoveries" -> send(ex, 200, onGameThread(Discoveries::json));
+                case "/nearest" -> {
+                    // ?limit=25&over=1: the latest ranking (worked out on its own worker; the game thread only reads it)
+                    java.util.Map<String, String> q = query(ex);
+                    int limit = intParam(q, "limit", 25, 1, 200);
+                    boolean over = "1".equals(q.get("over")) || "true".equals(q.get("over"));
+                    send(ex, 200, onGameThread(() -> io.github.anilken.wynnlabs.ui.NearestList.json(limit, over)));
+                }
                 case "/prices" -> send(ex, 200, Prices.json());
                 case "/prices/history" -> {
                     // ?item=Idol: the daily prices Wynnventory keeps; {"status":"pending"} while being asked
