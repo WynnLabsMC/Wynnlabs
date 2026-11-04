@@ -243,7 +243,10 @@ public final class CrowdMode {
                         .append('\t').append(String.format(java.util.Locale.ROOT, "%.1f", e.getY() - me0.y))
                         .append('\t').append(String.format(java.util.Locale.ROOT, "%.1f", Math.sqrt(e.distanceToSqr(me0))))
                         .append('\t').append(bodies.containsKey(root.getId()) ? "labelled:" + bodies.get(root.getId()) : "")
-                        .append('\t').append(hideEntity(e) ? "HIDDEN" : "").append('\t').append(text).append('\n');
+                        .append('\t').append(hideEntity(e) ? "HIDDEN" : "").append('\t').append(text)
+                        .append('\t').append(String.format(java.util.Locale.ROOT, "%.3f %.3f %.3f %.1f %.1f",
+                                e.getX(), e.getY(), e.getZ(), e.getYRot(), e.getXRot()))
+                        .append('\t').append(matrix((Display) e)).append('\n');
             }
             java.nio.file.Files.writeString(dir.resolve("crowd-dump.txt"), out.toString());
         } catch (Throwable t) {
@@ -252,6 +255,25 @@ public final class CrowdMode {
     }
 
     /** The bottom of the entity's ride chain. */
+    /** The display's own transformation as 16 numbers (column-major), for the dump. */
+    private static String matrix(Display d) {
+        try {
+            Display.RenderState rs = d.renderState();
+            if (rs == null) {
+                return "";
+            }
+            float[] a = new float[16];
+            rs.transformation().get(1.0f).getMatrix().get(a);
+            StringBuilder b = new StringBuilder();
+            for (float f : a) {
+                b.append(String.format(java.util.Locale.ROOT, "%.4f ", f));
+            }
+            return b.toString().trim();
+        } catch (Throwable t) {
+            return "";
+        }
+    }
+
     private static Entity root(Entity e) {
         Entity r = e;
         for (int i = 0; i < 8 && r.getVehicle() != null; i++) {
