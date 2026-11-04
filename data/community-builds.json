@@ -2124,7 +2124,7 @@
         "melee"
       ],
       "description": "Melee damage Fallen warrior build for level 106+, built around Warchief; needs high dexterity.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": true
     },
@@ -2982,7 +2982,7 @@
         "lootrun"
       ],
       "description": "Spell damage Paladin warrior build for level 106+, built around Discoverer; needs high defence.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": true
     },
@@ -3435,7 +3435,7 @@
         "tank"
       ],
       "description": "Damage Fallen warrior build for level 106+, built around Crusade Sabatons; needs high defence.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": true
     },
@@ -6475,7 +6475,7 @@
         "raid"
       ],
       "description": "Spell damage Arcanist mage build for level 106+, built around Masterwork Warp; needs high agility.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": false
     },
@@ -7170,7 +7170,7 @@
         "gathering-xp"
       ],
       "description": "Damage mage build for level 106+; needs high dexterity.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": false
     },
@@ -8615,7 +8615,7 @@
         "melee"
       ],
       "description": "Melee damage Riftwalker mage build for level 106+, built around Monster; needs high defence.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": false
     },
@@ -8632,7 +8632,7 @@
         "raid"
       ],
       "description": "Spell damage Riftwalker mage build for level 106+, built around Masterwork Warp; needs high agility.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": false
     },
@@ -13298,7 +13298,7 @@
         "xp-bonus"
       ],
       "description": "Spell damage assassin build for levels 12-29, for levelling.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": true
     },
@@ -13393,7 +13393,7 @@
         "xp-bonus"
       ],
       "description": "Spell damage assassin build for levels 29-60, for levelling.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": true
     },
@@ -13712,7 +13712,7 @@
         "xp-bonus"
       ],
       "description": "Melee damage assassin build for levels 60-80, for levelling.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": true
     },
@@ -13900,7 +13900,7 @@
         "xp-bonus"
       ],
       "description": "Damage assassin build for levels 80-105, for levelling.",
-      "source": "sodyum",
+      "source": "community",
       "checked": "2026-11-04",
       "outdated": true
     },

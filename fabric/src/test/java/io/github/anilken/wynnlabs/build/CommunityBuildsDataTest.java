@@ -87,7 +87,7 @@ class CommunityBuildsDataTest {
             if (!CommunityBuilds.SOURCES.contains(source)) {
                 bad.add(id + ": source " + source);
             }
-            if (o.has("credit") && (source.equals("discord") || source.equals("sodyum"))) {
+            if (o.has("credit") && (source.equals("discord") || source.equals("community"))) {
                 bad.add(id + ": credit on a " + source + " entry");
             }
             if (!o.get("checked").getAsString().matches("\\d{4}-\\d{2}-\\d{2}")) {

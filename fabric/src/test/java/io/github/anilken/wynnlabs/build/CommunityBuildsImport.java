@@ -49,7 +49,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 class CommunityBuildsImport {
 
     static final String DISCORD = "common/src/local/data/discord-builds.json";
-    static final String SODYUM = "common/src/local/data/sodyum-builds.html";
+    /** The local list page: the one other "*-builds.html" file in this folder. */
+    static final String LOCAL = "common/src/local/data";
     static final String OUT = "data/community-builds.json";
     static final String OUT_SHA = "data/community-builds.sha256";
     private static final Pattern CARD = Pattern.compile("(?s)<a[^>]*data-group=\"([^\"]*)\"[^>]*href=\"([^\"]*)\"[^>]*>\\s*<h4>(.*?)</h4>\\s*<p>(.*?)</p>\\s*</a>");
@@ -112,8 +113,8 @@ class CommunityBuildsImport {
     @EnabledIfSystemProperty(named = "wynnlabs.communityImport", matches = "true")
     void importCollectedBuilds() throws Exception {
         Path discord = find(DISCORD);
-        Path sodyum = find(SODYUM);
-        Assumptions.assumeTrue(discord != null && sodyum != null, "no local " + DISCORD + " or " + SODYUM);
+        Path listPage = listPage();
+        Assumptions.assumeTrue(discord != null && listPage != null, "no local " + DISCORD + " or list page");
         Path root = Path.of(System.getProperty("wynnlabs.projectDir", ".")).toAbsolutePath();
         ReferenceBuilds.installPlain();
         List<Cand> cands = new ArrayList<>();
@@ -143,7 +144,8 @@ class CommunityBuildsImport {
         }
 
         // the list page's cards: the label as the name; group names and other headings are deny words
-        String html = Files.readString(sodyum, StandardCharsets.UTF_8);
+        String html = Files.readString(listPage, StandardCharsets.UTF_8);
+        denyName(listPage.getFileName().toString().replace("-builds.html", ""));       // the list's author, never a source value
         Matcher m = CARD.matcher(html);
         while (m.find()) {
             String group = unhtml(m.group(1));
@@ -151,7 +153,7 @@ class CommunityBuildsImport {
             String label = unhtml(m.group(4).replaceAll("(?i)<br\\s*/?>", ", "));
             denyName(group);
             Cand c = new Cand();
-            c.source = "sodyum";
+            c.source = "community";
             c.rank = 1;
             c.order = order++;
             c.url = unhtml(m.group(2));
@@ -545,6 +547,19 @@ class CommunityBuildsImport {
     private static Klass craftedClass(WynnBuilderLink.Piece p) {
         io.github.anilken.wynnlabs.model.Slot t = io.github.anilken.wynnlabs.model.Slot.of(p.recipe().type().toUpperCase(Locale.ROOT));
         return t == null ? null : t.klass();
+    }
+
+    /** The local list page ("*-builds.html" beside the chat list), or null. */
+    static Path listPage() {
+        Path dir = find(LOCAL);
+        if (dir == null) {
+            return null;
+        }
+        try (var files = Files.list(dir)) {
+            return files.filter(f -> f.getFileName().toString().endsWith("-builds.html")).findFirst().orElse(null);
+        } catch (java.io.IOException e) {
+            return null;
+        }
     }
 
     private void denyName(String name) {

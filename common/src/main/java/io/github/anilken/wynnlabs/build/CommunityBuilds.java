@@ -43,7 +43,7 @@ public final class CommunityBuilds {
     public static final List<String> TAGS = List.of("damage", "spell", "melee", "tank", "healer", "support", "speed", "hybrid", "budget",
             "leveling", "lootrun", "raid", "solo", "xp-bonus", "gathering-xp");
     public static final List<String> CLASSES = List.of("warrior", "mage", "archer", "assassin", "shaman", "any");
-    public static final List<String> SOURCES = List.of("discord", "forum", "sodyum", "issue");
+    public static final List<String> SOURCES = List.of("discord", "forum", "community", "issue");
     /** The build window's role filters: each matches entries holding any of its tags. */
     public static final Map<String, List<String>> ROLES = roles();
     public static final int MAX_DESCRIPTION = 200;
