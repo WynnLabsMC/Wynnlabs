@@ -495,4 +495,64 @@ class WorldRouteTest {
         assertTrue(p.expanded() <= 3);
         assertTrue(p.cells().size() >= 2, "the way to the nearest cell looked at");
     }
+
+    @Test
+    void oneFloodReachesManyTargetsTheWayAroundAWall() throws IOException {
+        // a wall across the map but for its east end: the cell just behind it is a long walk away
+        WorldRoute g = grid(
+                "................",
+                "................",
+                "###############.",
+                "................");
+        int[][] targets = {{1, 3}, {10, 1}, {1, 0}};
+        WorldRoute.Reaches r = g.reach(1, 1, targets, 0, 10_000, 1000);
+        assertNotNull(r.each()[0]);
+        assertNotNull(r.each()[1]);
+        // round the wall's end: at least 13 cells out and 13 back, against 2 cells straight
+        assertTrue(r.each()[0].length() > 26 * 4, "behind the wall: " + r.each()[0].length());
+        assertEquals(9 * 4, r.each()[1].length(), 1e-9);
+        assertTrue(r.each()[1].length() < r.each()[0].length());
+        assertEquals(4, r.each()[2].length(), 1e-9);
+        // the same targets as A* sees them: the cost agrees with plan()'s way
+        assertTrue(g.plan(1, 1, 1, 3, 10_000, 1000).reached());
+    }
+
+    @Test
+    void theFloodTakesACorridorAndLeavesWhatItCannotReach() throws IOException {
+        WorldRoute g = grid(
+                "....###....",
+                "....###....",
+                "....###....",
+                "....###....",
+                "....###....");
+        int[][] beyond = {{10, 2}};
+        assertNull(g.reach(0, 2, beyond, 0, 10_000, 1000).each()[0], "rock and no corridor: not reached");
+        g.gates(WorldGates.parse("{\"corridors\": [{\"name\": \"Road\", \"from\": [14, 10], \"to\": [30, 10]}]}"));
+        WorldRoute.Reach r = g.reach(0, 2, beyond, 0, 10_000, 1000).each()[0];
+        assertNotNull(r, "through the corridor");
+        // 3 cells to the gate, the corridor's 4 cells, 3 cells on: 10 cells of 4 blocks
+        assertEquals(40, r.length(), 1e-9);
+        // a target with no cell to stand on within two is never reached
+        assertNull(g.reach(0, 2, new int[][] {{30, 2}}, 0, 10_000, 1000).each()[0]);
+    }
+
+    @Test
+    void theFloodStopsAtItsBudgetAndPastItsWantedTargets() throws IOException {
+        WorldRoute g = grid(
+                "................",
+                "................",
+                "................");
+        int[][] targets = {{2, 1}, {15, 1}};
+        // a budget of a few cells (the start, its neighbours, then the target two cells on) reaches the near target only
+        WorldRoute.Reaches small = g.reach(0, 1, targets, 0, 8, 1000);
+        assertNotNull(small.each()[0]);
+        assertNull(small.each()[1]);
+        assertTrue(small.expanded() <= 8);
+        // one target wanted: the flood goes 1.5 times its cost further, not to the far end
+        WorldRoute.Reaches one = g.reach(0, 1, targets, 1, 10_000, 1000);
+        assertNotNull(one.each()[0]);
+        assertNull(one.each()[1]);
+        // none wanted: every target
+        assertNotNull(g.reach(0, 1, targets, 0, 10_000, 1000).each()[1]);
+    }
 }
