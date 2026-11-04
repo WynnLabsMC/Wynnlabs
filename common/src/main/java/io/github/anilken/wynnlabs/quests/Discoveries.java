@@ -8,13 +8,13 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import io.github.anilken.wynnlabs.core.Dirs;
+import io.github.anilken.wynnlabs.core.JsonFile;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.GameState;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -186,25 +186,20 @@ public final class Discoveries {
         return found.contains(key(e.name())) || found.contains(key(e.id()));
     }
 
-    private static Path tickFile(String character) {
-        Path root = Dirs.config();
-        return (character == null || character.isEmpty() ? root : root.resolve("characters").resolve(character))
-                .resolve("discoveries.json");
+    private static JsonFile tickFile(String character) {
+        return new JsonFile(() -> {
+            Path root = Dirs.config();
+            return (character == null || character.isEmpty() ? root : root.resolve("characters").resolve(character))
+                    .resolve("discoveries.json");
+        });
     }
 
     private static Set<String> ticks(String character) {
         String c = character == null ? "" : character;
         return TICKS.computeIfAbsent(c, k -> {
             Set<String> s = ConcurrentHashMap.newKeySet();
-            try {
-                Path f = tickFile(k);
-                if (Files.exists(f)) {
-                    JsonObject o = JsonParser.parseString(Files.readString(f, StandardCharsets.UTF_8)).getAsJsonObject();
-                    o.getAsJsonArray("done").forEach(v -> s.add(v.getAsString()));
-                }
-            } catch (Exception e) {
-                System.out.println("[WynnLabs] could not read discoveries.json: " + e);
-            }
+            tickFile(k).read(text -> JsonParser.parseString(text).getAsJsonObject().getAsJsonArray("done")
+                    .forEach(v -> s.add(v.getAsString())));
             return s;
         });
     }
@@ -219,17 +214,13 @@ public final class Discoveries {
         if (on ? !s.add(id) : !s.remove(id)) {
             return;
         }
-        try {
+        tickFile(character).writeNow(() -> {
             JsonObject o = new JsonObject();
             JsonArray a = new JsonArray();
             s.stream().sorted().forEach(a::add);
             o.add("done", a);
-            Path f = tickFile(character);
-            Files.createDirectories(f.getParent());
-            Files.writeString(f, GSON.toJson(o), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not save discoveries.json: " + e);
-        }
+            return GSON.toJson(o);
+        });
     }
 
     // ---- requirements ----

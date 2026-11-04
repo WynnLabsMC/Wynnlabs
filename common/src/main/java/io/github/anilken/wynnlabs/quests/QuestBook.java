@@ -3,6 +3,7 @@ package io.github.anilken.wynnlabs.quests;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.github.anilken.wynnlabs.core.JsonFile;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.game.ContentBook;
 import io.github.anilken.wynnlabs.game.ItemJson;
@@ -12,8 +13,6 @@ import io.github.anilken.wynnlabs.model.Quest;
 import io.github.anilken.wynnlabs.model.QuestKind;
 import net.minecraft.client.Minecraft;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -422,9 +421,7 @@ public final class QuestBook {
                 a.difficulty());
     }
 
-    private static Path file() {
-        return Profile.dir().resolve("quests.json");
-    }
+    private static final JsonFile FILE = new JsonFile(() -> Profile.dir().resolve("quests.json"));
 
     private static void load() {
         String id = Profile.id();
@@ -435,25 +432,22 @@ public final class QuestBook {
         ENTRIES.clear();
         readAt = 0;
         askedAt = 0;
-        try {
-            if (id.isEmpty() || !Files.exists(file())) {
-                return;
-            }
-            for (var el : JsonParser.parseString(Files.readString(file())).getAsJsonArray()) {
-                var o = el.getAsJsonObject();
-                Entry e = new Entry(o.get("name").getAsString(), o.get("status").getAsString(), o.get("level").getAsInt(),
-                        o.has("length") ? o.get("length").getAsString() : null, o.get("xp").getAsLong(),
-                        o.get("met").getAsBoolean(), o.has("task") ? o.get("task").getAsString() : null,
-                        o.has("x") ? o.get("x").getAsInt() : null, o.has("y") ? o.get("y").getAsInt() : null,
-                        o.has("z") ? o.get("z").getAsInt() : null,
-                        o.has("bookDistance") ? o.get("bookDistance").getAsInt() : null, o.get("seen").getAsLong(),
-                        o.has("type") ? o.get("type").getAsString() : "QUEST",
-                        o.has("difficulty") ? o.get("difficulty").getAsString() : null);
-                ENTRIES.put(e.name(), e);
-                readAt = Math.max(readAt, e.seen());   // the file keeps no read time: the newest entry's
-            }
-        } catch (Exception ex) {
-            System.out.println("[WynnLabs] could not read quests.json: " + ex);
+        if (!id.isEmpty()) {
+            FILE.read(text -> {
+                for (var el : JsonParser.parseString(text).getAsJsonArray()) {
+                    var o = el.getAsJsonObject();
+                    Entry e = new Entry(o.get("name").getAsString(), o.get("status").getAsString(), o.get("level").getAsInt(),
+                            o.has("length") ? o.get("length").getAsString() : null, o.get("xp").getAsLong(),
+                            o.get("met").getAsBoolean(), o.has("task") ? o.get("task").getAsString() : null,
+                            o.has("x") ? o.get("x").getAsInt() : null, o.has("y") ? o.get("y").getAsInt() : null,
+                            o.has("z") ? o.get("z").getAsInt() : null,
+                            o.has("bookDistance") ? o.get("bookDistance").getAsInt() : null, o.get("seen").getAsLong(),
+                            o.has("type") ? o.get("type").getAsString() : "QUEST",
+                            o.has("difficulty") ? o.get("difficulty").getAsString() : null);
+                    ENTRIES.put(e.name(), e);
+                    readAt = Math.max(readAt, e.seen());   // the file keeps no read time: the newest entry's
+                }
+            });
         }
     }
 
@@ -461,7 +455,7 @@ public final class QuestBook {
         if (Profile.id().isEmpty()) {
             return;
         }
-        try {
+        FILE.writeNow(() -> {
             JsonArray arr = new JsonArray();
             for (Entry e : ENTRIES.values()) {
                 JsonObject o = new JsonObject();
@@ -491,10 +485,7 @@ public final class QuestBook {
                 }
                 arr.add(o);
             }
-            Files.createDirectories(file().getParent());
-            Files.writeString(file(), arr.toString());
-        } catch (Exception ex) {
-            System.out.println("[WynnLabs] could not save quests.json: " + ex);
-        }
+            return arr.toString();
+        });
     }
 }
