@@ -3246,7 +3246,7 @@
   "wynnlabs.community.equipped": "Equipped",
   "wynnlabs.community.in_bag": "In bag",
   "wynnlabs.community.bank_page": "Bank page %s",
-  "wynnlabs.community.bank_page_key": "Bank page N",
+  "wynnlabs.community.bank_page_key": "Bank page",
   "wynnlabs.community.missing": "Missing",
   "wynnlabs.community.key_missing": "Faded: missing, with its price",
   "wynnlabs.community.crafted_levels": "Crafted · Lv %s-%s",
@@ -3266,5 +3266,8 @@
   "wynnlabs.community.set_goal_tip": "The plan becomes this build and the road map is built around its items; nothing is sent to the game",
   "wynnlabs.community.set_goal_class": "Only for builds of your class",
   "wynnlabs.community.copy_link": "Copy link",
-  "wynnlabs.community.copy_tip": "Copies the build link to the clipboard"
+  "wynnlabs.community.copy_tip": "Copies the build link to the clipboard",
+  "wynnlabs.community.no_price_short": "No price",
+  "wynnlabs.community.nothing_beats": "Nothing beats your gear yet",
+  "wynnlabs.community.n_to_buy": "%s to buy|%s to buy"
 }

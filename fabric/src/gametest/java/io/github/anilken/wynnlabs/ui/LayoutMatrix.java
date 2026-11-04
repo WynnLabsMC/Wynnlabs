@@ -1015,6 +1015,20 @@ public class LayoutMatrix implements FabricClientGameTest {
                 w.community.preview(BuildCommunityFilter.defaults(), false, open[0]);
             });
             wbShot(ctx, dir, n + "-opened");
+            // the filters in force as chips (a search, a role, outdated hidden) and the build set as the goal pinned on top
+            ctx.runOnClient(mc -> {
+                BuildWindow w = BuildWindow.INSTANCE;
+                var c = io.github.anilken.wynnlabs.build.CommunityList.compared().get(open[0]);
+                Locks.use(c == null ? List.of() : c.kept());
+                w.communitySearch.setValue("uses Rarity");
+                w.community.preview(BuildCommunityFilter.defaults().withRole("leveling", true).withOutdatedHidden(true)
+                        .withQuery("uses Rarity"), false, null);
+            });
+            wbShot(ctx, dir, n + "-chips-goal");
+            ctx.runOnClient(mc -> {
+                Locks.use(List.of());
+                BuildWindow.INSTANCE.communitySearch.setValue("");
+            });
             ctx.runOnClient(mc -> BuildWindow.INSTANCE.community.preview(
                     BuildCommunityFilter.defaults().withLevel(BuildCommunityFilter.ANY_LEVEL).withRole("raid", true), true, null));
             wbShot(ctx, dir, n + "-raid-folded");

@@ -39,6 +39,8 @@ final class BuildCommunityView {
     static final int ROW_H = 16;
     static final int ICON = 12;
     static final String[] STATS = {"dmg", "ehp", "mana", "speed"};
+    /** Between the strip's pictures: a missing one's dashed square reaches 1 px out, so two stay 1 px apart. */
+    static final int STRIP_GAP = 3;
 
     private final BuildWindow win;
     private final BuildControls ui;
@@ -52,6 +54,8 @@ final class BuildCommunityView {
     /** The stat column: an index in {@link #STATS}. */
     int stat;
     String openId;
+    /** The opened build is to be scrolled into sight on the next frame. */
+    boolean reveal;
     final Set<String> openFamilies = new HashSet<>();
     int scroll;
     private int maxScroll;
@@ -224,7 +228,7 @@ final class BuildCommunityView {
         refreshOwned();
         refresh();
         boolean compact = win.compact;
-        int railW = compact ? 100 : 124;
+        int railW = compact ? 98 : 124;
         drawRail(g, host, x, y, railW, h, mx, my);
         int mxl = x + railW + Theme.SP_5;
         Kit.hair(g, mxl - Theme.SP_3, y, 1, h, Theme.LINE);
@@ -360,7 +364,12 @@ final class BuildCommunityView {
 
         // picked for you
         List<CommunityBuilds.Entry> picks = picks();
-        if (!picks.isEmpty()) {
+        if (picks.isEmpty() && compared().values().stream().anyMatch(c -> c.deltas() != null)) {
+            // compared with your gear, and nothing of your class here beats it
+            String none = L.t("wynnlabs.community.picked") + ": " + L.t("wynnlabs.community.nothing_beats");
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, none, w), x, cy, Theme.INK_3);
+            cy += Type.META.lineHeight + Theme.SP_3;
+        } else if (!picks.isEmpty()) {
             Type.META.draw(g, ui.font, L.t("wynnlabs.community.picked"), x, cy, Theme.INK_3);
             cy += Type.META.lineHeight + Theme.SP_1;
             int cardW = (w - 2 * Theme.SP_3) / 3;
@@ -494,9 +503,9 @@ final class BuildCommunityView {
 
     /** The table's columns: name, gear, stat, cost, tags (0 wide in the compact menu) as x offsets {name, gear, stat, cost, tags, end}. */
     int[] columns(int w) {
-        int gear = 9 * ICON + 8 * Theme.SP_2;
-        int stat = 40;
-        int cost = 46;
+        int gear = 9 * ICON + 8 * STRIP_GAP;
+        int stat = win.compact ? 32 : 40;
+        int cost = win.compact ? 38 : 46;
         int tags = win.compact ? 0 : Math.max(0, Math.min(84, w / 5));
         int gap = Theme.SP_3;
         int name = w - gear - stat - cost - tags - (tags > 0 ? 4 : 3) * gap;
@@ -558,7 +567,8 @@ final class BuildCommunityView {
                 nx += 8 + Theme.SP_1;
             }
             int nameW = x + c[1] - Theme.SP_3 - nx;
-            Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, e.name(), nameW), nx, ty, Theme.INK);
+            Type role = win.compact ? Type.META : Type.BODY;          // the compact menu: more of the name in the small type
+            role.draw(g, ui.font, role.fit(ui.font, e.name(), nameW), nx, role.yIn(y, ROW_H), Theme.INK);
             host.tip(x, y, c[1] - Theme.SP_3, ROW_H, rowTip(e, pinned, cmp));
             // the gear: each piece's picture, missing ones faded in a dashed square
             int gx = x + c[1];
@@ -567,7 +577,7 @@ final class BuildCommunityView {
                 List<CommunityBuilds.Piece> pieces = cmp.pieces();
                 for (int i = 0; i < pieces.size() && i < 9; i++) {
                     CommunityBuilds.Piece p = pieces.get(i);
-                    int px = gx + i * (ICON + Theme.SP_2);
+                    int px = gx + i * (ICON + STRIP_GAP);
                     ItemStack st = BuildCommunityRow.icon(host, p);
                     if (!st.isEmpty()) {
                         g.pose().pushMatrix();
@@ -592,10 +602,17 @@ final class BuildCommunityView {
             Double sv = statOf(cmp, stat);
             Type.BODY.draw(g, ui.font, st == null ? "—" : st, x + c[2], ty,
                     st == null ? Theme.INK_3 : sv >= 0.5 ? Theme.GOOD : sv <= -0.5 ? Theme.BAD : Theme.INK_2);
+            boolean priced = cmp != null && cmp.knownCost() > 0;
             String cost = cmp == null ? "…" : cmp.missing() == 0 ? L.t("wynnlabs.community.owned_short")
-                    : cmp.knownCost() > 0 ? price(cmp.knownCost()) + (cmp.unpriced() > 0 ? "+" : "") : "?";
-            Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, cost, c[4] - c[3] - Theme.SP_3), x + c[3], ty,
-                    cmp != null && cmp.missing() == 0 ? Theme.GOOD : Theme.PRICE);
+                    : priced ? price(cmp.knownCost()) + (cmp.unpriced() > 0 ? "+" : "") : L.t("wynnlabs.community.no_price_short");
+            if (pinned && cmp != null && cmp.missing() > 0 && c[4] >= c[5]) {
+                // the goal without a tags column: what is left to buy in the cost column (the price in its tooltip)
+                cost = L.n("wynnlabs.community.n_to_buy", cmp.missing(), cmp.missing());
+                priced = false;
+            }
+            Type cr = priced || cmp == null || cmp.missing() == 0 ? Type.BODY : Type.META;
+            cr.draw(g, ui.font, cr.fit(ui.font, cost, c[4] - c[3] - Theme.SP_1), x + c[3], cr.yIn(y, ROW_H),
+                    cmp != null && cmp.missing() == 0 ? Theme.GOOD : priced ? Theme.PRICE : Theme.INK_3);
             if (cmp != null) {
                 host.tip(x + c[3], y, c[4] - c[3], ROW_H, List.of(Component.literal(toBuy(cmp)).withStyle(ChatFormatting.GOLD)));
             }
@@ -629,9 +646,19 @@ final class BuildCommunityView {
         }
         y += ROW_H + Theme.SP_2;
         if (open && cmp != null) {
-            int hgt = opened.height(e, cmp, w);
+            boolean tags = c[4] >= c[5];            // no tags column: the tags under the header
+            int hgt = opened.height(e, cmp, w, tags);
             if (y + hgt >= top && y <= bottom) {
-                opened.draw(g, host, e, cmp, x, y, w, over, mx, my);
+                opened.draw(g, host, e, cmp, x, y, w, tags, over, mx, my);
+            }
+            if (reveal) {
+                // the opened build whole in sight: its row at the top at most, its last line at the bottom
+                int need = y + hgt - bottom;
+                int room = y - ROW_H - Theme.SP_2 - top;
+                if (need > 0) {
+                    scroll += Math.min(need, Math.max(0, room));
+                }
+                reveal = false;
             }
             y += hgt + Theme.SP_3;
         }
@@ -782,8 +809,8 @@ final class BuildCommunityView {
     // ---- picked for you ----
 
     /**
-     * Three builds of your class from the list as filtered: those with at most three pieces to buy
-     * first, then the biggest damage gain, the most owned and the cheapest to finish.
+     * Three builds of your class from the list as filtered that beat your gear: the biggest damage
+     * gain first, then the most owned and the cheapest to finish. None when none beats it.
      */
     List<CommunityBuilds.Entry> picks() {
         Map<String, CommunityBuilds.Compare> cmp = compared();
@@ -791,14 +818,13 @@ final class BuildCommunityView {
         List<CommunityBuilds.Entry> mine = new ArrayList<>();
         for (CommunityBuilds.Entry e : matched) {
             CommunityBuilds.Compare c = cmp.get(e.id());
-            if (c != null && !e.any() && (k == Klass.NONE || e.klassType() == k) && c.missing() > 0) {
+            Double dmg = statOf(c, 0);
+            if (c != null && !e.any() && (k == Klass.NONE || e.klassType() == k) && c.missing() > 0 && dmg != null && dmg >= 0.5) {
                 mine.add(e);
             }
         }
-        mine.sort(Comparator.<CommunityBuilds.Entry>comparingInt(e -> cmp.get(e.id()).missing() <= 3 ? 0 : 1).thenComparing(Comparator.<CommunityBuilds.Entry>comparingDouble(e -> {
-            Double v = statOf(cmp.get(e.id()), 0);
-            return v == null ? -1e9 : v;
-        }).reversed()).thenComparing(Comparator.<CommunityBuilds.Entry>comparingInt(e -> cmp.get(e.id()).ownedPct()).reversed())
+        mine.sort(Comparator.<CommunityBuilds.Entry>comparingDouble(e -> statOf(cmp.get(e.id()), 0)).reversed()
+                .thenComparing(Comparator.<CommunityBuilds.Entry>comparingInt(e -> cmp.get(e.id()).ownedPct()).reversed())
                 .thenComparingLong(e -> cmp.get(e.id()).knownCost()));
         return mine.subList(0, Math.min(3, mine.size()));
     }
@@ -820,7 +846,7 @@ final class BuildCommunityView {
         String buy = L.t("wynnlabs.community.buy");
         Type.META.draw(g, ui.font, buy, ix, Type.META.yIn(cy, ICON), Theme.INK_3);
         int px = ix + Type.META.width(ui.font, buy) + Theme.SP_2;
-        String cost = c.knownCost() > 0 ? price(c.knownCost()) + (c.unpriced() > 0 ? "+" : "") : "?";
+        String cost = c.knownCost() > 0 ? price(c.knownCost()) + (c.unpriced() > 0 ? "+" : "") : L.t("wynnlabs.community.no_price_short");
         int costW = Type.META.width(ui.font, cost);
         for (CommunityBuilds.Piece p : c.pieces()) {
             if (p.owned()) {
@@ -840,7 +866,7 @@ final class BuildCommunityView {
             host.tip(px, cy, ICON, ICON, BuildCommunityRow.pieceTip(p));
             px += ICON + Theme.SP_1;
         }
-        Type.META.draw(g, ui.font, cost, x + w - pad - costW, Type.META.yIn(cy, ICON), Theme.PRICE);
+        Type.META.draw(g, ui.font, cost, x + w - pad - costW, Type.META.yIn(cy, ICON), c.knownCost() > 0 ? Theme.PRICE : Theme.INK_3);
         ui.btn(x, y, w, h, "c.pick", e.id());
     }
 
@@ -850,7 +876,9 @@ final class BuildCommunityView {
     List<String[]> activeChips() {
         List<String[]> out = new ArrayList<>();
         if (!filter.words().isEmpty()) {
-            out.add(new String[] {"search", L.t("wynnlabs.community.chip_uses", filter.words())});
+            String q = filter.query().strip();
+            String shown = q.regionMatches(true, 0, "uses", 0, 4) ? q.substring(4).replaceFirst("^:?\\s*", "") : q;
+            out.add(new String[] {"search", L.t("wynnlabs.community.chip_uses", shown)});
         }
         if (filter.allClasses()) {
             out.add(new String[] {"classes", L.t("wynnlabs.community.all_classes")});
@@ -938,12 +966,14 @@ final class BuildCommunityView {
                 openId = id.equals(openId) ? null : id;
                 if (openId != null) {
                     requestPrices(openId);
+                    reveal = true;
                 }
             }
             case "c.pick" -> {
                 openId = (String) arg;
                 requestPrices(openId);
                 scrollTo(openId);
+                reveal = true;
             }
             case "c.family" -> {
                 String k = (String) arg;
@@ -1140,6 +1170,7 @@ final class BuildCommunityView {
         if (open != null) {
             scrollTo(open);
             scroll = Math.max(0, scroll - (ROW_H + Theme.SP_2));
+            reveal = true;
         }
     }
 

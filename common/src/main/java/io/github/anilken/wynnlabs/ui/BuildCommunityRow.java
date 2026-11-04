@@ -170,8 +170,11 @@ final class BuildCommunityRow {
         return c.problem() == null ? null : L.t("wynnlabs.community.cannot_wear", c.problem().text());
     }
 
-    int height(CommunityBuilds.Entry e, CommunityBuilds.Compare c, int w) {
+    int height(CommunityBuilds.Entry e, CommunityBuilds.Compare c, int w, boolean tags) {
         int h = Type.LABEL.lineHeight + Theme.SP_2;                 // header
+        if (tags) {
+            h += Ui.SEAL_H + Theme.SP_2;                              // the tags, without a tags column
+        }
         h += Ui.SEAL_H + Theme.SP_3;                                  // the changes
         h += Type.META.lineHeight + Theme.SP_1 + SLOT + Theme.SP_1 + Type.META.lineHeight + Theme.SP_3;   // the tiles
         h += Type.META.lineHeight + Theme.SP_2;                       // the key
@@ -186,7 +189,7 @@ final class BuildCommunityRow {
     }
 
     void draw(GuiGraphics g, BuildWindow.Host host, CommunityBuilds.Entry e, CommunityBuilds.Compare c, int x, int y, int w,
-            List<Runnable> over, int mx, int my) {
+            boolean tags, List<Runnable> over, int mx, int my) {
         int cy = y;
         // the header: name · levels · source · note
         String name = e.name();
@@ -197,6 +200,28 @@ final class BuildCommunityRow {
         Type.META.draw(g, ui.font, Type.META.fit(ui.font, rest, w - nw), x + nw, cy + 1, Theme.INK_3);
         host.tip(x + nw, cy, w - nw, Type.LABEL.lineHeight, List.of(Component.literal(e.description()).withStyle(ChatFormatting.GRAY)));
         cy += Type.LABEL.lineHeight + Theme.SP_2;
+        if (tags) {
+            // the compact menu has no tags column: the play styles and the outdated mark here
+            int tx = x;
+            List<String> ts = new ArrayList<>();
+            if (e.outdated()) {
+                ts.add("outdated");
+            }
+            ts.addAll(e.tags());
+            for (String t : ts) {
+                String label = L.t(t.equals("outdated") ? "wynnlabs.community.outdated" : "wynnlabs.community.tag." + t);
+                int lw = Type.META.width(ui.font, label) + 2 * Theme.SP_2;
+                if (tx + lw > x + w) {
+                    break;
+                }
+                Ui.seal(g, ui.font, label, tx, cy, t.equals("outdated") ? Theme.WARN : Theme.SEAL_2);
+                if (t.equals("outdated")) {
+                    host.tip(tx, cy, lw, Ui.SEAL_H, List.of(L.c("wynnlabs.community.outdated_tip", e.checked()).withStyle(ChatFormatting.GRAY)));
+                }
+                tx += lw + Theme.SP_2;
+            }
+            cy += Ui.SEAL_H + Theme.SP_2;
+        }
 
         // the changes against what you wear
         int px = x;
@@ -300,7 +325,8 @@ final class BuildCommunityRow {
         String left = BuildCommunityView.toBuy(c);
         int lw = Type.META.width(ui.font, left);
         bx -= lw + Theme.SP_3;
-        Type.META.draw(g, ui.font, left, bx, Type.META.yIn(by, Ui.BUTTON_H), c.missing() == 0 ? Theme.GOOD : Theme.PRICE);
+        Type.META.draw(g, ui.font, left, bx, Type.META.yIn(by, Ui.BUTTON_H),
+                c.missing() == 0 ? Theme.GOOD : c.knownCost() > 0 ? Theme.PRICE : Theme.INK_3);
     }
 
     private int keyItem(GuiGraphics g, String icon, int colour, String text, int x, int y) {

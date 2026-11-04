@@ -3246,7 +3246,7 @@
   "wynnlabs.community.equipped": "Kuşanılmış",
   "wynnlabs.community.in_bag": "Çantada",
   "wynnlabs.community.bank_page": "Bank sayfa %s",
-  "wynnlabs.community.bank_page_key": "Bank sayfa N",
+  "wynnlabs.community.bank_page_key": "Bank sayfası",
   "wynnlabs.community.missing": "Eksik",
   "wynnlabs.community.key_missing": "Soluk: eksik, fiyatıyla",
   "wynnlabs.community.crafted_levels": "Crafted · Lv %s-%s",
@@ -3266,5 +3266,8 @@
   "wynnlabs.community.set_goal_tip": "Plan bu build olur ve road map item'larına göre kurulur; oyuna hiçbir şey gönderilmez",
   "wynnlabs.community.set_goal_class": "Sadece kendi class'ının build'leri için",
   "wynnlabs.community.copy_link": "Linki kopyala",
-  "wynnlabs.community.copy_tip": "Build linkini panoya kopyalar"
+  "wynnlabs.community.copy_tip": "Build linkini panoya kopyalar",
+  "wynnlabs.community.no_price_short": "Fiyat yok",
+  "wynnlabs.community.nothing_beats": "Henüz gear'ından iyisi yok",
+  "wynnlabs.community.n_to_buy": "%s alınacak"
 }
