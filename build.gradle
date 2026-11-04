@@ -481,6 +481,58 @@ tasks.register('checkLang') {
 }
 check.dependsOn checkLang
 
+// Setting keys: every literal key the Java code passes to Settings (Settings.on("itemAdvice"),
+// Settings.number("bankSort", 0), ...) must be declared in core/Settings: a switch in LABELS, a
+// choice in CHOICES, a number in STEPS, a screen's own number in INTERNAL, or an old key in
+// REMOVED. A key passed as a constant or built at run time (CaveMap.SETTING, PricePrompt.ASKED,
+// HudPlace's "hud_" + id + "_" + part, the settings tab's rows) is not a literal and not checked.
+tasks.register('checkSettings') {
+    group = 'verification'
+    description = 'Checks that every setting key the code uses is declared in core/Settings.'
+    doLast {
+        def settings = file('common/src/main/java/io/github/anilken/wynnlabs/core/Settings.java').getText('UTF-8')
+        def quoted = { String s -> (s =~ /"([A-Za-z0-9_]+)"/).collect { it[1] } }
+        def declared = [:]
+        def labels = settings =~ /(?s)for \(String k : new String\[\] \{(.*?)\}\)/
+        declared.LABELS = labels.find() ? quoted(labels.group(1)) : []
+        ['CHOICES', 'STEPS'].each { map ->
+            declared[map] = (settings =~ /\b${map}\.put\("([A-Za-z0-9_]+)"/).collect { it[1] }
+        }
+        ['REMOVED', 'INTERNAL'].each { set ->
+            def m = settings =~ /(?s)\b${set} = java\.util\.Set\.of\((.*?)\);/
+            declared[set] = m.find() ? quoted(m.group(1)) : []
+        }
+        def problems = []
+        // a declaration this scan no longer finds means Settings.java changed shape: fix the scan
+        declared.each { name, keys ->
+            if (!keys) {
+                problems << "no keys found in Settings.${name} (update checkSettings to its new form)"
+            }
+        }
+        def known = declared.values().flatten() as Set
+        def used = [] as Set
+        def call = ~/\bSettings\.(?:on|saved|byDefault|changed|toggle|set|reset|number|setNumber|resetNumber|choice|setChoice|stepValue|stepDefault|step)\(\s*"([^"]*)"/
+        sourceRoots.each { root ->
+            fileTree(root).include('**/*.java').each { f ->
+                def rel = projectDir.toPath().relativize(f.toPath()).toString().replace(File.separatorChar, '/' as char)
+                f.getText('UTF-8').readLines().eachWithIndex { text, n ->
+                    (text =~ call).each { m ->
+                        used << m[1]
+                        if (!known.contains(m[1])) {
+                            problems << "${rel}:${n + 1}: setting \"${m[1]}\" is not declared in core/Settings"
+                        }
+                    }
+                }
+            }
+        }
+        if (problems) {
+            throw new GradleException("Setting keys:\n  " + problems.join('\n  '))
+        }
+        logger.lifecycle("checkSettings: ${used.size()} keys used, ${known.size()} declared, OK")
+    }
+}
+check.dependsOn checkSettings
+
 // Wynntils boundary: only the bridge (Wyn), the item adapter (WynntilsItems) and the event hooks
 // (WynntilsEvents) may name Wynntils' types, by import or fully qualified. Everything else reads
 // the mod's own model, so a Wynntils change or a second item source touches only these files.
