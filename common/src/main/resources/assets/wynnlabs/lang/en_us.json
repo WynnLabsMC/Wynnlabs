@@ -3153,6 +3153,7 @@
   "wynnlabs.community.loading": "Loading the community build list",
   "wynnlabs.community.failed": "The community list couldn't be loaded",
   "wynnlabs.community.retry": "Next try in %s minute|Next try in %s minutes",
+  "wynnlabs.community.try_again": "Try again",
   "wynnlabs.community.search_hint": "Build name or item, e.g. \"uses Ingress\"",
   "wynnlabs.community.count": "%s of %s",
   "wynnlabs.community.picked": "Picked for you",

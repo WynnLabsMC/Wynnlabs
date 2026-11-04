@@ -303,8 +303,12 @@ final class CommunityPage {
     private void drawState(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         if (CommunityList.state() == CommunityList.State.FAILED) {
             long min = Math.max(1, (CommunityList.retryIn() + 59_999) / 60_000);
-            UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "world", L.t("wynnlabs.community.failed"),
-                    List.of(L.n("wynnlabs.community.retry", (int) min, min)), null, null, mx, my);
+            int[] act = UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "world", L.t("wynnlabs.community.failed"),
+                    List.of(L.n("wynnlabs.community.retry", (int) min, min)),
+                    new UiEmpty.Action("refresh", L.t("wynnlabs.community.try_again"), "c.retry"), null, mx, my);
+            if (act != null) {
+                ui.btn(act[0], act[1], act[2], act[3], "c.retry", null);
+            }
         } else {
             UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "refresh", Ui.busy(L.t("wynnlabs.community.loading")),
                     List.of(), null, null, mx, my);
@@ -1110,6 +1114,7 @@ final class CommunityPage {
             }
             case "c.goal" -> setGoal((String) arg, now);
             case "c.copy" -> copy((String) arg);
+            case "c.retry" -> CommunityList.retryNow();
             case "c.craft" -> {
                 if (arg instanceof io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe r) {
                     tab.craft(r);

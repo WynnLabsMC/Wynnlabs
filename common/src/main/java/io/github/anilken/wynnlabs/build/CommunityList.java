@@ -40,6 +40,9 @@ public final class CommunityList {
     static final String META = "community-builds.json.meta";
     static final String URL = RepoData.BASE + FILE;
     static final String HASH_URL = RepoData.BASE + "community-builds.sha256";
+    /** How often a waiting failure looks for a copy on disk. */
+    private static final long DISK_LOOK_MILLIS = 5_000;
+    private static volatile long diskAt;
     /** The list is at most this big; more is not the file we asked for. */
     static final long MAX_BYTES = 2L << 20;
 
@@ -103,6 +106,28 @@ public final class CommunityList {
         return m == null ? 0 : now() - m.downloaded();
     }
 
+    /** "Try again": the waiting failure is dropped and the list asked for at once. */
+    public static void retryNow() {
+        failedAt = 0;
+        request();
+    }
+
+    /** Reads the copy on disk into memory when it is there and whole; no download. */
+    static synchronized void fromDisk(Path dir) {
+        if (doc != null) {
+            return;
+        }
+        RepoData.Meta m = RepoData.verified(dir.resolve(FILE), dir.resolve(META));
+        CommunityBuilds.Doc d = m == null ? null : read(dir.resolve(FILE));
+        if (d != null) {
+            doc = d;
+            loaded = m;
+            state = State.READY;
+            why = null;
+            failedAt = 0;
+        }
+    }
+
     /** Millis until the next try after a failure (0: none waiting). */
     public static long retryIn() {
         long f = failedAt;
@@ -127,6 +152,18 @@ public final class CommunityList {
             return;
         }
         if (failedAt != 0 && now() - failedAt < RepoData.RETRY_MILLIS) {
+            // a failed download waits, but a copy put on disk meanwhile is read (every few seconds at most)
+            if (doc == null && now() - diskAt >= DISK_LOOK_MILLIS) {
+                diskAt = now();
+                busy = true;
+                worker().execute(() -> {
+                    try {
+                        fromDisk(Dirs.config());
+                    } finally {
+                        busy = false;
+                    }
+                });
+            }
             return;
         }
         busy = true;

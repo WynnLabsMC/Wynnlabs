@@ -3153,6 +3153,7 @@
   "wynnlabs.community.loading": "Topluluk build listesi yükleniyor",
   "wynnlabs.community.failed": "Topluluk listesi yüklenemedi",
   "wynnlabs.community.retry": "%s dakika sonra tekrar denenecek",
+  "wynnlabs.community.try_again": "Tekrar dene",
   "wynnlabs.community.search_hint": "Build adı veya item, örn. \"uses Ingress\"",
   "wynnlabs.community.count": "%s / %s",
   "wynnlabs.community.picked": "Senin için seçilenler",
