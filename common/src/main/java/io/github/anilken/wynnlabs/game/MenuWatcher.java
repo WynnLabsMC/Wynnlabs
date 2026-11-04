@@ -255,9 +255,9 @@ public final class MenuWatcher {
             if (slot.container == mc.player.getInventory() || slot.getItem().isEmpty()) {
                 continue;
             }
-            Optional<ItemView> item = state.view(slot.getItem());
-            if (item.isPresent() && item.get().isBox() && item.get().box() != null) {
-                for (var info : state.possibleGears(item.get().box())) {
+            Optional<ItemView.Box> box = state.view(slot.getItem()).flatMap(ItemView::boxPart);
+            if (box.isPresent()) {
+                for (var info : state.possibleGears(box.get())) {
                     names.add(info.name());
                 }
             }

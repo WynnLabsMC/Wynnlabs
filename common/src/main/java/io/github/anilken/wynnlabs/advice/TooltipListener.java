@@ -438,7 +438,7 @@ public final class TooltipListener {
             return false;
         }
         var p = WynntilsItems.view(stack);
-        return p.isPresent() && p.get().isGear() && Shopping.find(p.get().data().name()) != null;
+        return p.flatMap(ItemView::gearData).map(d -> Shopping.find(d.name()) != null).orElse(false);
     }
 
     /** The tooltip with the mod's lines added, or null to leave it as it is. */

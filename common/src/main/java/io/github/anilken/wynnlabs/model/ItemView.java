@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.model;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * A stack as the mod understands it. {@code kind} says which of the parts below are filled; the
@@ -34,6 +35,21 @@ public record ItemView(Kind kind, String type, boolean plain, String name, Integ
 
     public boolean isBox() {
         return kind == Kind.BOX;
+    }
+
+    /** The database entry of a gear stack, empty for any other kind. */
+    public Optional<ItemData> gearData() {
+        return kind == Kind.GEAR ? Optional.ofNullable(data) : Optional.empty();
+    }
+
+    /** The crafted part, empty unless this is a crafted piece. */
+    public Optional<Crafted> craftedPart() {
+        return kind == Kind.CRAFTED ? Optional.ofNullable(crafted) : Optional.empty();
+    }
+
+    /** The box part, empty unless this is an unidentified gear box. */
+    public Optional<Box> boxPart() {
+        return kind == Kind.BOX ? Optional.ofNullable(box) : Optional.empty();
     }
 
     /** Gear that has not been identified yet: no rolls. */

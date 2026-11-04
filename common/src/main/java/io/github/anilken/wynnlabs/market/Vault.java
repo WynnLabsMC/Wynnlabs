@@ -16,6 +16,7 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.game.WynntilsItems;
+import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.MenuKind;
@@ -215,9 +216,8 @@ public final class Vault {
             return null;
         }
         boolean gear = parsed.isPresent() && parsed.get().isGear();
-        int level = parsed.isPresent() && parsed.get().isGear() ? parsed.get().data().level()
-                : parsed.isPresent() && parsed.get().level() != null
-                        ? parsed.get().level() : 0;
+        int level = parsed.flatMap(ItemView::gearData).map(ItemData::level)
+                .orElseGet(() -> parsed.map(ItemView::level).orElse(0));
         String kind = parsed.map(AutoAdvice::kindOf).orElse("unknown");
         String prof = parsed.isPresent() && parsed.get().professions() != null
                 ? String.join(",", parsed.get().professions()) : "";
@@ -228,7 +228,7 @@ public final class Vault {
             READ_AT.put(stack, key + "#" + slot);
         }
         // a box: its type, tier and levels, to tell boxes apart and list what can come out
-        ItemView.Box b = parsed.isPresent() && parsed.get().isBox() ? parsed.get().box() : null;
+        ItemView.Box b = parsed.flatMap(ItemView::boxPart).orElse(null);
         String box = b != null
                 ? b.slot().name() + "|" + b.tier().name() + "|" + b.low() + "|"
                         + b.high() : null;
