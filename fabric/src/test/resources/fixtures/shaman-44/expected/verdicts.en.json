@@ -1665,7 +1665,7 @@
     "where": "bank char:char0003:Character Bank p. 3#6",
     "name": "Unidentified Dagger",
     "verdict": "SELL",
-    "note": "Reveal it at the Trade Market (~34E - 36E): list it if it turns out to be Precedence (over your 30EB minimum), otherwise sell it to the Blacksmith (2/6 have a price). Nothing in it drops for Shaman"
+    "note": "Unique box: its market prices are too thin to trust, the Blacksmith takes it. Nothing in it drops for Shaman"
   },
   {
     "where": "bank char:char0003:Character Bank p. 3#7",

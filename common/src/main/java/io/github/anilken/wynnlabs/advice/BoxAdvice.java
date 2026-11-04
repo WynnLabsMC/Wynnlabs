@@ -94,10 +94,10 @@ final class BoxAdvice {
 
     /** Sell it: the route {@link SellAdvice#boxChoice} picks, with {@code why}. */
     private static Decision sell(ItemView.Box box, String why) {
-        if (Rules.list("trade", "blacksmithTiers").contains(box.tier().name())) {
-            return blacksmith(box, why);        // a thin market's price is no reason to list it
-        }
         BoxRoutes.Choice c = SellAdvice.boxChoice(box);
+        if (c.route() != BoxRoutes.Route.BLACKSMITH && Rules.list("trade", "blacksmithTiers").contains(box.tier().name())) {
+            return blacksmith(box, tierNote(box) + ". " + why);   // a thin market's price is no reason to list it
+        }
         return new Decision(boxRoute(box, c, why, 0, 0), c);
     }
 
@@ -106,6 +106,12 @@ final class BoxAdvice {
         BoxRoutes.Choice c = SellAdvice.boxChoice(box);
         return new Decision(new Advice.Entry(Verdict.SELL, why),
                 new BoxRoutes.Choice(BoxRoutes.Route.BLACKSMITH, c.value(), null));
+    }
+
+    /** "Unique box: its market prices are too thin to trust, the Blacksmith takes it". */
+    private static String tierNote(ItemView.Box box) {
+        return L.t("wynnlabs.auto.box_tier_blacksmith", box.tier().name().charAt(0)
+                + box.tier().name().substring(1).toLowerCase(java.util.Locale.ROOT));
     }
 
     /** A verdict that weighed no route (kept for an alt, too far ahead, nothing known). */
@@ -240,8 +246,7 @@ final class BoxAdvice {
                 picked |= Shopping.find(info.name()) != null || io.github.anilken.wynnlabs.build.roadmap.Roadmap.plans(info.name());
             }
             if (!picked) {
-                return blacksmith(box, L.t("wynnlabs.auto.box_tier_blacksmith", box.tier().name().charAt(0)
-                        + box.tier().name().substring(1).toLowerCase(java.util.Locale.ROOT)));
+                return blacksmith(box, tierNote(box));
             }
         }
         // The build plan, as it judges the piece once identified: an outcome is one you would
