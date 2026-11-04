@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.quests.Content;
 import io.github.anilken.wynnlabs.quests.ContentType;
+import io.github.anilken.wynnlabs.quests.Nearest;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.quests.QuestGuides;
@@ -44,16 +45,23 @@ final class QuestsRail extends MenuPaint {
 
     /**
      * A line of the rail: a quest (its name, its suggestion when the advisor ranked it), a place or
-     * discovery of another kind ({@code line}), or a heading.
+     * discovery of another kind ({@code line}), an entry of the nearest list ({@code near}), or a heading.
      */
-    record Row(String name, String head, QuestAdvisor.Suggestion s, Content.Line line) {
+    record Row(String name, String head, QuestAdvisor.Suggestion s, Content.Line line, Nearest.Entry near) {
         Row(String name, String head, QuestAdvisor.Suggestion s) {
-            this(name, head, s, null);
+            this(name, head, s, null, null);
+        }
+
+        Row(String name, String head, QuestAdvisor.Suggestion s, Content.Line line) {
+            this(name, head, s, line, null);
         }
     }
 
     /** The rail's rows: the search's matches, or the tracked quest, the filter's list, then the finished ones. */
     List<Row> rows() {
+        if (tab.nearest) {
+            return tab.nearestView.rows();
+        }
         ContentType t = tab.questType;
         return QuestsCache.kept("rows|" + t + "|" + tab.questFilter + "|" + tab.query() + "|" + QuestsData.tracked() + "|" + QuestBook.changedAt(), 500,
                 () -> t.book() ? tab.types.rows(t, tab.query())
@@ -143,7 +151,7 @@ final class QuestsRail extends MenuPaint {
             Type.META.draw(g, font(), Type.META.fit(font(), n, w), x + Theme.SP_2, top, Theme.INK_3);
             top += Type.META.lineHeight + Theme.SP_3;
         }
-        if (tab.questType == ContentType.SECRET_DISCOVERY && tab.query().isEmpty() && QuestsSecrets.unread()) {
+        if (tab.questType == ContentType.SECRET_DISCOVERY && !tab.nearest && tab.query().isEmpty() && QuestsSecrets.unread()) {
             top += unread(g, x, top, w, mx, my) + Theme.SP_4;
         }
         int bottom = y + h;
@@ -208,8 +216,8 @@ final class QuestsRail extends MenuPaint {
     private int orderChip(GuiGraphics g, int x, int y, int w, List<Row> rows, int mx, int my) {
         int cx = x;
         chip = null;
-        boolean secret = tab.questType == ContentType.SECRET_DISCOVERY;
-        if (tab.questType.quest() || secret) {
+        boolean secret = tab.questType == ContentType.SECRET_DISCOVERY && !tab.nearest;
+        if (tab.questType.quest() && !tab.nearest || secret) {
             String name = secret ? QuestsSecrets.sortName() : L.t(QuestAdvisor.FILTER_NAMES[filterIndex()]);
             // the order has the sort arrow, so it never reads like the kind's chip beside it
             int cw = UiMenu.chip(g, font(), "arrow-down", name, cx, y, tab.filterOpen, mx, my);
@@ -218,6 +226,13 @@ final class QuestsRail extends MenuPaint {
             cx += cw + Theme.SP_2;
         }
         cx += tab.types.chip(g, cx, y, mx, my) + Theme.SP_3;
+        if (tab.nearest && tab.questSelected != null) {
+            // an entry open on the right: one click back to the whole list
+            Ui.iconButton(g, "list-check", cx - Theme.SP_1, y, false, mx, my);
+            menu.hits.add(new MenuHit(cx - Theme.SP_1, y, Ui.CHIP_H + 2, Ui.CHIP_H, null,
+                    List.of(L.c("wynnlabs.nearest.back").withStyle(ChatFormatting.GRAY)), "#qnearlist"));
+            cx += Ui.CHIP_H + 2 + Theme.SP_2;
+        }
         // what is left: the rows before the "Biten" heading
         long n = 0;
         for (Row r : rows) {
@@ -244,6 +259,10 @@ final class QuestsRail extends MenuPaint {
 
     /** One quest: its mark, its name, and on the right where it is (or the stage you are on). */
     private void row(GuiGraphics g, Row r, int x, int y, int w, int mx, int my) {
+        if (r.near() != null) {
+            tab.nearestView.railRow(g, r, x, y, w, mx, my);
+            return;
+        }
         if (r.line() != null) {
             tab.types.row(g, r, x, y, w, mx, my);
             return;

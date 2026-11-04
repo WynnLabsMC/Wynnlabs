@@ -448,6 +448,171 @@ final class WorldRoute {
         return new Plan(trace(nearest), false, expanded, (System.nanoTime() - t0) / 1_000_000);
     }
 
+    /** How far past the cost of the {@code want}-th goal the flood still goes, so a cheaper but longer road way is not cut off. */
+    static final double TAIL = 1.5;
+
+    /** One target the flood reached: the cost of the cheapest way there and that way's length in blocks. */
+    record Reach(double cost, double length) {}
+
+    /** The flood's answer: by target, in the order given (null: not reached), the cells looked at and the time taken. */
+    record Reaches(Reach[] each, int expanded, long millis) {}
+
+    /**
+     * The ways from cell (sx, sz) to many targets {cx, cz} at once: one Dijkstra flood with the
+     * steps, walls and corridors of {@link #plan}, each target aimed at as {@link #plan} aims (its
+     * own cell or the nearest walkable one within {@link #NEAR}; the start too). Each settled
+     * target gets the cost of its cheapest way and that way's length in blocks. The flood stops
+     * once {@code want} targets are settled and the cost has passed {@link #TAIL} times the
+     * {@code want}-th one's, when every target is settled, after {@code budget} cells, or at
+     * {@code maxMillis}.
+     */
+    Reaches reach(int sx, int sz, int[][] targets, int want, int budget, long maxMillis) {
+        long t0 = System.nanoTime();
+        Reach[] out = new Reach[targets.length];
+        int[] start = aim(sx, sz);
+        java.util.Map<Long, List<Integer>> goals = new java.util.HashMap<>();
+        for (int i = 0; i < targets.length; i++) {
+            int[] a = aim(targets[i][0], targets[i][1]);
+            if (a != null) {
+                goals.computeIfAbsent(key(a[0], a[1]), k -> new ArrayList<>()).add(i);
+            }
+        }
+        if (start == null || goals.isEmpty()) {
+            return new Reaches(out, 0, (System.nanoTime() - t0) / 1_000_000);
+        }
+        long deadline = t0 + maxMillis * 1_000_000;
+        Frontier open = new Frontier();
+        Long2DoubleOpenHashMap best = new Long2DoubleOpenHashMap(Math.min(budget, 1 << 16));
+        best.defaultReturnValue(Double.POSITIVE_INFINITY);
+        it.unimi.dsi.fastutil.longs.LongOpenHashSet settled = new it.unimi.dsi.fastutil.longs.LongOpenHashSet(Math.min(budget, 1 << 16));
+        long s = key(start[0], start[1]);
+        open.push(0, 0, s);
+        best.put(s, 0.0);
+        int found = 0;
+        int left = goals.size();
+        double cutoff = Double.POSITIVE_INFINITY;
+        int expanded = 0;
+        while (open.size > 0 && expanded < budget && left > 0) {
+            if (expanded % CLOCK_EVERY == 0 && expanded > 0 && System.nanoTime() > deadline) {
+                break;
+            }
+            open.pop();
+            long k = open.topKey;
+            double g = open.topCost;
+            double len = open.topLength;
+            if (g > cutoff) {
+                break;
+            }
+            if (!settled.add(k)) {
+                continue;
+            }
+            List<Integer> hit = goals.get(k);
+            if (hit != null) {
+                for (int i : hit) {
+                    out[i] = new Reach(g, len);
+                }
+                found += hit.size();
+                left--;
+                if (want > 0 && found >= want && cutoff == Double.POSITIVE_INFINITY) {
+                    cutoff = g * TAIL;
+                }
+            }
+            expanded++;
+            int x = (int) (k >> 32);
+            int z = (int) k;
+            for (int[] m : MOVES) {
+                int nx = x + m[0];
+                int nz = z + m[1];
+                boolean diagonal = m[0] != 0 && m[1] != 0;
+                double c = step(x, z, nx, nz, diagonal ? DIAG : 1);
+                if (c < 0) {
+                    continue;
+                }
+                long nk = key(nx, nz);
+                if (g + c < best.get(nk)) {
+                    best.put(nk, g + c);
+                    open.push(g + c, len + (diagonal ? DIAG : 1) * cell, nk);
+                }
+            }
+            List<int[]> through = tunnels.get(k);
+            if (through != null) {
+                for (int[] t : through) {
+                    long nk = key(t[0], t[1]);
+                    if (g + t[2] < best.get(nk)) {
+                        best.put(nk, g + t[2]);
+                        open.push(g + t[2], len + (double) t[2] * cell, nk);
+                    }
+                }
+            }
+        }
+        return new Reaches(out, expanded, (System.nanoTime() - t0) / 1_000_000);
+    }
+
+    /** The flood's frontier: a binary heap on cost over plain arrays, the cell's key and walked length beside each cost. */
+    private static final class Frontier {
+        private double[] cost = new double[1 << 12];
+        private double[] length = new double[1 << 12];
+        private long[] keys = new long[1 << 12];
+        int size;
+        double topCost;
+        double topLength;
+        long topKey;
+
+        void push(double c, double l, long k) {
+            if (size == cost.length) {
+                cost = java.util.Arrays.copyOf(cost, size * 2);
+                length = java.util.Arrays.copyOf(length, size * 2);
+                keys = java.util.Arrays.copyOf(keys, size * 2);
+            }
+            int i = size++;
+            while (i > 0) {
+                int p = (i - 1) >>> 1;
+                if (cost[p] <= c) {
+                    break;
+                }
+                cost[i] = cost[p];
+                length[i] = length[p];
+                keys[i] = keys[p];
+                i = p;
+            }
+            cost[i] = c;
+            length[i] = l;
+            keys[i] = k;
+        }
+
+        /** Takes the cheapest entry into {@link #topCost}, {@link #topLength} and {@link #topKey}. */
+        void pop() {
+            topCost = cost[0];
+            topLength = length[0];
+            topKey = keys[0];
+            int n = --size;
+            if (n == 0) {
+                return;
+            }
+            double c = cost[n];
+            double l = length[n];
+            long k = keys[n];
+            int i = 0;
+            while (true) {
+                int a = 2 * i + 1;
+                if (a >= n) {
+                    break;
+                }
+                int b = a + 1 < n && cost[a + 1] < cost[a] ? a + 1 : a;
+                if (cost[b] >= c) {
+                    break;
+                }
+                cost[i] = cost[b];
+                length[i] = length[b];
+                keys[i] = keys[b];
+                i = b;
+            }
+            cost[i] = c;
+            length[i] = l;
+            keys[i] = k;
+        }
+    }
+
     /** The target's cell when it can be stood on, else the nearest walkable cell within {@link #NEAR}; null with none. */
     private int[] aim(int tx, int tz) {
         if (walkable(tx, tz)) {

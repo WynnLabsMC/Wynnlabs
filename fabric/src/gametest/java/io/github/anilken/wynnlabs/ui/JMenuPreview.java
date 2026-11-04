@@ -560,6 +560,18 @@ public class JMenuPreview implements FabricClientGameTest {
             ctx.waitTicks(10);
             shot(ctx, out, "quests-secret");
             paneLayout(ctx, "quests-secret");
+            // the nearest list: a ranking given as it is (no route search in the preview), by route, then by straight line
+            // with the route map not downloaded (the bar above the list)
+            for (boolean route : new boolean[] {true, false}) {
+                ctx.runOnClient(mc -> {
+                    NearestList.preview(previewNearest(route));
+                    ((RoadmapScreen) mc.screen).questsTab.action("#qtype:NEAREST");
+                });
+                ctx.waitTicks(10);
+                shot(ctx, out, route ? "quests-nearest" : "quests-nearest-straight");
+                paneLayout(ctx, route ? "quests-nearest" : "quests-nearest-straight");
+            }
+            ctx.runOnClient(mc -> NearestList.preview(null));
             ctx.runOnClient(mc -> {
                 QuestsTab q = ((RoadmapScreen) mc.screen).questsTab;
                 q.action("#qtype:RECOMMENDED");
@@ -788,6 +800,32 @@ public class JMenuPreview implements FabricClientGameTest {
     }
 
     /** A few caves and places around Nesaak for the quests tab's kinds (Wynntils' cache is not in the preview). */
+    /** The nearest list's preview: places of the samples and quests of the book, by route (one beyond the search) or all straight-line. */
+    private static io.github.anilken.wynnlabs.quests.Nearest.Result previewNearest(boolean route) {
+        Object[][] rows = {
+            {io.github.anilken.wynnlabs.quests.ContentType.CAVE, "Wolf Den", 43, 175, -715, 184, 150},
+            {io.github.anilken.wynnlabs.quests.ContentType.BOSS_ALTAR, "Prison of Souls", 45, 50, -487, 412, 290},
+            {io.github.anilken.wynnlabs.quests.ContentType.QUEST, "Underice", 42, 120, -760, 655, 230},
+            {io.github.anilken.wynnlabs.quests.ContentType.DUNGEON, "Ice Barrows", 45, 134, -639, 880, 210},
+            {io.github.anilken.wynnlabs.quests.ContentType.MINI_QUEST, "Slay Creatures of Nesaak Forest", 40, 60, -800, 1120, 330},
+            {io.github.anilken.wynnlabs.quests.ContentType.SECRET_DISCOVERY, "Nilrem's Sealed Letter", 0, 300, -900, 1540, 610},
+            {io.github.anilken.wynnlabs.quests.ContentType.CAVE, "Breaking Ice", 46, -134, -797, 1875, 420},
+            {io.github.anilken.wynnlabs.quests.ContentType.TIME_TRIAL, "Llevigar Leg Day", 30, -2018, -4822, -1, 2260}};
+        java.util.List<io.github.anilken.wynnlabs.quests.Nearest.Entry> entries = new java.util.ArrayList<>();
+        for (Object[] r : rows) {
+            String name = (String) r[1];
+            var c = new io.github.anilken.wynnlabs.quests.Nearest.Candidate((io.github.anilken.wynnlabs.quests.ContentType) r[0], name, name,
+                    (int) r[2], (int) r[3], 64, (int) r[4]);
+            int walk = (int) r[5];
+            entries.add(new io.github.anilken.wynnlabs.quests.Nearest.Entry(c, route ? walk : -1, (int) r[6], !route || walk < 0));
+        }
+        if (!route) {
+            entries.sort(java.util.Comparator.comparingDouble(io.github.anilken.wynnlabs.quests.Nearest.Entry::straight));
+        }
+        return new io.github.anilken.wynnlabs.quests.Nearest.Result(0, 0, route, route ? "READY" : "MISSING",
+                System.currentTimeMillis() - 12_000, entries, 44, false, 0, "preview");
+    }
+
     private static final String PREVIEW_CAVES = """
             [{"name":"Wolf Den","description":"The home of the wolves all around the frozen area of Nesaak, found around [175, 73, -715]",
               "length":"medium","difficulty":"easy","requirements":"43","rewards":["7000 XP","1 Snow Boots","Various Items"],

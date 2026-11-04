@@ -196,3 +196,6 @@ wynnlabs.alt.no_price                   "no price yet" after " · " on an endgam
 wynnlabs.tomes.counted
 wynnlabs.tomes.no_source
 wynnlabs.tomes.owned
+wynnlabs.nearest.sub_walk               "walking distance · Lv 44" after "Nearest to you · " on the nearest list
+wynnlabs.nearest.sub_straight           "straight-line distance · Lv 44" after "Nearest to you · " on the nearest list
+wynnlabs.nearest.map_straight           "showing straight-line distances …" after "Route map downloading · " on its bar

@@ -52,6 +52,8 @@ public final class AiLink {
             new Endpoint("/grind", "caves, dungeons, boss altars and grind spots near your level", "wynnlabs.ai.ep_grind", "world"),
             new Endpoint("/discoveries", "secret discoveries in the chosen order: done, level, distance, requirements",
                     "wynnlabs.ai.ep_discoveries", "world"),
+            new Endpoint("/nearest", "not-yet-done quests, caves, dungeons, discoveries and more nearest by walking distance (?limit=25, 1 to 200; &over=1 adds content more than 5 levels above you)",
+                    "wynnlabs.ai.ep_nearest", "world"),
             new Endpoint("/deaths", "recent deaths and what killed you", "wynnlabs.ai.ep_deaths", "world"),
             new Endpoint("/ground", "items on the ground around you (?r=12)", "wynnlabs.ai.ep_ground", "world"),
             new Endpoint("/guide", "the guide line: its target, mode and last route search (why a route fails); ?dump=1 writes the terrain around you to config/wynnlabs/guide-dump.json (&r=64 blocks each way, 8 to 256; &h=24 up and down, 4 to 128)",

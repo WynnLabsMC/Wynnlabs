@@ -154,7 +154,8 @@ final class QuestsTypes extends MenuPaint {
     /** The type chip at x, y; returns its width. */
     int chip(GuiGraphics g, int x, int y, int mx, int my) {
         ContentType t = tab.questType;
-        int cw = UiMenu.chip(g, font(), t.icon, t.label(), x, y, tab.typeOpen, mx, my);
+        int cw = tab.nearest ? UiMenu.chip(g, font(), "route", L.t("wynnlabs.nearest.kind"), x, y, tab.typeOpen, mx, my)
+                : UiMenu.chip(g, font(), t.icon, t.label(), x, y, tab.typeOpen, mx, my);
         menu.hits.add(new MenuHit(x, y, cw, Ui.CHIP_H, null, null, "#qtypes"));
         chip = new int[] {x, y, cw, Ui.CHIP_H};
         return cw;
@@ -166,9 +167,13 @@ final class QuestsTypes extends MenuPaint {
             return null;
         }
         UiMenu.Items items = new UiMenu.Items();
+        // the nearest list first, a group of its own: every kind mixed, by walking distance
+        items.add(UiMenu.Item.of("#qtype:NEAREST", "route", L.t("wynnlabs.nearest.kind"), null, tab.nearest));
+        items.divide();
         for (ContentType t : ContentType.values()) {
             int n = count(t);
-            UiMenu.Item it = UiMenu.Item.of("#qtype:" + t.name(), t.icon, t.label(), n < 0 ? "—" : String.valueOf(n), t == tab.questType);
+            UiMenu.Item it = UiMenu.Item.of("#qtype:" + t.name(), t.icon, t.label(), n < 0 ? "—" : String.valueOf(n),
+                    t == tab.questType && !tab.nearest);
             if (n < 0) {
                 // never read for this character: not "none", just unknown until the book is read
                 it = it.tip(List.of(L.c("wynnlabs.content.count_unknown").withStyle(ChatFormatting.GRAY)));
@@ -178,7 +183,7 @@ final class QuestsTypes extends MenuPaint {
                 items.divide();
             }
         }
-        return UiMenu.draw(g, font(), UiMenu.Spec.under(chip, menu.width, menu.height).rows(ContentType.values().length), tab.typeMenu,
+        return UiMenu.draw(g, font(), UiMenu.Spec.under(chip, menu.width, menu.height).rows(ContentType.values().length + 1), tab.typeMenu,
                 items.list, mx, my, r -> menu.hits.add(new MenuHit(r.x(), r.y(), r.w(), r.h(), null, r.item().tip(), r.item().id())));
     }
 
@@ -273,7 +278,8 @@ final class QuestsTypes extends MenuPaint {
         } else if (c.startsWith("#qtype:")) {
             tab.typeOpen = false;
             ContentType t = ContentType.of(c.substring(7));
-            if (t != tab.questType) {
+            if (t != tab.questType || tab.nearest) {
+                tab.nearest = false;
                 tab.questType = t;
                 tab.questSelected = null;
                 tab.pickedType = null;
