@@ -18,13 +18,15 @@ import java.util.List;
 
 /**
  * An opened community build: a bordered panel right under its row. A header (name · levels ·
- * source · note) with the changes against what you wear as pills; its nine pieces in three
+ * source · note) with the build's own DPS, EHP, mana and speed as pills; its nine pieces in three
  * labelled groups (Armour, Accessories, Weapon), each a tile ringed in the tier's colour with the
  * item's picture and name; an owned piece carries a round badge at the picture's corner
  * (equipped, in the bag, its bank page), a missing one sits in a dashed, faded tile with its
  * Trade Market price on the picture, or for a crafted piece its cost to craft and a hammer (a
  * click opens the recipe in Crafting). Then a key to the badges and the bottom line: the skill
- * points the pieces need, what is left to buy, "Set as goal" and "Copy link".
+ * points the pieces need, what is left to buy, "Set as goal" and "Copy link"; under it the "All
+ * stats" switch, which opens the build's own totals in three columns (Offence, Defence, Utility).
+ * Nothing here is set against what you wear.
  */
 final class CommunityRow {
 
@@ -32,7 +34,7 @@ final class CommunityRow {
     private static final int FACE = 0xFFF5EAD0;
     private static final int TILE = 0xFFEFE1BD;
     private static final int TILE_MISSING = 0xFFF3E6C4;
-    /** A stat pill's face (+18% dmg). */
+    /** A stat pill's face (14.1k DPS). */
     static final int PILL = 0xFFECDCB6;
     private static final int PRICE_INK = 0xFFFFE9A8;
     /** The badges: equipped, in the bag, on a bank page. */
@@ -42,6 +44,13 @@ final class CommunityRow {
     /** The skills' element colours: earth, thunder, water, fire, air. */
     private static final int[] ELEMENT = {0xFF6F8A3E, 0xFFA08C1E, 0xFF4F86AD, 0xFFB8573A, 0xFF8A8A8A};
     private static final String[] GROUPS = {"wynnlabs.community.armour", "wynnlabs.community.accessories", "wynnlabs.community.weapon"};
+    /** The elements as the game names them, earth to air (the defence chips). */
+    private static final String[] ELEMENT_NAMES = {"Earth", "Thunder", "Water", "Fire", "Air"};
+    /** The attack speed tiers as the game names them, slowest first. */
+    private static final String[] ATTACK_SPEEDS = {"Super Slow", "Very Slow", "Slow", "Normal", "Fast", "Very Fast", "Super Fast"};
+    /** An All stats column's face and the rule between its rows. */
+    private static final int STATS_FACE = 0xFFEFE1BD;
+    private static final int STATS_RULE = 0xFFDCC79C;
     private static int pad(boolean compact) {
         return compact ? Theme.SP_2 : Theme.SP_4;
     }
@@ -164,8 +173,7 @@ final class CommunityRow {
     }
 
     private int pillW(int i, double v) {
-        return Type.META.width(ui.font, CommunityPage.statText(v, i) + " " + L.t("wynnlabs.community.stat." + CommunityPage.STATS[i]))
-                + 2 * Theme.SP_3;
+        return Type.META.width(ui.font, CommunityPage.pillText(v, i)) + 2 * Theme.SP_3;
     }
 
     /** The pills on their own line when they do not fit beside the header's text. */
@@ -248,7 +256,7 @@ final class CommunityRow {
         return L.t(t.equals("outdated") ? "wynnlabs.community.outdated" : "wynnlabs.community.tag." + t);
     }
 
-    int height(CommunityBuilds.Entry e, CommunityBuilds.Compare c, int w, boolean tags, boolean compact) {
+    int height(CommunityBuilds.Entry e, CommunityBuilds.Compare c, int w, boolean tags, boolean compact, boolean stats) {
         int pad = pad(compact);
         int inner = w - 2 * pad;
         int h = 2 + pad + Type.LABEL.lineHeight;
@@ -267,12 +275,18 @@ final class CommunityRow {
         if (twoLines(c, inner)) {
             h += Ui.SEAL_H + Theme.SP_2;
         }
+        if (c.totals() != null) {
+            h += Theme.SP_3 + toggleH();
+            if (stats) {
+                h += Theme.SP_2 + stats(null, c.totals(), 0, 0, inner, compact);
+            }
+        }
         return h + pad + 2;
     }
 
     void draw(GuiGraphics g, BuildWindow.Host host, CommunityPage page, CommunityBuilds.Entry e, CommunityBuilds.Compare c,
             int x, int y, int w, boolean tags, boolean compact, List<Runnable> over, int mx, int my) {
-        int h = height(e, c, w, tags, compact);
+        int h = height(e, c, w, tags, compact, page.allStats);
         // the panel: a rounded light face with a dark ring
         Kit.box(g, x, y, w, h, FACE, EDGE);
         int pad = pad(compact);
@@ -308,15 +322,12 @@ final class CommunityRow {
             int pw = pillW(i, v);
             int ph = Type.META.lineHeight + 4;
             Kit.box(g, px, py, pw, ph, PILL, 0);
-            String val = CommunityPage.statText(v, i);
-            Type.META.draw(g, ui.font, val, px + Theme.SP_3, Type.META.yIn(py, ph), CommunityPage.statInk(v));
-            Type.META.draw(g, ui.font, " " + L.t("wynnlabs.community.stat." + CommunityPage.STATS[i]),
-                    px + Theme.SP_3 + Type.META.width(ui.font, val), Type.META.yIn(py, ph), Theme.INK_2);
+            Type.META.draw(g, ui.font, CommunityPage.pillText(v, i), px + Theme.SP_3, Type.META.yIn(py, ph), Theme.INK_2);
             px += pw + Theme.SP_2;
         }
         cy += below ? Type.META.lineHeight + 4 : Type.LABEL.lineHeight;
         if (pillsW == 0 && !below) {
-            String why = L.t(CommunityPage.canGoal(e) ? "wynnlabs.community.no_compare" : "wynnlabs.community.other_class");
+            String why = L.t("wynnlabs.community.no_totals");
             int ww = Type.META.width(ui.font, why);
             Type.META.draw(g, ui.font, why, ix + inner - ww, y + pad + 1, Theme.INK_3);
         }
@@ -424,6 +435,175 @@ final class CommunityRow {
         bx -= lw + Theme.SP_3;
         Type.META.draw(g, ui.font, left, bx, Type.META.yIn(by0, Ui.BUTTON_H),
                 c.missing() == 0 ? Theme.GOOD : c.knownCost() > 0 ? Theme.PRICE : Theme.INK_3);
+
+        // All stats: a thin switch, then the build's own totals in three columns
+        CommunityBuilds.Totals t = c.totals();
+        if (t != null) {
+            int ty = by0 + Ui.BUTTON_H + Theme.SP_3;
+            String label = L.t("wynnlabs.community.all_stats");
+            int sw = toggleW(label);
+            int th = toggleH();
+            boolean hov = BuildControls.in(mx, my, ix, ty, sw, th);
+            Kit.pill(g, ix, ty, sw, th, page.allStats, hov);
+            Art.icon(g, page.allStats ? "chevron-down" : "chevron-right", ix + Theme.SP_3, ty + (th - 6) / 2, 6, Theme.INK_3);
+            Type.META.draw(g, ui.font, label, ix + Theme.SP_3 + 6 + Theme.SP_1, Type.META.yIn(ty, th), Theme.INK);
+            ui.btn(ix, ty, sw, th, "c.stats", null);
+            host.tip(ix, ty, sw, th, List.of(L.c("wynnlabs.community.all_stats_tip", t.level()).withStyle(ChatFormatting.GRAY)));
+            if (page.allStats) {
+                stats(g, t, ix, ty + th + Theme.SP_2, inner, compact);
+            }
+        }
+    }
+
+    private int toggleH() {
+        return Type.META.lineHeight + 4;
+    }
+
+    private int toggleW(String label) {
+        return 2 * Theme.SP_3 + 6 + Theme.SP_1 + Type.META.width(ui.font, label);
+    }
+
+    /** One line of an All stats column: a label and its value; a null value marks the defence chips. */
+    private record Line(String label, String value) {}
+
+    private static List<List<Line>> columns(CommunityBuilds.Totals t) {
+        List<Line> off = List.of(
+                new Line(L.t("wynnlabs.community.st.spell_damage"), L.pct(CommunityPage.signed(t.id("spellDamage")))),
+                new Line(L.t("wynnlabs.community.st.raw_spell_damage"), CommunityPage.signed(t.id("rawSpellDamage"))),
+                new Line(L.t("wynnlabs.community.st.melee_damage"), L.pct(CommunityPage.signed(t.id("mainAttackDamage")))),
+                new Line(L.t("wynnlabs.community.st.per_cast"), CommunityPage.big(t.dmgPerCast())),
+                new Line(L.t("wynnlabs.community.st.attack_speed"), ATTACK_SPEEDS[Math.max(0, Math.min(6, t.attackTier()))]));
+        List<Line> def = List.of(
+                new Line(L.t("wynnlabs.community.st.health"), CommunityPage.big(t.health())),
+                new Line(L.t("wynnlabs.community.st.ehp"), CommunityPage.big(t.ehp())),
+                new Line(L.t("wynnlabs.community.st.health_regen"),
+                        CommunityPage.signed(io.github.anilken.wynnlabs.build.Damage.healthRegen(t.id("healthRegenRaw"), t.id("healthRegen")))),
+                new Line(L.t("wynnlabs.community.st.life_steal"), CommunityPage.signed(t.id("lifeSteal")) + "/3s"),
+                new Line(L.t("wynnlabs.community.st.defences"), null));
+        List<Line> util = List.of(
+                new Line(L.t("wynnlabs.community.st.mana_regen"), CommunityPage.signed(t.manaRegen()) + "/5s"),
+                new Line(L.t("wynnlabs.community.st.mana_steal"), CommunityPage.signed(t.id("manaSteal")) + "/3s"),
+                new Line(L.t("wynnlabs.community.st.walk_speed"), L.pct(CommunityPage.signed(t.speed()))),
+                new Line(L.t("wynnlabs.community.st.loot_bonus"), L.pct(CommunityPage.signed(t.id("lootBonus")))),
+                new Line(L.t("wynnlabs.community.st.xp_bonus"), L.pct(CommunityPage.signed(t.xp()))));
+        return List.of(off, def, util);
+    }
+
+    private static final String[] STAT_HEADS = {"wynnlabs.community.st.offence", "wynnlabs.community.st.defence", "wynnlabs.community.st.utility"};
+
+    /** The defence chips' texts: "Earth +60". */
+    private static List<String> chips(CommunityBuilds.Totals t) {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < ELEMENT_NAMES.length; i++) {
+            out.add(ELEMENT_NAMES[i] + " " + CommunityPage.signed(t.defence(i)));
+        }
+        return out;
+    }
+
+    private int chipW(String text) {
+        return Type.META.width(ui.font, text) + 2 * Theme.SP_2;
+    }
+
+    /** The lines of chips {@code room} wide holds. */
+    private int chipLines(List<String> chips, int room) {
+        int lines = 1;
+        int x = 0;
+        for (String c : chips) {
+            int w = chipW(c);
+            if (x > 0 && x + w > room) {
+                lines++;
+                x = 0;
+            }
+            x += w + Theme.SP_1;
+        }
+        return lines;
+    }
+
+    /**
+     * The All stats columns {@code inner} wide at x, y: three side by side, or two and one under
+     * them when three do not fit (one a row when two do not); draws when {@code g} is not null.
+     * Returns their height.
+     */
+    private int stats(GuiGraphics g, CommunityBuilds.Totals t, int x, int y, int inner, boolean compact) {
+        List<List<Line>> cols = columns(t);
+        List<String> chips = chips(t);
+        int cp = compact ? Theme.SP_2 : Theme.SP_3;
+        int gap = compact ? Theme.SP_2 : Theme.SP_3;
+        int need = 0;
+        for (int i = 0; i < 3; i++) {
+            need = Math.max(need, Type.META.width(ui.font, L.t(STAT_HEADS[i])));
+            for (Line l : cols.get(i)) {
+                need = Math.max(need, Type.META.width(ui.font, l.label())
+                        + (l.value() == null ? 0 : Theme.SP_3 + Type.LABEL.width(ui.font, l.value())));
+            }
+        }
+        for (String c : chips) {
+            need = Math.max(need, chipW(c));
+        }
+        need += 2 * cp;
+        int per = 3 * need + 2 * gap <= inner ? 3 : 2 * need + gap <= inner ? 2 : 1;
+        int colW = (inner - (per - 1) * gap) / per;
+        int lineH = Type.META.lineHeight + Theme.SP_2;
+        int[] hs = new int[3];
+        for (int i = 0; i < 3; i++) {
+            int h = cp + Type.META.lineHeight + Theme.SP_1;
+            for (Line l : cols.get(i)) {
+                h += l.value() == null
+                        ? Type.META.lineHeight + Theme.SP_1 + chipLines(chips, colW - 2 * cp) * (Ui.SEAL_H + Theme.SP_1)
+                        : lineH;
+            }
+            hs[i] = h + cp - Theme.SP_1;
+        }
+        int total = 0;
+        for (int row = 0; row * per < 3; row++) {
+            int rowH = 0;
+            for (int i = row * per; i < Math.min(3, row * per + per); i++) {
+                rowH = Math.max(rowH, hs[i]);
+            }
+            if (g != null) {
+                for (int i = row * per; i < Math.min(3, row * per + per); i++) {
+                    statColumn(g, L.t(STAT_HEADS[i]), cols.get(i), chips, x + (i - row * per) * (colW + gap), y + total, colW, rowH, cp);
+                }
+            }
+            total += rowH + gap;
+        }
+        return total - gap;
+    }
+
+    private void statColumn(GuiGraphics g, String head, List<Line> lines, List<String> chips, int x, int y, int w, int h, int cp) {
+        Kit.box(g, x, y, w, h, STATS_FACE, 0);
+        int ix = x + cp;
+        int room = w - 2 * cp;
+        int cy = y + cp;
+        Type.META.draw(g, ui.font, Type.META.fit(ui.font, head, room), ix, cy, Theme.INK_3);
+        cy += Type.META.lineHeight + Theme.SP_1;
+        int lineH = Type.META.lineHeight + Theme.SP_2;
+        for (int n = 0; n < lines.size(); n++) {
+            Line l = lines.get(n);
+            if (l.value() == null) {
+                Type.META.draw(g, ui.font, Type.META.fit(ui.font, l.label(), room), ix, cy, Theme.INK_3);
+                cy += Type.META.lineHeight + Theme.SP_1;
+                int cx = ix;
+                for (int i = 0; i < chips.size(); i++) {
+                    int cw = chipW(chips.get(i));
+                    if (cx > ix && cx + cw > ix + room) {
+                        cx = ix;
+                        cy += Ui.SEAL_H + Theme.SP_1;
+                    }
+                    Ui.seal(g, ui.font, chips.get(i), cx, cy, ELEMENT[i]);
+                    cx += cw + Theme.SP_1;
+                }
+                cy += Ui.SEAL_H + Theme.SP_1;
+                continue;
+            }
+            int vw = Type.LABEL.width(ui.font, l.value());
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, l.label(), room - vw - Theme.SP_3), ix, cy, Theme.INK_2);
+            Type.LABEL.draw(g, ui.font, l.value(), ix + room - Type.LABEL.width(ui.font, l.value()), cy, Theme.INK);
+            if (n + 1 < lines.size()) {
+                Kit.hair(g, ix, cy + Type.META.lineHeight + Theme.SP_1 - 1, room, 1, STATS_RULE);
+            }
+            cy += lineH;
+        }
     }
 
     /** A light button with a thin edge ("Copy link"). */

@@ -34,8 +34,9 @@ import java.util.function.Function;
  * {@link CommunityList}): its entries, the filters the build window and the local API use, and
  * each entry compared with what the player has: per piece whether it is equipped, in the bag, on
  * a bank page or missing (with its Trade Market price when one is cached), the skill points the
- * pieces need, and how the build's damage, effective health, mana and walk speed differ from what
- * the player wears. No Minecraft screen code, so a recorded game state runs it headless.
+ * pieces need, and the build's own totals (damage, effective health, mana, walk speed and its
+ * identifications) at its top level, never compared with what the player wears. No Minecraft
+ * screen code, so a recorded game state runs it headless.
  */
 public final class CommunityBuilds {
 
@@ -268,20 +269,53 @@ public final class CommunityBuilds {
     }
 
     /**
-     * The changes against what the player wears: damage and effective health in percent, mana
-     * back every 5 s in points, walk speed in percent points; a null part is not known.
+     * A build's own totals, from its pieces alone at {@code level} (its top level, at most the
+     * game's cap) with the skill points that level earns: damage a second by spells and by the
+     * main attack, a spell cast's damage, health, effective health, mana back every 5 s (the
+     * model's whole figure), walk speed and XP bonus in percent, the main attack's speed tier
+     * (0 super slow ... 6 super fast) and the pieces' identifications summed ({@link #ID_KEYS}).
      */
-    public record Deltas(Double dmg, Double ehp, Double mana, Double speed) {}
+    public record Totals(int level, double spellDps, double mainDps, double dmgPerCast, double health, double ehp, double manaPer5,
+            double speed, double xp, int attackTier, Map<String, Double> ids) {
+
+        /** The higher of the spell and main attack damage a second. */
+        public double dps() {
+            return Math.max(spellDps, mainDps);
+        }
+
+        /** An identification's sum over the pieces (0 when none has it). */
+        public double id(String key) {
+            return ids.getOrDefault(key, 0.0);
+        }
+
+        /** The Mana Regen the pieces give, per 5 s. */
+        public double manaRegen() {
+            return id("manaRegen");
+        }
+
+        /** An element's defence ({@code el} 0 earth ... 4 air), the elemental defence included. */
+        public double defence(int el) {
+            return id(DEFENCES[el]) + id("elementalDefence");
+        }
+    }
+
+    /** The elemental defence identifications, earth to air (the skills' order). */
+    public static final String[] DEFENCES = {"earthDefence", "thunderDefence", "waterDefence", "fireDefence", "airDefence"};
+
+    /** The identifications {@link Totals} keeps. */
+    static final List<String> ID_KEYS = List.of("spellDamage", "rawSpellDamage", "mainAttackDamage", "rawMainAttackDamage",
+            "healthRegen", "healthRegenRaw", "lifeSteal", "manaRegen", "manaSteal", "walkSpeed", "lootBonus", "xpBonus",
+            "earthDefence", "thunderDefence", "waterDefence", "fireDefence", "airDefence", "elementalDefence");
 
     /**
      * An entry against what the player has: its nine pieces, how many are owned, the known total
      * of the missing pieces' prices and how many have none, the fewest skill points per skill its
      * pieces need and the link's own, the highest level a piece needs, the skill point problem at
-     * the player's level (null: none), the deltas (null: another class or nothing to compare) and
-     * the kept items' names (what "Set as goal" builds around).
+     * the player's level (null: none), the build's own totals (null: not worked out or it cannot
+     * be) and the kept items' names (what "Set as goal" builds around).
      */
     public record Compare(String id, List<Piece> pieces, int owned, int total, long knownCost, int unpriced, int[] need,
-            List<Integer> linkPoints, int needLevel, Locks.Problem problem, Deltas deltas, List<String> kept) {
+            List<Integer> linkPoints, int needLevel, Locks.Problem problem, Totals totals, List<String> kept) {
 
         public int missing() {
             return total - owned;
@@ -296,12 +330,12 @@ public final class CommunityBuilds {
     /**
      * {@code e} against what the player has ({@code owned}, read on the game thread) at the
      * player's class and level; prices from {@code price} (the cache only, never a request);
-     * {@code deltas} false skips the damage model. Null when the link does not decode.
+     * {@code totals} false skips the damage model. Null when the link does not decode.
      */
-    public static Compare compare(GameState state, Entry e, Owned owned, Function<String, Prices.Price> price, boolean deltas) {
+    public static Compare compare(GameState state, Entry e, Owned owned, Function<String, Prices.Price> price, boolean totals) {
         Map<String, Ingredient> ings = new HashMap<>();
         io.github.anilken.wynnlabs.game.Wyn.craftIngredients().forEach(i -> ings.put(i.name(), i));
-        return compare(state, e, owned, price, ings::get, r -> null, deltas);
+        return compare(state, e, owned, price, ings::get, r -> null, totals);
     }
 
     /**
@@ -309,7 +343,7 @@ public final class CommunityBuilds {
      * ({@code craftCost}, null: not known).
      */
     public static Compare compare(GameState state, Entry e, Owned owned, Function<String, Prices.Price> price,
-            Function<String, Ingredient> ingredients, Function<RecipeCode.Recipe, Long> craftCost, boolean deltas) {
+            Function<String, Ingredient> ingredients, Function<RecipeCode.Recipe, Long> craftCost, boolean totals) {
         WynnBuilderLink.Build b = WynnBuilderLink.decode(e.link());
         if (b == null) {
             return null;
@@ -386,9 +420,9 @@ public final class CommunityBuilds {
         int[] need = Build.minPoints(set.values());
         int level = state.level();
         Locks.Problem problem = items.isEmpty() ? null : Locks.problem(items, level);
-        Deltas d = deltas && !e.any() && e.klassType() == state.classType() ? deltas(set, level) : null;
+        Totals t = totals ? remembered(e, set, state) : null;
         List<String> kept = r.kept().stream().map(ItemData::name).toList();
-        return new Compare(e.id(), List.copyOf(pieces), have, pieces.size(), cost, unpriced, need, b.skills(), needLevel, problem, d, kept);
+        return new Compare(e.id(), List.copyOf(pieces), have, pieces.size(), cost, unpriced, need, b.skills(), needLevel, problem, t, kept);
     }
 
     /**
@@ -450,41 +484,74 @@ public final class CommunityBuilds {
         return take(left, key);
     }
 
+    /** Totals already worked out, by link, level and the player's class (its ability tree); made on first use. */
+    private static volatile Map<String, java.util.Optional<Totals>> totalsMemo;
+
+    /** {@link #totals} for {@code e} at its top level, remembered: they rest on the link alone, never on what the player has. */
+    private static Totals remembered(Entry e, Map<String, Damage.Piece> set, GameState state) {
+        Map<String, java.util.Optional<Totals>> memo = totalsMemo;
+        if (memo == null || memo.size() > 4096) {
+            memo = new java.util.concurrent.ConcurrentHashMap<>();
+            totalsMemo = memo;
+        }
+        String key = e.link() + "|" + e.levelMax() + "|" + state.classType();
+        java.util.Optional<Totals> t = memo.get(key);
+        if (t == null) {
+            t = java.util.Optional.ofNullable(totals(set, e.levelMax()));
+            memo.put(key, t);
+        }
+        return t.orElse(null);
+    }
+
     /**
-     * The set (its open slots with what the player wears) against what the player wears, both as
-     * the model scores them at {@code level}; null without a plan or a weapon.
+     * The build's own totals: its pieces alone (an open slot stays open) at {@code levelMax}
+     * (at most the game's cap), with the skill points that level earns spread as the model
+     * spreads them (more when its requirements need more, as a tome would give); null for an
+     * empty set or when the model cannot score it.
      */
-    static Deltas deltas(Map<String, Damage.Piece> set, int level) {
-        Build.Plan plan = Build.plan();
-        if (plan == null || plan.current() == null || !set.containsKey("WEAPON")) {
+    static Totals totals(Map<String, Damage.Piece> set, int levelMax) {
+        if (set.isEmpty()) {
             return null;
         }
-        Map<String, Damage.Piece> full = new LinkedHashMap<>(set);
-        if (plan.worn() != null) {
-            plan.worn().forEach((slot, p) -> {
-                if (p != null) {
-                    full.putIfAbsent(slot, p);
+        try {
+            int level = Math.max(1, Math.min(levelMax, Damage.maxLevel()));
+            int earned = Math.max(0, (Math.min(level, 101) - 1) * 2);    // two a level up to 101, as the plan counts them
+            Build.Eval ev = Build.allocate(set, level, earned);
+            if (ev == null) {
+                int need = 0;
+                for (int v : Build.minPoints(set.values())) {
+                    need += v;
                 }
-            });
-        }
-        int earned = plan.earned();
-        Build.Eval ev = Build.allocate(full, level, earned);
-        if (ev == null) {
-            int need = 0;
-            for (int v : Build.minPoints(full.values())) {
-                need += v;
+                ev = Build.allocate(set, level, Math.max(earned, need));
             }
-            ev = Build.allocate(full, level, Math.max(earned, need));
+            if (ev == null) {
+                return null;
+            }
+            Map<String, Double> ids = new HashMap<>();
+            int tier = 3;
+            double faster = 0;
+            for (Damage.Piece p : set.values()) {
+                if (p == null) {
+                    continue;
+                }
+                for (String k : ID_KEYS) {
+                    Double v = p.stats().get(k);
+                    if (v != null) {
+                        ids.merge(k, v, Double::sum);
+                    }
+                }
+                faster += p.stats().getOrDefault("rawAttackSpeed", 0.0);
+                if (p.type() != null && p.type().isWeapon()) {
+                    tier = (int) Math.round(p.stats().getOrDefault(Damage.TIER, 3.0));
+                }
+            }
+            tier = Math.max(0, Math.min(6, tier + (int) Math.round(faster)));
+            Damage.Result r = ev.result();
+            return new Totals(level, r.spellDps(), r.mainDps(), r.dmgPerCast(), r.health(), r.ehp(), r.manaPer5(), r.speed(), r.xp(),
+                    tier, Map.copyOf(ids));
+        } catch (RuntimeException ex) {
+            return null;                                // a piece the model cannot read: no totals, the rest still shown
         }
-        if (ev == null) {
-            return null;
-        }
-        Damage.Result now = plan.current();
-        Damage.Result to = ev.result();
-        Double dmg = now.factors().length > 0 && to.factors().length > 0 && now.factors()[0] > 0
-                ? (to.factors()[0] / now.factors()[0] - 1) * 100 : null;
-        Double ehp = now.ehp() > 0 ? (to.ehp() / now.ehp() - 1) * 100 : null;
-        return new Deltas(dmg, ehp, to.manaPer5() - now.manaPer5(), to.speed() - now.speed());
     }
 
     /** The entries as JSON for the local API, each with its comparison when one is known. */
@@ -535,9 +602,36 @@ public final class CommunityBuilds {
                 o.add("missing", miss);
                 o.addProperty("knownCost", c.knownCost());
                 o.addProperty("unpriced", c.unpriced());
+                if (c.totals() != null) {
+                    o.add("totals", totalsJson(c.totals()));
+                }
             }
             out.add(o);
         }
         return out;
+    }
+
+    /** A build's own totals for the local API, rounded; never set against the player's gear. */
+    static JsonObject totalsJson(Totals t) {
+        JsonObject o = new JsonObject();
+        o.addProperty("level", t.level());
+        o.addProperty("dps", Math.round(t.dps()));
+        o.addProperty("spellDps", Math.round(t.spellDps()));
+        o.addProperty("mainDps", Math.round(t.mainDps()));
+        o.addProperty("dmgPerCast", Math.round(t.dmgPerCast()));
+        o.addProperty("health", Math.round(t.health()));
+        o.addProperty("ehp", Math.round(t.ehp()));
+        o.addProperty("manaPer5", Math.round(t.manaPer5() * 10) / 10.0);
+        o.addProperty("walkSpeed", Math.round(t.speed()));
+        o.addProperty("xpBonus", Math.round(t.xp()));
+        o.addProperty("attackSpeedTier", t.attackTier());
+        JsonObject ids = new JsonObject();
+        for (String k : ID_KEYS) {
+            if (t.ids().containsKey(k)) {
+                ids.addProperty(k, Math.round(t.ids().get(k)));
+            }
+        }
+        o.add("ids", ids);
+        return o;
     }
 }

@@ -1007,7 +1007,7 @@ public class LayoutMatrix implements FabricClientGameTest {
                 w.page.preview(CommunityFilter.defaults(), false, null);
             });
             wbShot(ctx, dir, n + "-list");
-            // every level: builds above the fixture's level beat its gear, so the picks show
+            // every level: more builds of the class, so the picks (closest to finished) show
             ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).community.page.preview(
                     CommunityFilter.defaults().withLevel(CommunityFilter.ANY_LEVEL), false, null));
             wbShot(ctx, dir, n + "-picks");
@@ -1021,6 +1021,13 @@ public class LayoutMatrix implements FabricClientGameTest {
                 w.page.preview(CommunityFilter.defaults(), false, open[0]);
             });
             wbShot(ctx, dir, n + "-opened");
+            // the opened row with its All stats section open
+            ctx.runOnClient(mc -> {
+                CommunityTab w = ((RoadmapScreen) mc.screen).community;
+                w.page.allStats = true;
+                w.page.reveal = true;
+            });
+            wbShot(ctx, dir, n + "-stats");
             // the filters in force as chips (a search, a role, outdated hidden) and the build set as the goal pinned on top
             ctx.runOnClient(mc -> {
                 CommunityTab w = ((RoadmapScreen) mc.screen).community;

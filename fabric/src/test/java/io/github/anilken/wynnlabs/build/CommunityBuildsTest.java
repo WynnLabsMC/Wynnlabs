@@ -158,4 +158,48 @@ class CommunityBuildsTest {
         CommunityBuilds.Owned real = CommunityBuilds.owned(s);
         assertNotNull(real);
     }
+
+    /** A build's totals are its own: the same whatever the player wears or owns, at the build's top level. */
+    @Test
+    void totalsIgnoreWhatThePlayerWears() throws Exception {
+        FixtureState fx = FixtureState.load(Fixtures.root().resolve("shaman-44"));
+        fx.install("en");
+        GameState s = GameState.current();
+        Set<String> used = new java.util.HashSet<>();
+        List<WynnBuilderLink.Piece> pieces = new ArrayList<>();
+        Slot[] slots = {Slot.HELMET, Slot.CHESTPLATE, Slot.LEGGINGS, Slot.BOOTS, null, null, null, Slot.NECKLACE};
+        for (int i = 0; i < slots.length; i++) {
+            if (slots[i] != null) {
+                ItemData it = pick(s, slots[i], used);
+                used.add(it.name());
+                pieces.add(new WynnBuilderLink.Piece(i, WynnBuilderLink.Kind.ITEM, -1, it.name(), null, ""));
+            }
+        }
+        pieces.add(new WynnBuilderLink.Piece(WynnBuilderLink.WEAPON, WynnBuilderLink.Kind.CRAFTED, -1, null, null, "",
+                WynnBuilderCode.encode(relik())));
+        String link = WynnBuilderExport.link(new WynnBuilderLink.Build(null, false, pieces, List.of(), null, 0, ""), null);
+        CommunityBuilds.Entry e = new CommunityBuilds.Entry("shaman-test-50-bbbbbb", "Test", link, "shaman", 40, 50, List.of("spell"),
+                "d", "forum", "2026-11-04", false, null);
+
+        CommunityBuilds.Totals worn = CommunityBuilds.totals(set(s, e), e.levelMax());
+        assertNotNull(worn);
+        assertEquals(50, worn.level(), "the build's own top level");
+        assertTrue(worn.ehp() > 0 && worn.health() > 0);
+        CommunityBuilds.Compare a = CommunityBuilds.compare(s, e, CommunityBuilds.owned(s), n -> null, TestIngredients.byName()::get,
+                r -> null, true);
+
+        fx.fresh();                                     // nothing worn, carried or banked now
+        assertEquals(worn, CommunityBuilds.totals(set(s, e), e.levelMax()), "the gear worn changes nothing");
+        CommunityBuilds.Compare b = CommunityBuilds.compare(s, e, CommunityBuilds.Owned.NONE, n -> null, TestIngredients.byName()::get,
+                r -> null, true);
+        assertEquals(worn, a.totals());
+        assertEquals(a.totals(), b.totals());
+        com.google.gson.JsonObject o = CommunityBuilds.json(List.of(e), Map.of(e.id(), b)).get(0).getAsJsonObject();
+        assertEquals(50, o.getAsJsonObject("totals").get("level").getAsInt());
+        assertTrue(o.getAsJsonObject("totals").has("ehp"));
+    }
+
+    private static Map<String, Damage.Piece> set(GameState s, CommunityBuilds.Entry e) {
+        return LinkImport.set(LinkImport.of(s, WynnBuilderLink.decode(e.link()), TestIngredients.byName()::get));
+    }
 }

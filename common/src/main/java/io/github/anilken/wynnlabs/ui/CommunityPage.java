@@ -29,15 +29,16 @@ import java.util.Set;
 /**
  * The Community tab's page: a filter rail (class, level, roles with counts, budget to finish,
  * owned share, outdated, look-alikes, crafted) beside the list: a search over build names, item
- * names and crafted ingredients with its count, three builds picked for you that beat your gear,
- * the filters in force as chips, and a table (build, its nine pieces owned or faded, a stat's
- * change against what you wear, the cost to finish, tags) sorted by any column. The build set as
+ * names and crafted ingredients with its count, three builds of your class picked as the closest
+ * to finished, the filters in force as chips, and a table (build, its nine pieces owned or faded,
+ * one of the build's own stats, the cost to finish, tags) sorted by any column; a build's stats
+ * are its own, never set against what you wear. The build set as
  * your goal stays pinned on top; look-alikes fold into families. A row opens in place
  * ({@link CommunityRow}). Nothing here acts in the game: "Set as goal" only changes the plan.
  */
 final class CommunityPage {
 
-    static final String[] STATS = {"dmg", "ehp", "mana", "speed"};
+    static final String[] STATS = {"dps", "ehp", "mana", "speed"};
     static final int MENU_LEVEL = 1;
     static final int MENU_BUDGET = 2;
     static final int MENU_OWN = 3;
@@ -61,6 +62,8 @@ final class CommunityPage {
     /** The stat column: an index in {@link #STATS}. */
     int stat;
     String openId;
+    /** The opened build shows its All stats section. */
+    boolean allStats;
     /** The opened build is to be scrolled into sight on the next frame. */
     boolean reveal;
     final Set<String> openFamilies = new HashSet<>();
@@ -176,31 +179,58 @@ final class CommunityPage {
         return by.thenComparing(CommunityBuilds.Entry::levelMin).thenComparing(CommunityBuilds.Entry::id);
     }
 
-    /** A stat change of a comparison ({@link #STATS}); null when not known. */
+    /** One of the build's own stats ({@link #STATS}); null when not known (no DPS without a weapon). */
     static Double statOf(CommunityBuilds.Compare c, int stat) {
-        if (c == null || c.deltas() == null) {
+        if (c == null || c.totals() == null) {
             return null;
         }
+        CommunityBuilds.Totals t = c.totals();
         return switch (stat) {
-            case 0 -> c.deltas().dmg();
-            case 1 -> c.deltas().ehp();
-            case 2 -> c.deltas().mana();
-            default -> c.deltas().speed();
+            case 0 -> t.dps() > 0 ? t.dps() : null;
+            case 1 -> t.ehp();
+            case 2 -> t.manaRegen();
+            default -> t.speed();
         };
     }
 
-    /** A stat change as shown: "+18%", "−4%", "+3" for mana; null when not known. */
+    /** A stat as the column shows it: "14.1k" for DPS and EHP, "+6/5s" for mana, "+32%" for speed; null when not known. */
     static String statText(Double v, int stat) {
         if (v == null) {
             return null;
         }
-        long r = Math.round(Math.abs(v));
-        String s = (v >= 0 ? "+" : "−") + r;
-        return stat == 2 ? s : L.pct(s);
+        return switch (stat) {
+            case 0, 1 -> big(v);
+            case 2 -> signed(v) + "/5s";
+            default -> L.pct(signed(v));
+        };
     }
 
-    static int statInk(Double v) {
-        return v == null ? Theme.INK_3 : v >= 0.5 ? Theme.GOOD : v <= -0.5 ? Theme.BAD : Theme.INK_2;
+    /** A stat as a header pill says it: "14.1k DPS", "29.1k EHP", "6 mana/5s", "+32% speed". */
+    static String pillText(double v, int stat) {
+        String n = switch (stat) {
+            case 0, 1 -> big(v);
+            case 2 -> String.valueOf(Math.round(v)).replace('-', '−');
+            default -> L.pct(signed(v));
+        };
+        return L.t("wynnlabs.community.pill." + STATS[stat], n);
+    }
+
+    /** A whole number with its sign: "+6", "−4", "0". */
+    static String signed(double v) {
+        long r = Math.round(v);
+        return r > 0 ? "+" + r : r < 0 ? "−" + -r : "0";
+    }
+
+    /** A large number short: "850", "14.1k", "1.2M". */
+    static String big(double v) {
+        double a = Math.abs(v);
+        String sign = v < 0 ? "−" : "";
+        if (a < 1000) {
+            return sign + Math.round(a);
+        }
+        double d = a < 1e6 ? a / 1e3 : a / 1e6;
+        String n = d >= 100 ? String.valueOf(Math.round(d)) : String.format(Locale.ROOT, "%.1f", d).replaceAll("\\.0$", "");
+        return sign + n + (a < 1e6 ? "k" : "M");
     }
 
     /** The build set as the goal: the entry whose kept items are the items the road map builds around. */
@@ -403,13 +433,9 @@ final class CommunityPage {
             refresh();
         }
 
-        // picked for you: builds that beat your gear
+        // picked for you: the builds of your class closest to finished
         List<CommunityBuilds.Entry> picks = picks();
-        if (picks.isEmpty() && compared().values().stream().anyMatch(c -> c.deltas() != null)) {
-            String none = L.t("wynnlabs.community.picked") + ": " + L.t("wynnlabs.community.nothing_beats");
-            Type.META.draw(g, ui.font, Type.META.fit(ui.font, none, w), x, cy, Theme.INK_3);
-            cy += Type.META.lineHeight + Theme.SP_3;
-        } else if (!picks.isEmpty()) {
+        if (!picks.isEmpty()) {
             Type.META.draw(g, ui.font, L.t("wynnlabs.community.picked"), x, cy, Theme.INK_3);
             cy += Type.META.lineHeight + Theme.SP_2;
             int cardW = (w - 2 * Theme.SP_3) / 3;
@@ -574,7 +600,7 @@ final class CommunityPage {
             Type.META.draw(g, ui.font, t, cx, y, on || hov ? Theme.INK : Theme.INK_3);
             ui.btn(cx, y, tw, Type.META.lineHeight, "c.sort", i);
             if (i == 2) {
-                // the stat column's switch: Dmg, EHP, Mana or Speed
+                // the stat column's switch: DPS, EHP, Mana or Speed
                 int ax = cx + tw + Theme.SP_1;
                 boolean ah = BuildControls.in(mx, my, ax - 1, y - 1, 9, Type.META.lineHeight + 1) || tab.menuOpen == MENU_STAT;
                 Art.icon(g, "chevron-down", ax, y + 1, 6, ah ? Theme.LINK : Theme.INK_3);
@@ -653,6 +679,10 @@ final class CommunityPage {
             ui.btn(x, y, w, rh, "c.open", e.id());
             int ty = Type.BODY.yIn(y, rh);
             int nx = x + Theme.SP_1;
+            // the chevron: right while closed, down while the row is open
+            Type nameRole = pinned || !tab.compact ? Type.BODY : Type.META;
+            Art.icon(g, open ? "chevron-down" : "chevron-right", nx, nameRole.onCaps(nameRole.yIn(y, rh), 6), 6, Theme.INK_3);
+            nx += 6 + Theme.SP_1;
             if (pinned) {
                 Art.icon(g, "target", nx, Type.BODY.onCaps(ty, 8), 8, Theme.ACCENT);
                 nx += 8 + Theme.SP_1;
@@ -673,9 +703,8 @@ final class CommunityPage {
             } else {
                 Type.META.draw(g, ui.font, "…", x + c[1], Type.META.yIn(y, rh), Theme.INK_3);
             }
-            Double sv = statOf(cmp, stat);
-            String st = statText(sv, stat);
-            Type.BODY.draw(g, ui.font, st == null ? "—" : st, x + c[2], ty, statInk(sv));
+            String st = statText(statOf(cmp, stat), stat);
+            Type.BODY.draw(g, ui.font, st == null ? "—" : st, x + c[2], ty, st == null ? Theme.INK_3 : Theme.INK_2);
             if (cmp != null) {
                 boolean priced = cmp.knownCost() > 0 || cmp.missing() == 0;
                 // the goal's "N to buy · cost" takes the cost and tags columns
@@ -712,17 +741,18 @@ final class CommunityPage {
         y += rh;
         if (open && cmp != null) {
             boolean tags = c[4] >= c[5];
-            int hgt = opened.height(e, cmp, w, tags, tab.compact);
+            int hgt = opened.height(e, cmp, w, tags, tab.compact, allStats);
             int py = y + Theme.SP_1;
             if (py + hgt >= top && py <= bottom) {
                 opened.draw(g, host, this, e, cmp, x, py, w, tags, tab.compact, over, mx, my);
             }
             if (reveal) {
-                // the opened build whole in sight: its row at the top at most, its last line at the bottom
+                // the opened build whole in sight: its row at the top at most, its last line at the bottom;
+                // its All stats just opened, their last line at the bottom even when the row then leaves the top
                 int need = py + hgt + Theme.SP_2 - bottom;
                 int room = y - rh - top;
                 if (need > 0) {
-                    scroll += Math.min(need, Math.max(0, room));
+                    scroll += allStats ? need : Math.min(need, Math.max(0, room));
                 }
                 reveal = false;
             }
@@ -834,8 +864,8 @@ final class CommunityPage {
             Kit.hair(g, x, y + rh - 1, w, 1, RULE);
             ui.btn(x, y, w, rh, "c.family", f.key());
             int ty = Type.BODY.yIn(y, rh);
-            Art.icon(g, open ? "chevron-down" : "chevron-right", x + Theme.SP_1, Type.BODY.onCaps(ty, 6), 6, Theme.INK_2);
-            int nx = x + Theme.SP_1 + 6 + Theme.SP_2;
+            Art.icon(g, open ? "chevron-down" : "chevron-right", x + Theme.SP_1, Type.LABEL.onCaps(ty, 6), 6, Theme.INK_3);
+            int nx = x + Theme.SP_1 + 6 + Theme.SP_1;
             String count = " · " + f.members().size();
             int cw = Type.META.width(ui.font, count);
             String name = Type.LABEL.fit(ui.font, L.t("wynnlabs.community.family", f.name()), c[1] - Theme.SP_3 - (nx - x) - cw);
@@ -870,9 +900,9 @@ final class CommunityPage {
             }
             Type.META.draw(g, ui.font, Type.META.fit(ui.font, L.t("wynnlabs.community.best_owned", bestOwned, total), c[2] - c[1] - Theme.SP_3),
                     x + c[1], Type.META.yIn(y, rh), Theme.INK_3);
-            String span = lo == Double.MAX_VALUE ? "—" : statText(lo, stat) + "…" + statText(hi, stat);
+            String span = lo == Double.MAX_VALUE ? "—" : lo == hi ? statText(lo, stat) : statText(lo, stat) + "…" + statText(hi, stat);
             Type.META.draw(g, ui.font, Type.META.fit(ui.font, span, c[3] - c[2] - Theme.SP_1), x + c[2], Type.META.yIn(y, rh),
-                    statInk(hi));
+                    lo == Double.MAX_VALUE ? Theme.INK_3 : Theme.INK_2);
             String cs = clo == Long.MAX_VALUE ? L.t("wynnlabs.community.no_price_short") : clo == chi ? price(clo) : price(clo) + "–" + price(chi);
             Type.META.draw(g, ui.font, Type.META.fit(ui.font, cs, c[5] - c[3]), x + c[3], Type.META.yIn(y, rh),
                     clo == Long.MAX_VALUE ? Theme.INK_3 : Theme.PRICE);
@@ -883,8 +913,9 @@ final class CommunityPage {
     // ---- picked for you ----
 
     /**
-     * Three builds of your class from the list as filtered that beat your gear: the biggest damage
-     * gain first, then the most owned and the cheapest to finish. None when none beats it.
+     * Three builds of your class from the list as filtered, the closest to finished: the most
+     * pieces owned first, then the cheapest to finish, then the build's own DPS. A build you
+     * already own whole is left out; none when no build qualifies.
      */
     List<CommunityBuilds.Entry> picks() {
         Map<String, CommunityBuilds.Compare> cmp = compared();
@@ -892,18 +923,21 @@ final class CommunityPage {
         List<CommunityBuilds.Entry> mine = new ArrayList<>();
         for (CommunityBuilds.Entry e : matched) {
             CommunityBuilds.Compare c = cmp.get(e.id());
-            Double dmg = statOf(c, 0);
-            if (c != null && !e.any() && (k == Klass.NONE || e.klassType() == k) && c.missing() > 0 && dmg != null && dmg >= 0.5) {
+            if (c != null && !e.any() && (k == Klass.NONE || e.klassType() == k) && c.missing() > 0) {
                 mine.add(e);
             }
         }
-        mine.sort(Comparator.<CommunityBuilds.Entry>comparingDouble(e -> statOf(cmp.get(e.id()), 0)).reversed()
-                .thenComparing(Comparator.<CommunityBuilds.Entry>comparingInt(e -> cmp.get(e.id()).ownedPct()).reversed())
-                .thenComparingLong(e -> cmp.get(e.id()).knownCost()));
+        mine.sort(Comparator.<CommunityBuilds.Entry>comparingInt(e -> cmp.get(e.id()).owned()).reversed()
+                .thenComparingInt(e -> cmp.get(e.id()).unpriced())
+                .thenComparingLong(e -> cmp.get(e.id()).knownCost())
+                .thenComparing(Comparator.<CommunityBuilds.Entry>comparingDouble(e -> {
+                    Double d = statOf(cmp.get(e.id()), 0);
+                    return d == null ? 0 : d;
+                }).reversed()));
         return mine.subList(0, Math.min(3, mine.size()));
     }
 
-    /** A pick: a light flat card: the name, the damage gain in green, then "Buy", the missing pieces and the price. */
+    /** A pick: a light flat card: the name, how many of its pieces you own, then "Buy", the missing pieces and the price. */
     private void drawPick(GuiGraphics g, BuildWindow.Host host, CommunityBuilds.Entry e, int x, int y, int w, int h, int mx, int my) {
         CommunityBuilds.Compare c = compared().get(e.id());
         Kit.softCard(g, x, y, w, h);
@@ -915,8 +949,8 @@ final class CommunityPage {
         int cy = y + Theme.SP_2;
         Type.LABEL.draw(g, ui.font, Type.LABEL.fit(ui.font, e.name(), w - 2 * pad), ix, cy, Theme.INK);
         cy += Type.LABEL.lineHeight;
-        Double dmg = statOf(c, 0);
-        Type.META.draw(g, ui.font, L.t("wynnlabs.community.dmg_delta", statText(dmg, 0)), ix, cy, Theme.GOOD);
+        Type.META.draw(g, ui.font, Type.META.fit(ui.font, L.t("wynnlabs.community.owned_count", c.owned(), c.total()), w - 2 * pad),
+                ix, cy, Theme.INK_2);
         cy += Type.META.lineHeight + Theme.SP_1;
         int ic = icon();
         String buy = L.t("wynnlabs.community.buy");
@@ -1035,9 +1069,14 @@ final class CommunityPage {
                     sortDesc = col != 0 && col != 3;
                 }
             }
+            case "c.stats" -> {
+                allStats = !allStats;
+                reveal = allStats;
+            }
             case "c.open" -> {
                 String id = (String) arg;
                 openId = id.equals(openId) ? null : id;
+                allStats = false;
                 if (openId != null) {
                     requestPrices(openId);
                     reveal = true;
@@ -1045,6 +1084,7 @@ final class CommunityPage {
             }
             case "c.pick" -> {
                 openId = (String) arg;
+                allStats = false;
                 requestPrices(openId);
                 scrollTo(openId);
                 reveal = true;
@@ -1232,6 +1272,7 @@ final class CommunityPage {
         filter = f;
         fold = folded;
         openId = open;
+        allStats = false;
         scroll = 0;
         cacheKey = null;
         if (open != null) {

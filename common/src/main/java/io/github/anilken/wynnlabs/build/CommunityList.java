@@ -273,7 +273,7 @@ public final class CommunityList {
         });
     }
 
-    /** Every entry compared (the damage model only for the player's own class). */
+    /** Every entry compared, each with its own totals (remembered by link: they never rest on what the player has). */
     static Map<String, CommunityBuilds.Compare> compareAll(GameState state, List<CommunityBuilds.Entry> entries,
             CommunityBuilds.Owned owned, WhatCanICraft.Stock stock) {
         Map<String, Ingredient> ings = new HashMap<>();
