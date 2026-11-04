@@ -32,7 +32,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 /** {@link GameState} from the running game: the same calls the logic made before it had a seam. */
-final class LiveGameState implements GameState {
+public final class LiveGameState implements GameState {
 
     static final LiveGameState INSTANCE = new LiveGameState();
 

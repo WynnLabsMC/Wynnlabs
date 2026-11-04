@@ -107,12 +107,12 @@ public final class TomeMemory {
     }
 
     /** Wynntils' tome names when it has any, else the remembered ones. */
-    static List<String> names(List<String> wynntils) {
+    public static List<String> names(List<String> wynntils) {
         return pickNames(wynntils, known());
     }
 
     /** Wynntils' tome points when it has any, else the remembered tomes' points. */
-    static int points(SkillKind s, int wynntils, boolean wynntilsAny) {
+    public static int points(SkillKind s, int wynntils, boolean wynntilsAny) {
         return pickPoints(s, wynntils, wynntilsAny, known());
     }
 

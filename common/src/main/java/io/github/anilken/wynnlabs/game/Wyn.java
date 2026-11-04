@@ -1,48 +1,19 @@
 package io.github.anilken.wynnlabs.game;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.wynntils.core.components.Handlers;
-import com.wynntils.core.components.Managers;
-import com.wynntils.core.components.Models;
-import com.wynntils.models.abilities.AbilityModel;
-import com.wynntils.models.abilitytree.AbilityTreeModel;
-import com.wynntils.models.abilitytree.type.AbilityTreeConnectionType;
-import com.wynntils.models.abilitytree.type.AbilityTreeInfo;
-import com.wynntils.models.abilitytree.type.AbilityTreeNodeState;
-import com.wynntils.models.abilitytree.type.AbilityTreeSkillNode;
-import com.wynntils.models.activities.quests.QuestInfo;
-import com.wynntils.models.activities.type.ActivitySortOrder;
-import com.wynntils.models.activities.type.ActivityType;
-import com.wynntils.models.activities.type.DiscoveryType;
-import com.wynntils.models.character.type.ClassType;
-import com.wynntils.models.containers.Container;
-import com.wynntils.models.containers.containers.personal.AccountBankContainer;
-import com.wynntils.models.containers.containers.personal.CharacterBankContainer;
-import com.wynntils.models.containers.containers.personal.PersonalStorageContainer;
-import com.wynntils.models.containers.containers.trademarket.TradeMarketSellContainer;
-import com.wynntils.models.elements.type.Skill;
-import com.wynntils.models.containers.containers.MasteryTomesContainer;
-import com.wynntils.models.containers.containers.RaidRewardPreviewContainer;
 import com.wynntils.models.gear.type.GearInfo;
 import com.wynntils.models.items.WynnItem;
-import com.wynntils.models.items.items.game.AspectItem;
 import com.wynntils.models.items.items.game.GearBoxItem;
-import com.wynntils.models.items.items.game.TomeItem;
-import com.wynntils.models.lootrun.type.LootrunningState;
-import com.wynntils.models.lootrun.type.MissionType;
-import com.wynntils.models.marker.MarkerModel;
 import com.wynntils.models.marker.UserWaypointMarkerProvider;
-import com.wynntils.models.objectives.WynnObjective;
-import com.wynntils.models.players.type.PlayerRank;
-import com.wynntils.models.profession.type.ProfessionType;
-import com.wynntils.models.stats.type.SkillStatType;
-import com.wynntils.models.raid.RaidModel;
-import com.wynntils.models.territories.profile.TerritoryProfile;
 import com.wynntils.models.wynnitem.type.ItemObtainInfo;
-import com.wynntils.utils.mc.type.Location;
 import io.github.anilken.wynnlabs.core.L;
-import io.github.anilken.wynnlabs.core.Platform;
+import io.github.anilken.wynnlabs.game.wynntils.AbilityReads;
+import io.github.anilken.wynnlabs.game.wynntils.Bridge;
+import io.github.anilken.wynnlabs.game.wynntils.CharacterReads;
+import io.github.anilken.wynnlabs.game.wynntils.ContentReads;
+import io.github.anilken.wynnlabs.game.wynntils.EndgameReads;
+import io.github.anilken.wynnlabs.game.wynntils.ItemReads;
+import io.github.anilken.wynnlabs.game.wynntils.ProfessionReads;
+import io.github.anilken.wynnlabs.game.wynntils.WorldReads;
 import io.github.anilken.wynnlabs.model.AbilityNode;
 import io.github.anilken.wynnlabs.model.AspectEntry;
 import io.github.anilken.wynnlabs.model.Capped;
@@ -56,25 +27,16 @@ import io.github.anilken.wynnlabs.model.Quest;
 import io.github.anilken.wynnlabs.model.QuestKind;
 import io.github.anilken.wynnlabs.model.RaidDry;
 import io.github.anilken.wynnlabs.model.SkillKind;
-import io.github.anilken.wynnlabs.model.Tier;
-import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.ui.TreeConnectors;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.Position;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -84,8 +46,10 @@ import java.util.stream.Stream;
  * time. Each method below runs its call through {@link #guard}, which returns a safe default
  * instead, marks the feature that depends on it as down, and logs the first failure, so a
  * Wynntils change costs one feature and never crashes the game. What it hands back is in the
- * mod's own types (the model package); items are converted by {@link WynntilsItems}. Only these
- * two files and the event hooks in {@link WynntilsEvents} see Wynntils' types (the build checks).
+ * mod's own types (the model package); items are converted by {@link WynntilsItems}. The calls
+ * themselves live in one class per area under {@code game/wynntils} ({@link Bridge} holds the
+ * guard); this class hands them out. Only these files and the event hooks in
+ * {@link WynntilsEvents} see Wynntils' types (the build checks).
  */
 public final class Wyn {
 
@@ -95,176 +59,62 @@ public final class Wyn {
         PROFESSIONS, CONTAINERS, STATS, WORLD, NOTIFY, RAIDS, LOOTRUNS, ASPECTS
     }
 
-    private static final Map<Feature, String> DOWN = new EnumMap<>(Feature.class);
-
     private Wyn() {}
 
-    /**
-     * Runs one Wynntils call: its value, or {@code fallback} when Wynntils no longer has what
-     * we call (or throws from inside); the first failure of a feature is logged with its trace.
-     */
+    // ---- the guard, the features marked down and the self-test: Bridge ----
+
     static <T> T guard(Feature f, Supplier<T> call, T fallback) {
-        if (!GameState.current().running()) {
-            return fallback;                    // a recorded game (tests, the J menu preview): no Wynntils
-        }
-        try {
-            return call.get();
-        } catch (LinkageError e) {
-            // Wynntils no longer has what we call: this feature is off for the session
-            boolean first;
-            synchronized (DOWN) {
-                first = !DOWN.containsKey(f);
-                DOWN.putIfAbsent(f, e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage()));
-            }
-            if (first) {
-                System.out.println("[WynnLabs] Wynntils " + version() + ": " + f + " is off");
-                e.printStackTrace(System.out);
-            }
-            return fallback;
-        } catch (RuntimeException e) {
-            // an ordinary failure inside Wynntils (an odd item, a menu not loaded yet): this call
-            // only; logged once per feature so a real problem is still visible
-            synchronized (ODD) {
-                if (ODD.add(f)) {
-                    System.out.println("[WynnLabs] Wynntils " + f + " call threw (feature stays on): " + e);
-                }
-            }
-            return fallback;
-        }
-    }
-
-    private static final java.util.Set<Feature> ODD = java.util.EnumSet.noneOf(Feature.class);
-
-    private static void run(Feature f, Runnable call) {
-        guard(f, () -> {
-            call.run();
-            return null;
-        }, null);
+        return Bridge.guard(f, call, fallback);
     }
 
     public static boolean up(Feature f) {
-        synchronized (DOWN) {
-            return !DOWN.containsKey(f);
-        }
+        return Bridge.up(f);
     }
 
-    /** The features that failed this session, with why. */
     public static Map<Feature, String> down() {
-        synchronized (DOWN) {
-            return new EnumMap<>(DOWN);
-        }
+        return Bridge.down();
     }
 
-    /** For the J menu preview: forget what was marked down before the recorded game was in. */
     public static void clearDown() {
-        synchronized (DOWN) {
-            DOWN.clear();
-        }
+        Bridge.clearDown();
     }
 
-    /** For the debug toggle and tests: mark a feature down by hand. */
     public static void markDown(Feature f, String why) {
-        synchronized (DOWN) {
-            DOWN.putIfAbsent(f, why);
-        }
+        Bridge.markDown(f, why);
     }
 
     public static String version() {
-        try {
-            return Platform.get().modVersion("wynntils").orElse("?");
-        } catch (Throwable t) {
-            return "?";                             // never let the guard itself fail
-        }
+        return Bridge.version();
     }
 
-    // ---- members that not every supported Wynntils release has ----
-    //
-    // Wynn Labs compiles against the newest Wynntils but runs on every release since 4.1.0, the
-    // first with Wynncraft 2.2.0 (Fruma). A member that some of those releases lack is looked up
-    // here by name, once; the caller then uses that release's own equivalent. Each caller names
-    // the member and the releases that have it. Where no equivalent exists, the caller throws
-    // {@link #missing}, which its guard turns into "feature off" like any other API change.
-
-    private static final Map<String, Optional<Class<?>>> TYPES = new ConcurrentHashMap<>();
-    private static final Map<String, Optional<Method>> METHODS = new ConcurrentHashMap<>();
-
-    /** A Wynntils class by its full name, or empty when this release has none. */
     static Optional<Class<?>> type(String name) {
-        return TYPES.computeIfAbsent(name, n -> {
-            try {
-                return Optional.of(Class.forName(n, false, Models.class.getClassLoader()));
-            } catch (ClassNotFoundException | LinkageError e) {
-                return Optional.empty();
-            }
-        });
+        return Bridge.type(name);
     }
 
-    /** A public method of {@code owner}, or empty when this release lacks it. */
     static Optional<Method> method(Class<?> owner, String name, Class<?>... params) {
-        return METHODS.computeIfAbsent(owner.getName() + '#' + name + Arrays.toString(params), k -> {
-            try {
-                return Optional.of(owner.getMethod(name, params));
-            } catch (NoSuchMethodException | LinkageError e) {
-                return Optional.empty();
-            }
-        });
+        return Bridge.method(owner, name, params);
     }
 
-    /** Calls a method from {@link #method}; what it throws comes out as from a direct call. */
     static Object call(Method m, Object target, Object... args) {
-        try {
-            return m.invoke(target, args);
-        } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof RuntimeException r) {
-                throw r;
-            }
-            if (e.getCause() instanceof Error err) {
-                throw err;
-            }
-            throw new IllegalStateException(e.getCause());
-        } catch (IllegalAccessException e) {
-            throw new IncompatibleClassChangeError(m + ": " + e);
-        }
+        return Bridge.call(m, target, args);
     }
 
-    /** Calls a no-argument method of {@code target}'s own class, or throws {@link #missing}. */
     static Object call(Object target, String name) {
-        return call(method(target.getClass(), name).orElseThrow(() -> missing(target.getClass().getSimpleName() + "." + name)),
-                target);
+        return Bridge.call(target, name);
     }
 
-    /** Neither the newest member nor an older equivalent is in this Wynntils. */
     static NoSuchMethodError missing(String what) {
-        return new NoSuchMethodError(what + " is not in this Wynntils");
+        return Bridge.missing(what);
     }
 
-    // ---- self-test and telling the player ----
+    public static void selfTest() {
+        Bridge.selfTest();
+    }
+
+    // ---- telling the player ----
 
     private static final java.util.Set<Feature> ANNOUNCED = java.util.EnumSet.noneOf(Feature.class);
     private static int tick;
-
-    /** Once per world join: one cheap read of every Wynntils feature the mod uses. */
-    public static void selfTest() {
-        level();
-        xp();
-        Klass cls = classType();
-        hasCharacter();
-        item(ItemStack.EMPTY);
-        guard(Feature.GEAR_DB, () -> Models.Gear.getAllGearInfos().findAny().isPresent(), false);
-        tracking();
-        quests();
-        abilityTree(cls);
-        unlockedAbilities();
-        assignedPoints(SkillKind.STRENGTH);
-        waypoints();
-        objectives();
-        professionLevel(ProfessionType.values()[0]);
-        container();
-        raidDry();
-        lootrunState();
-        guard(Feature.ASPECTS, () -> Models.Aspect.getAllAspectInfos().findAny().isPresent(), false);
-        classAspects(cls);
-    }
 
     /** Every few seconds: one chat line per session for features that went down. */
     public static void onTick(net.minecraft.client.Minecraft mc) {
@@ -272,11 +122,9 @@ public final class Wyn {
             return;
         }
         java.util.List<String> names = new java.util.ArrayList<>();
-        synchronized (DOWN) {
-            for (Feature f : DOWN.keySet()) {
-                if (ANNOUNCED.add(f)) {
-                    names.add(name(f));
-                }
+        for (Feature f : down().keySet()) {
+            if (ANNOUNCED.add(f)) {
+                names.add(name(f));
             }
         }
         if (!names.isEmpty()) {
@@ -308,324 +156,190 @@ public final class Wyn {
         };
     }
 
-
-    // ---- character ----
+    // ---- character and skill points: CharacterReads ----
 
     public static int level() {
-        if (!GameState.current().running()) {
-            return GameState.current().level();
-        }
-        return guard(Feature.CHARACTER, () -> Models.CombatXp.getCombatLevel().current(), 0);
+        return CharacterReads.level();
     }
 
     public static Capped xp() {
-        return guard(Feature.CHARACTER, () -> WynntilsItems.capped(Models.CombatXp.getXp()), Capped.EMPTY);
+        return CharacterReads.xp();
     }
 
     public static Klass classType() {
-        if (!GameState.current().running()) {
-            return GameState.current().classType();
-        }
-        return guard(Feature.CHARACTER, () -> {
-            ClassType c = Models.Character.getClassType();
-            return c == null ? Klass.NONE : WynntilsItems.klass(c.name());
-        }, Klass.NONE);
+        return CharacterReads.classType();
     }
 
     public static boolean hasCharacter() {
-        return guard(Feature.CHARACTER, () -> Models.Character.hasCharacter(), false);
+        return CharacterReads.hasCharacter();
     }
 
     public static String characterId() {
-        return guard(Feature.CHARACTER, () -> Models.Character.getId(), "");
+        return CharacterReads.characterId();
     }
 
-    /**
-     * The account's supporter rank as Wynntils read it from the rank menu ("VIP", "HERO_PLUS" …,
-     * "NONE" without one), or null while it is not known: no scan yet this session and no copy
-     * kept from an earlier one. Staff ranks do not show here; the supporter rank under them does.
-     */
     public static String supporterRank() {
-        return guard(Feature.CHARACTER, () -> {
-            PlayerRank r = Models.Account.getSupporterRank();
-            return r == null || r == PlayerRank.NONE && !Models.Account.hasScannedRankInfo() ? null : r.name();
-        }, null);
+        return CharacterReads.supporterRank();
     }
 
     public static boolean reskinned() {
-        return guard(Feature.CHARACTER, () -> Models.Character.isReskinned(), false);
+        return CharacterReads.reskinned();
     }
 
     public static Optional<Capped> health() {
-        return guard(Feature.STATS, () -> Models.CharacterStats.getHealth().map(WynntilsItems::capped), Optional.empty());
+        return CharacterReads.health();
     }
 
     public static Optional<Capped> mana() {
-        return guard(Feature.STATS, () -> Models.CharacterStats.getMana().map(WynntilsItems::capped), Optional.empty());
+        return CharacterReads.mana();
     }
 
-    /**
-     * A Shaman's Blood Pool in percent, from its boss bar (Wynntils' blood pool bar), or -1 while
-     * the bar is not shown.
-     */
     public static int bloodPool() {
-        return guard(Feature.STATS, () -> {
-            if (!AbilityModel.bloodPoolBar.isActive()) {
-                return -1;
-            }
-            var p = AbilityModel.bloodPoolBar.getBarProgress();
-            return p == null || p.value() == null ? -1 : p.value().current();
-        }, -1);
+        return CharacterReads.bloodPool();
     }
 
-    /**
-     * The full health of the mob you are hitting (Wynntils' focused mob, from the game's damage
-     * bar: its health now over its percent left), 0 when none or nothing was hit in the last 10 s.
-     */
     public static long focusedMobMaxHealth() {
-        return guard(Feature.STATS, () -> {
-            if (System.currentTimeMillis() - Models.Combat.getLastDamageDealtTimestamp() > 10_000) {
-                return 0L;
-            }
-            long hp = Models.Combat.getFocusedMobHealth();
-            var pct = Models.Combat.getFocusedMobHealthPercent();
-            if (hp <= 0 || pct == null || pct.max() <= 0) {
-                return Math.max(0L, hp);
-            }
-            return Math.round(hp * (double) pct.max() / Math.max(1, pct.current()));
-        }, 0L);
-    }
-
-    // ---- items and gear (the rest of the mod reads them through WynntilsItems) ----
-
-    static Optional<WynnItem> item(ItemStack stack) {
-        return guard(Feature.ITEMS, () -> Models.Item.getWynnItem(stack), Optional.empty());
-    }
-
-    static <T extends WynnItem> Optional<T> asItem(ItemStack stack, Class<T> type) {
-        return guard(Feature.ITEMS, () -> Models.Item.asWynnItem(stack, type), Optional.empty());
-    }
-
-    private static java.lang.reflect.Method annotate;
-
-    /**
-     * Has Wynntils parse a stack it has not seen (a bank page stored as JSON, a copied stack):
-     * its private ItemHandler.annotate, by reflection. False when that is gone.
-     */
-    public static boolean annotate(ItemStack stack) {
-        return guard(Feature.ITEMS, () -> {
-            try {
-                if (annotate == null) {
-                    annotate = com.wynntils.handlers.item.ItemHandler.class.getDeclaredMethod("annotate", ItemStack.class);
-                    annotate.setAccessible(true);
-                }
-                annotate.invoke(Handlers.Item, stack);
-                return true;
-            } catch (ReflectiveOperationException e) {
-                // the private method is gone or changed: an API change like any other
-                throw new IncompatibleClassChangeError("ItemHandler.annotate unavailable: " + e);
-            }
-        }, false);
+        return CharacterReads.focusedMobMaxHealth();
     }
 
     public static int emeralds() {
-        return guard(Feature.ITEMS, () -> Models.Emerald.getAmountInInventory(), 0);
+        return CharacterReads.emeralds();
     }
-
-    static List<ItemStack> accessories(Player player) {
-        return guard(Feature.ITEMS, () -> com.wynntils.utils.wynn.InventoryUtils.getAccessories(player), List.of());
-    }
-
-    static Stream<GearInfo> allGear() {
-        return guard(Feature.GEAR_DB, () -> Models.Gear.getAllGearInfos(), Stream.empty());
-    }
-
-    static GearInfo gearByName(String name) {
-        return guard(Feature.GEAR_DB, () -> Models.Gear.getGearInfoFromDisplayName(name), null);
-    }
-
-    /** An ingredient's star count (0-3) by its name, or null when it is not one. */
-    static Integer ingredientTier(String name) {
-        return guard(Feature.GEAR_DB, () -> {
-            var info = Models.Ingredient.getIngredientInfoFromName(name);
-            return info == null ? null : info.tier();
-        }, null);
-    }
-
-    /**
-     * A piece's picture as Wynntils' gear data has it now (its item with today's model number),
-     * or null when unknown. Wynntils' own stack: read it, never change it.
-     */
-    public static ItemStack gearPicture(String name) {
-        return guard(Feature.GEAR_DB, () -> {
-            GearInfo info = Models.Gear.getGearInfoFromDisplayName(name);
-            return info == null ? null : info.metaInfo().material().itemStack();
-        }, null);
-    }
-
-    static List<GearInfo> possibleGears(GearBoxItem box) {
-        return guard(Feature.GEAR_DB, () -> Models.Gear.getPossibleGears(box), List.of());
-    }
-
-    /**
-     * Where a piece comes from. The crowd-sourced sources go by the item's API name, so a piece
-     * renamed in game (Ornate Shadow Cloak, "Ornate Shadow Garb" in the API) is looked up by
-     * that name too when its display name finds none.
-     */
-    static List<ItemObtainInfo> obtainInfo(GearInfo info) {
-        return guard(Feature.GEAR_DB, () -> {
-            List<ItemObtainInfo> out = Models.Gear.getObtainInfo(info);
-            String api = info.metaInfo().apiName().orElse(null);
-            if (out.isEmpty() && api != null && !api.equals(info.name())) {
-                return Models.WynnItem.getObtainInfo(api);
-            }
-            return out;
-        }, List.of());
-    }
-
-    // ---- skill points ----
 
     public static int assignedPoints(SkillKind s) {
-        return guard(Feature.SKILLS, () -> Models.SkillPoint.getAssignedSkillPoints(skill(s)), 0);
+        return CharacterReads.assignedPoints(s);
     }
 
     public static int gearPoints(SkillKind s) {
-        return guard(Feature.SKILLS, () -> Models.SkillPoint.getGearSkillPoints(skill(s)), 0);
+        return CharacterReads.gearPoints(s);
     }
 
-    /**
-     * Tome skill points of a skill: Wynntils' number when it read any (only its own menu query
-     * fills them), else the tomes remembered from the Mastery Tomes menu the player opened.
-     */
     public static int tomePoints(SkillKind s) {
-        int own = wynntilsTomePoints(s);
-        if (own != 0 || !GameState.current().running()) {
-            return own;
-        }
-        boolean any = false;
-        for (SkillKind k : SkillKind.values()) {
-            any |= wynntilsTomePoints(k) != 0;
-        }
-        return TomeMemory.points(s, own, any);
-    }
-
-    private static int wynntilsTomePoints(SkillKind s) {
-        return guard(Feature.SKILLS, () -> Models.SkillPoint.getTomeSkillPoints(skill(s)), 0);
+        return CharacterReads.tomePoints(s);
     }
 
     public static int setBonusPoints(SkillKind s) {
-        return guard(Feature.SKILLS, () -> Models.SkillPoint.getSetBonusSkillPoints(skill(s)), 0);
+        return CharacterReads.setBonusPoints(s);
     }
 
     static int totalPoints(SkillKind s) {
-        return guard(Feature.SKILLS, () -> Models.SkillPoint.getTotalSkillPoints(skill(s)), 0);
+        return CharacterReads.totalPoints(s);
     }
 
-    private static Skill skill(SkillKind s) {
-        return Skill.valueOf(s.name());
+    // ---- items, gear and the open menu: ItemReads (the rest of the mod reads items through WynntilsItems) ----
+
+    static Optional<WynnItem> item(ItemStack stack) {
+        return ItemReads.item(stack);
     }
 
-    // ---- quests and activities ----
+    static <T extends WynnItem> Optional<T> asItem(ItemStack stack, Class<T> type) {
+        return ItemReads.asItem(stack, type);
+    }
+
+    public static boolean annotate(ItemStack stack) {
+        return ItemReads.annotate(stack);
+    }
+
+    static List<ItemStack> accessories(Player player) {
+        return ItemReads.accessories(player);
+    }
+
+    static Stream<GearInfo> allGear() {
+        return ItemReads.allGear();
+    }
+
+    static GearInfo gearByName(String name) {
+        return ItemReads.gearByName(name);
+    }
+
+    static Integer ingredientTier(String name) {
+        return ItemReads.ingredientTier(name);
+    }
+
+    public static ItemStack gearPicture(String name) {
+        return ItemReads.gearPicture(name);
+    }
+
+    static List<GearInfo> possibleGears(GearBoxItem box) {
+        return ItemReads.possibleGears(box);
+    }
+
+    static List<ItemObtainInfo> obtainInfo(GearInfo info) {
+        return ItemReads.obtainInfo(info);
+    }
+
+    public static int marketListingPrice(ItemStack stack) {
+        return ItemReads.marketListingPrice(stack);
+    }
+
+    public static MenuKind container() {
+        return ItemReads.container();
+    }
+
+    // ---- tracking, quests and the content book: ContentReads ----
 
     public static boolean tracking() {
-        return guard(Feature.QUESTS, () -> Models.Activity.isTracking(), false);
+        return ContentReads.tracking();
     }
 
     public static String trackedName() {
-        return guard(Feature.QUESTS, () -> Models.Activity.getTrackedName(), "");
+        return ContentReads.trackedName();
     }
 
-    /** The tracked task as plain text ("" when none). */
     public static String trackedTask() {
-        return guard(Feature.QUESTS, () -> {
-            var t = Models.Activity.getTrackedTask();
-            return t == null ? "" : t.getStringWithoutFormatting();
-        }, "");
+        return ContentReads.trackedTask();
     }
 
     public static QuestKind trackedType() {
-        return guard(Feature.QUESTS, () -> {
-            ActivityType t = Models.Activity.getTrackedType();
-            return t == null ? null : QuestKind.valueOf(t.name());
-        }, null);
+        return ContentReads.trackedType();
     }
 
-    /** Tracks a content book entry. A kind Wynntils does not have throws here, outside the guard. */
     public static boolean startTracking(String name, QuestKind kind) {
-        ActivityType type = ActivityType.valueOf(kind.name());
-        return guard(Feature.QUESTS, () -> {
-            Models.Activity.startTracking(name, type);
-            return true;
-        }, false);
+        return ContentReads.startTracking(name, kind);
     }
 
-    /**
-     * The secret discoveries Wynntils lists as found for this character, by name. Empty until its
-     * content book scan read them (and whenever the call fails).
-     */
     static java.util.Set<String> completedDiscoveries() {
-        return guard(Feature.QUESTS, () -> {
-            java.util.Set<String> out = new java.util.HashSet<>();
-            Models.Discovery.getAllDiscoveriesForType(DiscoveryType.SECRET).forEach(d -> {
-                if (d.discovered()) {
-                    out.add(d.name());
-                }
-            });
-            return out;
-        }, java.util.Set.of());
+        return ContentReads.completedDiscoveries();
     }
 
-    /** Quests as Wynntils last read them from the content book. */
     public static List<Quest> quests() {
-        return guard(Feature.QUESTS, () -> {
-            List<Quest> out = new ArrayList<>();
-            for (QuestInfo q : Models.Quest.getQuestsRaw()) {
-                out.add(quest(q));
-            }
-            return out;
-        }, List.of());
+        return ContentReads.quests();
     }
 
-    /** Quests and mini-quests as Wynntils last read them from the content book, by level. */
     public static List<Quest> questsAndMiniQuests() {
-        return guard(Feature.QUESTS, () -> {
-            List<Quest> out = new ArrayList<>();
-            for (QuestInfo q : Models.Quest.getSortedQuests(ActivitySortOrder.LEVEL, true, true)) {
-                out.add(quest(q));
-            }
-            return out;
-        }, List.of());
+        return ContentReads.questsAndMiniQuests();
     }
 
-    /**
-     * Whether the quests tab's "read quests with Wynntils" can run: the quest calls work and a
-     * character is selected. The J menu preview (no Wynntils) draws it as in a game.
-     */
     public static boolean canRescanQuests() {
-        if (!up(Feature.QUESTS)) {
-            return false;
-        }
-        if (!GameState.current().running()) {
-            return true;
-        }
-        return hasCharacter();
+        return ContentReads.canRescanQuests();
     }
 
-    /**
-     * Wynntils' own quest book refresh: it opens the content book for a moment, reads every
-     * quest and mini-quest page, then posts the new lists (taken in by {@link QuestBook#fromWynntils}).
-     * False when unavailable. Same signature in every supported release (4.1.0 to 4.2.14).
-     * <p>
-     * The one place the mod asks Wynntils to open a menu to read it, and only on the player's
-     * press of the quests tab's button or "Yenile" chip ({@link QuestBook#askWynntils}). Never call
-     * it automatically, on a timer or when a tab opens. (Tracking a quest, {@link #startTracking},
-     * also has Wynntils open the book, likewise only on the player's click.)
-     */
     public static boolean rescanQuests() {
-        return guard(Feature.QUESTS, () -> {
-            Models.Quest.rescanQuestBook(true, true);
-            return true;
-        }, false);
+        return ContentReads.rescanQuests();
+    }
+
+    public static boolean scanContent(String kind, java.util.function.Consumer<List<ContentLine>> done) {
+        return ContentReads.scanContent(kind, done);
+    }
+
+    public static List<ContentLine> knownContent(String kind) {
+        return ContentReads.knownContent(kind);
+    }
+
+    public static BookPage contentBookPage() {
+        return ContentReads.contentBookPage();
+    }
+
+    public static boolean knowsKind(String kind) {
+        return ContentReads.knowsKind(kind);
+    }
+
+    public static boolean startTracking(String name, String kind) {
+        return ContentReads.startTracking(name, kind);
+    }
+
+    public static List<Goal> objectives() {
+        return ContentReads.objectives();
     }
 
     /**
@@ -633,62 +347,6 @@ public final class Wyn {
      * COMPLETED, the level it asks for (0 when none) and its description, plain text.
      */
     public record ContentLine(String name, String status, int level, String description) {}
-
-    /**
-     * Wynntils reads one kind of the content book ({@code kind}: an {@code ActivityType} name such as
-     * "CAVE" or "DUNGEON") and hands the lines to {@code done} on the game thread. False when the kind
-     * is unknown to this Wynntils or the call fails. Like {@link #rescanQuests}, only ever on the
-     * player's press of the quests tab's refresh: never automatically, on a timer or in a loop.
-     */
-    public static boolean scanContent(String kind, java.util.function.Consumer<List<ContentLine>> done) {
-        ActivityType type = activityType(kind);
-        if (type == null) {
-            return false;
-        }
-        return guard(Feature.QUESTS, () -> {
-            Models.Activity.scanContentBook(type, (list, progress) -> {
-                try {
-                    List<ContentLine> out = new ArrayList<>();
-                    for (com.wynntils.models.activities.type.ActivityInfo a : list) {
-                        int lv = a.requirements() == null || a.requirements().level() == null ? 0 : a.requirements().level().a();
-                        String d = a.description().map(t -> t.getStringWithoutFormatting()).orElse("");
-                        out.add(new ContentLine(a.name(), a.status() == null ? "UNKNOWN" : a.status().name(), lv, d));
-                    }
-                    done.accept(out);
-                } catch (Throwable t) {
-                    System.out.println("[WynnLabs] content book lines unreadable: " + t);
-                }
-            });
-            return true;
-        }, false);
-    }
-
-    /**
-     * What Wynntils itself keeps of one kind for this character (caves and the three discovery
-     * kinds; empty for the rest and until Wynntils read them).
-     */
-    public static List<ContentLine> knownContent(String kind) {
-        return guard(Feature.QUESTS, () -> {
-            List<ContentLine> out = new ArrayList<>();
-            switch (kind) {
-                case "CAVE" -> {
-                    for (var c : Models.Cave.getSortedCaves(ActivitySortOrder.LEVEL)) {
-                        out.add(new ContentLine(c.name(), c.status() == null ? "UNKNOWN" : c.status().name(), c.recommendedLevel(),
-                                c.description() == null ? "" : c.description()));
-                    }
-                }
-                case "SECRET_DISCOVERY", "WORLD_DISCOVERY", "TERRITORIAL_DISCOVERY" -> {
-                    DiscoveryType t = kind.startsWith("SECRET") ? DiscoveryType.SECRET : kind.startsWith("WORLD") ? DiscoveryType.WORLD
-                            : DiscoveryType.TERRITORY;
-                    Models.Discovery.getAllDiscoveriesForType(t).forEach(d -> out.add(new ContentLine(d.name(),
-                            d.discovered() ? "COMPLETED" : "AVAILABLE", d.minLevel(), d.description() == null ? "" : d.description())));
-                }
-                default -> {
-                }
-            }
-            return out;
-        }, List.of());
-    }
 
     /** One item of the open Content Book: its name and its lore lines with their colour codes. */
     public record BookSlot(String name, List<String> lore) {}
@@ -699,900 +357,174 @@ public final class Wyn {
     /** One entry as Wynntils read it: its kind (an ActivityType name), name, status name and level, with its lore. */
     public record TypedEntry(String type, String name, String status, int level, String description, List<String> lore) {}
 
-    /**
-     * The Content Book the player has open, as shown: the filter button and this page's entries
-     * (an entry's name as Wynntils reads it when it can, else the plain item name). Null when
-     * another screen, or none, is open. Only reads the open menu: never clicks or turns a page.
-     */
-    public static BookPage contentBookPage() {
-        return guard(Feature.QUESTS, () -> {
-            // Wynntils shows the book in its own screen, not a container screen: the items still
-            // sit in the player's open container menu
-            if (!(Models.Container.getCurrentContainer() instanceof com.wynntils.models.containers.containers.ContentBookContainer book)) {
-                return null;
-            }
-            var player = net.minecraft.client.Minecraft.getInstance().player;
-            if (player == null || player.containerMenu == null || player.containerMenu == player.inventoryMenu) {
-                return null;
-            }
-            java.util.Set<Integer> page = new java.util.HashSet<>(book.getBounds().getSlots());
-            BookSlot filter = null;
-            List<BookSlot> entries = new ArrayList<>();
-            List<TypedEntry> typed = new ArrayList<>();
-            var slots = player.containerMenu.slots;
-            for (int i = 0; i < slots.size(); i++) {
-                var slot = slots.get(i);
-                ItemStack stack = slot.getItem();
-                if ((player != null && slot.container == player.getInventory()) || stack.isEmpty()) {
-                    continue;
-                }
-                List<String> lore = new ArrayList<>();
-                for (var line : com.wynntils.utils.mc.LoreUtils.getLore(stack)) {
-                    lore.add(line.getString());
-                }
-                String name = plain(stack.getHoverName().getString());
-                if (page.contains(i)) {
-                    String read = Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class)
-                            .map(a -> a.getActivityInfo() == null ? null : a.getActivityInfo().name()).orElse(null);
-                    entries.add(new BookSlot(read == null || read.isBlank() ? name : read, lore));
-                    Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class).ifPresent(a -> {
-                        var info = a.getActivityInfo();
-                        if (info != null && info.type() != null && info.name() != null) {
-                            int lv = info.requirements() == null || info.requirements().level() == null ? 0 : info.requirements().level().a();
-                            typed.add(new TypedEntry(info.type().name(), info.name(), info.status() == null ? "UNKNOWN" : info.status().name(),
-                                    lv, "", lore));
-                        }
-                    });
-                } else if (filter == null && "Filter".equals(name)) {
-                    filter = new BookSlot(name, lore);
-                }
-            }
-            return new BookPage(filter, entries, typed);
-        }, null);
-    }
-
-    /** Whether this Wynntils knows the content book kind (Time Trial is missing in 4.2.x). */
-    public static boolean knowsKind(String kind) {
-        return activityType(kind) != null;
-    }
-
-    private static ActivityType activityType(String kind) {
-        try {
-            return ActivityType.valueOf(kind);
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
-    /** Tracks a content book entry of any kind Wynntils knows; on the player's click only. */
-    public static boolean startTracking(String name, String kind) {
-        ActivityType type = activityType(kind);
-        if (type == null) {
-            return false;
-        }
-        return guard(Feature.QUESTS, () -> {
-            Models.Activity.startTracking(name, type);
-            return true;
-        }, false);
-    }
-
-    private static Quest quest(QuestInfo q) {
-        var req = q.additionalRequirements();
-        Quest.Requirements r = null;
-        if (req != null) {
-            Integer lv = req.level() == null ? null : req.level().a();
-            Boolean met = req.level() == null ? null : req.level().b();
-            List<Quest.Profession> profs = new ArrayList<>();
-            for (var p : req.professionLevels()) {
-                profs.add(new Quest.Profession(p.a().a().name(), p.a().b(), p.b()));
-            }
-            List<Quest.Need> qs = new ArrayList<>();
-            for (var p : req.quests()) {
-                qs.add(new Quest.Need(p.a(), p.b()));
-            }
-            r = new Quest.Requirements(lv, met, profs, qs);
-        }
-        Map<String, List<String>> rewards = null;
-        if (q.rewards() != null) {
-            Map<String, List<String>> m = new LinkedHashMap<>();
-            q.rewards().forEach((type, list) -> {
-                List<String> l = new ArrayList<>();
-                list.forEach(t -> l.add(t.getStringWithoutFormatting()));
-                m.put(type.name(), l);
-            });
-            rewards = m;
-        }
-        String next = q.nextTask() != null && !q.nextTask().isBlank() ? q.nextTask().getStringWithoutFormatting() : null;
-        return new Quest(q.name(), q.isMiniQuest(), q.status() == null ? null : q.status().name(), q.level(),
-                q.difficulty() == null ? null : q.difficulty().name(), q.length() == null ? null : q.length().name(),
-                next, r, rewards);
-    }
-
-    public static List<Goal> objectives() {
-        return guard(Feature.OBJECTIVES, () -> {
-            List<Goal> out = new ArrayList<>();
-            for (WynnObjective o : Models.Objectives.getPersonalObjectives()) {
-                out.add(new Goal(o.getGoal(), WynntilsItems.capped(o.getScore())));
-            }
-            return out;
-        }, List.of());
-    }
-
-    // ---- ability tree, professions, world ----
-
-    // AbilityTreeModel.getUnlockedAbilities(): 4.2.5 on. getNodeState(AbilityTreeSkillNode): until
-    // 4.2.3, the state of a node in the tree Wynntils last parsed from the menu.
-    private static final String GET_UNLOCKED_ABILITIES = "getUnlockedAbilities";
-    private static final String GET_NODE_STATE = "getNodeState";
-
-    @SuppressWarnings("unchecked")
-    /** The names in your party (Wynntils' party list), you included; empty when not in one. */
-    static List<String> partyMembers() {
-        return guard(Feature.CHARACTER, () -> Models.Party.isInParty() ? List.copyOf(Models.Party.getPartyMembers()) : List.<String>of(),
-                List.of());
-    }
+    // ---- ability tree: AbilityReads ----
 
     public static List<String> unlockedAbilities() {
-        return guard(Feature.ABILITIES, () -> {
-            Optional<Method> unlocked = method(AbilityTreeModel.class, GET_UNLOCKED_ABILITIES);
-            if (unlocked.isPresent()) {
-                return (List<String>) call(unlocked.get(), Models.AbilityTree);
-            }
-            Method state = method(AbilityTreeModel.class, GET_NODE_STATE, AbilityTreeSkillNode.class)
-                    .orElseThrow(() -> missing("AbilityTreeModel." + GET_UNLOCKED_ABILITIES));
-            ClassType c = Models.Character.getClassType();
-            AbilityTreeInfo tree = c == null ? null : Models.AbilityTree.getAbilityTree(c);
-            if (tree == null) {
-                return List.of();
-            }
-            List<String> out = new ArrayList<>();
-            for (AbilityTreeSkillNode n : tree.nodes()) {
-                if (call(state, Models.AbilityTree, n) == AbilityTreeNodeState.UNLOCKED) {
-                    out.add(n.name());
-                }
-            }
-            return out;
-        }, List.of());
+        return AbilityReads.unlockedAbilities();
     }
 
-    private static AbilityTreeInfo lastTree;
-    private static List<AbilityNode> lastNodes;
-
-    /** The class's ability tree, or null when Wynntils has none for it. Converted once per tree. */
     public static List<AbilityNode> abilityTree(Klass cls) {
-        GameState gs = GameState.current();
-        if (!gs.running()) {
-            // a recorded game: its own tree (the live one asks here, so not for it)
-            return gs instanceof LiveGameState ? null : gs.abilityTree();
-        }
-        return guard(Feature.ABILITIES, () -> {
-            ClassType c = cls == null ? null : ClassType.valueOf(cls.name());
-            AbilityTreeInfo tree = Models.AbilityTree.getAbilityTree(c);
-            if (tree == null) {
-                return null;
-            }
-            synchronized (Wyn.class) {
-                if (tree != lastTree) {
-                    List<AbilityNode> nodes = new ArrayList<>();
-                    for (AbilityTreeSkillNode n : tree.nodes()) {
-                        nodes.add(node(n, c));
-                    }
-                    lastNodes = java.util.Collections.unmodifiableList(nodes);
-                    lastTree = tree;
-                }
-                return lastNodes;
-            }
-        }, null);
+        return AbilityReads.abilityTree(cls);
     }
 
-    // AbilityTreeSkillNode, by release:
-    //   abilityTreeNodeType(), willBlock(), requiredLevel(): 4.1.22 on. Until 4.1.21 the node has
-    //     no type (its spells are the nodes with a click combo), blocks() for willBlock(), and its
-    //     data has no level requirement (0, as for most nodes now).
-    //   archetypeInfo().archetype(): 4.2.5 on; until 4.2.3 archetype(), the same name.
-    //   description(): component JSON lines (List<JsonArray>) from 4.2.5, before that formatted
-    //     text lines (List<String>).
-    private static final String NODE_TYPE = "abilityTreeNodeType";
-    private static final String WILL_BLOCK = "willBlock";
-    private static final String BLOCKS = "blocks";
-    private static final String REQUIRED_LEVEL = "requiredLevel";
-    private static final String ARCHETYPE_INFO = "archetypeInfo";
-    private static final String ARCHETYPE = "archetype";
-    private static final String ARCHETYPE_COLOUR = "color";
-
-    @SuppressWarnings("unchecked")
-    private static AbilityNode node(AbilityTreeSkillNode n, ClassType c) {
-        var ra = n.requiredArchetype();
-        var loc = n.location();
-        List<JsonArray> description = description(n.description());
-        String type;
-        Optional<Method> nodeType = method(AbilityTreeSkillNode.class, NODE_TYPE);
-        if (nodeType.isPresent()) {
-            Object t = call(nodeType.get(), n);
-            type = t == null ? null : ((Enum<?>) t).name();
-        } else {
-            type = c != null && isSpell(description) ? c.name() + "_ABILITY_LOCKED" : null;
-        }
-        Optional<Method> willBlock = method(AbilityTreeSkillNode.class, WILL_BLOCK);
-        List<String> blocks = (List<String>) call(willBlock.isPresent() ? willBlock.get()
-                : method(AbilityTreeSkillNode.class, BLOCKS).orElseThrow(() -> missing("AbilityTreeSkillNode." + WILL_BLOCK)), n);
-        Optional<Method> level = method(AbilityTreeSkillNode.class, REQUIRED_LEVEL);
-        int requiredLevel = level.isPresent() ? (Integer) call(level.get(), n) : 0;
-        String archetype;
-        String colour = null;
-        Optional<Method> info = method(AbilityTreeSkillNode.class, ARCHETYPE_INFO);
-        if (info.isPresent()) {
-            Object ai = call(info.get(), n);
-            archetype = ai == null ? null : (String) call(ai, ARCHETYPE);
-            colour = ai == null ? null : (String) call(ai, ARCHETYPE_COLOUR);
-        } else {
-            archetype = (String) call(n, ARCHETYPE);
-        }
-        return new AbilityNode(n.id(), n.name(), type, description, n.cost(), blocks, n.requiredAbility(),
-                ra == null ? null : ra.name(), ra == null ? 0 : ra.required(), requiredLevel, archetype, colour,
-                loc == null ? null : new AbilityNode.Place(loc.page(), loc.row(), loc.col()), n.connections());
-    }
-
-    // AbilityTreeConnectionType.fromItemStack: 4.2 on (the piece by its model data); before that
-    // the pieces were told apart by damage, which no item carries now.
-    private static final String CONNECTOR_FROM_STACK = "fromItemStack";
-
-    /**
-     * A connector piece for an item of the tree menu: its type's name and its arms (up, right,
-     * down, left), or null when the item is no piece.
-     */
     public static TreeConnectors.Piece connector(ItemStack stack) {
-        return guard(Feature.ABILITIES, () -> {
-            Method m = method(AbilityTreeConnectionType.class, CONNECTOR_FROM_STACK, ItemStack.class).orElse(null);
-            if (m == null || stack == null || stack.isEmpty()) {
-                return null;
-            }
-            Object t = call(m, null, stack);
-            if (!(t instanceof AbilityTreeConnectionType type)) {
-                return null;
-            }
-            boolean[] d = type.getPossibleDirections();
-            return d == null || d.length < 4 ? null : new TreeConnectors.Piece(type.name(), d.clone());
-        }, null);
+        return AbilityReads.connector(stack);
     }
 
-    private static final Map<String, ItemStack> CONNECTOR_ICONS = new ConcurrentHashMap<>();
-
-    /**
-     * The game's own picture of a connector piece with these arms (up, right, down, left),
-     * the given ones lit, as the tree menu draws it; null without the pack's model data or
-     * when Wynntils has no piece of that shape.
-     */
     public static ItemStack connectorIcon(boolean[] arms, boolean[] lit) {
-        if (arms == null || arms.length < 4) {
-            return null;
-        }
-        ItemStack s = CONNECTOR_ICONS.computeIfAbsent(Arrays.toString(arms) + Arrays.toString(lit), k -> guard(Feature.ABILITIES, () -> {
-            AbilityTreeConnectionType t = null;
-            for (AbilityTreeConnectionType c : AbilityTreeConnectionType.values()) {
-                if (Arrays.equals(c.getPossibleDirections(), arms)) {
-                    t = c;
-                    break;
-                }
-            }
-            if (t == null) {
-                return ItemStack.EMPTY;
-            }
-            ItemStack stack = t.getItemStack(lit);
-            if (stack == null || stack.isEmpty()
-                    || !stack.has(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA)) {
-                return ItemStack.EMPTY;
-            }
-            var model = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA);
-            if (model == null || model.floats().isEmpty() || model.floats().get(0) < 0) {
-                return ItemStack.EMPTY;         // -1: the pack has no model for it
-            }
-            return stack.copy();
-        }, ItemStack.EMPTY));
-        return s.isEmpty() ? null : s;
+        return AbilityReads.connectorIcon(arms, lit);
     }
 
-    // AbilityTreeNodeType (4.1.22 on): every node type in every state, each with the model data
-    // of the game's own icon when the Wynncraft pack is loaded.
-    private static final String NODE_TYPE_CLASS = "com.wynntils.models.abilitytree.type.AbilityTreeNodeType";
-    private static final String GET_CUSTOM_MODEL_DATA = "getCustomModelData";
-    private static final String[] NODE_STATES = {"_LOCKED", "_UNLOCKABLE", "_UNLOCKED", "_BLOCKED"};
-    private static final Map<String, ItemStack> NODE_ICONS = new ConcurrentHashMap<>();
-
-    /**
-     * The game's own icon for a node type ({@link AbilityNode#type}) in a state ("LOCKED",
-     * "UNLOCKABLE", "UNLOCKED", "BLOCKED"): a stack the pack repaints, as the tree menu shows it.
-     * Null without the pack's model data, or when Wynntils has no such type (a state the type
-     * lacks falls back to LOCKED).
-     */
-    @SuppressWarnings({"unchecked", "rawtypes"})
     public static ItemStack nodeIcon(String type, String state) {
-        if (type == null) {
-            return null;
-        }
-        ItemStack s = NODE_ICONS.computeIfAbsent(type + "|" + state, k -> guard(Feature.ABILITIES, () -> {
-            String base = type;
-            for (String suffix : NODE_STATES) {
-                if (base.endsWith(suffix)) {
-                    base = base.substring(0, base.length() - suffix.length());
-                }
-            }
-            Class<?> t = type(NODE_TYPE_CLASS).orElse(null);
-            if (t == null || !t.isEnum()) {
-                return ItemStack.EMPTY;
-            }
-            Object v;
-            try {
-                v = Enum.valueOf((Class<Enum>) t, base + "_" + state);
-            } catch (IllegalArgumentException e) {
-                try {
-                    v = Enum.valueOf((Class<Enum>) t, base + "_LOCKED");
-                } catch (IllegalArgumentException e2) {
-                    return ItemStack.EMPTY;
-                }
-            }
-            Optional<Float> model = (Optional<Float>) call(v, GET_CUSTOM_MODEL_DATA);
-            if (model == null || model.isEmpty()) {
-                return ItemStack.EMPTY;
-            }
-            ItemStack stack = new ItemStack(net.minecraft.world.item.Items.POTION);
-            stack.set(net.minecraft.core.component.DataComponents.CUSTOM_MODEL_DATA,
-                    new net.minecraft.world.item.component.CustomModelData(List.of(model.get()), List.of(), List.of(), List.of()));
-            return stack;
-        }, ItemStack.EMPTY));
-        return s.isEmpty() ? null : s;
+        return AbilityReads.nodeIcon(type, state);
     }
 
-    /** A node's description as component JSON lines; a formatted text line becomes one plain part. */
-    @SuppressWarnings("unchecked")
-    private static List<JsonArray> description(List<?> lines) {
-        if (lines == null || lines.stream().allMatch(l -> l instanceof JsonArray)) {
-            return (List<JsonArray>) lines;          // 4.2.5 on: already component JSON
-        }
-        List<JsonArray> out = new ArrayList<>(lines.size());
-        for (Object line : lines) {
-            if (line instanceof JsonArray a) {
-                out.add(a);
-            } else if (line != null) {
-                JsonObject part = new JsonObject();
-                String plain = ChatFormatting.stripFormatting(line.toString());
-                part.addProperty("text", plain == null ? "" : plain);
-                JsonArray a = new JsonArray();
-                a.add(part);
-                out.add(a);
-            }
-        }
-        return out;
-    }
-
-    /** Whether a node is a spell: its description shows the click combo that casts it. */
-    private static boolean isSpell(List<JsonArray> description) {
-        if (description != null) {
-            for (JsonArray line : description) {
-                for (var e : line) {
-                    if (e.isJsonObject() && e.getAsJsonObject().has("text")
-                            && e.getAsJsonObject().get("text").getAsString().contains("Click Combo")) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    // AbilityPointProgression.getPointsAtLevel(int): 4.2.0 on. Releases before have no table of
-    // ability points per level, so there this call is off.
-    private static final String POINT_PROGRESSION = "com.wynntils.models.abilitytree.type.AbilityPointProgression";
-    private static final String GET_POINTS_AT_LEVEL = "getPointsAtLevel";
-
-    /** Ability points a character has at this level. */
     public static int abilityPointsAt(int level) {
-        return guard(Feature.ABILITIES, () -> {
-            Method m = type(POINT_PROGRESSION).flatMap(t -> method(t, GET_POINTS_AT_LEVEL, int.class))
-                    .orElseThrow(() -> missing("AbilityPointProgression." + GET_POINTS_AT_LEVEL));
-            return (Integer) call(m, null, level);
-        }, 0);
+        return AbilityReads.abilityPointsAt(level);
     }
 
-    /** A profession's level by its name ("COOKING"). An unknown name throws here, outside the guard. */
-    /** Wynntils' ingredients as the calculator's plain records, read once; empty while Wynntils has none. */
-    private static volatile java.util.List<io.github.anilken.wynnlabs.crafting.Ingredient> ingredients = java.util.List.of();
+    // ---- professions: ProfessionReads ----
 
     public static java.util.List<io.github.anilken.wynnlabs.crafting.Ingredient> craftIngredients() {
-        java.util.List<io.github.anilken.wynnlabs.crafting.Ingredient> have = ingredients;
-        if (!have.isEmpty()) {
-            return have;
-        }
-        java.util.List<io.github.anilken.wynnlabs.crafting.Ingredient> read = guard(Feature.GEAR_DB, () -> {
-            java.util.List<io.github.anilken.wynnlabs.crafting.Ingredient> out = new java.util.ArrayList<>();
-            Models.Ingredient.getAllIngredientInfos().forEach(info -> out.add(ingredient(info)));
-            out.sort(java.util.Comparator.comparing(io.github.anilken.wynnlabs.crafting.Ingredient::name));
-            return java.util.List.copyOf(out);
-        }, java.util.List.<io.github.anilken.wynnlabs.crafting.Ingredient>of());
-        ingredients = read;
-        return read;
-    }
-
-    private static io.github.anilken.wynnlabs.crafting.Ingredient ingredient(
-            com.wynntils.models.ingredients.type.IngredientInfo info) {
-        java.util.List<String> profs = new java.util.ArrayList<>();
-        info.professions().forEach(p -> profs.add(p.name().toLowerCase(java.util.Locale.ROOT)));
-        java.util.Map<String, io.github.anilken.wynnlabs.crafting.Ingredient.Stat> ids = new java.util.LinkedHashMap<>();
-        info.variableStats().forEach(pair -> {
-            var st = pair.a();
-            var r = pair.b();
-            String unit = st.getUnit().getDisplayName();
-            ids.put(st.getApiName(), new io.github.anilken.wynnlabs.crafting.Ingredient.Stat(
-                    Math.min(r.low(), r.high()), Math.max(r.low(), r.high()), st.getDisplayName(), unit));
-        });
-        int[] pos = new int[6];
-        info.positionModifiers().forEach((p, v) -> {
-            int at = switch (p) {
-                case LEFT -> io.github.anilken.wynnlabs.crafting.Ingredient.LEFT;
-                case RIGHT -> io.github.anilken.wynnlabs.crafting.Ingredient.RIGHT;
-                case ABOVE -> io.github.anilken.wynnlabs.crafting.Ingredient.ABOVE;
-                case UNDER -> io.github.anilken.wynnlabs.crafting.Ingredient.UNDER;
-                case TOUCHING -> io.github.anilken.wynnlabs.crafting.Ingredient.TOUCHING;
-                case NOT_TOUCHING -> io.github.anilken.wynnlabs.crafting.Ingredient.NOT_TOUCHING;
-            };
-            pos[at] = v;
-        });
-        int[] reqs = new int[5];
-        info.skillRequirements().forEach(pair -> reqs[pair.a().ordinal()] = pair.b());
-        return new io.github.anilken.wynnlabs.crafting.Ingredient(info.name(), info.tier(), info.level(),
-                java.util.List.copyOf(profs), java.util.Collections.unmodifiableMap(ids), pos, info.durabilityModifier(),
-                info.charges(), info.duration(), reqs);
+        return ProfessionReads.craftIngredients();
     }
 
     public static int professionLevel(String profession) {
-        return professionLevel(ProfessionType.valueOf(profession));
+        return ProfessionReads.professionLevel(profession);
     }
 
-    private static int professionLevel(ProfessionType p) {
-        return guard(Feature.PROFESSIONS, () -> Models.Profession.getLevel(p), 0);
-    }
-
-    /** A profession's XP into its level and the XP the level needs ({0, 0} when unknown). */
     public static int[] professionXp(String profession) {
-        return guard(Feature.PROFESSIONS, () -> {
-            var xp = Models.Profession.getXP(ProfessionType.valueOf(profession));
-            return new int[] {xp.current(), xp.max()};
-        }, new int[2]);
+        return ProfessionReads.professionXp(profession);
     }
 
-    // ServiceLocation.ServiceKind, MapLocation and MapDataService.getFeaturesForCategory(String):
-    // 4.1.4 on. Before that the map has no stations to read: the list is empty and WAYPOINTS
-    // stays on (the compass pins do not need them).
-    private static final String SERVICE_KIND = "com.wynntils.services.mapdata.features.builtin.ServiceLocation$ServiceKind";
-    private static final String MAP_LOCATION = "com.wynntils.services.mapdata.features.type.MapLocation";
-    private static final String FEATURES_FOR_CATEGORY = "getFeaturesForCategory";
-
-    /** Every crafting station of a profession ("WOODWORKING") on Wynntils' map, as {x, y, z}. */
     public static List<int[]> stations(String profession) {
-        return guard(Feature.WAYPOINTS, () -> {
-            Optional<Class<?>> kind = type(SERVICE_KIND);
-            Optional<Class<?>> location = type(MAP_LOCATION);
-            Optional<Method> features = method(com.wynntils.services.mapdata.MapDataService.class,
-                    FEATURES_FOR_CATEGORY, String.class);
-            if (kind.isEmpty() || location.isEmpty() || features.isEmpty()) {
-                return List.<int[]>of();
-            }
-            Method valueOf = method(kind.get(), "valueOf", String.class).orElseThrow(() -> missing("ServiceKind.valueOf"));
-            Method mapDataId = method(kind.get(), "getMapDataId").orElseThrow(() -> missing("ServiceKind.getMapDataId"));
-            Method getLocation = method(location.get(), "getLocation").orElseThrow(() -> missing("MapLocation.getLocation"));
-            String id = (String) call(mapDataId, call(valueOf, null, profession + "_STATION"));
-            List<int[]> out = new ArrayList<>();
-            ((Stream<?>) call(features.get(), com.wynntils.core.components.Services.MapData, "wynntils:service:" + id))
-                    .forEach(f -> {
-                        if (location.get().isInstance(f)) {
-                            Location l = (Location) call(getLocation, f);
-                            out.add(new int[] {l.x(), l.y(), l.z()});
-                        }
-                    });
-            return out;
-        }, List.of());
+        return ProfessionReads.stations(profession);
     }
 
-    /**
-     * The profession bombs Wynntils knows of and that still run (its bomb model, from the bomb
-     * messages the client was shown): XP and Speed, with their world and time left. Empty without
-     * Wynntils' bomb model.
-     */
     public static List<io.github.anilken.wynnlabs.model.ProfBomb> professionBombs() {
-        return guard(Feature.WORLD, () -> {
-            String here = Models.WorldState.getCurrentWorldName();
-            List<io.github.anilken.wynnlabs.model.ProfBomb> out = new ArrayList<>();
-            for (com.wynntils.models.worlds.type.BombInfo b : Models.Bomb.getBombBells()) {
-                var t = b.bomb();
-                if (!b.isActive() || t != com.wynntils.models.worlds.type.BombType.PROFESSION_XP
-                        && t != com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED) {
-                    continue;
-                }
-                out.add(new io.github.anilken.wynnlabs.model.ProfBomb(t == com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED,
-                        b.server(), b.getRemainingLong(), b.server() != null && b.server().equals(here)));
-            }
-            // this world's bomb from its boss bar, when no message named it (time left unknown: -1)
-            for (var t : List.of(com.wynntils.models.worlds.type.BombType.PROFESSION_XP, com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED)) {
-                boolean speed = t == com.wynntils.models.worlds.type.BombType.PROFESSION_SPEED;
-                if (Models.Bomb.isBombActive(t) && out.stream().noneMatch(x -> x.here() && x.speed() == speed)) {
-                    out.add(new io.github.anilken.wynnlabs.model.ProfBomb(speed, here, -1, true));
-                }
-            }
-            return out;
-        }, List.of());
+        return ProfessionReads.professionBombs();
     }
 
-    /** The name of the territory at this position, or null. */
-    public static String territoryAt(Position pos) {
-        return guard(Feature.WORLD, () -> {
-            TerritoryProfile t = Models.Territory.getTerritoryProfileForPosition(pos);
-            return t == null ? null : t.getName();
-        }, null);
-    }
+    // ---- raids, lootruns, aspects and tomes: EndgameReads ----
 
-    // The Blacksmith's sell menu: BlacksmithSellContainer from 4.1.16. Until 4.1.15 the same menu
-    // (same title) is BlacksmithContainer; repair got its own class when sell was renamed.
-    private static final String BLACKSMITH_SELL = "com.wynntils.models.containers.containers.BlacksmithSellContainer";
-    private static final String BLACKSMITH_OLD = "com.wynntils.models.containers.containers.BlacksmithContainer";
-
-    /** The menu open now, or null when Wynntils does not know it. */
-    /** The last container {@link #container} described, and what it said: one container, one answer. */
-    private static Object lastContainer;
-    private static MenuKind lastKind;
-
-    /**
-     * The unit price of a Trade Market listing being looked at (its "Price" block), or 0 for
-     * anything else. Only in the Trade Market's buy screens: merchants use the same block.
-     */
-    public static int marketListingPrice(ItemStack stack) {
-        MenuKind kind = container();
-        if (kind == null || kind.marketSell() || !kind.type().startsWith("TradeMarket")) {
-            return 0;
-        }
-        return guard(Feature.CONTAINERS, () -> Math.max(0, Models.TradeMarket.calculateItemPriceInfo(stack).price()), 0);
-    }
-
-    public static MenuKind container() {
-        return guard(Feature.CONTAINERS, () -> {
-            Container c = Models.Container.getCurrentContainer();
-            if (c == null) {
-                return null;
-            }
-            if (c == lastContainer) {
-                return lastKind;
-            }
-            Class<?> blacksmith = type(BLACKSMITH_SELL).or(() -> type(BLACKSMITH_OLD))
-                    .orElseThrow(() -> new NoClassDefFoundError(BLACKSMITH_SELL + " is not in this Wynntils"));
-            PersonalStorageContainer ps = c instanceof PersonalStorageContainer p ? p : null;
-            MenuKind kind = new MenuKind(c.getClass().getSimpleName(), c instanceof CharacterBankContainer,
-                    c instanceof AccountBankContainer, ps != null, blacksmith.isInstance(c),
-                    c instanceof TradeMarketSellContainer, ps != null ? List.copyOf(ps.getBounds().getSlots()) : List.of(),
-                    ps != null ? ps.getPreviousItemSlot() : -1, ps != null ? ps.getNextItemSlot() : -1);
-            lastKind = kind;
-            lastContainer = c;
-            return kind;
-        }, null);
-    }
-
-    // ---- raids, lootruns and aspects (the Endgame tab) ----
-    //
-    // RaidModel's four dry counters: every release since 4.1.0. Each is looked up by name, so a
-    // release that drops one shows that counter as unknown and keeps the others; only when all
-    // four are gone is raid tracking off. trackRaids (a public Config field): 4.2.12 on; before
-    // that Wynntils always tracks raids.
-    private static final String[] RAID_DRY = {"getRaidsWithoutMythicAspect", "getAspectPullsWithoutMythicAspect",
-            "getRaidsWithoutMythicTome", "getRewardPullsWithoutMythicTome"};
-    private static final String TRACK_RAIDS = "trackRaids";
-    private static final String CONFIG_GET = "get";
-    private static final int LOOTRUN_MISSIONS = 4;
-    private static final int ASPECT_SLOTS = 5;
-    private static volatile Optional<java.lang.reflect.Field> trackRaidsField;
-
-    /** Wynntils' raid dry counters (whole account); {@link RaidDry#UNKNOWN} when unavailable. */
     public static RaidDry raidDry() {
-        return guard(Feature.RAIDS, () -> {
-            int[] v = new int[RAID_DRY.length];
-            boolean any = false;
-            for (int i = 0; i < RAID_DRY.length; i++) {
-                Optional<Method> m = method(RaidModel.class, RAID_DRY[i]);
-                v[i] = m.isPresent() ? ((Number) call(m.get(), Models.Raid)).intValue() : -1;
-                any |= m.isPresent();
-            }
-            if (!any) {
-                throw missing("RaidModel." + RAID_DRY[0]);
-            }
-            return new RaidDry(v[0], v[1], v[2], v[3]);
-        }, RaidDry.UNKNOWN);
+        return EndgameReads.raidDry();
     }
 
-    /** Wynntils' best time for a raid (full name or abbreviation), milliseconds; -1 when none or unknown. */
-    static long raidBestTime(String raid) {
-        if (raid == null || raid.isBlank()) {
-            return -1L;
-        }
-        return guard(Feature.RAIDS, () -> Models.Raid.getRaidBestTime(raid), -1L);
-    }
-
-    /** Whether the player is in a raid right now (Wynntils' current raid); false when unknown. */
     public static boolean inRaid() {
-        return guard(Feature.RAIDS, () -> Models.Raid.getCurrentRaid() != null, false);
+        return EndgameReads.inRaid();
     }
 
-    /**
-     * Whether Wynntils' own raid tracking ("trackRaids") is on. True when this release has no
-     * such switch, and when it cannot be read (the feature's self-test says whether raids work).
-     */
     public static boolean raidTrackingOn() {
-        return guard(Feature.RAIDS, () -> {
-            Optional<java.lang.reflect.Field> field = trackRaidsField;
-            if (field == null) {
-                try {
-                    field = Optional.of(RaidModel.class.getField(TRACK_RAIDS));
-                } catch (NoSuchFieldException e) {
-                    field = Optional.empty();
-                }
-                trackRaidsField = field;
-            }
-            if (field.isEmpty()) {
-                return true;
-            }
-            Object config;
-            try {
-                config = field.get().get(Models.Raid);
-            } catch (IllegalAccessException e) {
-                throw new IncompatibleClassChangeError("RaidModel." + TRACK_RAIDS + ": " + e);
-            }
-            return config == null || !Boolean.FALSE.equals(call(config, CONFIG_GET));
-        }, true);
+        return EndgameReads.raidTrackingOn();
     }
 
-    /** Wynntils' lootrun state; UNKNOWN when it cannot be read. */
     public static LootrunRun.State lootrunState() {
-        return guard(Feature.LOOTRUNS, () -> {
-            LootrunningState s = Models.Lootrun.getState();
-            if (s == null) {
-                return LootrunRun.State.UNKNOWN;
-            }
-            // by name: a state a later release adds counts as running or idle, never fails
-            return switch (s.name()) {
-                case "NOT_RUNNING" -> LootrunRun.State.IDLE;
-                case "CHOOSING_BEACON" -> LootrunRun.State.CHOOSING_BEACON;
-                case "IN_TASK" -> LootrunRun.State.IN_TASK;
-                default -> s.isRunning() ? LootrunRun.State.IN_TASK : LootrunRun.State.IDLE;
-            };
-        }, LootrunRun.State.UNKNOWN);
+        return EndgameReads.lootrunState();
     }
 
-    /**
-     * The missions of the lootrun going on, by their English names ("Hoarder"), in order; the
-     * slots Wynntils does not know yet are left out. Empty when none or unavailable.
-     */
     public static List<String> lootrunMissions() {
-        return guard(Feature.LOOTRUNS, () -> {
-            String unknown = MissionType.UNKNOWN.getName();
-            List<String> out = new ArrayList<>();
-            for (int i = 0; i < LOOTRUN_MISSIONS; i++) {
-                String m = plain(Models.Lootrun.getMissionStatus(i, false));
-                if (!m.isEmpty() && !m.equalsIgnoreCase(unknown)) {
-                    out.add(m);
-                }
-            }
-            return out;
-        }, List.of());
+        return EndgameReads.lootrunMissions();
     }
 
-    /** Wynntils' own lootrun pulls without a mythic (whole account); -1 when unavailable. */
     public static int lootrunDryPulls() {
-        return guard(Feature.LOOTRUNS, () -> {
-            // Wynntils 4.2.16 moved the count to Models.LootrunReward; older ones keep it on Models.Lootrun
-            try {
-                Object owner;
-                try {
-                    owner = Models.class.getField("LootrunReward").get(null);
-                } catch (NoSuchFieldException e) {
-                    owner = Models.Lootrun;
-                }
-                Object storage = owner.getClass().getField("dryPulls").get(owner);
-                Object v = storage.getClass().getMethod("get").invoke(storage);
-                return v instanceof Integer i ? i : -1;
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException(e);
-            }
-        }, -1);
+        return EndgameReads.lootrunDryPulls();
     }
 
-    /**
-     * Every aspect of a class from Wynntils' downloaded data, in its order, with rarity, tier
-     * count and thresholds; ability names are left empty (the aspect book adds them). Empty for
-     * NONE, while the data is not downloaded, or when unavailable.
-     */
     public static List<AspectEntry> classAspects(Klass cls) {
-        if (cls == null || cls == Klass.NONE) {
-            return List.of();
-        }
-        return guard(Feature.ASPECTS, () -> {
-            String c = cls.name();
-            List<AspectEntry> out = new ArrayList<>();
-            Models.Aspect.getAllAspectInfos().forEach(a -> {
-                if (a.classType() == null || !a.classType().name().equals(c)) {
-                    return;
-                }
-                List<Integer> thresholds = new ArrayList<>();
-                int tiers = a.effects() == null ? 0 : a.effects().size();
-                if (a.effects() != null) {
-                    for (var e : a.effects()) {
-                        thresholds.add(e.a() == null ? 0 : e.a());
-                    }
-                }
-                Tier rarity = a.gearTier() == null ? Tier.NORMAL : Tier.of(a.gearTier().name());
-                out.add(new AspectEntry(plain(a.name()), cls, rarity, tiers, thresholds, List.of()));
-            });
-            return out;
-        }, List.of());
+        return EndgameReads.classAspects(cls);
     }
 
-    /**
-     * The tier of an aspect the player owns (1 on), as Wynntils last read it from the Aspects
-     * menu or a raid reward chest; 0 when Wynntils lists it as not owned; -1 when unavailable.
-     * Owned aspects are kept per Minecraft account, not per character.
-     */
     public static int aspectTier(String name) {
-        if (name == null || name.isBlank()) {
-            return -1;
-        }
-        return guard(Feature.ASPECTS, () -> Models.Aspect.getAspectTierByName(name).orElse(0), -1);
+        return EndgameReads.aspectTier(name);
     }
 
-    /**
-     * The tomes this character has equipped, by name: as Wynntils last read them with its own
-     * menu query, else as the Mastery Tomes menu showed them when the player opened it; empty
-     * when none is known or unavailable.
-     */
     public static List<String> equippedTomes() {
-        List<String> own = guard(Feature.CHARACTER, () -> {
-            List<String> out = new ArrayList<>();
-            var set = Models.Character.getCurrentTomeSet();
-            if (set != null) {
-                set.getAllTomes().stream().map(t -> plain(t.itemName())).filter(n -> !n.isEmpty()).forEach(out::add);
-            }
-            return List.copyOf(out);
-        }, List.of());
-        return GameState.current().running() ? TomeMemory.names(own) : own;
+        return EndgameReads.equippedTomes();
     }
 
-    /**
-     * The tomes in the Mastery Tomes menu with their skill points, while the player has it
-     * open; null when another screen is open. Only reads the open menu.
-     */
     static List<TomeMemory.Seen> masteryTomes() {
-        return guard(Feature.CHARACTER, () -> {
-            if (!(Models.Container.getCurrentContainer() instanceof MasteryTomesContainer)
-                    || !(net.minecraft.client.Minecraft.getInstance().screen
-                            instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
-                return null;
-            }
-            var player = net.minecraft.client.Minecraft.getInstance().player;
-            List<TomeMemory.Seen> out = new ArrayList<>();
-            for (var slot : screen.getMenu().slots) {
-                ItemStack stack = slot.getItem();
-                if ((player != null && slot.container == player.getInventory()) || stack.isEmpty()) {
-                    continue;
-                }
-                Models.Item.asWynnItem(stack, TomeItem.class).ifPresent(t -> {
-                    if (t.getItemInfo() == null || t.getItemInfo().type() == null) {
-                        return;                 // not an equipped tome (Wynntils skips these too)
-                    }
-                    Map<SkillKind, Integer> skills = new EnumMap<>(SkillKind.class);
-                    for (var id : t.getIdentifications()) {
-                        if (id.statType() instanceof SkillStatType st) {
-                            skills.merge(SkillKind.valueOf(st.getSkill().name()), id.value(), Integer::sum);
-                        }
-                    }
-                    out.add(new TomeMemory.Seen(plain(t.getName()), skills));
-                });
-            }
-            return out;
-        }, null);
+        return EndgameReads.masteryTomes();
     }
 
-    /**
-     * The aspects this character has equipped (up to five), without formatting, as Wynntils
-     * stores them: a name may carry a prefix, so match it with {@code endsWith}. Empty when
-     * none is known or unavailable.
-     */
     public static List<String> equippedAspects() {
-        return guard(Feature.ASPECTS, () -> {
-            List<String> out = new ArrayList<>();
-            for (int i = 0; i < ASPECT_SLOTS; i++) {
-                Models.Aspect.getEquippedAspect(i).map(Wyn::plain).filter(s -> !s.isEmpty()).ifPresent(out::add);
-            }
-            return out;
-        }, List.of());
+        return EndgameReads.equippedAspects();
     }
 
-    /**
-     * The aspects in the reward slots of the raid reward preview menu, when the player has it
-     * open and its items have loaded; empty otherwise. Only reads the open menu.
-     */
     public static List<PoolAspect> poolAspects() {
-        return guard(Feature.ASPECTS, () -> {
-            if (!(Models.Container.getCurrentContainer() instanceof RaidRewardPreviewContainer preview)
-                    || !(net.minecraft.client.Minecraft.getInstance().screen
-                            instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
-                return List.<PoolAspect>of();
-            }
-            var slots = screen.getMenu().slots;
-            List<PoolAspect> out = new ArrayList<>();
-            for (int i : preview.getRewardBounds().getSlots()) {
-                if (i < 0 || i >= slots.size()) {
-                    continue;
-                }
-                ItemStack stack = slots.get(i).getItem();
-                if (stack.isEmpty()) {
-                    continue;
-                }
-                Models.Item.asWynnItem(stack, AspectItem.class).ifPresent(a -> out.add(new PoolAspect(plain(a.getName()),
-                        a.getRequiredClass() == null ? Klass.NONE : WynntilsItems.klass(a.getRequiredClass().name()),
-                        a.getGearTier() == null ? Tier.NORMAL : Tier.of(a.getGearTier().name()), Math.max(1, a.getTier()))));
-            }
-            return out;
-        }, List.of());
+        return EndgameReads.poolAspects();
     }
 
-    /** Text without formatting codes, trimmed; "" for null. */
-    private static String plain(String s) {
-        if (s == null) {
-            return "";
-        }
-        String p = ChatFormatting.stripFormatting(s);
-        return p == null ? "" : p.trim();
+    // ---- territories, waypoints, toasts and the map: WorldReads ----
+
+    public static String territoryAt(Position pos) {
+        return WorldReads.territoryAt(pos);
     }
 
-    // ---- waypoints, notifications, events ----
-
-    /** Wynntils' user waypoints (map, compass, beacon); null when unavailable. */
     public static Pins waypoints() {
-        return guard(Feature.WAYPOINTS, () -> {
-            UserWaypointMarkerProvider p = MarkerModel.USER_WAYPOINTS_PROVIDER;
-            return p == null ? null : new Pins(p);
-        }, null);
+        return WorldReads.waypoints();
+    }
+
+    public static boolean toast(Component c) {
+        return WorldReads.toast(c);
+    }
+
+    public static boolean hasMap(float x0, float z0, float x1, float z1) {
+        return WorldReads.hasMap(x0, z0, x1, z1);
+    }
+
+    public static boolean drawMap(net.minecraft.client.gui.GuiGraphics g, float x0, float z0, float x1, float z1,
+            float sx, float sy, float scale, int tint) {
+        return WorldReads.drawMap(g, x0, z0, x1, z1, sx, sy, scale, tint);
+    }
+
+    public static float[] mapCoverage() {
+        return WorldReads.mapCoverage();
+    }
+
+    public static List<MapLabel> mapLabels(float x0, float z0, float x1, float z1) {
+        return WorldReads.mapLabels(x0, z0, x1, z1);
+    }
+
+    public static boolean openMap(float x, float z) {
+        return WorldReads.openMap(x, z);
+    }
+
+    public static boolean showMarks(List<io.github.anilken.wynnlabs.search.MapMark> marks) {
+        return WorldReads.showMarks(marks);
+    }
+
+    public static PoiIcon poiIcon(String key) {
+        return WorldReads.poiIcon(key);
+    }
+
+    public static String hoveredGuideItem(net.minecraft.client.gui.screens.Screen screen) {
+        return WorldReads.hoveredGuideItem(screen);
+    }
+
+    public static void caveMapSync() {
+        WorldReads.caveMapSync();
     }
 
     /** The waypoint list: its pins, and adding or removing one by position. */
     public static final class Pins {
         private final UserWaypointMarkerProvider provider;
 
-        private Pins(UserWaypointMarkerProvider provider) {
+        public Pins(UserWaypointMarkerProvider provider) {
             this.provider = provider;
         }
 
         public List<Pin> all() {
-            List<Pin> out = new ArrayList<>();
-            provider.getMarkerInfos().forEach(m -> {
-                Location l = m.location();
-                // every user waypoint is named "Waypoint"; the label we gave is its additional text
-                // (null when Wynntils' "show additional text in world" is off)
-                String label = m.additionalText() != null ? m.additionalText() : m.name();
-                out.add(new Pin(label, l.x(), l.y(), l.z()));
-            });
-            return out;
+            return WorldReads.pins(provider);
         }
 
         public void remove(Pin p) {
-            provider.removeLocation(new Location(p.x(), p.y(), p.z()));
+            WorldReads.removePin(provider, p);
         }
 
         public void add(int x, int y, int z, String label) {
-            provider.addLocation(new Location(x, y, z), label);
+            WorldReads.addPin(provider, x, y, z, label);
         }
-    }
-
-    /** A Wynntils toast; false when unavailable (the caller may use chat instead). */
-    public static boolean toast(Component c) {
-        return guard(Feature.NOTIFY, () -> {
-            Managers.Notification.queueMessage(c);
-            return true;
-        }, false);
     }
 
     public static boolean listen(Object listener) {
@@ -1607,400 +539,9 @@ public final class Wyn {
         }, false);
     }
 
-    // ---- the quests tab's map: Wynntils' own map tiles and place names ----
-
     /** A place name on Wynntils' map: its name, where, and its layer (0 province, 1 city, 2 town or place). */
     public record MapLabel(String name, int x, int z, int layer) {}
 
-    /**
-     * Whether Wynntils has map tiles for the world box x0..x1, z0..z1. Wynntils downloads its map
-     * at start-up into its cache; the player never has to open the map. False without Wynntils.
-     */
-    public static boolean hasMap(float x0, float z0, float x1, float z1) {
-        return guard(Feature.WAYPOINTS, () -> !com.wynntils.core.components.Services.Map
-                .getMapsForBoundingBox(new com.wynntils.utils.type.BoundingBox(x0, z0, x1, z1)).isEmpty(), false);
-    }
-
-    /**
-     * Draws Wynntils' map tiles for the world box x0..x1, z0..z1 with its top left at (sx, sy) in the
-     * current pose, {@code scale} gui units a block, through Wynntils' own renderer; false when none.
-     */
-    public static boolean drawMap(net.minecraft.client.gui.GuiGraphics g, float x0, float z0, float x1, float z1,
-            float sx, float sy, float scale, int tint) {
-        return guard(Feature.WAYPOINTS, () -> {
-            var tiles = tilesFor(x0, z0, x1, z1);
-            var colour = new com.wynntils.utils.colors.CustomColor((tint >> 16) & 255, (tint >> 8) & 255, tint & 255, 255);
-            for (var t : tiles) {
-                // the part of the tile inside the box, drawn tinted (the map's dark wash on the tiles themselves)
-                float tx0 = Math.max(x0, t.getX1());
-                float tz0 = Math.max(z0, t.getZ1());
-                float tx1 = Math.min(x1, t.getX2() + 1f);
-                float tz1 = Math.min(z1, t.getZ2() + 1f);
-                if (tx0 >= tx1 || tz0 >= tz1) {
-                    continue;
-                }
-                com.wynntils.utils.render.RenderUtils.drawTexturedRect(g, t.identifier(), colour,
-                        sx + (tx0 - x0) * scale, sy + (tz0 - z0) * scale, (tx1 - tx0) * scale, (tz1 - tz0) * scale,
-                        tx0 - t.getX1(), tz0 - t.getZ1(), tx1 - tx0, tz1 - tz0, t.getTextureWidth(), t.getTextureHeight());
-            }
-            return !tiles.isEmpty();
-        }, false);
-    }
-
-    /** The view box the tile list below was asked for, and its tiles (only those crossing it). */
-    private static float[] tilesBox;
-    private static List<com.wynntils.services.map.MapTexture> tilesCache = List.of();
-
-    /** The tiles crossing the box, asked of Wynntils again only when the view moves. */
-    private static List<com.wynntils.services.map.MapTexture> tilesFor(float x0, float z0, float x1, float z1) {
-        float[] box = {x0, z0, x1, z1};
-        if (!java.util.Arrays.equals(box, tilesBox)) {
-            tilesCache = List.copyOf(com.wynntils.core.components.Services.Map
-                    .getMapsForBoundingBox(new com.wynntils.utils.type.BoundingBox(x0, z0, x1, z1)));
-            tilesBox = box;
-        }
-        return tilesCache;
-    }
-
-    /** The world box all of Wynntils' map tiles cover {x0, z0, x1, z1}, or null without them. */
-    public static float[] mapCoverage() {
-        return guard(Feature.WAYPOINTS, () -> {
-            var all = com.wynntils.core.components.Services.Map
-                    .getMapsForBoundingBox(new com.wynntils.utils.type.BoundingBox(-100_000, -100_000, 100_000, 100_000));
-            if (all.isEmpty()) {
-                return null;
-            }
-            float[] b = {Float.MAX_VALUE, Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
-            for (var t : all) {
-                b[0] = Math.min(b[0], t.getX1());
-                b[1] = Math.min(b[1], t.getZ1());
-                b[2] = Math.max(b[2], t.getX2() + 1f);
-                b[3] = Math.max(b[3], t.getZ2() + 1f);
-            }
-            return b;
-        }, null);
-    }
-
-    /** Wynntils' place names inside the world box (provinces, cities, towns), largest first. */
-    public static List<MapLabel> mapLabels(float x0, float z0, float x1, float z1) {
-        return guard(Feature.WAYPOINTS, () -> com.wynntils.core.components.Services.Poi.getLabelPois()
-                .map(p -> p.getLabel())
-                .filter(l -> l.getX() >= x0 && l.getX() <= x1 && l.getZ() >= z0 && l.getZ() <= z1)
-                .map(l -> new MapLabel(l.getName(), l.getX(), l.getZ(), l.getLayer().ordinal()))
-                .sorted(java.util.Comparator.comparingInt(MapLabel::layer))
-                .toList(), List.of());
-    }
-
-    // ---- the search tab: Wynntils' map and guide screens ----
-
-    /** Opens Wynntils' full map centred on (x, z), in place of the open screen; false when unavailable. */
-    public static boolean openMap(float x, float z) {
-        return guard(Feature.WAYPOINTS, () -> {
-            net.minecraft.client.Minecraft.getInstance().setScreen(com.wynntils.screens.maps.MainMapScreen.create(x, z));
-            return true;
-        }, false);
-    }
-
-    /**
-     * Puts these places on Wynntils' map in place of the ones shown before (empty clears them):
-     * our own marker provider, registered once, with one point of interest a mark. Map only: no
-     * waypoint, beacon or compass. False when unavailable.
-     */
-    public static boolean showMarks(List<io.github.anilken.wynnlabs.search.MapMark> marks) {
-        return guard(Feature.WAYPOINTS, () -> SearchMarks.show(marks), false);
-    }
-
     /** A Wynntils map icon: its texture and size, to draw as it is (nothing copied). */
     public record PoiIcon(net.minecraft.resources.Identifier id, int w, int h) {}
-
-    private static final Map<String, java.util.Optional<PoiIcon>> POI = new java.util.concurrent.ConcurrentHashMap<>();
-
-    /**
-     * The icon Wynntils' map shows for a kind of place: "service:blacksmith", "service:merchant:potion"
-     * (a service's map id), "combat:dungeon", "combat:cave" (a content's), "texture:QUEST_ICON",
-     * "texture:CHEST_T3". Null when Wynntils has none or is not running. Looked up once a key.
-     */
-    public static PoiIcon poiIcon(String key) {
-        if (key == null) {
-            return null;
-        }
-        java.util.Optional<PoiIcon> known = POI.get(key);
-        if (known != null) {
-            return known.orElse(null);
-        }
-        if (!GameState.current().running()) {
-            return null;                        // asked again once the game runs
-        }
-        PoiIcon icon = guard(Feature.WAYPOINTS, () -> findPoi(key), null);
-        POI.put(key, java.util.Optional.ofNullable(icon));
-        return icon;
-    }
-
-    private static PoiIcon findPoi(String key) {
-        int c = key.indexOf(':');
-        String kind = key.substring(0, c);
-        String id = key.substring(c + 1);
-        com.wynntils.utils.render.Texture t = null;
-        switch (kind) {
-            case "service" -> {
-                for (com.wynntils.services.map.type.ServiceKind k : com.wynntils.services.map.type.ServiceKind.values()) {
-                    if (k.getMapDataId().equals(id)) {
-                        t = k.getIcon();
-                    }
-                }
-            }
-            case "combat" -> {
-                for (com.wynntils.services.map.type.CombatKind k : com.wynntils.services.map.type.CombatKind.values()) {
-                    if (k.getMapDataId().equals(id)) {
-                        t = k.getIcon();
-                    }
-                }
-            }
-            case "texture" -> {
-                try {
-                    t = com.wynntils.utils.render.Texture.valueOf(id);
-                } catch (IllegalArgumentException e) {
-                    t = null;
-                }
-            }
-            default -> {
-                // not a kind of ours
-            }
-        }
-        return t == null || t.atlas() != null ? null : new PoiIcon(t.identifier(), t.width(), t.height());
-    }
-
-    /** The name of the item under the mouse on one of Wynntils' guide screens, or null. */
-    public static String hoveredGuideItem(net.minecraft.client.gui.screens.Screen screen) {
-        return guard(Feature.ITEMS, () -> {
-            for (var child : screen.children()) {
-                if (child instanceof com.wynntils.screens.guides.widgets.GuideButton b && b.isHovered()) {
-                    try {
-                        java.lang.reflect.Field f = com.wynntils.screens.guides.widgets.GuideButton.class.getDeclaredField("itemName");
-                        f.setAccessible(true);
-                        Object name = f.get(b);
-                        return name == null ? null : plain(name.toString());
-                    } catch (ReflectiveOperationException e) {
-                        return null;                // the field moved: the key does nothing there
-                    }
-                }
-            }
-            return null;
-        }, null);
-    }
-
-    /** Our places on Wynntils' map: a marker provider with points of interest only (no world markers). */
-    private static final class SearchMarks
-            implements com.wynntils.models.marker.type.MarkerProvider<com.wynntils.services.map.pois.Poi> {
-        private static SearchMarks registered;
-        private static volatile boolean broken;
-        private volatile List<com.wynntils.services.map.pois.Poi> pois = List.of();
-
-        static boolean show(List<io.github.anilken.wynnlabs.search.MapMark> marks) {
-            if (registered == null) {
-                if (marks.isEmpty()) {
-                    return true;                    // nothing shown yet, nothing to clear
-                }
-                registered = new SearchMarks();
-                Models.Marker.registerMarkerProvider(registered);
-            }
-            List<com.wynntils.services.map.pois.Poi> out = new ArrayList<>();
-            for (io.github.anilken.wynnlabs.search.MapMark m : marks) {
-                out.add(new MarkPoi(m, new com.wynntils.utils.mc.type.PoiLocation(m.x(), m.y(), m.z())));
-            }
-            registered.pois = List.copyOf(out);
-            return true;
-        }
-
-        @Override
-        public java.util.stream.Stream<com.wynntils.models.marker.type.MarkerInfo> getMarkerInfos() {
-            return java.util.stream.Stream.empty();
-        }
-
-        @Override
-        public java.util.stream.Stream<com.wynntils.services.map.pois.Poi> getPois() {
-            return pois.stream();
-        }
-
-        @Override
-        public boolean isEnabled() {
-            return !pois.isEmpty();
-        }
-    }
-
-    /**
-     * One mark as Wynntils' map draws it: the map hands us its place on screen and its pixels per
-     * block ({@code zoomRenderScale}); {@link io.github.anilken.wynnlabs.ui.MapMarkPaint} draws. A
-     * failure in our drawing turns the drawing off and never reaches Wynntils' screen.
-     */
-    private record MarkPoi(io.github.anilken.wynnlabs.search.MapMark mark, com.wynntils.utils.mc.type.PoiLocation location)
-            implements com.wynntils.services.map.pois.Poi {
-
-        @Override
-        public com.wynntils.utils.mc.type.PoiLocation getLocation() {
-            return location;
-        }
-
-        @Override
-        public com.wynntils.services.map.type.DisplayPriority getDisplayPriority() {
-            return mark.focus() ? com.wynntils.services.map.type.DisplayPriority.HIGH
-                    : com.wynntils.services.map.type.DisplayPriority.NORMAL;
-        }
-
-        @Override
-        public boolean hasStaticLocation() {
-            return true;
-        }
-
-        @Override
-        public void renderAt(net.minecraft.client.gui.GuiGraphics g, float x, float z, boolean hovered, float scale,
-                float zoomRenderScale, float zoomLevel, boolean showLabels) {
-            if (SearchMarks.broken) {
-                return;
-            }
-            try {
-                io.github.anilken.wynnlabs.ui.MapMarkPaint.draw(g, mark, x, z, hovered, zoomRenderScale);
-            } catch (Throwable t) {
-                SearchMarks.broken = true;          // the pins and the rest of the map keep working
-                System.out.println("[WynnLabs] search marks on the map are off: " + t);
-            }
-        }
-
-        @Override
-        public int getWidth(float zoomRenderScale, float scale) {
-            return io.github.anilken.wynnlabs.search.MapMark.sizePx(mark, zoomRenderScale);
-        }
-
-        @Override
-        public int getHeight(float zoomRenderScale, float scale) {
-            return io.github.anilken.wynnlabs.search.MapMark.sizePx(mark, zoomRenderScale);
-        }
-
-        @Override
-        public String getName() {
-            return mark.label();
-        }
-    }
-
-    // ---- finished caves red and dim on Wynntils' map ----
-
-    /**
-     * Brings Wynntils' map in line with the "fade finished caves" setting and the content book:
-     * registers our attribute override for the cave category while the setting is on, drops it
-     * when off, and re-reads which caves are done. Called once a second and when Wynntils rereads
-     * the caves; cheap when nothing changed. Rendering only: no waypoint, marker or packet.
-     */
-    public static void caveMapSync() {
-        boolean on = io.github.anilken.wynnlabs.core.Settings.on(io.github.anilken.wynnlabs.quests.CaveMap.SETTING);
-        run(Feature.WAYPOINTS, () -> {
-            try {
-                DoneCaves.sync(on);
-            } catch (ReflectiveOperationException e) {
-                throw new IllegalStateException("Wynntils' cave icons are not where expected", e);
-            }
-        });
-    }
-
-    /**
-     * Wynntils' map draws caves from its own icon list ({@code PoiService}), not from the map-data
-     * attributes, and paints the hover label a fixed green. So a finished cave's icon is swapped
-     * for {@link Done}, a copy that draws a white faded icon and a white label; the list is put back
-     * when the cave is no longer finished or the setting goes off. Rendering only: no waypoint,
-     * marker or packet. Like {@link SearchMarks}, every line that hands Wynntils one of our
-     * objects is in here, so this class is only loaded (and verified against Wynntils) in a
-     * running game.
-     */
-    private static final class DoneCaves {
-        private static java.lang.reflect.Field field;
-
-        /** Draws the finished caves faded (or all as Wynntils does when {@code on} is false). */
-        static void sync(boolean on) throws ReflectiveOperationException {
-            java.util.Set<String> done = on
-                    ? io.github.anilken.wynnlabs.quests.CaveMap.doneNames(
-                            io.github.anilken.wynnlabs.quests.Content.bookLines(io.github.anilken.wynnlabs.quests.ContentType.CAVE),
-                            knownContent("CAVE"))
-                    : java.util.Set.of();
-            if (field == null) {
-                field = com.wynntils.services.map.PoiService.class.getDeclaredField("cavePois");
-                field.setAccessible(true);
-            }
-            @SuppressWarnings("unchecked")
-            java.util.Set<com.wynntils.services.map.pois.CombatPoi> now =
-                    (java.util.Set<com.wynntils.services.map.pois.CombatPoi>) field.get(com.wynntils.core.components.Services.Poi);
-            java.util.Set<com.wynntils.services.map.pois.CombatPoi> next = new java.util.LinkedHashSet<>();
-            int changed = 0;
-            int faded = 0;
-            for (com.wynntils.services.map.pois.CombatPoi p : now) {
-                Done d = p instanceof Done x ? x : null;
-                com.wynntils.services.map.pois.CombatPoi base = d != null ? d.original : p;
-                boolean hit = io.github.anilken.wynnlabs.quests.CaveMap.isDone(base.getName(), done);
-                if (hit && d == null) {
-                    next.add(new Done(p));
-                    changed++;
-                } else if (!hit && d != null) {
-                    next.add(base);
-                    changed++;
-                } else {
-                    next.add(p);
-                }
-                faded += hit ? 1 : 0;
-            }
-            if (changed > 0) {
-                field.set(com.wynntils.core.components.Services.Poi, java.util.Collections.unmodifiableSet(next));
-                System.out.println("[WynnLabs] done caves: " + faded + " of " + next.size() + " cave icons drawn faded");
-            }
-        }
-
-        /** A finished cave's icon: Wynntils' own, tinted white and faded, with a white hover label. */
-        private static final class Done extends com.wynntils.services.map.pois.CombatPoi {
-            final com.wynntils.services.map.pois.CombatPoi original;
-
-            Done(com.wynntils.services.map.pois.CombatPoi original) {
-                super(original.getLocation(), original.getName(), original.getKind());
-                this.original = original;
-            }
-
-            private static final float FADE = 0.6f;
-            private static java.lang.reflect.Method alpha;
-
-            /** Wynntils' own zoom alpha for an icon (1 when it needs no fading). */
-            private float zoomAlpha(float zoomLevel) {
-                try {
-                    if (alpha == null) {
-                        alpha = com.wynntils.services.map.pois.IconPoi.class.getDeclaredMethod("getIconAlpha", float.class);
-                        alpha.setAccessible(true);
-                    }
-                    return (Float) alpha.invoke(this, zoomLevel);
-                } catch (ReflectiveOperationException e) {
-                    return 1f;
-                }
-            }
-
-            @Override
-            protected com.wynntils.utils.colors.CustomColor getIconColor() {
-                return com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.ICON_ARGB);
-            }
-
-            @Override
-            public void renderAt(net.minecraft.client.gui.GuiGraphics graphics, float x, float y, boolean hovered,
-                    float scale, float zoom, float zoomLevel, boolean flag) {
-                // Wynntils sets the icon's alpha from the zoom on every frame, so the fade is drawn
-                // here: its own alpha (the private getIconAlpha) times FADE
-                float s = hovered ? scale * 1.05f : scale;
-                com.wynntils.utils.render.Texture icon = getIcon();
-                float w = icon.width() * s;
-                float h = icon.height() * s;
-                com.wynntils.utils.render.RenderUtils.drawScalingTexturedRect(graphics, icon,
-                        getIconColor().withAlpha(zoomAlpha(zoomLevel) * FADE), x - w / 2, y - h / 2, w, h);
-                if (hovered) {
-                    com.wynntils.utils.render.FontRenderer.getInstance().renderText(graphics,
-                            com.wynntils.core.text.StyledText.fromString(getName()), x, 15.0f + y,
-                            com.wynntils.utils.colors.CustomColor.fromARGBInt(io.github.anilken.wynnlabs.quests.CaveMap.LABEL_ARGB),
-                            com.wynntils.utils.render.type.HorizontalAlignment.CENTER,
-                            com.wynntils.utils.render.type.VerticalAlignment.MIDDLE,
-                            com.wynntils.utils.render.type.TextShadow.OUTLINE);
-                }
-            }
-        }
-    }
 }

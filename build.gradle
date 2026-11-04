@@ -533,23 +533,27 @@ tasks.register('checkSettings') {
 }
 check.dependsOn checkSettings
 
-// Wynntils boundary: only the bridge (Wyn), the item adapter (WynntilsItems) and the event hooks
-// (WynntilsEvents) may name Wynntils' types, by import or fully qualified. Everything else reads
-// the mod's own model, so a Wynntils change or a second item source touches only these files.
+// Wynntils boundary: only the bridge (Wyn and its per-area classes in game/wynntils), the item
+// adapter (WynntilsItems) and the event hooks (WynntilsEvents) may name Wynntils' types, by import
+// or fully qualified. Everything else reads the mod's own model, so a Wynntils change or a second
+// item source touches only these files.
 // The loader modules (fabric, neoforge) may not name Wynntils at all.
 tasks.register('checkWynntilsImports') {
     group = 'verification'
-    description = 'Fails when a Java file other than the Wynntils bridge files refers to com.wynntils.'
+    description = 'Fails when a Java file outside the Wynntils bridge (game/Wyn, game/wynntils/**, WynntilsItems, WynntilsEvents) refers to com.wynntils.'
     doLast {
         // in common only; the loader modules may not name Wynntils at all
         def allowed = ['common/src/main/java/io/github/anilken/wynnlabs/game/Wyn.java',
                        'common/src/main/java/io/github/anilken/wynnlabs/game/WynntilsItems.java',
                        'common/src/main/java/io/github/anilken/wynnlabs/game/WynntilsEvents.java'] as Set
+        def allowedDir = 'common/src/main/java/io/github/anilken/wynnlabs/game/wynntils/'
         def hits = []
+        def files = 0
         sourceRoots.each { root ->
             fileTree(root).include('**/*.java').each { f ->
                 def rel = projectDir.toPath().relativize(f.toPath()).toString().replace(File.separatorChar, '/' as char)
-                if (allowed.contains(rel)) {
+                if (allowed.contains(rel) || rel.startsWith(allowedDir)) {
+                    files++
                     return
                 }
                 f.getText('UTF-8').readLines().eachWithIndex { text, n ->
@@ -560,9 +564,9 @@ tasks.register('checkWynntilsImports') {
             }
         }
         if (hits) {
-            throw new GradleException("Wynntils used outside ${allowed.join(', ')}:\n  " + hits.join('\n  '))
+            throw new GradleException("Wynntils used outside ${allowed.join(', ')}, ${allowedDir}**:\n  " + hits.join('\n  '))
         }
-        logger.lifecycle("checkWynntilsImports: only ${allowed.size()} files use Wynntils, OK")
+        logger.lifecycle("checkWynntilsImports: only ${files} files may use Wynntils, OK")
     }
 }
 check.dependsOn checkWynntilsImports
