@@ -314,6 +314,19 @@ public final class WynnLabs {
                     boolean over = "1".equals(q.get("over")) || "true".equals(q.get("over"));
                     send(ex, 200, onGameThread(() -> io.github.anilken.wynnlabs.ui.NearestList.json(limit, over)));
                 }
+                case "/community-builds" -> {
+                    // ?class=mage&level=85&tag=raid,spell: the list on hand, never fetched from here; what
+                    // you own is read on the game thread, the comparisons come from the list's own worker
+                    java.util.Map<String, String> q = query(ex);
+                    send(ex, 200, onGameThread(() -> {
+                        io.github.anilken.wynnlabs.game.GameState st = io.github.anilken.wynnlabs.game.GameState.current();
+                        if (io.github.anilken.wynnlabs.build.CommunityList.doc() != null) {
+                            io.github.anilken.wynnlabs.build.CommunityList.compareIfStale(st,
+                                    io.github.anilken.wynnlabs.build.CommunityBuilds.owned(st));
+                        }
+                        return communityJson(q, st.classType(), st.level());
+                    }));
+                }
                 case "/prices" -> send(ex, 200, Prices.json());
                 case "/prices/history" -> {
                     // ?item=Idol: the daily prices Wynnventory keeps; {"status":"pending"} while being asked
@@ -486,6 +499,39 @@ public final class WynnLabs {
                 Perf.end(section, t);
             }
         }).get(5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * GET /community-builds: the list's state and age, and its builds for {@code class} (default
+     * yours; "all" for every class), {@code level} (default yours; 0 any) and every {@code tag}
+     * (comma-separated), each with its owned and missing pieces when compared. Starts no fetch.
+     */
+    static JsonObject communityJson(java.util.Map<String, String> q, io.github.anilken.wynnlabs.model.Klass mine, int myLevel) {
+        JsonObject o = new JsonObject();
+        o.addProperty("state", io.github.anilken.wynnlabs.build.CommunityList.state().name().toLowerCase(java.util.Locale.ROOT));
+        o.addProperty("ageMinutes", io.github.anilken.wynnlabs.build.CommunityList.age() / 60_000);
+        io.github.anilken.wynnlabs.build.CommunityBuilds.Doc d = io.github.anilken.wynnlabs.build.CommunityList.doc();
+        if (d == null) {
+            o.add("builds", new JsonArray());
+            return o;
+        }
+        String cls = q.getOrDefault("class", "").toLowerCase(java.util.Locale.ROOT);
+        io.github.anilken.wynnlabs.model.Klass k = cls.isEmpty() ? mine : cls.equals("all") || cls.equals("any") ? null
+                : java.util.Arrays.stream(io.github.anilken.wynnlabs.model.Klass.values()).filter(v -> v.name().equalsIgnoreCase(cls))
+                        .findFirst().orElse(mine);
+        if (k == io.github.anilken.wynnlabs.model.Klass.NONE) {
+            k = null;
+        }
+        int level = intParam(q, "level", Math.max(0, myLevel), 0, 106);
+        java.util.List<String> tags = q.containsKey("tag") && !q.get("tag").isBlank()
+                ? java.util.Arrays.stream(java.net.URLDecoder.decode(q.get("tag"), java.nio.charset.StandardCharsets.UTF_8).split(","))
+                        .map(String::strip).filter(t -> !t.isEmpty()).toList() : java.util.List.of();
+        java.util.List<io.github.anilken.wynnlabs.build.CommunityBuilds.Entry> list =
+                io.github.anilken.wynnlabs.build.CommunityBuilds.filter(d.builds(), k, level, tags);
+        o.addProperty("count", list.size());
+        o.addProperty("comparing", io.github.anilken.wynnlabs.build.CommunityList.comparing());
+        o.add("builds", io.github.anilken.wynnlabs.build.CommunityBuilds.json(list, io.github.anilken.wynnlabs.build.CommunityList.compared()));
+        return o;
     }
 
     private static JsonObject index() {

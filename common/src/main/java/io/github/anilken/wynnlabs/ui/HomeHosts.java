@@ -104,6 +104,12 @@ final class HomeHosts {
         public void detailed(Roadmap.Candidate c, int level, int rank) {
             page.stats().pick(c, level, rank);
         }
+
+        @Override
+        public void craft(io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe recipe) {
+            CraftingTab.INSTANCE.load(recipe);
+            menu.openTab(RoadmapScreen.TAB_CRAFT);
+        }
     };
 
     /** The home's way back into the screen: its click and hover areas join this frame's hits. */

@@ -37,7 +37,7 @@ final class BuildActions {
         BuildSavedView saved = win.saved;
         // the scrollbars first: a press there never reaches the rows
         ScrollBar bar = view == BuildWindow.View.PICK ? pick.listBar : view == BuildWindow.View.SAVED ? saved.savedBar
-                : view == BuildWindow.View.RESULTS ? win.results.detailBar : null;
+                : view == BuildWindow.View.RESULTS ? win.results.detailBar : view == BuildWindow.View.COMMUNITY ? win.community.bar : null;
         if (win.menu == 0 && bar != null && button == 0 && bar.mouseClicked(mx, my)) {
             sync();
             return true;
@@ -67,7 +67,8 @@ final class BuildActions {
         if (win.menu != 0) {
             return win.menuState.drag(my);
         }
-        boolean took = win.pick.listBar.mouseDragged(my) || win.saved.savedBar.mouseDragged(my) || win.results.detailBar.mouseDragged(my);
+        boolean took = win.pick.listBar.mouseDragged(my) || win.saved.savedBar.mouseDragged(my) || win.results.detailBar.mouseDragged(my)
+                || win.community.bar.mouseDragged(my);
         if (took) {
             sync();
         }
@@ -80,6 +81,8 @@ final class BuildActions {
             win.pick.listScroll = win.pick.listBar.offset();
         } else if (win.view == BuildWindow.View.SAVED) {
             win.saved.savedScroll = win.saved.savedBar.offset();
+        } else if (win.view == BuildWindow.View.COMMUNITY) {
+            win.community.scroll = win.community.bar.offset();
         } else {
             win.results.detailScroll = win.results.detailBar.offset();
         }
@@ -102,6 +105,8 @@ final class BuildActions {
             win.menuState.wheel(v);
         } else if (win.view == BuildWindow.View.PICK) {
             win.pick.listScroll = Math.max(0, win.pick.listScroll + step * 3);
+        } else if (win.view == BuildWindow.View.COMMUNITY) {
+            win.community.scroll(v);
         } else if (win.view == BuildWindow.View.SAVED) {
             win.saved.savedScroll = Math.max(0, Math.min(win.saved.savedScroll, Math.max(0, Plans.saved().size() - 1)) + step);
         } else if (win.result != null && !win.result.builds().isEmpty()) {
@@ -118,6 +123,10 @@ final class BuildActions {
             editActs.run(hit.act(), hit.arg(), now);  // the EDIT view's buttons
             return;
         }
+        if (hit.act().startsWith("c.")) {
+            win.community.click(hit.act(), hit.arg(), now);   // the COMMUNITY view's
+            return;
+        }
         switch (hit.act()) {
             case "close" -> {
                 win.discardResults();               // ✕ drops the list: the picker next time
@@ -130,7 +139,13 @@ final class BuildActions {
                 win.menuState.reset();
             }
             case "menuPick" -> pickMenu((int) hit.arg());
-            case "search" -> win.search.setFocused(true);
+            case "search" -> {
+                if (win.view == BuildWindow.View.COMMUNITY) {
+                    win.communitySearch.setFocused(true);
+                } else {
+                    win.search.setFocused(true);
+                }
+            }
             case "searchclear", "clearSearch" -> {
                 win.search.setValue("");
                 pick.type = 0;
@@ -243,6 +258,11 @@ final class BuildActions {
 
     /** A row of the open menu: a level range, a budget, or a leaning (that menu stays open). */
     private void pickMenu(int i) {
+        if (win.community.isMenu(win.menu)) {
+            win.community.pickMenu(win.menu, i);
+            win.menu = 0;
+            return;
+        }
         if (win.menu == BuildWindow.MENU_LEAN || win.menu == BuildWindow.MENU_EDIT_LEAN) {
             boolean picker = win.menu == BuildWindow.MENU_LEAN;
             Tuning.Choice t = picker ? win.tuning : win.editTuning;

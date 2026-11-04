@@ -45,6 +45,8 @@ public final class AiLink {
             new Endpoint("/roadmap/trace", "why each candidate for a slot was kept or dropped (?level=120&slot=RING)",
                     "wynnlabs.ai.ep_trace", "gear"),
             new Endpoint("/shopping", "best gear per slot to buy or hunt for your level and build", "wynnlabs.ai.ep_shopping", "gear"),
+            new Endpoint("/community-builds", "the community build list for your class and level with owned and missing pieces (?class=mage&level=85&tag=raid)",
+                    "wynnlabs.ai.ep_community", "gear"),
             new Endpoint("/crafting/ingredients", "every crafting ingredient with its stats and where it drops",
                     "wynnlabs.ai.ep_craft", "gear"),
             new Endpoint("/quests", "tracked quest and every quest from the quest book", "wynnlabs.ai.ep_quests", "world"),

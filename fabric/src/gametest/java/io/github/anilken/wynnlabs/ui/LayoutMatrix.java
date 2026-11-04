@@ -87,7 +87,7 @@ public class LayoutMatrix implements FabricClientGameTest {
     public void runTest(ClientGameTestContext ctx) {
         String only = System.getProperty("wynnlabs.previewOnly");
         if (only != null && !only.equals("layout") && !only.equals("fill") && !only.equals("build") && !only.equals("wbexport")
-                && !only.equals("egalts")) {
+                && !only.equals("egalts") && !only.equals("community")) {
             return;
         }
         Path out = Path.of(System.getProperty("wynnlabs.preview", "preview"));
@@ -185,6 +185,12 @@ public class LayoutMatrix implements FabricClientGameTest {
                 // -PpreviewOnly=egalts: an endgame milestone's other builds on Home, large and small
                 ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
                 altShots(ctx, out.resolve("egalts"));
+                return;
+            }
+            if ("community".equals(only)) {
+                // -PpreviewOnly=community: the build window's Community view (list, an opened row), large and small
+                ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
+                communityShots(ctx, out.resolve("community"));
                 return;
             }
             if ("wbexport".equals(only)) {
@@ -952,6 +958,71 @@ public class LayoutMatrix implements FabricClientGameTest {
             UiExport.preview(null, true);
             ((RoadmapScreen) mc.screen).home.alts().pick(0);
         });
+    }
+
+    /**
+     * -PpreviewOnly=community: the repository's community list compared with the recorded Shaman
+     * (its bag and bank), the Community view's list (its filters at rest, then raid builds folded)
+     * and an opened row with owned and missing pieces, at 3440x1440 and 1380x960.
+     */
+    private static void communityShots(ClientGameTestContext ctx, Path dir) throws Exception {
+        Files.createDirectories(dir);
+        Path file = Fixtures.root().toAbsolutePath().getParent().getParent().getParent().getParent().getParent()
+                .resolve("data").resolve("community-builds.json");
+        String json = Files.readString(file, java.nio.charset.StandardCharsets.UTF_8);
+        String[] open = new String[1];
+        ctx.runOnClient(mc -> {
+            io.github.anilken.wynnlabs.build.CommunityBuilds.Doc d = io.github.anilken.wynnlabs.build.CommunityBuilds.parse(json);
+            io.github.anilken.wynnlabs.game.GameState st = io.github.anilken.wynnlabs.game.GameState.current();
+            io.github.anilken.wynnlabs.build.CommunityBuilds.Owned owned = io.github.anilken.wynnlabs.build.CommunityBuilds.owned(st);
+            java.util.Map<String, io.github.anilken.wynnlabs.build.CommunityBuilds.Compare> cmp = new java.util.HashMap<>();
+            java.util.Map<String, io.github.anilken.wynnlabs.crafting.Ingredient> ings = new java.util.HashMap<>();
+            CraftPreview.ingredients().forEach(i -> ings.put(i.name(), i));
+            for (io.github.anilken.wynnlabs.build.CommunityBuilds.Entry e : d.builds()) {
+                if (!e.forClass(st.classType()) || e.levelMax() < 30) {
+                    continue;
+                }
+                var c = io.github.anilken.wynnlabs.build.CommunityBuilds.compare(st, e, owned,
+                        io.github.anilken.wynnlabs.market.Prices::of, ings::get, r -> 9_000L, true);
+                if (c != null) {
+                    cmp.put(e.id(), c);
+                }
+            }
+            io.github.anilken.wynnlabs.build.CommunityList.use(d, cmp);
+            Plans.clearAll();
+        });
+        for (int[] size : new int[][] {{3440, 1440}, {1380, 960}}) {
+            ctx.getInput().resizeWindow(size[0], size[1]);
+            ctx.runOnClient(mc -> {
+                mc.options.guiScale().set(3);
+                mc.resizeDisplay();
+            });
+            ctx.waitTicks(5);
+            String n = size[0] + "x" + size[1];
+            ctx.runOnClient(mc -> {
+                BuildWindow w = BuildWindow.INSTANCE;
+                w.openCommunity();
+                w.communitySearch.setValue("");
+                w.community.preview(BuildCommunityFilter.defaults(), false, null);
+            });
+            wbShot(ctx, dir, n + "-list");
+            // an opened row: the build of the list with the most pieces owned, at least one missing
+            ctx.runOnClient(mc -> {
+                BuildWindow w = BuildWindow.INSTANCE;
+                var cmp = io.github.anilken.wynnlabs.build.CommunityList.compared();
+                open[0] = w.community.matched().stream().filter(e -> cmp.get(e.id()) != null && cmp.get(e.id()).missing() > 0)
+                        .max(java.util.Comparator.comparingInt(e -> cmp.get(e.id()).owned())).map(e -> e.id()).orElse(null);
+                w.community.preview(BuildCommunityFilter.defaults(), false, open[0]);
+            });
+            wbShot(ctx, dir, n + "-opened");
+            ctx.runOnClient(mc -> BuildWindow.INSTANCE.community.preview(
+                    BuildCommunityFilter.defaults().withLevel(BuildCommunityFilter.ANY_LEVEL).withRole("raid", true), true, null));
+            wbShot(ctx, dir, n + "-raid-folded");
+            ctx.runOnClient(mc -> BuildWindow.INSTANCE.community.preview(
+                    BuildCommunityFilter.defaults().withRole("raid", true), false, null));
+            wbShot(ctx, dir, n + "-none");
+            ctx.runOnClient(mc -> BuildWindow.INSTANCE.close());
+        }
     }
 
     private static void wbShot(ClientGameTestContext ctx, Path dir, String name) {

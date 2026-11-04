@@ -55,9 +55,12 @@ public final class BuildWindow {
 
         /** "Detailed" on a found build: the Home's stats view with it as the plan ({@code rank} from 1). */
         void detailed(Roadmap.Candidate c, int level, int rank);
+
+        /** A community build's crafted piece: the Crafting tab with its recipe loaded. */
+        default void craft(io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe recipe) { }
     }
 
-    public enum View { PICK, RESULTS, SAVED, EDIT }
+    public enum View { PICK, RESULTS, SAVED, EDIT, COMMUNITY }
 
     boolean open;
     /** The compact menu this frame: the result view in one column. */
@@ -67,12 +70,15 @@ public final class BuildWindow {
     View view = View.PICK;
     EditBox search;
     EditBox rename;
+    /** The Community view's search over build and item names. */
+    EditBox communitySearch;
 
     final BuildControls ui = new BuildControls();
     final BuildPickView pick = new BuildPickView(this, ui);
     final BuildResultsView results = new BuildResultsView(this, ui);
     final BuildSavedView saved = new BuildSavedView(this, ui);
     final BuildEditView editor = new BuildEditView(this, ui);
+    final BuildCommunityView community = new BuildCommunityView(this, ui);
     private final BuildActions actions = new BuildActions(this);
     private final BuildFrame frame = new BuildFrame(this);
     /** The open menu: 0 none, else a MENU_* below (range, budget, priority); its anchor this frame. */
@@ -85,6 +91,11 @@ public final class BuildWindow {
     /** The Priority menu (the leanings), the picker's and the edit card's. */
     static final int MENU_LEAN = 4;
     static final int MENU_EDIT_LEAN = 5;
+    /** The Community view's menus: level range, budget to finish, owned share, the stat column. */
+    static final int MENU_C_LEVEL = 6;
+    static final int MENU_C_BUDGET = 7;
+    static final int MENU_C_OWN = 8;
+    static final int MENU_C_STAT = 9;
     /** "Import from WynnBuilder", made on first use. */
     BuildImportView imports;
 
@@ -121,7 +132,8 @@ public final class BuildWindow {
         search = UiInput.box(f, "wynnlabs.pick.search_hint", search, v -> pick.listScroll = 0);
         rename = UiInput.box(f, "wynnlabs.saved.rename", rename, v -> { });
         rename.setMaxLength(Plans.MAX_NAME);
-        return List.of(search, rename);
+        communitySearch = UiInput.box(f, "wynnlabs.community.search_hint", communitySearch, v -> community.scroll = 0);
+        return List.of(search, rename, communitySearch);
     }
 
     public boolean isOpen() {
@@ -247,6 +259,13 @@ public final class BuildWindow {
         focusSearch(false);
     }
 
+    /** "Community": the community build list (fetched in the background the first time). */
+    public void openCommunity() {
+        editingPlan = null;
+        open = true;
+        showView(View.COMMUNITY);
+    }
+
     /** The better-build hint: its results. */
     public void openResults(Around.Result r) {
         if (r == null) {
@@ -280,6 +299,9 @@ public final class BuildWindow {
         if (search != null) {
             search.setFocused(on);
         }
+        if (communitySearch != null && view != View.COMMUNITY) {
+            communitySearch.setFocused(false);
+        }
     }
 
     /** The text box that should have the keyboard, or null. */
@@ -289,6 +311,9 @@ public final class BuildWindow {
         }
         if (view == View.EDIT && rename.isFocused()) {
             return rename;
+        }
+        if (view == View.COMMUNITY && communitySearch != null && communitySearch.isFocused()) {
+            return communitySearch;
         }
         return view == View.PICK && search.isFocused() ? search : null;
     }
@@ -399,6 +424,7 @@ public final class BuildWindow {
             case RESULTS -> results.drawResults(g, page, x, y + head, w, h - head, pmx, pmy);
             case SAVED -> saved.drawSaved(g, page, x, y + head, w, h - head, pmx, pmy, pt);
             case EDIT -> editor.draw(g, page, x, y + head, w, h - head, pmx, pmy);
+            case COMMUNITY -> community.draw(g, page, x, y + head, w, h - head, pmx, pmy);
         }
         if (menu != 0 && menuAt != null) {
             frame.menuList(g, mx, my);
@@ -435,6 +461,11 @@ public final class BuildWindow {
             public void detailed(Roadmap.Candidate c, int level, int rank) {
                 host.detailed(c, level, rank);
             }
+
+            @Override
+            public void craft(io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe recipe) {
+                host.craft(recipe);
+            }
         };
     }
 
@@ -469,6 +500,9 @@ public final class BuildWindow {
         view = v;
         menu = 0;
         focusSearch(v == View.PICK && imports().shown == null);
+        if (v == View.COMMUNITY) {
+            community.opened();
+        }
     }
 
     void hostApplied() {
@@ -487,6 +521,7 @@ public final class BuildWindow {
         pick.listBar.mouseReleased();
         saved.savedBar.mouseReleased();
         results.detailBar.mouseReleased();
+        community.bar.mouseReleased();
         menuState.release();
     }
 
