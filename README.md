@@ -63,6 +63,9 @@ The mod contacts only:
 - `wynncraft.wiki.gg`, when **Quest guides from the wiki** is on: quest and discovery pages, cached for a week.
 - `api.github.com` / `github.com`, when **Update reminder** is on: once per session to check for a
   release, and to download it when you ask.
+- `raw.githubusercontent.com` (this repository's `data/` folder): the world route map when the guide line
+  first routes, and the community build list when you first open **Community** in the build window;
+  each is checked at most once a day.
 
 Everything it remembers is under `config/wynnlabs/`. Delete it to start fresh.
 

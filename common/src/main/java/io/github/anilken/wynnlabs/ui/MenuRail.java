@@ -24,19 +24,19 @@ final class MenuRail extends MenuPaint {
      * them as sections along the top of its page. Settings (the last) is pinned to the bottom.
      */
     static final int[][] RAIL = {{0}, {1}, {2},
-        {RoadmapScreen.TAB_TREE}, {RoadmapScreen.TAB_ENDGAME},
+        {RoadmapScreen.TAB_TREE}, {RoadmapScreen.TAB_COMMUNITY}, {RoadmapScreen.TAB_ENDGAME},
         {RoadmapScreen.TAB_MOUNTS, RoadmapScreen.TAB_MOUNT_ROAD, RoadmapScreen.TAB_MOUNT_PLACES},
         {RoadmapScreen.TAB_BANK}, {RoadmapScreen.TAB_CRAFT},
         {RoadmapScreen.TAB_SEARCH}, {RoadmapScreen.TAB_SETTINGS, RoadmapScreen.TAB_AI}};
     /** Each entry's name as a language key. */
     static final String[] RAIL_NAMES = {"wynnlabs.screen.rail_home", "wynnlabs.screen.tab_today",
-        "wynnlabs.screen.tab_quests", "wynnlabs.screen.rail_tree", "wynnlabs.screen.rail_endgame", "wynnlabs.screen.tab_mounts", "wynnlabs.screen.tab_bank",
+        "wynnlabs.screen.tab_quests", "wynnlabs.screen.rail_tree", "wynnlabs.screen.tab_community", "wynnlabs.screen.rail_endgame", "wynnlabs.screen.tab_mounts", "wynnlabs.screen.tab_bank",
         "wynnlabs.screen.tab_craft", "wynnlabs.screen.tab_search", "wynnlabs.screen.tab_settings"};
-    private static final String[] ICONS = {"home", "sun", "map-2", "hierarchy", "trophy", "horse", "building-bank", "hammer", "search",
+    private static final String[] ICONS = {"home", "sun", "map-2", "hierarchy", "user", "trophy", "horse", "building-bank", "hammer", "search",
         "settings"};
     /** The group titles, and the entry each one starts at; the entries before SETTINGS have keys 1–9. */
     private static final String[] GROUPS = {"wynnlabs.screen.rail_group_game", "wynnlabs.screen.rail_group_items"};
-    private static final int[] GROUP_AT = {0, 6};
+    private static final int[] GROUP_AT = {0, 7};
     private static final int SETTINGS = RAIL.length - 1;
     /** Help: not an entry; it opens the settings on their About page. */
     private static final int HELP = -1;

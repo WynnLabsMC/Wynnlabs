@@ -44,7 +44,7 @@ public final class RoadmapScreen extends Screen {
         "wynnlabs.screen.tab_deaths", "wynnlabs.screen.tab_bank", "wynnlabs.screen.tab_settings", "wynnlabs.screen.tab_ai",
         "wynnlabs.screen.tab_damage", "wynnlabs.screen.tab_discoveries", "wynnlabs.screen.tab_tree", "wynnlabs.screen.tab_craft",
         "wynnlabs.screen.tab_endgame", "wynnlabs.screen.tab_search", "wynnlabs.mounts.sec_mounts", "wynnlabs.mounts.sec_road",
-        "wynnlabs.mounts.sec_places"};
+        "wynnlabs.mounts.sec_places", "wynnlabs.screen.tab_community"};
     public static final int TAB_BANK = 4;
     static final int TAB_SETTINGS = 5;
     static final int TAB_AI = 6;
@@ -58,6 +58,8 @@ public final class RoadmapScreen extends Screen {
     static final int TAB_MOUNTS = 13;
     static final int TAB_MOUNT_ROAD = 14;
     static final int TAB_MOUNT_PLACES = 15;
+    /** The community build list. */
+    static final int TAB_COMMUNITY = 16;
 
     List<Roadmap.Step> steps = List.of();
     List<QuestAdvisor.Suggestion> quests = List.of();
@@ -100,13 +102,14 @@ public final class RoadmapScreen extends Screen {
     public final TreeTab tree = new TreeTab(this);
     final SearchTab search = new SearchTab(this);
     final MountsTab mounts = new MountsTab(this);
+    final CommunityTab community = new CommunityTab(this);
     /** The page's parchment this frame {x, y, w, h}: what an open drawer dims. */
     int[] pagePanel;
     /** The archetype list the archetype buttons open (home, tree, settings). */
     final ArchetypePicker archPicker = new ArchetypePicker(this);
     /** The tabs by number (null for the Crafting and Endgame tabs, which are their own singletons). */
     private final MenuTab[] pages = {home, today, questsTab, null, bank, settings, ai, null, null, tree, null, null,
-        search, mounts, mounts, mounts};
+        search, mounts, mounts, mounts, community};
     /** The screen the search key was pressed on (a bank, a chest): closing the menu goes back to it. */
     private Screen parent;
 
@@ -228,7 +231,7 @@ public final class RoadmapScreen extends Screen {
     protected void init() {
         UiFont.apply(this);                     // Inter instead of the pixel font (setting: webFont)
         WynnTex.clear();                        // the pack may have changed since last time
-        for (MenuTab t : new MenuTab[] {bank, tree, settings, search, questsTab}) {
+        for (MenuTab t : new MenuTab[] {bank, tree, settings, search, questsTab, community}) {
             for (net.minecraft.client.gui.components.EditBox b : t.init()) {
                 addWidget(b);
             }
@@ -425,7 +428,7 @@ public final class RoadmapScreen extends Screen {
     private static final String[] TAB_HINT = {"", "wynnlabs.screen.hint_today", "",
         "wynnlabs.screen.hint_deaths", "wynnlabs.screen.hint_bank", "", "wynnlabs.screen.hint_ai",
         "wynnlabs.screen.hint_damage", "wynnlabs.screen.hint_discoveries", "", "",
-        "wynnlabs.screen.hint_endgame", "", "", "", ""};
+        "wynnlabs.screen.hint_endgame", "", "", "", "", ""};
 
     private final Map<Integer, ItemStack> railIcons = new HashMap<>();
 

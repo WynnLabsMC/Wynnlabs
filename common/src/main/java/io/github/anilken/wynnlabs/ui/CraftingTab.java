@@ -151,6 +151,20 @@ public final class CraftingTab {
     }
 
     /** The menu was closed: running searches stop. */
+    /** A recipe from elsewhere (a community build's crafted piece) on the recipe page, as a pasted code is. */
+    void load(io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe r) {
+        type = r.type();
+        minLevel = r.minLevel();
+        tier1 = r.tier1();
+        tier2 = r.tier2();
+        speed = r.speed();
+        for (int i = 0; i < Craft.SLOTS; i++) {
+            slots[i] = i < r.slots().size() ? r.slots().get(i) : null;
+        }
+        drawers.close();
+        view = VIEW_RECIPE;
+    }
+
     void closed() {
         optimiserPanel.stop();
         suggestionsPanel.stop();

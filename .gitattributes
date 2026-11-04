@@ -2,3 +2,6 @@
 fabric/src/test/resources/fixtures/** text eol=lf
 # gzipped dumps are binary: no line-ending conversion
 fabric/src/test/resources/fixtures/**/*.gz binary
+# the community build list is published byte for byte: its .sha256 must match the bytes on GitHub
+data/community-builds.json -text
+data/community-builds.sha256 -text

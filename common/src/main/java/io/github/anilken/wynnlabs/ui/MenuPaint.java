@@ -112,6 +112,7 @@ class MenuPaint {
             case RoadmapScreen.TAB_MOUNTS -> "horse";
             case RoadmapScreen.TAB_MOUNT_ROAD -> "route";
             case RoadmapScreen.TAB_MOUNT_PLACES -> "map-pin";
+            case RoadmapScreen.TAB_COMMUNITY -> "user";
             default -> "settings";
         };
     }
