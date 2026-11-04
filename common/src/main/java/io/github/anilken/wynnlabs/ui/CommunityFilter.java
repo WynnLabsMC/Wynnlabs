@@ -126,16 +126,9 @@ record CommunityFilter(Set<Klass> classes, int level, Set<String> roles, int bud
         return !classes.isEmpty() ? classes : yours == null || yours == Klass.NONE ? Set.copyOf(CLASSES) : Set.of(yours);
     }
 
-    /** {@code c} ticked or unticked; the last class stays; your class alone is the default again. */
-    CommunityFilter withClass(Klass c, boolean on, Klass yours) {
-        Set<Klass> s = new java.util.LinkedHashSet<>(picked(yours));
-        if (on) {
-            s.add(c);
-        } else if (s.size() > 1) {
-            s.remove(c);
-        }
-        boolean mine = yours != null && yours != Klass.NONE && s.equals(Set.of(yours));
-        return new CommunityFilter(mine ? Set.of() : Set.copyOf(s), level, roles, budget, own, hideOutdated, crafted, query);
+    /** One class only (yours is the default, so picking yours clears the choice). */
+    CommunityFilter onlyClass(Klass c, Klass yours) {
+        return new CommunityFilter(c == yours ? Set.of() : Set.of(c), level, roles, budget, own, hideOutdated, crafted, query);
     }
 
     /** Every class, or back to yours. */
