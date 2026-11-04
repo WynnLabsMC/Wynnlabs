@@ -22,7 +22,7 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
         boolean crafted, String query) {
 
     /** Level ranges: 0 your level, then fixed ranges, the last any level. */
-    static final int[][] LEVELS = {{0, 0}, {1, 20}, {21, 40}, {41, 60}, {61, 80}, {81, 99}, {100, 106}, {1, 106}};
+    static final int[][] LEVELS = {{0, 0}, {1, 20}, {21, 40}, {41, 60}, {61, 80}, {81, 99}, {100, 121}, {1, 121}};
     static final int ANY_LEVEL = LEVELS.length - 1;
     static final int[] OWN = {0, 25, 50, 75, 100};
 
@@ -41,7 +41,9 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
             return false;
         }
         if (level == 0) {
-            if (lv > 0 && (lv < e.levelMin() || lv > e.levelMax())) {
+            // above the list's highest builds (gear stops before the level cap) the top builds are yours
+            int at = Math.min(lv, io.github.anilken.wynnlabs.build.CommunityList.topLevel());
+            if (lv > 0 && (at < e.levelMin() || at > e.levelMax())) {
                 return false;
             }
         } else if (level != ANY_LEVEL) {

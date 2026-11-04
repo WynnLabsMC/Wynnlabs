@@ -118,6 +118,25 @@ public final class LinkImport {
      * item at the middle of its rolls with the link's powders, each crafted one made from its
      * recipe and each custom one from its numbers. What {@link Damage#breakdown} takes.
      */
+    /**
+     * Every piece the link has, whoever can wear it (another class's weapon included): the
+     * build as it is, for its own totals. {@link #set} keeps only what you can use.
+     */
+    public static Map<String, Damage.Piece> whole(Result r) {
+        Map<String, Damage.Piece> out = new java.util.LinkedHashMap<>();
+        for (Row row : r.rows()) {
+            Damage.Piece p = row.made() != null ? row.made()
+                    : row.info() != null && (row.why() == Why.KEPT || row.why() == Why.CLASS)
+                    ? Damage.piece(row.info(), row.piece().powders()) : null;
+            if (p == null) {
+                continue;
+            }
+            int slot = row.piece().slot();
+            out.put(slot >= Build.SLOTS.length ? "WEAPON" : Build.SLOTS[slot], p);
+        }
+        return out;
+    }
+
     public static Map<String, Damage.Piece> set(Result r) {
         Map<String, Damage.Piece> out = new java.util.LinkedHashMap<>();
         for (Row row : r.rows()) {

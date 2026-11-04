@@ -471,21 +471,20 @@ final class CommunityRow {
                 new Line(L.t("wynnlabs.community.st.spell_damage"), L.pct(CommunityPage.signed(t.id("spellDamage")))),
                 new Line(L.t("wynnlabs.community.st.raw_spell_damage"), CommunityPage.signed(t.id("rawSpellDamage"))),
                 new Line(L.t("wynnlabs.community.st.melee_damage"), L.pct(CommunityPage.signed(t.id("mainAttackDamage")))),
-                new Line(L.t("wynnlabs.community.st.per_cast"), CommunityPage.big(t.dmgPerCast())),
                 new Line(L.t("wynnlabs.community.st.attack_speed"), ATTACK_SPEEDS[Math.max(0, Math.min(6, t.attackTier()))]));
         List<Line> def = List.of(
                 new Line(L.t("wynnlabs.community.st.health"), CommunityPage.big(t.health())),
                 new Line(L.t("wynnlabs.community.st.ehp"), CommunityPage.big(t.ehp())),
-                new Line(L.t("wynnlabs.community.st.health_regen"),
-                        CommunityPage.signed(io.github.anilken.wynnlabs.build.Damage.healthRegen(t.id("healthRegenRaw"), t.id("healthRegen")))),
+                new Line(L.t("wynnlabs.community.st.health_regen"), CommunityPage.signed(t.id("healthRegenRaw"))
+                        + (t.id("healthRegen") == 0 ? "" : " (" + L.pct(CommunityPage.signed(t.id("healthRegen"))) + ")")),
                 new Line(L.t("wynnlabs.community.st.life_steal"), CommunityPage.signed(t.id("lifeSteal")) + "/3s"),
                 new Line(L.t("wynnlabs.community.st.defences"), null));
         List<Line> util = List.of(
                 new Line(L.t("wynnlabs.community.st.mana_regen"), CommunityPage.signed(t.manaRegen()) + "/5s"),
                 new Line(L.t("wynnlabs.community.st.mana_steal"), CommunityPage.signed(t.id("manaSteal")) + "/3s"),
-                new Line(L.t("wynnlabs.community.st.walk_speed"), L.pct(CommunityPage.signed(t.speed()))),
+                new Line(L.t("wynnlabs.community.st.walk_speed"), L.pct(CommunityPage.signed(t.id("walkSpeed")))),
                 new Line(L.t("wynnlabs.community.st.loot_bonus"), L.pct(CommunityPage.signed(t.id("lootBonus")))),
-                new Line(L.t("wynnlabs.community.st.xp_bonus"), L.pct(CommunityPage.signed(t.xp()))));
+                new Line(L.t("wynnlabs.community.st.xp_bonus"), L.pct(CommunityPage.signed(t.id("xpBonus")))));
         return List.of(off, def, util);
     }
 

@@ -420,7 +420,17 @@ public final class CommunityBuilds {
         int[] need = Build.minPoints(set.values());
         int level = state.level();
         Locks.Problem problem = items.isEmpty() ? null : Locks.problem(items, level);
-        Totals t = totals ? remembered(e, set, state) : null;
+        if (problem != null && problem.skill() == null) {
+            // the total is short: your tomes' points count too (the level's 200 are not all there is)
+            int tomes = 0;
+            for (io.github.anilken.wynnlabs.model.SkillKind k : io.github.anilken.wynnlabs.model.SkillKind.values()) {
+                tomes += state.tomePoints(k);
+            }
+            if (problem.need() <= problem.earned() + tomes) {
+                problem = null;
+            }
+        }
+        Totals t = totals ? remembered(e, LinkImport.whole(r), state) : null;
         List<String> kept = r.kept().stream().map(ItemData::name).toList();
         return new Compare(e.id(), List.copyOf(pieces), have, pieces.size(), cost, unpriced, need, b.skills(), needLevel, problem, t, kept);
     }

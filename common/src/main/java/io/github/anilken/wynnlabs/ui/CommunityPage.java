@@ -38,7 +38,7 @@ import java.util.Set;
  */
 final class CommunityPage {
 
-    static final String[] STATS = {"dps", "ehp", "mana", "speed"};
+    static final String[] STATS = {"health", "ehp", "mana", "speed"};
     static final int MENU_LEVEL = 1;
     static final int MENU_BUDGET = 2;
     static final int MENU_OWN = 3;
@@ -186,10 +186,10 @@ final class CommunityPage {
         }
         CommunityBuilds.Totals t = c.totals();
         return switch (stat) {
-            case 0 -> t.dps() > 0 ? t.dps() : null;
-            case 1 -> t.ehp();
+            case 0 -> t.health() > 0 ? t.health() : null;
+            case 1 -> t.ehp() > 0 ? t.ehp() : null;
             case 2 -> t.manaRegen();
-            default -> t.speed();
+            default -> t.id("walkSpeed");
         };
     }
 
@@ -231,6 +231,11 @@ final class CommunityPage {
         double d = a < 1e6 ? a / 1e3 : a / 1e6;
         String n = d >= 100 ? String.valueOf(Math.round(d)) : String.format(Locale.ROOT, "%.1f", d).replaceAll("\\.0$", "");
         return sign + n + (a < 1e6 ? "k" : "M");
+    }
+
+    /** "Lv 41-50", or "Lv 106" when the build is for one level. */
+    static String levels(CommunityBuilds.Entry e) {
+        return e.levelMin() == e.levelMax() ? "Lv " + e.levelMin() : L.t("wynnlabs.community.levels", e.levelMin(), e.levelMax());
     }
 
     /** The build set as the goal: the entry whose kept items are the items the road map builds around. */
@@ -303,8 +308,12 @@ final class CommunityPage {
     private void drawState(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
         if (CommunityList.state() == CommunityList.State.FAILED) {
             long min = Math.max(1, (CommunityList.retryIn() + 59_999) / 60_000);
-            UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "world", L.t("wynnlabs.community.failed"),
-                    List.of(L.n("wynnlabs.community.retry", (int) min, min)), null, null, mx, my);
+            int[] act = UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "world", L.t("wynnlabs.community.failed"),
+                    List.of(L.n("wynnlabs.community.retry", (int) min, min)),
+                    new UiEmpty.Action("refresh", L.t("wynnlabs.community.try_again"), "c.retry"), null, mx, my);
+            if (act != null) {
+                ui.btn(act[0], act[1], act[2], act[3], "c.retry", null);
+            }
         } else {
             UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "refresh", Ui.busy(L.t("wynnlabs.community.loading")),
                     List.of(), null, null, mx, my);
@@ -694,7 +703,17 @@ final class CommunityPage {
                 Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, name, nameW), nx, ty, Theme.INK);
             } else {
                 Type role = tab.compact ? Type.META : Type.BODY;
-                role.draw(g, ui.font, role.fit(ui.font, name, nameW), nx, role.yIn(y, rh), Theme.INK);
+                // the level range after the name, muted; the name gives way first only when both cannot fit
+                String lvl = "  " + levels(e);
+                int lw = Type.META.width(ui.font, lvl);
+                if (tab.compact && role.width(ui.font, name) + lw > nameW) {
+                    lvl = "";                   // the small menu keeps the name; the level is in its tip and panel
+                    lw = 0;
+                }
+                String n = role.fit(ui.font, name, Math.max(nameW / 2, nameW - lw));
+                role.draw(g, ui.font, n, nx, role.yIn(y, rh), Theme.INK);
+                int after = nx + role.width(ui.font, n);
+                Type.META.draw(g, ui.font, Type.META.fit(ui.font, lvl, nx + nameW - after), after, Type.META.yIn(y, rh), Theme.INK_3);
             }
             host.tip(x, y, c[1] - Theme.SP_3, rh, rowTip(e, pinned));
             int iy = y + (rh - icon()) / 2;
@@ -1110,6 +1129,7 @@ final class CommunityPage {
             }
             case "c.goal" -> setGoal((String) arg, now);
             case "c.copy" -> copy((String) arg);
+            case "c.retry" -> CommunityList.retryNow();
             case "c.craft" -> {
                 if (arg instanceof io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe r) {
                     tab.craft(r);
