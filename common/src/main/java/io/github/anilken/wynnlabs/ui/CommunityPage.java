@@ -10,6 +10,7 @@ import io.github.anilken.wynnlabs.build.WynnBuilderLink;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.market.Prices;
+import io.github.anilken.wynnlabs.model.ItemData;
 import io.github.anilken.wynnlabs.model.Klass;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -26,27 +27,31 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The build window's Community view: the community build list ({@link CommunityList}) beside a
- * filter rail (class, level, roles, budget to finish, owned share, outdated, look-alikes,
- * crafted), with a search over build and item names, three builds picked for you, the chips of
- * the filters in force, and a table sorted by name, owned gear, a stat's change against what you
- * wear or the cost to finish. The build set as your goal stays pinned on top. A row opens in place
- * ({@link BuildCommunityRow}): its gear with where you have each piece or what it costs, the skill
- * points it needs, "Set as goal" and "Copy link". Nothing here acts in the game.
+ * The Community tab's page: a filter rail (class, level, roles with counts, budget to finish,
+ * owned share, outdated, look-alikes, crafted) beside the list: a search over build names, item
+ * names and crafted ingredients with its count, three builds picked for you that beat your gear,
+ * the filters in force as chips, and a table (build, its nine pieces owned or faded, a stat's
+ * change against what you wear, the cost to finish, tags) sorted by any column. The build set as
+ * your goal stays pinned on top; look-alikes fold into families. A row opens in place
+ * ({@link CommunityRow}). Nothing here acts in the game: "Set as goal" only changes the plan.
  */
-final class BuildCommunityView {
+final class CommunityPage {
 
-    static final int ROW_H = 16;
-    static final int ICON = 12;
     static final String[] STATS = {"dmg", "ehp", "mana", "speed"};
-    /** Between the strip's pictures: a missing one's dashed square reaches 1 px out, so two stay 1 px apart. */
-    static final int STRIP_GAP = 3;
+    static final int MENU_LEVEL = 1;
+    static final int MENU_BUDGET = 2;
+    static final int MENU_OWN = 3;
+    static final int MENU_STAT = 4;
+    /** A row's thin rule, a family's band, the goal row's face. */
+    static final int RULE = 0x559A855C;
+    static final int BAND = 0xFFDCCB9C;
+    static final int GOAL_FACE = 0xFFF3E6BF;
 
-    private final BuildWindow win;
+    private final CommunityTab tab;
     private final BuildControls ui;
-    final BuildCommunityRow opened;
+    final CommunityRow opened;
 
-    BuildCommunityFilter filter = BuildCommunityFilter.defaults();
+    CommunityFilter filter = CommunityFilter.defaults();
     boolean fold;
     /** The sort: 0 name, 1 owned gear, 2 the stat column, 3 cost; and its direction. */
     int sortCol = 1;
@@ -60,25 +65,41 @@ final class BuildCommunityView {
     int scroll;
     private int maxScroll;
     final ScrollBar bar = new ScrollBar();
-    int[] listBox;
 
     private CommunityBuilds.Owned owned = CommunityBuilds.Owned.NONE;
     private long ownedAt;
     private String cacheKey;
     private List<CommunityBuilds.Entry> matched = List.of();
     private Map<String, Integer> roleCounts = Map.of();
-    private BuildCommunityFilter.Suggestion suggestion;
+    private CommunityFilter.Suggestion suggestion;
+    private String rowsKey;
+    private List<Object> rows = List.of();
 
-    BuildCommunityView(BuildWindow win, BuildControls ui) {
-        this.win = win;
+    CommunityTab tab() {
+        return tab;
+    }
+
+    CommunityPage(CommunityTab tab, BuildControls ui) {
+        this.tab = tab;
         this.ui = ui;
-        this.opened = new BuildCommunityRow(this, ui);
+        this.opened = new CommunityRow(ui);
     }
 
-    /** The view is shown: the list is loaded or fetched in the background when it has to be. */
-    void opened() {
-        CommunityList.request();
+    // =====================================================================================
+    // sizes
+
+    /** The strip's pictures: 16 px in the large menu, 12 in the small one. */
+    int icon() {
+        return tab.compact ? 10 : 16;
     }
+
+    /** A table row: the pictures and 3 px above and below. */
+    int rowH() {
+        return icon() + 6;
+    }
+
+    /** Between the strip's pictures: a missing one's dashed square reaches 1 px out, so two stay 1 px apart. */
+    static final int STRIP_GAP = 3;
 
     // =====================================================================================
     // data
@@ -113,6 +134,7 @@ final class BuildCommunityView {
             return;
         }
         cacheKey = key;
+        rowsKey = null;
         if (d == null) {
             matched = List.of();
             roleCounts = Map.of();
@@ -175,6 +197,10 @@ final class BuildCommunityView {
         return stat == 2 ? s : L.pct(s);
     }
 
+    static int statInk(Double v) {
+        return v == null ? Theme.INK_3 : v >= 0.5 ? Theme.GOOD : v <= -0.5 ? Theme.BAD : Theme.INK_2;
+    }
+
     /** The build set as the goal: the entry whose kept items are the items the road map builds around. */
     CommunityBuilds.Entry goal() {
         CommunityBuilds.Doc d = CommunityList.doc();
@@ -206,7 +232,15 @@ final class BuildCommunityView {
         return Prices.slot(emeralds);
     }
 
-    /** "2 to buy · 2.8LE" (with "+?" when a price is missing); "Owned" when nothing is. */
+    /** The cost to finish: "2.8LE" ("+" when a price is missing), "No price", "Owned". */
+    static String cost(CommunityBuilds.Compare c) {
+        if (c.missing() == 0) {
+            return L.t("wynnlabs.community.owned_short");
+        }
+        return c.knownCost() > 0 ? price(c.knownCost()) + (c.unpriced() > 0 ? "+" : "") : L.t("wynnlabs.community.no_price_short");
+    }
+
+    /** "2 to buy · 2.8LE", or "All owned". */
     static String toBuy(CommunityBuilds.Compare c) {
         if (c.missing() == 0) {
             return L.t("wynnlabs.community.all_owned");
@@ -220,103 +254,113 @@ final class BuildCommunityView {
 
     void draw(GuiGraphics g, BuildWindow.Host host, int x, int y, int w, int h, int mx, int my) {
         CommunityList.request();
-        CommunityBuilds.Doc d = CommunityList.doc();
-        if (d == null) {
+        if (CommunityList.doc() == null) {
             drawState(g, x, y, w, h, mx, my);
             return;
         }
         refreshOwned();
         refresh();
-        boolean compact = win.compact;
-        int railW = compact ? 98 : 124;
+        int railW = tab.compact ? 92 : Math.max(96, Math.min(140, w * 18 / 100));
         drawRail(g, host, x, y, railW, h, mx, my);
-        int mxl = x + railW + Theme.SP_5;
-        Kit.hair(g, mxl - Theme.SP_3, y, 1, h, Theme.LINE);
-        drawMain(g, host, mxl, y, x + w - mxl, h, mx, my);
+        int mx0 = x + railW + Theme.SP_4;
+        Kit.hair(g, x + railW + Theme.SP_1, y, 1, h, Theme.LINE);
+        drawMain(g, host, mx0, y, x + w - mx0, h, mx, my);
     }
 
     /** No list: loading, or it could not be loaded and when it is tried again. */
     private void drawState(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        CommunityList.State s = CommunityList.state();
-        if (s == CommunityList.State.FAILED) {
+        if (CommunityList.state() == CommunityList.State.FAILED) {
             long min = Math.max(1, (CommunityList.retryIn() + 59_999) / 60_000);
-            UiEmpty.draw(g, ui.font, x, y, w, h, win.compact, "world", L.t("wynnlabs.community.failed"),
+            UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "world", L.t("wynnlabs.community.failed"),
                     List.of(L.n("wynnlabs.community.retry", (int) min, min)), null, null, mx, my);
         } else {
-            UiEmpty.draw(g, ui.font, x, y, w, h, win.compact, "refresh", Ui.busy(L.t("wynnlabs.community.loading")),
+            UiEmpty.draw(g, ui.font, x, y, w, h, tab.compact, "refresh", Ui.busy(L.t("wynnlabs.community.loading")),
                     List.of(), null, null, mx, my);
         }
     }
 
     // ---- the rail ----
 
-    private int label(GuiGraphics g, String key, int x, int y) {
+    private int head(GuiGraphics g, String key, int x, int y) {
         Type.META.draw(g, ui.font, L.t(key), x, y, Theme.INK_3);
         return y + Type.META.lineHeight + Theme.SP_1;
     }
 
-    /** A check box row (8 px box, label after); returns the y under it. */
-    private int check(GuiGraphics g, BuildWindow.Host host, String text, boolean on, int x, int y, int w, String act, Object arg,
-            List<Component> tip, int mx, int my) {
+    /** A check row: an 8 px box, the label, a muted count; returns the y under it. */
+    private int check(GuiGraphics g, String text, String count, boolean on, int x, int y, int w, String act, Object arg,
+            List<Component> tip, BuildWindow.Host host, int mx, int my) {
         int rh = Type.BODY.lineHeight;
         boolean hov = BuildControls.in(mx, my, x, y, w, rh);
         int by = Type.BODY.onCaps(y, 8);
-        g.fill(x, by, x + 8, by + 8, on ? Theme.ACCENT : hov ? Theme.CARD_HOVER : Theme.WELL);
-        Kit.outline(g, x, by, 8, 8, on ? Theme.ACCENT : Theme.LINE);
+        g.fill(x, by, x + 8, by + 8, on ? Theme.WOOD : hov ? Theme.CARD_HOVER : Theme.CREAM);
+        Kit.outline(g, x, by, 8, 8, on ? Theme.WOOD_LO : Theme.INK_2);
         if (on) {
             Art.icon(g, "check", x + 1, by + 1, 6, Theme.CREAM);
         }
-        Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, text, w - 8 - Theme.SP_2), x + 8 + Theme.SP_2, y, on ? Theme.INK : Theme.INK_2);
+        int tx = x + 8 + Theme.SP_2;
+        int cw = count == null ? 0 : Type.META.width(ui.font, count) + Theme.SP_2;
+        String t = Type.BODY.fit(ui.font, text, x + w - tx - cw);
+        Type.BODY.draw(g, ui.font, t, tx, y, on ? Theme.INK : Theme.INK_2);
+        if (count != null) {
+            Type.META.draw(g, ui.font, count, tx + Type.BODY.width(ui.font, t) + Theme.SP_2, y + 1, Theme.INK_3);
+        }
         ui.btn(x, y, w, rh, act, arg);
         if (tip != null) {
             host.tip(x, y, w, rh, tip);
         }
-        return y + rh;
+        return y + rh + (tab.compact ? 0 : Theme.SP_1);
     }
 
-    /** A menu chip: the value and a chevron; returns the y under it. */
-    private int menuChip(GuiGraphics g, String text, boolean on, int x, int y, int w, int menu, int mx, int my) {
-        String t = Type.BODY.fit(ui.font, text, w - 2 * Theme.SP_4 - Theme.SP_1 - 6);
-        Ui.iconChip(g, ui.font, null, t, true, x, y, w, on, mx, my);
-        if (win.menu == menu) {
-            win.menuAt = new int[] {x, y, w, Ui.CHIP_H};
+    /** A value that opens a small menu: its text and a chevron; returns the y under it. */
+    private int value(GuiGraphics g, String text, boolean on, int x, int y, int w, int menuId, int mx, int my) {
+        int rh = Type.BODY.lineHeight;
+        String t = Type.BODY.fit(ui.font, text, w - 6 - Theme.SP_2);
+        int tw = Type.BODY.width(ui.font, t);
+        boolean hov = BuildControls.in(mx, my, x, y, tw + 6 + Theme.SP_2, rh) || tab.menuOpen == menuId;
+        Type.BODY.draw(g, ui.font, t, x, y, hov ? Theme.LINK : on ? Theme.INK : Theme.INK_2);
+        Art.icon(g, "chevron-down", x + tw + Theme.SP_1, Type.BODY.onCaps(y, 6), 6, hov ? Theme.LINK : Theme.INK_3);
+        ui.btn(x, y, tw + 6 + Theme.SP_2, rh, "menu", menuId);
+        if (tab.menuOpen == menuId) {
+            tab.menuAt = new int[] {x, y, Math.max(tw + 8, 80), rh};
         }
-        ui.btn(x, y, w, Ui.CHIP_H, "menu", menu);
-        return y + Ui.CHIP_H;
+        return y + rh + (tab.compact ? 0 : Theme.SP_1);
     }
 
     private void drawRail(GuiGraphics g, BuildWindow.Host host, int x, int y, int w, int h, int mx, int my) {
-        int gap = win.compact ? Theme.SP_1 : Theme.SP_4;
-        int step = win.compact ? 0 : Theme.SP_1;          // between check rows: none in the compact menu, so the rail fits
+        int gap = tab.compact ? Theme.SP_1 : Theme.SP_3;
         int cy = y;
+        if (!tab.compact) {
+            Type.LABEL.draw(g, ui.font, L.t("wynnlabs.community.filters"), x, cy, Theme.INK);
+            cy += Type.LABEL.lineHeight + gap;
+        }
         Klass k = klass();
         String cls = k == Klass.NONE ? L.t("wynnlabs.community.your_class_none")
                 : L.t("wynnlabs.community.your_class", k.name().charAt(0) + k.name().substring(1).toLowerCase(Locale.ROOT));
-        cy = label(g, "wynnlabs.community.f_class", x, cy);
-        cy = check(g, host, cls, !filter.allClasses(), x, cy, w, "c.classes", false, null, mx, my) + step;
-        cy = check(g, host, L.t("wynnlabs.community.all_classes"), filter.allClasses(), x, cy, w, "c.classes", true, null, mx, my) + gap;
+        cy = head(g, "wynnlabs.community.f_class", x, cy);
+        cy = check(g, cls, null, !filter.allClasses(), x, cy, w, "c.classes", false, null, host, mx, my);
+        cy = check(g, L.t("wynnlabs.community.all_classes"), null, filter.allClasses(), x, cy, w, "c.classes", true, null, host, mx, my) + gap;
 
-        cy = label(g, "wynnlabs.community.f_level", x, cy);
-        cy = menuChip(g, levelText(filter.level()), filter.level() != 0, x, cy, w, BuildWindow.MENU_C_LEVEL, mx, my) + gap;
+        cy = head(g, "wynnlabs.community.f_level", x, cy);
+        cy = value(g, levelText(filter.level()), filter.level() != 0, x, cy, w, MENU_LEVEL, mx, my) + gap;
 
-        cy = label(g, "wynnlabs.community.f_role", x, cy);
+        cy = head(g, "wynnlabs.community.f_role", x, cy);
         for (String role : CommunityBuilds.ROLES.keySet()) {
-            String t = L.t("wynnlabs.community.role." + role) + " (" + roleCounts.getOrDefault(role, 0) + ")";
-            cy = check(g, host, t, filter.roles().contains(role), x, cy, w, "c.role", role, null, mx, my) + step;
+            cy = check(g, L.t("wynnlabs.community.role." + role), String.valueOf(roleCounts.getOrDefault(role, 0)),
+                    filter.roles().contains(role), x, cy, w, "c.role", role, null, host, mx, my);
         }
-        cy += gap - step;
+        cy += gap;
 
-        cy = label(g, "wynnlabs.community.f_budget", x, cy);
-        cy = menuChip(g, budgetText(filter.budget()), filter.budget() != 0, x, cy, w, BuildWindow.MENU_C_BUDGET, mx, my) + gap;
+        cy = head(g, "wynnlabs.community.f_budget", x, cy);
+        cy = value(g, budgetText(filter.budget()), filter.budget() != 0, x, cy, w, MENU_BUDGET, mx, my) + gap;
 
-        cy = label(g, "wynnlabs.community.f_own", x, cy);
-        cy = menuChip(g, ownText(filter.own()), filter.own() != 0, x, cy, w, BuildWindow.MENU_C_OWN, mx, my) + gap;
+        cy = head(g, "wynnlabs.community.f_own", x, cy);
+        cy = value(g, ownText(filter.own()), filter.own() != 0, x, cy, w, MENU_OWN, mx, my) + gap;
 
-        cy = label(g, "wynnlabs.community.f_other", x, cy);
-        cy = check(g, host, L.t("wynnlabs.community.hide_outdated"), filter.hideOutdated(), x, cy, w, "c.outdated", null, null, mx, my) + step;
-        cy = check(g, host, L.t("wynnlabs.community.fold"), fold, x, cy, w, "c.fold", null,
-                List.of(L.c("wynnlabs.community.fold_tip").withStyle(ChatFormatting.GRAY)), mx, my) + step;
-        check(g, host, L.t("wynnlabs.community.has_crafted"), filter.crafted(), x, cy, w, "c.crafted", null, null, mx, my);
+        cy = head(g, "wynnlabs.community.f_other", x, cy);
+        cy = check(g, L.t("wynnlabs.community.hide_outdated"), null, filter.hideOutdated(), x, cy, w, "c.outdated", null, null, host, mx, my);
+        cy = check(g, L.t("wynnlabs.community.fold"), null, fold, x, cy, w, "c.fold", null,
+                List.of(L.c("wynnlabs.community.fold_tip").withStyle(ChatFormatting.GRAY)), host, mx, my);
+        check(g, L.t("wynnlabs.community.has_crafted"), null, filter.crafted(), x, cy, w, "c.crafted", null, null, host, mx, my);
     }
 
     static String levelText(int i) {
@@ -324,10 +368,10 @@ final class BuildCommunityView {
             int lv = GameState.current().level();
             return lv > 0 ? L.t("wynnlabs.community.level_yours", lv) : L.t("wynnlabs.community.level_any");
         }
-        if (i == BuildCommunityFilter.ANY_LEVEL) {
+        if (i == CommunityFilter.ANY_LEVEL) {
             return L.t("wynnlabs.community.level_any");
         }
-        int[] r = BuildCommunityFilter.LEVELS[i];
+        int[] r = CommunityFilter.LEVELS[i];
         return L.t("wynnlabs.community.level_range", r[0], r[1]);
     }
 
@@ -336,7 +380,7 @@ final class BuildCommunityView {
     }
 
     static String ownText(int i) {
-        return i == 0 ? L.t("wynnlabs.community.own_any") : L.pct(String.valueOf(BuildCommunityFilter.OWN[i]));
+        return i == 0 ? L.t("wynnlabs.community.own_any") : L.pct(String.valueOf(CommunityFilter.OWN[i]));
     }
 
     // ---- the main column ----
@@ -347,85 +391,87 @@ final class BuildCommunityView {
         String count = L.t("wynnlabs.community.count", matched.size(), d.builds().size());
         int cw = Type.META.width(ui.font, count);
         int sw = w - cw - Theme.SP_3;
-        UiInput.Hit sh = UiInput.search(g, ui.font, win.communitySearch, L.t("wynnlabs.community.search_hint"), false, x, y, sw, mx, my);
-        ui.btn(x, y, sw, UiInput.H, "search", null);
-        if (sh.clear() != null) {
-            int[] c = sh.clear();
-            ui.btn(c[0], c[1], c[2], c[3], "c.searchclear", null);
-        }
+        tab.searchHit = UiInput.search(g, ui.font, tab.search, L.t("wynnlabs.community.search_hint"), true, x, y, sw, mx, my);
         Type.META.draw(g, ui.font, count, x + w - cw, Type.META.yIn(y, UiInput.H), Theme.INK_3);
         int cy = y + UiInput.H + Theme.SP_3;
-        String q = win.communitySearch.getValue();
+        String q = tab.search.getValue();
         if (!q.equals(filter.query())) {
             filter = filter.withQuery(q);
             scroll = 0;
             refresh();
         }
 
-        // picked for you
+        // picked for you: builds that beat your gear
         List<CommunityBuilds.Entry> picks = picks();
         if (picks.isEmpty() && compared().values().stream().anyMatch(c -> c.deltas() != null)) {
-            // compared with your gear, and nothing of your class here beats it
             String none = L.t("wynnlabs.community.picked") + ": " + L.t("wynnlabs.community.nothing_beats");
             Type.META.draw(g, ui.font, Type.META.fit(ui.font, none, w), x, cy, Theme.INK_3);
             cy += Type.META.lineHeight + Theme.SP_3;
         } else if (!picks.isEmpty()) {
             Type.META.draw(g, ui.font, L.t("wynnlabs.community.picked"), x, cy, Theme.INK_3);
-            cy += Type.META.lineHeight + Theme.SP_1;
+            cy += Type.META.lineHeight + Theme.SP_2;
             int cardW = (w - 2 * Theme.SP_3) / 3;
-            int cardH = 2 * Type.BODY.lineHeight + ICON + Theme.SP_3;
+            int cardH = Type.LABEL.lineHeight + Type.META.lineHeight + icon() + 2 * Theme.SP_2 + Theme.SP_3;
             for (int i = 0; i < picks.size(); i++) {
                 drawPick(g, host, picks.get(i), x + i * (cardW + Theme.SP_3), cy, cardW, cardH, mx, my);
             }
-            cy += cardH + Theme.SP_3;
+            cy += cardH + 2 + Theme.SP_3;
         }
 
-        // the filters in force, each a chip with its ✕
+        // the filters in force: a chip each, its ✕ clearing it alone
         List<String[]> chips = activeChips();
         if (!chips.isEmpty()) {
             int cx = x;
+            int chH = Type.META.lineHeight + 4;
             for (String[] c : chips) {
-                int chw = Math.min(Type.BODY.width(ui.font, c[1]) + 2 * Theme.SP_3 + Theme.SP_2 + 6, w);
+                int chw = Type.META.width(ui.font, c[1]) + 2 * Theme.SP_3 + Theme.SP_2 + 6;
                 if (cx + chw > x + w) {
                     break;
                 }
-                ui.chosenChip(g, host, cx, cy, c[1], w, "c.unchip", c[0], mx, my);
+                boolean hov = BuildControls.in(mx, my, cx, cy, chw, chH);
+                Kit.pill(g, cx, cy, chw, chH, false, hov);
+                Type.META.draw(g, ui.font, c[1], cx + Theme.SP_3, Type.META.yIn(cy, chH), Theme.INK);
+                Art.icon(g, "x", cx + chw - Theme.SP_3 - 6, cy + (chH - 6) / 2, 6, hov ? Theme.BAD : Theme.INK_3);
+                ui.btn(cx, cy, chw, chH, "c.unchip", c[0]);
                 cx += chw + Theme.SP_2;
             }
-            cy += Ui.CHIP_H + Theme.SP_3;
+            cy += chH + Theme.SP_3;
         }
 
-        // the table
+        // the table's header, then its rows in their own scrolled clip
         int[] cols = columns(w);
-        drawHeader(g, host, x, cy, w, cols, mx, my);
+        drawHeader(g, host, x, cy, cols, mx, my);
         cy += Type.META.lineHeight + Theme.SP_2;
-        Kit.hair(g, x, cy - Theme.SP_1, w, 1, Theme.LINE);
+        Kit.hair(g, x, cy - 1, w, 1, Theme.LINE);
         int listH = y + h - cy;
         CommunityBuilds.Entry goal = goal();
         if (matched.isEmpty() && goal == null) {
             drawNone(g, x, cy, w, listH, mx, my);
             return;
         }
-        listBox = new int[] {x, cy, w, listH};
         int rw = maxScroll > 0 ? w - ScrollBar.W - Theme.SP_2 : w;
+        int[] rc = rw == w ? cols : columns(rw);
         scroll = Math.max(0, Math.min(scroll, maxScroll));
-        boolean in = BuildControls.in(mx, my, x, cy, w, listH);
+        int top = cy;
+        int bottom = cy + listH;
+        boolean in = BuildControls.in(mx, my, x, top, w, listH);
         int rmx = in ? mx : -1;
         int rmy = in ? my : -1;
-        g.enableScissor(x, cy, x + w, cy + listH);
-        int ry = cy - scroll;
+        BuildWindow.Host clip = clipped(host, top, bottom);
         int firstBtn = ui.btns.size();
-        host = clipped(host, cy, cy + listH);
+        g.enableScissor(x, top, x + w, bottom);
+        int ry = top - scroll;
         List<Runnable> over = new ArrayList<>();
         if (goal != null) {
-            ry = drawEntry(g, host, goal, x, ry, rw, cols, true, cy, cy + listH, over, rmx, rmy);
+            ry = drawEntry(g, clip, goal, x, ry, rw, rc, true, top, bottom, over, rmx, rmy);
         }
         for (Object row : rows()) {
             if (row instanceof Family f) {
-                ry = drawFamily(g, host, f, x, ry, rw, cols, cy, cy + listH, rmx, rmy);
+                ry = drawFamily(g, clip, f, x, ry, rw, rc, top, bottom, rmx, rmy);
                 if (openFamilies.contains(f.key())) {
+                    int ind = Theme.SP_5;
                     for (CommunityBuilds.Entry e : f.members()) {
-                        ry = drawEntry(g, host, e, x + Theme.SP_4, ry, rw - Theme.SP_4, columns(rw - Theme.SP_4), false, cy, cy + listH, over, rmx, rmy);
+                        ry = drawEntry(g, clip, e, x + ind, ry, rw - ind, columns(rw - ind), false, top, bottom, over, rmx, rmy);
                     }
                 }
             } else {
@@ -433,30 +479,28 @@ final class BuildCommunityView {
                 if (goal != null && e.id().equals(goal.id())) {
                     continue;
                 }
-                ry = drawEntry(g, host, e, x, ry, rw, cols, false, cy, cy + listH, over, rmx, rmy);
+                ry = drawEntry(g, clip, e, x, ry, rw, rc, false, top, bottom, over, rmx, rmy);
             }
         }
         if (!over.isEmpty()) {
-            g.nextStratum();                            // the fades and price marks over the item pictures
+            g.nextStratum();                            // the fades, badges and prices over the item pictures
             over.forEach(Runnable::run);
         }
         g.disableScissor();
         // a row cut by the list's edges takes no click there (the table's header lies above it)
-        int top = cy;
-        int bottom = cy + listH;
         for (int i = ui.btns.size() - 1; i >= firstBtn; i--) {
             BuildControls.Btn b = ui.btns.get(i);
             if (b.y() < top || b.y() + b.h() > bottom) {
                 ui.btns.remove(i);
             }
         }
-        int total = ry + scroll - cy;
+        int total = ry + scroll - top;
         maxScroll = Math.max(0, total - listH);
-        bar.place(x + w - ScrollBar.W, cy, listH, listH, total, scroll);
+        bar.place(x + w - ScrollBar.W, top, listH, listH, total, scroll);
         bar.draw(g, mx, my);
     }
 
-    /** {@code host} whose hovers count only when they lie between {@code top} and {@code bottom} (the list's clip). */
+    /** {@code host} whose hovers count only between {@code top} and {@code bottom} (the list's clip). */
     private static BuildWindow.Host clipped(BuildWindow.Host host, int top, int bottom) {
         return new BuildWindow.Host() {
             @Override
@@ -467,15 +511,14 @@ final class BuildCommunityView {
             }
 
             @Override
-            public void item(int x, int y, int w, int h, io.github.anilken.wynnlabs.model.ItemData info, ItemStack stack,
-                    List<Component> extra) {
+            public void item(int x, int y, int w, int h, ItemData info, ItemStack stack, List<Component> extra) {
                 if (y >= top && y + h <= bottom) {
                     host.item(x, y, w, h, info, stack, extra);
                 }
             }
 
             @Override
-            public ItemStack icon(io.github.anilken.wynnlabs.model.ItemData info) {
+            public ItemStack icon(ItemData info) {
                 return host.icon(info);
             }
 
@@ -493,24 +536,21 @@ final class BuildCommunityView {
             public void detailed(io.github.anilken.wynnlabs.build.roadmap.Roadmap.Candidate c, int level, int rank) {
                 host.detailed(c, level, rank);
             }
-
-            @Override
-            public void craft(io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe recipe) {
-                host.craft(recipe);
-            }
         };
     }
 
-    /** The table's columns: name, gear, stat, cost, tags (0 wide in the compact menu) as x offsets {name, gear, stat, cost, tags, end}. */
+    /**
+     * The table's columns as x offsets {name, gear, stat, cost, tags, end}: the name the widest,
+     * the strip of nine pictures, the stat, the cost, the tags (none in the small menu).
+     */
     int[] columns(int w) {
-        int gear = 9 * ICON + 8 * STRIP_GAP;
-        int stat = win.compact ? 32 : 40;
-        int cost = win.compact ? 38 : 46;
-        int tags = win.compact ? 0 : Math.max(0, Math.min(84, w / 5));
+        int gear = 9 * icon() + 8 * STRIP_GAP;
+        int stat = tab.compact ? 32 : 46;
+        int cost = tab.compact ? 40 : 52;
+        int tags = tab.compact ? 0 : Math.max(0, Math.min(90, w / 7));
         int gap = Theme.SP_3;
         int name = w - gear - stat - cost - tags - (tags > 0 ? 4 : 3) * gap;
         int[] c = new int[6];
-        c[0] = 0;
         c[1] = name + gap;
         c[2] = c[1] + gear + gap;
         c[3] = c[2] + stat + gap;
@@ -519,25 +559,26 @@ final class BuildCommunityView {
         return c;
     }
 
-    private void drawHeader(GuiGraphics g, BuildWindow.Host host, int x, int y, int w, int[] c, int mx, int my) {
+    private void drawHeader(GuiGraphics g, BuildWindow.Host host, int x, int y, int[] c, int mx, int my) {
         String[] names = {L.t("wynnlabs.community.col_build"), L.t("wynnlabs.community.col_gear"),
             L.t("wynnlabs.community.stat." + STATS[stat]), L.t("wynnlabs.community.col_cost")};
         for (int i = 0; i < 4; i++) {
             int cx = x + c[i];
             int cw = c[i + 1] - c[i] - Theme.SP_3;
             boolean on = sortCol == i;
-            String t = names[i] + (on ? sortDesc ? " ▾" : " ▴" : "");
+            String t = Type.META.fit(ui.font, names[i] + (on ? sortDesc ? " ▾" : " ▴" : ""), cw);
             int tw = Type.META.width(ui.font, t);
-            boolean hov = BuildControls.in(mx, my, cx, y, Math.min(cw, tw), Type.META.lineHeight);
-            Type.META.draw(g, ui.font, Type.META.fit(ui.font, t, cw), cx, y, on || hov ? Theme.INK : Theme.INK_3);
-            ui.btn(cx, y, Math.min(cw, tw), Type.META.lineHeight, "c.sort", i);
+            boolean hov = BuildControls.in(mx, my, cx, y, tw, Type.META.lineHeight);
+            Type.META.draw(g, ui.font, t, cx, y, on || hov ? Theme.INK : Theme.INK_3);
+            ui.btn(cx, y, tw, Type.META.lineHeight, "c.sort", i);
             if (i == 2) {
                 // the stat column's switch: Dmg, EHP, Mana or Speed
-                int ax = cx + Math.min(cw, tw) + Theme.SP_1;
-                Art.icon(g, "chevron-down", ax, y + 1, 6, BuildControls.in(mx, my, ax - 1, y, 8, 9) ? Theme.INK : Theme.INK_3);
-                ui.btn(ax - 1, y - 1, 9, Type.META.lineHeight + 1, "menu", BuildWindow.MENU_C_STAT);
-                if (win.menu == BuildWindow.MENU_C_STAT) {
-                    win.menuAt = new int[] {cx, y, Math.max(60, cw), Type.META.lineHeight};
+                int ax = cx + tw + Theme.SP_1;
+                boolean ah = BuildControls.in(mx, my, ax - 1, y - 1, 9, Type.META.lineHeight + 1) || tab.menuOpen == MENU_STAT;
+                Art.icon(g, "chevron-down", ax, y + 1, 6, ah ? Theme.LINK : Theme.INK_3);
+                ui.btn(ax - 1, y - 1, 9, Type.META.lineHeight + 1, "menu", MENU_STAT);
+                if (tab.menuOpen == MENU_STAT) {
+                    tab.menuAt = new int[] {cx, y, 80, Type.META.lineHeight};
                 }
                 host.tip(ax - 1, y - 1, 9, Type.META.lineHeight + 1, List.of(L.c("wynnlabs.community.stat_tip").withStyle(ChatFormatting.GRAY)));
             }
@@ -547,125 +588,152 @@ final class BuildCommunityView {
         }
     }
 
-    /** One build's row (and, when it is the open one, its details under it); returns the y after it. */
+    /** The strip of a build's nine pictures at x, y: owned ones whole, missing ones faded in a dashed square. */
+    private void strip(GuiGraphics g, BuildWindow.Host host, CommunityBuilds.Compare cmp, int x, int y, List<Runnable> over) {
+        int ic = icon();
+        CommunityBuilds.Piece[] bySlot = CommunityRow.bySlot(cmp);
+        for (int i = 0; i < 9; i++) {
+            CommunityBuilds.Piece p = bySlot[i];
+            int px = x + i * (ic + STRIP_GAP);
+            if (p == null) {
+                continue;
+            }
+            ItemStack st = CommunityRow.icon(host, p);
+            if (!st.isEmpty()) {
+                g.pose().pushMatrix();
+                g.pose().translate(px, y);
+                g.pose().scale(ic / 16f, ic / 16f);
+                g.renderItem(st, 0, 0);
+                g.pose().popMatrix();
+            }
+            if (!p.owned()) {
+                over.add(() -> {
+                    g.fill(px, y, px + ic, y + ic, 0xA0E7D3A8);
+                    CommunityRow.dashed(g, px - 1, y - 1, ic + 2, ic + 2, 0xFFA0522D);
+                });
+            }
+            if (p.info() != null) {
+                host.item(px, y, ic, ic, p.info(), st, CommunityRow.pieceTip(p).subList(1, CommunityRow.pieceTip(p).size()));
+            } else {
+                host.tip(px, y, ic, ic, CommunityRow.pieceTip(p));
+            }
+        }
+    }
+
+    /** A small flat tag ("raid"). Returns its width. */
+    int tag(GuiGraphics g, String text, int x, int y, int ink) {
+        int w = Type.META.width(ui.font, text) + 2 * Theme.SP_2;
+        int h = Type.META.lineHeight + 2;
+        Kit.nine(g, "tag", x, y, w, h);
+        Type.META.draw(g, ui.font, text, x + Theme.SP_2, Type.META.yIn(y, h), ink);
+        return w;
+    }
+
+    /** One build's row (and, when it is the open one, its panel under it); returns the y after it. */
     private int drawEntry(GuiGraphics g, BuildWindow.Host host, CommunityBuilds.Entry e, int x, int y, int w, int[] c, boolean pinned,
             int top, int bottom, List<Runnable> over, int mx, int my) {
+        int rh = rowH();
         boolean open = e.id().equals(openId);
         CommunityBuilds.Compare cmp = compared().get(e.id());
-        if (y + ROW_H >= top && y <= bottom) {
-            boolean hov = BuildControls.in(mx, my, x, y, w, ROW_H);
-            if (pinned || open) {
-                g.fill(x - Theme.SP_1, y, x + w, y + ROW_H, Theme.SELECTED);
+        if (y + rh >= top && y <= bottom) {
+            boolean hov = BuildControls.in(mx, my, x, y, w, rh);
+            if (pinned) {
+                g.fill(x, y, x + w, y + rh, GOAL_FACE);
+                Kit.outline(g, x, y, w, rh, Theme.WOOD_LO);
+            } else if (open) {
+                g.fill(x, y, x + w, y + rh, Theme.SELECTED);
             } else if (hov) {
-                Kit.rowLit(g, x - Theme.SP_1, y, w + Theme.SP_1, ROW_H);
+                Kit.rowLit(g, x, y, w, rh);
             }
-            ui.btn(x, y, w, ROW_H, "c.open", e.id());
-            int ty = Type.BODY.yIn(y, ROW_H);
-            int nx = x;
+            if (!pinned) {
+                Kit.hair(g, x, y + rh - 1, w, 1, RULE);
+            }
+            ui.btn(x, y, w, rh, "c.open", e.id());
+            int ty = Type.BODY.yIn(y, rh);
+            int nx = x + Theme.SP_1;
             if (pinned) {
                 Art.icon(g, "target", nx, Type.BODY.onCaps(ty, 8), 8, Theme.ACCENT);
                 nx += 8 + Theme.SP_1;
             }
             int nameW = x + c[1] - Theme.SP_3 - nx;
-            Type role = win.compact ? Type.META : Type.BODY;          // the compact menu: more of the name in the small type
-            role.draw(g, ui.font, role.fit(ui.font, e.name(), nameW), nx, role.yIn(y, ROW_H), Theme.INK);
-            host.tip(x, y, c[1] - Theme.SP_3, ROW_H, rowTip(e, pinned, cmp));
-            // the gear: each piece's picture, missing ones faded in a dashed square
-            int gx = x + c[1];
-            int iy = y + (ROW_H - ICON) / 2;
-            if (cmp != null) {
-                List<CommunityBuilds.Piece> pieces = cmp.pieces();
-                for (int i = 0; i < pieces.size() && i < 9; i++) {
-                    CommunityBuilds.Piece p = pieces.get(i);
-                    int px = gx + i * (ICON + STRIP_GAP);
-                    ItemStack st = BuildCommunityRow.icon(host, p);
-                    if (!st.isEmpty()) {
-                        g.pose().pushMatrix();
-                        g.pose().translate(px, iy);
-                        g.pose().scale(ICON / 16f, ICON / 16f);
-                        g.renderItem(st, 0, 0);
-                        g.pose().popMatrix();
-                    }
-                    if (!p.owned()) {
-                        over.add(() -> {
-                            g.fill(px, iy, px + ICON, iy + ICON, 0x99EADCB4);
-                            BuildCommunityRow.dashed(g, px - 1, iy - 1, ICON + 2, ICON + 2, Theme.INK_3);
-                        });
-                    }
-                    host.tip(px, iy, ICON, ICON, BuildCommunityRow.pieceTip(p));
-                }
+            String name = e.name();
+            if (pinned) {
+                String mark = " · " + L.t("wynnlabs.community.your_goal");
+                int mw = Type.META.width(ui.font, mark);
+                String n = Type.BODY.fit(ui.font, name, Math.max(20, nameW - mw));
+                Type.BODY.draw(g, ui.font, n, nx, ty, Theme.INK);
+                Type.META.draw(g, ui.font, Type.META.fit(ui.font, mark, nameW - Type.BODY.width(ui.font, n)),
+                        nx + Type.BODY.width(ui.font, n), ty + 1, Theme.INK_3);
             } else {
-                Type.META.draw(g, ui.font, "…", gx, Type.META.yIn(y, ROW_H), Theme.INK_3);
+                Type role = tab.compact ? Type.META : Type.BODY;
+                role.draw(g, ui.font, role.fit(ui.font, name, nameW), nx, role.yIn(y, rh), Theme.INK);
             }
-            // the stat, the cost
-            String st = statText(statOf(cmp, stat), stat);
-            Double sv = statOf(cmp, stat);
-            Type.BODY.draw(g, ui.font, st == null ? "—" : st, x + c[2], ty,
-                    st == null ? Theme.INK_3 : sv >= 0.5 ? Theme.GOOD : sv <= -0.5 ? Theme.BAD : Theme.INK_2);
-            boolean priced = cmp != null && cmp.knownCost() > 0;
-            String cost = cmp == null ? "…" : cmp.missing() == 0 ? L.t("wynnlabs.community.owned_short")
-                    : priced ? price(cmp.knownCost()) + (cmp.unpriced() > 0 ? "+" : "") : L.t("wynnlabs.community.no_price_short");
-            if (pinned && cmp != null && cmp.missing() > 0 && c[4] >= c[5]) {
-                // the goal without a tags column: what is left to buy in the cost column (the price in its tooltip)
-                cost = L.n("wynnlabs.community.n_to_buy", cmp.missing(), cmp.missing());
-                priced = false;
-            }
-            Type cr = priced || cmp == null || cmp.missing() == 0 ? Type.BODY : Type.META;
-            cr.draw(g, ui.font, cr.fit(ui.font, cost, c[4] - c[3] - Theme.SP_1), x + c[3], cr.yIn(y, ROW_H),
-                    cmp != null && cmp.missing() == 0 ? Theme.GOOD : priced ? Theme.PRICE : Theme.INK_3);
+            host.tip(x, y, c[1] - Theme.SP_3, rh, rowTip(e, pinned));
+            int iy = y + (rh - icon()) / 2;
             if (cmp != null) {
-                host.tip(x + c[3], y, c[4] - c[3], ROW_H, List.of(Component.literal(toBuy(cmp)).withStyle(ChatFormatting.GOLD)));
+                strip(g, host, cmp, x + c[1], iy, over);
+            } else {
+                Type.META.draw(g, ui.font, "…", x + c[1], Type.META.yIn(y, rh), Theme.INK_3);
             }
-            // the tags (the large menu): the outdated mark first, then the play styles that fit
-            if (c[4] < c[5]) {
+            Double sv = statOf(cmp, stat);
+            String st = statText(sv, stat);
+            Type.BODY.draw(g, ui.font, st == null ? "—" : st, x + c[2], ty, statInk(sv));
+            if (cmp != null) {
+                boolean priced = cmp.knownCost() > 0 || cmp.missing() == 0;
+                // the goal's "N to buy · cost" takes the cost and tags columns
+                String cost = pinned ? toBuy(cmp) : cost(cmp);
+                int room = (pinned ? c[5] : c[4]) - c[3] - Theme.SP_1;
+                Type role = priced || pinned ? Type.BODY : Type.META;
+                role.draw(g, ui.font, role.fit(ui.font, cost, room), x + c[3], role.yIn(y, rh),
+                        cmp.missing() == 0 ? Theme.GOOD : priced ? Theme.PRICE : Theme.INK_3);
+                host.tip(x + c[3], y, c[4] - c[3], rh, List.of(Component.literal(toBuy(cmp)).withStyle(ChatFormatting.GOLD)));
+            }
+            if (!pinned && c[4] < c[5]) {
                 int tx = x + c[4];
-                int end = x + c[5];
+                int sy = y + (rh - Type.META.lineHeight - 2) / 2;
                 List<String> ts = new ArrayList<>();
-                if (pinned && cmp != null) {
-                    ts.add("goal");
-                }
                 if (e.outdated()) {
                     ts.add("outdated");
                 }
                 ts.addAll(e.tags());
-                int sy = y + (ROW_H - Ui.SEAL_H) / 2;
                 for (String t : ts) {
-                    String label = t.equals("goal") ? toBuy(cmp) : L.t(t.equals("outdated") ? "wynnlabs.community.outdated" : "wynnlabs.community.tag." + t);
+                    String label = L.t(t.equals("outdated") ? "wynnlabs.community.outdated" : "wynnlabs.community.tag." + t);
                     int lw = Type.META.width(ui.font, label) + 2 * Theme.SP_2;
-                    if (tx + lw > end) {
+                    if (tx + lw > x + c[5]) {
                         break;
                     }
-                    int colour = t.equals("goal") ? Theme.ACCENT : t.equals("outdated") ? Theme.WARN : Theme.SEAL_2;
-                    Ui.seal(g, ui.font, label, tx, sy, colour);
+                    tag(g, label, tx, sy, t.equals("outdated") ? Theme.WARN : Theme.INK_2);
                     if (t.equals("outdated")) {
-                        host.tip(tx, sy, lw, Ui.SEAL_H, List.of(L.c("wynnlabs.community.outdated_tip", e.checked()).withStyle(ChatFormatting.GRAY)));
+                        host.tip(tx, sy, lw, Type.META.lineHeight + 2,
+                                List.of(L.c("wynnlabs.community.outdated_tip", e.checked()).withStyle(ChatFormatting.GRAY)));
                     }
-                    tx += lw + Theme.SP_2;
+                    tx += lw + Theme.SP_1;
                 }
             }
         }
-        y += ROW_H + Theme.SP_2;
+        y += rh;
         if (open && cmp != null) {
-            boolean tags = c[4] >= c[5];            // no tags column: the tags under the header
-            int hgt = opened.height(e, cmp, w, tags);
-            if (y + hgt >= top && y <= bottom) {
-                opened.draw(g, host, e, cmp, x, y, w, tags, over, mx, my);
+            boolean tags = c[4] >= c[5];
+            int hgt = opened.height(e, cmp, w, tags, tab.compact);
+            int py = y + Theme.SP_1;
+            if (py + hgt >= top && py <= bottom) {
+                opened.draw(g, host, this, e, cmp, x, py, w, tags, tab.compact, over, mx, my);
             }
             if (reveal) {
                 // the opened build whole in sight: its row at the top at most, its last line at the bottom
-                int need = y + hgt - bottom;
-                int room = y - ROW_H - Theme.SP_2 - top;
+                int need = py + hgt + Theme.SP_2 - bottom;
+                int room = y - rh - top;
                 if (need > 0) {
                     scroll += Math.min(need, Math.max(0, room));
                 }
                 reveal = false;
             }
-            y += hgt + Theme.SP_3;
+            y = py + hgt + Theme.SP_3;
         }
         return y;
     }
 
-    private List<Component> rowTip(CommunityBuilds.Entry e, boolean pinned, CommunityBuilds.Compare cmp) {
+    private List<Component> rowTip(CommunityBuilds.Entry e, boolean pinned) {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(e.name()).withStyle(ChatFormatting.WHITE));
         String klass = e.any() ? L.t("wynnlabs.community.any_class") : e.klass().substring(0, 1).toUpperCase(Locale.ROOT) + e.klass().substring(1);
@@ -694,16 +762,12 @@ final class BuildCommunityView {
     /** The rows: builds, or (with look-alikes folded) families of two or more and single builds. */
     List<Object> rows() {
         String key = cacheKey + "|" + fold;
-        if (key.equals(rowsKey)) {
-            return rows;
+        if (!key.equals(rowsKey)) {
+            rows = foldRows();
+            rowsKey = key;
         }
-        rows = foldRows();
-        rowsKey = key;
         return rows;
     }
-
-    private String rowsKey;
-    private List<Object> rows = List.of();
 
     private List<Object> foldRows() {
         List<Object> out = new ArrayList<>();
@@ -759,18 +823,23 @@ final class BuildCommunityView {
 
     private int drawFamily(GuiGraphics g, BuildWindow.Host host, Family f, int x, int y, int w, int[] c, int top, int bottom,
             int mx, int my) {
-        if (y + ROW_H >= top && y <= bottom) {
+        int rh = rowH();
+        if (y + rh >= top && y <= bottom) {
             boolean open = openFamilies.contains(f.key());
-            boolean hov = BuildControls.in(mx, my, x, y, w, ROW_H);
-            if (hov) {
-                Kit.rowLit(g, x - Theme.SP_1, y, w + Theme.SP_1, ROW_H);
+            g.fill(x, y, x + w, y + rh, BAND);
+            if (BuildControls.in(mx, my, x, y, w, rh)) {
+                Kit.rowLit(g, x, y, w, rh);
             }
-            ui.btn(x, y, w, ROW_H, "c.family", f.key());
-            int ty = Type.BODY.yIn(y, ROW_H);
-            Art.icon(g, open ? "chevron-down" : "chevron-right", x, Type.BODY.onCaps(ty, 6), 6, Theme.INK_2);
-            String t = L.t("wynnlabs.community.family", f.name(), f.members().size());
-            Type.LABEL.draw(g, ui.font, Type.LABEL.fit(ui.font, t, c[1] - Theme.SP_3 - 6 - Theme.SP_2 + (c[2] - c[1])), x + 6 + Theme.SP_2, ty,
-                    Theme.INK);
+            Kit.hair(g, x, y + rh - 1, w, 1, RULE);
+            ui.btn(x, y, w, rh, "c.family", f.key());
+            int ty = Type.BODY.yIn(y, rh);
+            Art.icon(g, open ? "chevron-down" : "chevron-right", x + Theme.SP_1, Type.BODY.onCaps(ty, 6), 6, Theme.INK_2);
+            int nx = x + Theme.SP_1 + 6 + Theme.SP_2;
+            String count = " · " + f.members().size();
+            int cw = Type.META.width(ui.font, count);
+            String name = Type.LABEL.fit(ui.font, L.t("wynnlabs.community.family", f.name()), c[1] - Theme.SP_3 - (nx - x) - cw);
+            Type.LABEL.draw(g, ui.font, name, nx, ty, Theme.INK);
+            Type.META.draw(g, ui.font, count, nx + Type.LABEL.width(ui.font, name), ty + 1, Theme.INK_3);
             // the ranges: the best owned share, the stat's span, the cost's span
             Map<String, CommunityBuilds.Compare> cmp = compared();
             int bestOwned = 0;
@@ -793,17 +862,21 @@ final class BuildCommunityView {
                     lo = Math.min(lo, v);
                     hi = Math.max(hi, v);
                 }
-                clo = Math.min(clo, cc.knownCost());
-                chi = Math.max(chi, cc.knownCost());
+                if (cc.knownCost() > 0) {
+                    clo = Math.min(clo, cc.knownCost());
+                    chi = Math.max(chi, cc.knownCost());
+                }
             }
-            List<Component> tip = List.of(Component.literal(L.t("wynnlabs.community.family_tip", bestOwned, total)).withStyle(ChatFormatting.GRAY));
-            host.tip(x, y, c[2] - Theme.SP_3, ROW_H, tip);
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, L.t("wynnlabs.community.best_owned", bestOwned, total), c[2] - c[1] - Theme.SP_3),
+                    x + c[1], Type.META.yIn(y, rh), Theme.INK_3);
             String span = lo == Double.MAX_VALUE ? "—" : statText(lo, stat) + "…" + statText(hi, stat);
-            Type.META.draw(g, ui.font, Type.META.fit(ui.font, span, c[3] - c[2] - Theme.SP_1), x + c[2], Type.META.yIn(y, ROW_H), Theme.INK_2);
-            String cs = clo == Long.MAX_VALUE ? "—" : clo == chi ? price(clo) : price(clo) + "–" + price(chi);
-            Type.META.draw(g, ui.font, Type.META.fit(ui.font, cs, c[5] - c[3]), x + c[3], Type.META.yIn(y, ROW_H), Theme.PRICE);
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, span, c[3] - c[2] - Theme.SP_1), x + c[2], Type.META.yIn(y, rh),
+                    statInk(hi));
+            String cs = clo == Long.MAX_VALUE ? L.t("wynnlabs.community.no_price_short") : clo == chi ? price(clo) : price(clo) + "–" + price(chi);
+            Type.META.draw(g, ui.font, Type.META.fit(ui.font, cs, c[5] - c[3]), x + c[3], Type.META.yIn(y, rh),
+                    clo == Long.MAX_VALUE ? Theme.INK_3 : Theme.PRICE);
         }
-        return y + ROW_H + Theme.SP_2;
+        return y + rh;
     }
 
     // ---- picked for you ----
@@ -829,44 +902,47 @@ final class BuildCommunityView {
         return mine.subList(0, Math.min(3, mine.size()));
     }
 
+    /** A pick: a light flat card: the name, the damage gain in green, then "Buy", the missing pieces and the price. */
     private void drawPick(GuiGraphics g, BuildWindow.Host host, CommunityBuilds.Entry e, int x, int y, int w, int h, int mx, int my) {
         CommunityBuilds.Compare c = compared().get(e.id());
-        boolean hov = BuildControls.in(mx, my, x, y, w, h);
-        Kit.card(g, x, y, w, h, Theme.ACCENT, hov);
-        int pad = Theme.SP_2 + 1;
+        Kit.softCard(g, x, y, w, h);
+        if (BuildControls.in(mx, my, x, y, w, h)) {
+            Kit.outline(g, x + 1, y + 1, w - 2, h - 1, Theme.GOLD_DEEP);
+        }
+        int pad = Theme.SP_3;
         int ix = x + pad;
         int cy = y + Theme.SP_2;
         Type.LABEL.draw(g, ui.font, Type.LABEL.fit(ui.font, e.name(), w - 2 * pad), ix, cy, Theme.INK);
-        cy += Type.BODY.lineHeight;
+        cy += Type.LABEL.lineHeight;
         Double dmg = statOf(c, 0);
-        String d = dmg == null ? L.t("wynnlabs.community.owned_of", c.owned(), c.total())
-                : L.t("wynnlabs.community.dmg_delta", statText(dmg, 0));
-        Type.META.draw(g, ui.font, d, ix, cy, dmg == null ? Theme.INK_2 : dmg >= 0 ? Theme.GOOD : Theme.BAD);
-        cy += Type.BODY.lineHeight;
+        Type.META.draw(g, ui.font, L.t("wynnlabs.community.dmg_delta", statText(dmg, 0)), ix, cy, Theme.GOOD);
+        cy += Type.META.lineHeight + Theme.SP_1;
+        int ic = icon();
         String buy = L.t("wynnlabs.community.buy");
-        Type.META.draw(g, ui.font, buy, ix, Type.META.yIn(cy, ICON), Theme.INK_3);
+        Type.META.draw(g, ui.font, buy, ix, Type.META.yIn(cy, ic), Theme.INK_3);
         int px = ix + Type.META.width(ui.font, buy) + Theme.SP_2;
-        String cost = c.knownCost() > 0 ? price(c.knownCost()) + (c.unpriced() > 0 ? "+" : "") : L.t("wynnlabs.community.no_price_short");
+        boolean priced = c.knownCost() > 0;
+        String cost = priced ? price(c.knownCost()) + (c.unpriced() > 0 ? "+" : "") : L.t("wynnlabs.community.no_price_short");
         int costW = Type.META.width(ui.font, cost);
         for (CommunityBuilds.Piece p : c.pieces()) {
             if (p.owned()) {
                 continue;
             }
-            if (px + ICON > x + w - pad - costW - Theme.SP_2) {
+            if (px + ic > x + w - pad - costW - Theme.SP_2) {
                 break;
             }
-            ItemStack st = BuildCommunityRow.icon(host, p);
+            ItemStack st = CommunityRow.icon(host, p);
             if (!st.isEmpty()) {
                 g.pose().pushMatrix();
                 g.pose().translate(px, cy);
-                g.pose().scale(ICON / 16f, ICON / 16f);
+                g.pose().scale(ic / 16f, ic / 16f);
                 g.renderItem(st, 0, 0);
                 g.pose().popMatrix();
             }
-            host.tip(px, cy, ICON, ICON, BuildCommunityRow.pieceTip(p));
-            px += ICON + Theme.SP_1;
+            host.tip(px, cy, ic, ic, CommunityRow.pieceTip(p));
+            px += ic + Theme.SP_1;
         }
-        Type.META.draw(g, ui.font, cost, x + w - pad - costW, Type.META.yIn(cy, ICON), c.knownCost() > 0 ? Theme.PRICE : Theme.INK_3);
+        Type.META.draw(g, ui.font, cost, x + w - pad - costW, Type.META.yIn(cy, ic), priced ? Theme.PRICE : Theme.INK_3);
         ui.btn(x, y, w, h, "c.pick", e.id());
     }
 
@@ -905,23 +981,24 @@ final class BuildCommunityView {
     }
 
     private void drawNone(GuiGraphics g, int x, int y, int w, int h, int mx, int my) {
-        String sug = suggestionText(suggestion);
         int[] box = UiEmpty.draw(g, ui.font, x, y, w, h, true, "search", L.t("wynnlabs.community.none"), List.of(),
                 new UiEmpty.Action("eraser", L.t("wynnlabs.community.clear_filters"), "c.clear"), null, mx, my);
         if (box != null) {
             ui.btn(box[0], box[1], box[2], box[3], "c.clear", null);
         }
+        String sug = suggestionText(suggestion);
         if (sug != null && box != null) {
-            int sy = box[1] + box[3] + Theme.SP_4;              // under "Clear filters"
-            int sw = Type.BODY.width(ui.font, sug);
+            int sy = box[1] + box[3] + Theme.SP_4;
+            String t = Type.BODY.fit(ui.font, sug, w);
+            int sw = Type.BODY.width(ui.font, t);
             int sx = x + (w - sw) / 2;
             boolean hov = BuildControls.in(mx, my, sx, sy, sw, Type.BODY.lineHeight);
-            Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, sug, w), Math.max(x, sx), sy, hov ? Theme.ACCENT : Theme.LINK);
+            Type.BODY.draw(g, ui.font, t, sx, sy, hov ? Theme.ACCENT : Theme.LINK);
             ui.btn(sx, sy, sw, Type.BODY.lineHeight, "c.suggest", null);
         }
     }
 
-    static String suggestionText(BuildCommunityFilter.Suggestion s) {
+    static String suggestionText(CommunityFilter.Suggestion s) {
         if (s == null) {
             return null;
         }
@@ -947,10 +1024,6 @@ final class BuildCommunityView {
             case "c.fold" -> {
                 fold = !fold;
                 scroll = 0;
-            }
-            case "c.searchclear" -> {
-                win.communitySearch.setValue("");
-                win.communitySearch.setFocused(true);
             }
             case "c.sort" -> {
                 int col = (int) arg;
@@ -983,13 +1056,13 @@ final class BuildCommunityView {
             }
             case "c.unchip" -> unchip((String) arg);
             case "c.clear" -> {
-                win.communitySearch.setValue("");
-                set(BuildCommunityFilter.defaults());
+                tab.search.setValue("");
+                set(CommunityFilter.defaults());
             }
             case "c.suggest" -> {
                 if (suggestion != null) {
                     if (suggestion.kind().equals("search")) {
-                        win.communitySearch.setValue("");
+                        tab.search.setValue("");
                     }
                     set(suggestion.to());
                 }
@@ -997,20 +1070,18 @@ final class BuildCommunityView {
             case "c.goal" -> setGoal((String) arg, now);
             case "c.copy" -> copy((String) arg);
             case "c.craft" -> {
-                if (win.host() != null && arg instanceof io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe r) {
-                    win.host().craft(r);
-                    win.close();
+                if (arg instanceof io.github.anilken.wynnlabs.crafting.RecipeCode.Recipe r) {
+                    tab.craft(r);
                 }
             }
             default -> { }
         }
     }
 
-    private void set(BuildCommunityFilter f) {
+    private void set(CommunityFilter f) {
         filter = f;
         scroll = 0;
         cacheKey = null;
-        rowsKey = null;
     }
 
     private void unchip(String id) {
@@ -1019,7 +1090,7 @@ final class BuildCommunityView {
             return;
         }
         switch (id) {
-            case "search" -> win.communitySearch.setValue("");
+            case "search" -> tab.search.setValue("");
             case "classes" -> set(filter.withClasses(false));
             case "level" -> set(filter.withLevel(0));
             case "budget" -> set(filter.withBudget(0));
@@ -1031,21 +1102,21 @@ final class BuildCommunityView {
     }
 
     /** A menu's rows: the level ranges, the budgets, the owned shares, the stats. */
-    List<UiMenu.Item> menuItems(int menu) {
+    List<UiMenu.Item> menuItems(int menuId) {
         List<UiMenu.Item> items = new ArrayList<>();
-        switch (menu) {
-            case BuildWindow.MENU_C_LEVEL -> {
-                for (int i = 0; i < BuildCommunityFilter.LEVELS.length; i++) {
+        switch (menuId) {
+            case MENU_LEVEL -> {
+                for (int i = 0; i < CommunityFilter.LEVELS.length; i++) {
                     items.add(UiMenu.Item.of(String.valueOf(i), null, levelText(i), null, i == filter.level()));
                 }
             }
-            case BuildWindow.MENU_C_BUDGET -> {
+            case MENU_BUDGET -> {
                 for (int i = 0; i < Tuning.BUDGETS.length; i++) {
                     items.add(UiMenu.Item.of(String.valueOf(i), i > 0 ? "coin" : null, budgetText(i), null, i == filter.budget()));
                 }
             }
-            case BuildWindow.MENU_C_OWN -> {
-                for (int i = 0; i < BuildCommunityFilter.OWN.length; i++) {
+            case MENU_OWN -> {
+                for (int i = 0; i < CommunityFilter.OWN.length; i++) {
                     items.add(UiMenu.Item.of(String.valueOf(i), null, ownText(i), null, i == filter.own()));
                 }
             }
@@ -1058,11 +1129,11 @@ final class BuildCommunityView {
         return items;
     }
 
-    void pickMenu(int menu, int i) {
-        switch (menu) {
-            case BuildWindow.MENU_C_LEVEL -> set(filter.withLevel(i));
-            case BuildWindow.MENU_C_BUDGET -> set(filter.withBudget(i));
-            case BuildWindow.MENU_C_OWN -> set(filter.withOwn(i));
+    void pickMenu(int menuId, int i) {
+        switch (menuId) {
+            case MENU_LEVEL -> set(filter.withLevel(i));
+            case MENU_BUDGET -> set(filter.withBudget(i));
+            case MENU_OWN -> set(filter.withOwn(i));
             default -> {
                 stat = i;
                 sortCol = 2;
@@ -1071,23 +1142,18 @@ final class BuildCommunityView {
         }
     }
 
-    boolean isMenu(int menu) {
-        return menu == BuildWindow.MENU_C_LEVEL || menu == BuildWindow.MENU_C_BUDGET || menu == BuildWindow.MENU_C_OWN
-                || menu == BuildWindow.MENU_C_STAT;
-    }
-
     void scroll(double v) {
-        scroll = Math.max(0, Math.min(maxScroll, scroll - (int) Math.signum(v) * 3 * (ROW_H + Theme.SP_2)));
+        scroll = Math.max(0, Math.min(maxScroll, scroll - (int) Math.signum(v) * 3 * rowH()));
     }
 
     private void scrollTo(String id) {
-        int y = goal() != null ? ROW_H + Theme.SP_2 : 0;
+        int y = goal() != null ? rowH() : 0;
         for (Object row : rows()) {
             if (row instanceof CommunityBuilds.Entry e && e.id().equals(id)) {
                 scroll = y;
                 return;
             }
-            y += ROW_H + Theme.SP_2;
+            y += rowH();
         }
     }
 
@@ -1130,14 +1196,12 @@ final class BuildCommunityView {
         LinkImport.Result r = LinkImport.of(GameState.current(), b);
         Plans.Build plan = LinkImport.asPlan(r.kept(), r.build().level(), r.build().skills(), now);
         if (plan == null) {
-            if (win.host() != null) {
-                win.host().flash(L.t("wynnlabs.import.no_weapon"));
-            }
+            tab.flash(L.t("wynnlabs.import.no_weapon"));
             return;
         }
         Plans.apply(plan.named(e.name().length() > Plans.MAX_NAME ? e.name().substring(0, Plans.MAX_NAME) : e.name()));
-        Locks.set(BuildWindow.names(r.kept()));
-        win.hostApplied();
+        Locks.set(r.kept().stream().map(ItemData::name).toList());
+        tab.host().applied();
     }
 
     private void copy(String id) {
@@ -1145,9 +1209,11 @@ final class BuildCommunityView {
         if (e == null) {
             return;
         }
-        UiExport.copy(UiExport.WINDOW, e.link());
-        if (win.host() != null) {
-            win.host().flash(L.t("wynnlabs.wb.copied"));
+        try {
+            net.minecraft.client.Minecraft.getInstance().keyboardHandler.setClipboard(e.link());
+            tab.flash(L.t("wynnlabs.wb.copied"));
+        } catch (Throwable t) {
+            tab.flash(L.t("wynnlabs.wb.copy_failed"));
         }
     }
 
@@ -1161,7 +1227,7 @@ final class BuildCommunityView {
     // the preview
 
     /** The preview: the list in a state, a row opened (null: none). */
-    void preview(BuildCommunityFilter f, boolean folded, String open) {
+    void preview(CommunityFilter f, boolean folded, String open) {
         filter = f;
         fold = folded;
         openId = open;
@@ -1169,7 +1235,7 @@ final class BuildCommunityView {
         cacheKey = null;
         if (open != null) {
             scrollTo(open);
-            scroll = Math.max(0, scroll - (ROW_H + Theme.SP_2));
+            scroll = Math.max(0, scroll - rowH());
             reveal = true;
         }
     }
@@ -1178,9 +1244,5 @@ final class BuildCommunityView {
     List<CommunityBuilds.Entry> matched() {
         refresh();
         return matched;
-    }
-
-    Map<String, Integer> roleCounts() {
-        return roleCounts;
     }
 }

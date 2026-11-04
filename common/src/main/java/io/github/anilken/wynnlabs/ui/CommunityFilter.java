@@ -13,12 +13,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The community view's filters as values: class (yours or every class), level range, the play
+ * The Community tab's filters as values: class (yours or every class), level range, the play
  * style roles (each picked one must be on the build), the budget to finish, the owned share, and
  * outdated / crafted; the search over build names, item names and crafted ingredients; the sort;
  * and, when nothing matches, the one filter change that brings back the most builds.
  */
-record BuildCommunityFilter(boolean allClasses, int level, Set<String> roles, int budget, int own, boolean hideOutdated,
+record CommunityFilter(boolean allClasses, int level, Set<String> roles, int budget, int own, boolean hideOutdated,
         boolean crafted, String query) {
 
     /** Level ranges: 0 your level, then fixed ranges, the last any level. */
@@ -26,8 +26,8 @@ record BuildCommunityFilter(boolean allClasses, int level, Set<String> roles, in
     static final int ANY_LEVEL = LEVELS.length - 1;
     static final int[] OWN = {0, 25, 50, 75, 100};
 
-    static BuildCommunityFilter defaults() {
-        return new BuildCommunityFilter(false, 0, Set.of(), 0, 0, false, false, "");
+    static CommunityFilter defaults() {
+        return new CommunityFilter(false, 0, Set.of(), 0, 0, false, false, "");
     }
 
     /** The search words without a leading "uses ". */
@@ -105,42 +105,42 @@ record BuildCommunityFilter(boolean allClasses, int level, Set<String> roles, in
         return n;
     }
 
-    BuildCommunityFilter withClasses(boolean all) {
-        return new BuildCommunityFilter(all, level, roles, budget, own, hideOutdated, crafted, query);
+    CommunityFilter withClasses(boolean all) {
+        return new CommunityFilter(all, level, roles, budget, own, hideOutdated, crafted, query);
     }
 
-    BuildCommunityFilter withLevel(int l) {
-        return new BuildCommunityFilter(allClasses, l, roles, budget, own, hideOutdated, crafted, query);
+    CommunityFilter withLevel(int l) {
+        return new CommunityFilter(allClasses, l, roles, budget, own, hideOutdated, crafted, query);
     }
 
-    BuildCommunityFilter withRole(String role, boolean on) {
+    CommunityFilter withRole(String role, boolean on) {
         Set<String> r = new LinkedHashSet<>(roles);
         if (on) {
             r.add(role);
         } else {
             r.remove(role);
         }
-        return new BuildCommunityFilter(allClasses, level, Set.copyOf(r), budget, own, hideOutdated, crafted, query);
+        return new CommunityFilter(allClasses, level, Set.copyOf(r), budget, own, hideOutdated, crafted, query);
     }
 
-    BuildCommunityFilter withBudget(int b) {
-        return new BuildCommunityFilter(allClasses, level, roles, b, own, hideOutdated, crafted, query);
+    CommunityFilter withBudget(int b) {
+        return new CommunityFilter(allClasses, level, roles, b, own, hideOutdated, crafted, query);
     }
 
-    BuildCommunityFilter withOwn(int o) {
-        return new BuildCommunityFilter(allClasses, level, roles, budget, o, hideOutdated, crafted, query);
+    CommunityFilter withOwn(int o) {
+        return new CommunityFilter(allClasses, level, roles, budget, o, hideOutdated, crafted, query);
     }
 
-    BuildCommunityFilter withOutdatedHidden(boolean on) {
-        return new BuildCommunityFilter(allClasses, level, roles, budget, own, on, crafted, query);
+    CommunityFilter withOutdatedHidden(boolean on) {
+        return new CommunityFilter(allClasses, level, roles, budget, own, on, crafted, query);
     }
 
-    BuildCommunityFilter withCrafted(boolean on) {
-        return new BuildCommunityFilter(allClasses, level, roles, budget, own, hideOutdated, on, query);
+    CommunityFilter withCrafted(boolean on) {
+        return new CommunityFilter(allClasses, level, roles, budget, own, hideOutdated, on, query);
     }
 
-    BuildCommunityFilter withQuery(String q) {
-        return new BuildCommunityFilter(allClasses, level, roles, budget, own, hideOutdated, crafted, q);
+    CommunityFilter withQuery(String q) {
+        return new CommunityFilter(allClasses, level, roles, budget, own, hideOutdated, crafted, q);
     }
 
     /** Whether nothing narrows the list beyond the defaults (your class, your level). */
@@ -149,7 +149,7 @@ record BuildCommunityFilter(boolean allClasses, int level, Set<String> roles, in
     }
 
     /** One way out of an empty list: what to change, the filter it gives and how many builds then show. */
-    record Suggestion(String kind, String arg, BuildCommunityFilter to, int count) {}
+    record Suggestion(String kind, String arg, CommunityFilter to, int count) {}
 
     /** The single change that brings back the most builds; null when none brings any. */
     Suggestion suggest(List<CommunityBuilds.Entry> all, Map<String, CommunityBuilds.Compare> cmp, Klass k, int lv) {

@@ -188,7 +188,7 @@ public class LayoutMatrix implements FabricClientGameTest {
                 return;
             }
             if ("community".equals(only)) {
-                // -PpreviewOnly=community: the build window's Community view (list, an opened row), large and small
+                // -PpreviewOnly=community: the Community tab (list, an opened row, filters with the goal, nothing found), large and small
                 ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).openTab(0));
                 communityShots(ctx, out.resolve("community"));
                 return;
@@ -1000,42 +1000,42 @@ public class LayoutMatrix implements FabricClientGameTest {
             ctx.waitTicks(5);
             String n = size[0] + "x" + size[1];
             ctx.runOnClient(mc -> {
-                BuildWindow w = BuildWindow.INSTANCE;
-                w.openCommunity();
-                w.communitySearch.setValue("");
-                w.community.preview(BuildCommunityFilter.defaults(), false, null);
+                RoadmapScreen rs = (RoadmapScreen) mc.screen;
+                rs.openTab(RoadmapScreen.TAB_COMMUNITY);
+                CommunityTab w = rs.community;
+                w.search.setValue("");
+                w.page.preview(CommunityFilter.defaults(), false, null);
             });
             wbShot(ctx, dir, n + "-list");
             // an opened row: the build of the list with the most pieces owned, at least one missing
             ctx.runOnClient(mc -> {
-                BuildWindow w = BuildWindow.INSTANCE;
+                CommunityTab w = ((RoadmapScreen) mc.screen).community;
                 var cmp = io.github.anilken.wynnlabs.build.CommunityList.compared();
-                open[0] = w.community.matched().stream().filter(e -> cmp.get(e.id()) != null && cmp.get(e.id()).missing() > 0)
+                open[0] = w.page.matched().stream().filter(e -> cmp.get(e.id()) != null && cmp.get(e.id()).missing() > 0)
                         .max(java.util.Comparator.comparingInt(e -> cmp.get(e.id()).owned())).map(e -> e.id()).orElse(null);
-                w.community.preview(BuildCommunityFilter.defaults(), false, open[0]);
+                w.page.preview(CommunityFilter.defaults(), false, open[0]);
             });
             wbShot(ctx, dir, n + "-opened");
             // the filters in force as chips (a search, a role, outdated hidden) and the build set as the goal pinned on top
             ctx.runOnClient(mc -> {
-                BuildWindow w = BuildWindow.INSTANCE;
+                CommunityTab w = ((RoadmapScreen) mc.screen).community;
                 var c = io.github.anilken.wynnlabs.build.CommunityList.compared().get(open[0]);
                 Locks.use(c == null ? List.of() : c.kept());
-                w.communitySearch.setValue("uses Rarity");
-                w.community.preview(BuildCommunityFilter.defaults().withRole("leveling", true).withOutdatedHidden(true)
+                w.search.setValue("uses Rarity");
+                w.page.preview(CommunityFilter.defaults().withRole("leveling", true).withOutdatedHidden(true)
                         .withQuery("uses Rarity"), false, null);
             });
             wbShot(ctx, dir, n + "-chips-goal");
             ctx.runOnClient(mc -> {
                 Locks.use(List.of());
-                BuildWindow.INSTANCE.communitySearch.setValue("");
+                ((RoadmapScreen) mc.screen).community.search.setValue("");
             });
-            ctx.runOnClient(mc -> BuildWindow.INSTANCE.community.preview(
-                    BuildCommunityFilter.defaults().withLevel(BuildCommunityFilter.ANY_LEVEL).withRole("raid", true), true, null));
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).community.page.preview(
+                    CommunityFilter.defaults().withLevel(CommunityFilter.ANY_LEVEL).withRole("raid", true), true, null));
             wbShot(ctx, dir, n + "-raid-folded");
-            ctx.runOnClient(mc -> BuildWindow.INSTANCE.community.preview(
-                    BuildCommunityFilter.defaults().withRole("raid", true), false, null));
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).community.page.preview(
+                    CommunityFilter.defaults().withRole("raid", true), false, null));
             wbShot(ctx, dir, n + "-none");
-            ctx.runOnClient(mc -> BuildWindow.INSTANCE.close());
         }
     }
 

@@ -3150,7 +3150,6 @@
   "wynnlabs.today.slot_limit_tip_on": "Only your top earners get a Trade Market slot; click to drop the limit",
   "wynnlabs.today.slot_limit_tip_off": "Every item worth listing goes to the Trade Market; click to stick to your slots",
   "wynnlabs.ai.ep_community": "Community builds with what you own",
-  "wynnlabs.community.tab": "Community",
   "wynnlabs.community.loading": "Loading the community build list",
   "wynnlabs.community.failed": "The community list couldn't be loaded",
   "wynnlabs.community.retry": "Next try in %s minute|Next try in %s minutes",
@@ -3159,7 +3158,6 @@
   "wynnlabs.community.picked": "Picked for you",
   "wynnlabs.community.buy": "Buy",
   "wynnlabs.community.dmg_delta": "%s dmg",
-  "wynnlabs.community.owned_of": "%s of %s owned",
   "wynnlabs.community.f_class": "Class",
   "wynnlabs.community.your_class": "Your class (%s)",
   "wynnlabs.community.your_class_none": "Your class",
@@ -3227,8 +3225,7 @@
   "wynnlabs.community.owned_short": "Owned",
   "wynnlabs.community.no_price": "No price",
   "wynnlabs.community.market_price": "Trade Market: %s",
-  "wynnlabs.community.family": "%s family · %s",
-  "wynnlabs.community.family_tip": "Best owned: %s of %s",
+  "wynnlabs.community.family": "%s family",
   "wynnlabs.community.none": "No build matches",
   "wynnlabs.community.clear_filters": "Clear filters",
   "wynnlabs.community.try_budget": "Raise budget to %s: %s build|Raise budget to %s: %s builds",
@@ -3268,6 +3265,9 @@
   "wynnlabs.community.copy_link": "Copy link",
   "wynnlabs.community.copy_tip": "Copies the build link to the clipboard",
   "wynnlabs.community.no_price_short": "No price",
-  "wynnlabs.community.nothing_beats": "Nothing beats your gear yet",
-  "wynnlabs.community.n_to_buy": "%s to buy|%s to buy"
+  "wynnlabs.screen.tab_community": "Community",
+  "wynnlabs.community.filters": "Filters",
+  "wynnlabs.community.your_goal": "Your goal",
+  "wynnlabs.community.best_owned": "Best %s/%s owned",
+  "wynnlabs.community.nothing_beats": "Nothing beats your gear yet"
 }

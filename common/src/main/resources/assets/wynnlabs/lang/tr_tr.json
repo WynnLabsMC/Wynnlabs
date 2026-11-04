@@ -3150,7 +3150,6 @@
   "wynnlabs.today.slot_limit_tip_on": "Sadece en çok kazandıranlar Trade Market slotu alır; sınırı kaldırmak için tıkla",
   "wynnlabs.today.slot_limit_tip_off": "Listelemeye değen her item Trade Market'e gider; slotlarına uymak için tıkla",
   "wynnlabs.ai.ep_community": "Sahip olduklarınla topluluk build'leri",
-  "wynnlabs.community.tab": "Topluluk",
   "wynnlabs.community.loading": "Topluluk build listesi yükleniyor",
   "wynnlabs.community.failed": "Topluluk listesi yüklenemedi",
   "wynnlabs.community.retry": "%s dakika sonra tekrar denenecek",
@@ -3159,7 +3158,6 @@
   "wynnlabs.community.picked": "Senin için seçilenler",
   "wynnlabs.community.buy": "Al",
   "wynnlabs.community.dmg_delta": "%s hasar",
-  "wynnlabs.community.owned_of": "%s / %s sende",
   "wynnlabs.community.f_class": "Class",
   "wynnlabs.community.your_class": "Senin class'ın (%s)",
   "wynnlabs.community.your_class_none": "Senin class'ın",
@@ -3227,8 +3225,7 @@
   "wynnlabs.community.owned_short": "Sende",
   "wynnlabs.community.no_price": "Fiyat yok",
   "wynnlabs.community.market_price": "Trade Market: %s",
-  "wynnlabs.community.family": "%s ailesi · %s",
-  "wynnlabs.community.family_tip": "En çok sende olan: %s / %s",
+  "wynnlabs.community.family": "%s ailesi",
   "wynnlabs.community.none": "Eşleşen build yok",
   "wynnlabs.community.clear_filters": "Filtreleri temizle",
   "wynnlabs.community.try_budget": "Bütçeyi %s yap: %s build",
@@ -3268,6 +3265,9 @@
   "wynnlabs.community.copy_link": "Linki kopyala",
   "wynnlabs.community.copy_tip": "Build linkini panoya kopyalar",
   "wynnlabs.community.no_price_short": "Fiyat yok",
-  "wynnlabs.community.nothing_beats": "Henüz gear'ından iyisi yok",
-  "wynnlabs.community.n_to_buy": "%s alınacak"
+  "wynnlabs.screen.tab_community": "Topluluk",
+  "wynnlabs.community.filters": "Filtreler",
+  "wynnlabs.community.your_goal": "Hedefin",
+  "wynnlabs.community.best_owned": "En çok %s/%s sende",
+  "wynnlabs.community.nothing_beats": "Henüz gear'ından iyisi yok"
 }

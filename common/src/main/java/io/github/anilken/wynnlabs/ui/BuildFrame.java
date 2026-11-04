@@ -30,7 +30,6 @@ final class BuildFrame {
             {BuildWindow.View.RESULTS, "sparkles", win.result == null ? null : L.t("wynnlabs.results.tab", win.result.builds().size())},
             {BuildWindow.View.SAVED, "bookmark", L.t("wynnlabs.saved.tab", saves)},
             {BuildWindow.View.EDIT, "edit", editName()},
-            {BuildWindow.View.COMMUNITY, "user", L.t("wynnlabs.community.tab")},
         };
         for (Object[] t : tabs) {
             if (t[2] == null) {
@@ -96,7 +95,7 @@ final class BuildFrame {
             case PICK -> GameState.current().inGame();
             case RESULTS -> win.result != null && !win.result.builds().isEmpty();
             case EDIT -> win.editId != null && Plans.byId(win.editId) != null;
-            case SAVED, COMMUNITY -> false;
+            case SAVED -> false;
         };
     }
 
@@ -112,7 +111,7 @@ final class BuildFrame {
                 yield WynnBuilderExport.milestone(c.set(), c.eval(), win.result.level());
             }
             case EDIT -> WynnBuilderExport.saved(Plans.byId(win.editId));
-            case SAVED, COMMUNITY -> null;
+            case SAVED -> null;
         };
     }
 
@@ -128,9 +127,7 @@ final class BuildFrame {
     /** The open menu (level range, budget or priority) over everything, its rows clickable. */
     void menuList(GuiGraphics g, int mx, int my) {
         List<UiMenu.Item> items = new ArrayList<>();
-        if (win.community.isMenu(win.menu)) {
-            items.addAll(win.community.menuItems(win.menu));
-        } else if (win.menu == BuildWindow.MENU_RANGE) {
+        if (win.menu == BuildWindow.MENU_RANGE) {
             for (int i = 0; i < BuildPickView.RANGES.length; i++) {
                 items.add(UiMenu.Item.of(String.valueOf(i), null, BuildPickView.rangeText(i), null, i == win.pick.range));
             }
