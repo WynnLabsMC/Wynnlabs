@@ -3159,7 +3159,7 @@
   "wynnlabs.community.buy": "Buy",
   "wynnlabs.community.dmg_delta": "%s dmg",
   "wynnlabs.community.f_class": "Class",
-  "wynnlabs.community.your_class": "Your class (%s)",
+  "wynnlabs.community.your_class": "%s (you)",
   "wynnlabs.community.your_class_none": "Your class",
   "wynnlabs.community.all_classes": "All classes",
   "wynnlabs.community.any_class": "Any class",

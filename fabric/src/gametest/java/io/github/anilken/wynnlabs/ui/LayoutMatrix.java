@@ -1007,9 +1007,14 @@ public class LayoutMatrix implements FabricClientGameTest {
                 w.page.preview(CommunityFilter.defaults(), false, null);
             });
             wbShot(ctx, dir, n + "-list");
+            // every level: builds above the fixture's level beat its gear, so the picks show
+            ctx.runOnClient(mc -> ((RoadmapScreen) mc.screen).community.page.preview(
+                    CommunityFilter.defaults().withLevel(CommunityFilter.ANY_LEVEL), false, null));
+            wbShot(ctx, dir, n + "-picks");
             // an opened row: the build of the list with the most pieces owned, at least one missing
             ctx.runOnClient(mc -> {
                 CommunityTab w = ((RoadmapScreen) mc.screen).community;
+                w.page.preview(CommunityFilter.defaults(), false, null);
                 var cmp = io.github.anilken.wynnlabs.build.CommunityList.compared();
                 open[0] = w.page.matched().stream().filter(e -> cmp.get(e.id()) != null && cmp.get(e.id()).missing() > 0)
                         .max(java.util.Comparator.comparingInt(e -> cmp.get(e.id()).owned())).map(e -> e.id()).orElse(null);

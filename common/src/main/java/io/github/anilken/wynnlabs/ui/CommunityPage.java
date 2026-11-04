@@ -46,6 +46,8 @@ final class CommunityPage {
     static final int RULE = 0x559A855C;
     static final int BAND = 0xFFDCCB9C;
     static final int GOAL_FACE = 0xFFF3E6BF;
+    /** A small tag's face ("raid"). */
+    static final int TAG_FACE = 0xFFDCC79C;
 
     private final CommunityTab tab;
     private final BuildControls ui;
@@ -624,7 +626,7 @@ final class CommunityPage {
     int tag(GuiGraphics g, String text, int x, int y, int ink) {
         int w = Type.META.width(ui.font, text) + 2 * Theme.SP_2;
         int h = Type.META.lineHeight + 2;
-        Kit.nine(g, "tag", x, y, w, h);
+        Kit.box(g, x, y, w, h, TAG_FACE, 0);
         Type.META.draw(g, ui.font, text, x + Theme.SP_2, Type.META.yIn(y, h), ink);
         return w;
     }
@@ -658,12 +660,8 @@ final class CommunityPage {
             int nameW = x + c[1] - Theme.SP_3 - nx;
             String name = e.name();
             if (pinned) {
-                String mark = " · " + L.t("wynnlabs.community.your_goal");
-                int mw = Type.META.width(ui.font, mark);
-                String n = Type.BODY.fit(ui.font, name, Math.max(20, nameW - mw));
-                Type.BODY.draw(g, ui.font, n, nx, ty, Theme.INK);
-                Type.META.draw(g, ui.font, Type.META.fit(ui.font, mark, nameW - Type.BODY.width(ui.font, n)),
-                        nx + Type.BODY.width(ui.font, n), ty + 1, Theme.INK_3);
+                // the target says it is your goal (and the row's tip): the name keeps the room
+                Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, name, nameW), nx, ty, Theme.INK);
             } else {
                 Type role = tab.compact ? Type.META : Type.BODY;
                 role.draw(g, ui.font, role.fit(ui.font, name, nameW), nx, role.yIn(y, rh), Theme.INK);
@@ -736,6 +734,9 @@ final class CommunityPage {
     private List<Component> rowTip(CommunityBuilds.Entry e, boolean pinned) {
         List<Component> tip = new ArrayList<>();
         tip.add(Component.literal(e.name()).withStyle(ChatFormatting.WHITE));
+        if (pinned) {
+            tip.add(L.c("wynnlabs.community.your_goal").withStyle(ChatFormatting.GOLD));
+        }
         String klass = e.any() ? L.t("wynnlabs.community.any_class") : e.klass().substring(0, 1).toUpperCase(Locale.ROOT) + e.klass().substring(1);
         tip.add(Component.literal(klass + " · " + L.t("wynnlabs.community.levels", e.levelMin(), e.levelMax()) + " · " + source(e))
                 .withStyle(ChatFormatting.GRAY));

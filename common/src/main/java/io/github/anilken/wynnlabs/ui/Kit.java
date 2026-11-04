@@ -143,6 +143,17 @@ final class Kit {
         nine(g, "tile_ring", x, y, size, size, ring);
     }
 
+    /**
+     * A rounded box of any size: the tile's face in {@code fill} and its one-screen-pixel ring in
+     * {@code ring} (0 = none). Panels, item tiles and small flat pills.
+     */
+    static void box(GuiGraphics g, int x, int y, int w, int h, int fill, int ring) {
+        nine(g, "tile", x, y, w, h, fill);
+        if (ring != 0) {
+            nine(g, "tile_ring", x, y, w, h, ring);
+        }
+    }
+
     /** A kind's badge (a town, a merchant, a mob, a chest ...): see {@link KindBadge}; returns the size drawn. */
     static int kindBadge(GuiGraphics g, int x, int y, int size, KindBadge badge) {
         return KindBadge.draw(g, x, y, size, badge);

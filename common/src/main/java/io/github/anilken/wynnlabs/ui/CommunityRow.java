@@ -32,6 +32,8 @@ final class CommunityRow {
     private static final int FACE = 0xFFF5EAD0;
     private static final int TILE = 0xFFEFE1BD;
     private static final int TILE_MISSING = 0xFFF3E6C4;
+    /** A stat pill's face (+18% dmg). */
+    static final int PILL = 0xFFECDCB6;
     private static final int PRICE_INK = 0xFFFFE9A8;
     /** The badges: equipped, in the bag, on a bank page. */
     private static final int EQUIPPED = 0xFF6F8A3E;
@@ -271,9 +273,8 @@ final class CommunityRow {
     void draw(GuiGraphics g, BuildWindow.Host host, CommunityPage page, CommunityBuilds.Entry e, CommunityBuilds.Compare c,
             int x, int y, int w, boolean tags, boolean compact, List<Runnable> over, int mx, int my) {
         int h = height(e, c, w, tags, compact);
-        // the panel: a 2 px dark edge round a light face
-        g.fill(x, y, x + w, y + h, EDGE);
-        g.fill(x + 2, y + 2, x + w - 2, y + h - 2, FACE);
+        // the panel: a rounded light face with a dark ring
+        Kit.box(g, x, y, w, h, FACE, EDGE);
         int pad = pad(compact);
         int ix = x + pad;
         int inner = w - 2 * pad;
@@ -306,7 +307,7 @@ final class CommunityRow {
             }
             int pw = pillW(i, v);
             int ph = Type.META.lineHeight + 4;
-            Kit.nine(g, "tag", px, py, pw, ph);
+            Kit.box(g, px, py, pw, ph, PILL, 0);
             String val = CommunityPage.statText(v, i);
             Type.META.draw(g, ui.font, val, px + Theme.SP_3, Type.META.yIn(py, ph), CommunityPage.statInk(v));
             Type.META.draw(g, ui.font, " " + L.t("wynnlabs.community.stat." + CommunityPage.STATS[i]),
@@ -408,7 +409,10 @@ final class CommunityRow {
         bx -= gw + Theme.SP_2;
         boolean can = CommunityPage.canGoal(e);
         if (can) {
-            Ui.button(g, ui.font, goal, bx, by0, gw, mx, my);
+            // the page's one primary action: purple, its label cream
+            Kit.pillPrimary(g, bx, by0, gw, Ui.BUTTON_H, BuildControls.in(mx, my, bx, by0, gw, Ui.BUTTON_H));
+            Type.LABEL.draw(g, ui.font, goal, bx + (gw - Type.LABEL.width(ui.font, goal)) / 2, Type.LABEL.yIn(by0, Ui.BUTTON_H),
+                    Theme.CREAM);
             ui.btn(bx, by0, gw, Ui.BUTTON_H, "c.goal", e.id());
         } else {
             flatButton(g, host, goal, bx, by0, null, null, null, -1, -1);
@@ -427,8 +431,7 @@ final class CommunityRow {
             int mx, int my) {
         int w = copyW(text);
         boolean hov = BuildControls.in(mx, my, x, y, w, Ui.BUTTON_H);
-        g.fill(x + 1, y + 1, x + w - 1, y + Ui.BUTTON_H - 1, hov ? Theme.CARD_HOVER : TILE_MISSING);
-        Kit.outline(g, x, y, w, Ui.BUTTON_H, BAG);
+        Kit.pill(g, x, y, w, Ui.BUTTON_H, false, hov);
         Type.BODY.draw(g, ui.font, text, x + Theme.SP_4, Type.BODY.yIn(y, Ui.BUTTON_H), act == null ? Theme.INK_3 : Theme.INK);
         if (act != null) {
             ui.btn(x, y, w, Ui.BUTTON_H, act, arg);
@@ -468,20 +471,13 @@ final class CommunityRow {
         int sx = x + (tw - sl) / 2;
         int sy = y + 2 + Theme.SP_2;
         if (p == null) {
-            g.fill(x, y, x + tw, y + th, TILE);
-            Kit.outline(g, x, y, tw, th, CommunityPage.RULE);
+            Kit.box(g, x, y, tw, th, TILE, CommunityPage.RULE);
             Kit.slot(g, sx, sy, sl, 0);
             return;
         }
         int ink = tierInk(p);
-        if (p.owned()) {
-            g.fill(x, y, x + tw, y + th, TILE);
-            Kit.outline(g, x, y, tw, th, ink);
-            Kit.outline(g, x + 1, y + 1, tw - 2, th - 2, ink);
-        } else {
-            g.fill(x, y, x + tw, y + th, TILE_MISSING);
-            dashed(g, x, y, tw, th, ink);
-        }
+        // owned: the tier's ring; missing: a paler face and the ring at half strength
+        Kit.box(g, x, y, tw, th, p.owned() ? TILE : TILE_MISSING, p.owned() ? ink : (ink & 0xFFFFFF) | 0x80000000);
         Kit.slot(g, sx, sy, sl, 0);
         ItemStack st = icon(host, p);
         int off = (sl - 16) / 2;
