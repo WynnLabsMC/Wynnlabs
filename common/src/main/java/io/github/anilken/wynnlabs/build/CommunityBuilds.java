@@ -294,7 +294,8 @@ public final class CommunityBuilds {
          * the raw damage that counts for spells and attacks alike.
          */
         public double rawSpell() {
-            double r = id("rawSpellDamage") + id("rawElementalSpellDamage") + id("rawDamage") + id("rawElementalDamage");
+            double r = id("rawSpellDamage") + id("rawNeutralSpellDamage") + id("rawElementalSpellDamage") + id("rawDamage")
+                    + id("rawElementalDamage");
             for (String el : new String[] {"Earth", "Thunder", "Water", "Fire", "Air"}) {
                 r += id("raw" + el + "SpellDamage");
             }
@@ -337,7 +338,7 @@ public final class CommunityBuilds {
 
     /** The identifications {@link Totals} keeps. */
     static final List<String> ID_KEYS = List.of("spellDamage", "rawSpellDamage", "mainAttackDamage", "rawMainAttackDamage",
-            "damage", "rawDamage", "rawElementalSpellDamage", "rawElementalDamage",
+            "damage", "rawDamage", "rawElementalSpellDamage", "rawElementalDamage", "rawNeutralSpellDamage",
             "rawEarthSpellDamage", "rawThunderSpellDamage", "rawWaterSpellDamage", "rawFireSpellDamage", "rawAirSpellDamage",
             "healthRegen", "healthRegenRaw", "lifeSteal", "manaRegen", "manaSteal", "walkSpeed", "lootBonus", "xpBonus", "combatExperience",
             "gatherXpBonus", "gatheringExperience",

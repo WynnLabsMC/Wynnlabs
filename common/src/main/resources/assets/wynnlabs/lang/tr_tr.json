@@ -3273,7 +3273,7 @@
   "wynnlabs.community.owned_count": "%s/%s sende",
   "wynnlabs.community.no_totals": "Bu build'in stat'ları hesaplanamadı",
   "wynnlabs.community.all_stats": "Tüm stat'lar",
-  "wynnlabs.community.all_stats_tip": "Build'in Lv %s'teki kendi toplamları, o level'ın verdiği skill point'lerle; gear'ınla karşılaştırılmaz",
+  "wynnlabs.community.all_stats_tip": "Build'in Lv %s'teki kendi toplamları, perfect roll'larla ve o level'ın verdiği skill point'lerle; gear'ınla karşılaştırılmaz",
   "wynnlabs.community.st.offence": "Saldırı",
   "wynnlabs.community.st.defence": "Savunma",
   "wynnlabs.community.st.utility": "Yardımcı",

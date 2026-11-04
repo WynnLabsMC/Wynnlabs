@@ -127,7 +127,7 @@ public final class LinkImport {
         for (Row row : r.rows()) {
             Damage.Piece p = row.made() != null ? row.made()
                     : row.info() != null && (row.why() == Why.KEPT || row.why() == Why.CLASS)
-                    ? Damage.piece(row.info(), row.piece().powders()) : null;
+                    ? Damage.bestRoll(row.info(), row.piece().powders()) : null;     // a shared build means perfect rolls
             if (p == null) {
                 continue;
             }

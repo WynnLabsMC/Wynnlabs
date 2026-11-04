@@ -3273,7 +3273,7 @@
   "wynnlabs.community.owned_count": "%s/%s owned",
   "wynnlabs.community.no_totals": "No stats for this build",
   "wynnlabs.community.all_stats": "All stats",
-  "wynnlabs.community.all_stats_tip": "The build's own totals at Lv %s, with the skill points that level earns; never compared with your gear",
+  "wynnlabs.community.all_stats_tip": "The build's own totals at Lv %s with perfect rolls, with the skill points that level earns; never compared with your gear",
   "wynnlabs.community.st.offence": "Offence",
   "wynnlabs.community.st.defence": "Defence",
   "wynnlabs.community.st.utility": "Utility",
