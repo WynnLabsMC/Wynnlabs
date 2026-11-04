@@ -7,7 +7,6 @@ import com.google.gson.JsonObject;
 
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
 import io.github.anilken.wynnlabs.core.Dirs;
-import io.github.anilken.wynnlabs.core.EmbeddedKey;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.core.Rules;
@@ -332,7 +331,7 @@ public final class Prices {
     /** Null while prices come in; shown in the settings tab, worded there (it follows a language switch). */
     public static volatile Words problem;
     /** True when {@link #problem} is the refused key (cleared when a new key is saved). */
-    private static volatile boolean keyProblem;
+    static volatile boolean keyProblem;
 
     private static Field pricesField;
     private static Object serviceInstance;
@@ -426,7 +425,7 @@ public final class Prices {
                     io.github.anilken.wynnlabs.core.Workers.factory("wynninv-listings", false));
     private static final java.util.concurrent.atomic.AtomicInteger LISTINGS_PENDING = new java.util.concurrent.atomic.AtomicInteger();
     private static final java.util.Set<String> QUEUED = ConcurrentHashMap.newKeySet();
-    private static final Map<String, Long> MISSES = new ConcurrentHashMap<>();
+    static final Map<String, Long> MISSES = new ConcurrentHashMap<>();
     /** Names whose last request got no answer (a rate limit, a server error): asked again after {@link #RETRY_MS}. */
     private static final Map<String, Long> FAILS = new ConcurrentHashMap<>();
     private static final long RETRY_MS = 2 * 60 * 1000L;
@@ -468,12 +467,7 @@ public final class Prices {
      * price ("~5 EB · past price"). Never holds " (", so cutting at it keeps the mark.
      */
     public static String buyText(String name) {
-        Price p = GameState.current().price(name);
-        if (p == null || !p.uncertain()) {
-            return text(name, false);
-        }
-        Double v = p.buyPrice();
-        return v == null ? null : past("~" + fmt(v));
+        return PriceFormat.buyText(name);
     }
 
     /** "~5 EB · past price": a shown price marked as one from listings that may be gone. */
@@ -495,9 +489,7 @@ public final class Prices {
 
     /** A pool endpoint answered 401 or 403: the key is refused, as the listings call does. */
     public static void refuseKey(int status) {
-        keyInvalid = true;                      // stop asking until the player saves another key
-        problem = Words.of("wynnlabs.price.problem_key", status);
-        keyProblem = true;
+        PriceKey.refuseKey(status);
     }
     /**
      * Goes up when a cached price changes. Kept apart from {@link Rules#version}: a price change
@@ -506,108 +498,32 @@ public final class Prices {
     public static volatile int version;
     /** "14:05" under a price; built once. */
     static final java.time.format.DateTimeFormatter CLOCK = java.time.format.DateTimeFormatter.ofPattern("HH:mm");
-    /**
-     * The key as last read, so tooltips and price lookups never read the file: read in the
-     * background at most once a minute (the player may edit the file by hand), and set at once
-     * by {@link #setKey}.
-     */
-    private static volatile String cachedKey;
-    private static volatile long keyReadAt;
-    private static final java.util.concurrent.atomic.AtomicBoolean KEY_READING = new java.util.concurrent.atomic.AtomicBoolean();
     /** How many times the key file was actually read (for /perf). */
     public static final java.util.concurrent.atomic.AtomicInteger KEY_FILE_READS = new java.util.concurrent.atomic.AtomicInteger();
 
-    private static Path keyFile() {
-        return Dirs.config().resolve("wynnventory-key.txt");
-    }
-
     /** Saves the player's key (blank removes it), typed in the settings tab; never logged. */
     public static void setKey(String k) {
-        try {
-            String v = k == null ? "" : k.strip();
-            if (v.isEmpty()) {
-                Files.deleteIfExists(keyFile());
-            } else {
-                Files.createDirectories(keyFile().getParent());
-                Files.writeString(keyFile(), v, StandardCharsets.UTF_8);
-            }
-            if (!embeddedRead) {
-                embeddedKey = EmbeddedKey.load();   // removing the saved key falls back to it at once
-                embeddedRead = true;
-            }
-            cachedKey = v.isEmpty() ? null : v;
-            keyReadAt = System.currentTimeMillis();
-            keyInvalid = false;
-            MISSES.clear();
-            if (keyProblem) {
-                keyProblem = false;
-                problem = null;
-            }
-        } catch (Exception e) {
-            System.out.println("[WynnLabs] could not save the Wynnventory key: " + e.getClass().getSimpleName());
-        }
+        PriceKey.setKey(k);
     }
 
-    /**
-     * The saved key as "••••1a2b"; "••••" alone for the key built into the jar (so the settings
-     * tab does not ask for one, and shows none of its characters); null when there is neither.
-     */
+    /** The saved key masked for the settings tab ({@link PriceKey#maskedKey}). */
     public static String maskedKey() {
-        String k = cachedKey;
-        if (k == null) {
-            return key() == null ? null : "••••";
-        }
-        return "••••" + (k.length() > 4 ? k.substring(k.length() - 4) : "");
+        return PriceKey.maskedKey();
     }
-
-    /**
-     * The key built into the jar at build time ({@link EmbeddedKey}, task 7.3.6), read once off
-     * the game thread with the key file; null when this jar has none. Never logged or shown.
-     */
-    private static volatile String embeddedKey;
-    private static volatile boolean embeddedRead;
 
     /** Whether the key in use is the one built into the jar (no key saved in config). */
     public static boolean embeddedKeyInUse() {
-        return cachedKey == null && embeddedKey != null;
+        return PriceKey.embeddedKeyInUse();
     }
 
-    /**
-     * The key to send: the player's own key from config/wynnlabs/wynnventory-key.txt when one is
-     * saved, else the key built into the jar; null when there is neither.
-     */
+    /** The key to send ({@link PriceKey#key}); null when there is none. */
     public static String key() {
-        if (System.currentTimeMillis() - keyReadAt > 60_000 && KEY_READING.compareAndSet(false, true)) {
-            java.util.concurrent.CompletableFuture.runAsync(() -> {
-                try {
-                    if (!embeddedRead) {
-                        embeddedKey = EmbeddedKey.load();
-                        embeddedRead = true;
-                    }
-                    cachedKey = readKeyFile();
-                    keyReadAt = System.currentTimeMillis();
-                } finally {
-                    KEY_READING.set(false);
-                }
-            });
-        }
-        String saved = cachedKey;
-        return saved != null ? saved : embeddedKey;
+        return PriceKey.key();
     }
 
     /** Reads the key file now; null when there is none. Off the game thread. */
     static String readKeyFile() {
-        try {
-            Path f = keyFile();
-            if (Files.exists(f)) {
-                KEY_FILE_READS.incrementAndGet();
-                String k = Files.readString(f, StandardCharsets.UTF_8).strip();
-                return k.isEmpty() ? null : k;
-            }
-        } catch (Exception ignored) {
-            // no key
-        }
-        return null;
+        return PriceKey.readKeyFile();
     }
 
     /**
@@ -1040,85 +956,29 @@ public final class Prices {
      */
     public static volatile boolean coins;
 
-    /** A price written with letters: a number right before its coin ("2LE", "52EB", "3stx", "12.5LE"). */
-    private static final java.util.regex.Pattern COIN = java.util.regex.Pattern.compile("(\\d)(LE|EB|E)\\b");
-
     /** Text with prices' coins written as the game's glyphs ("2¼² 52²½"), for the game's own font. */
     public static String glyphs(String text) {
-        if (!text.contains("E")) {
-            return text;
-        }
-        java.util.regex.Matcher m = COIN.matcher(text);
-        StringBuilder out = new StringBuilder();
-        while (m.find()) {
-            String coin = m.group(2).equals("LE") ? GLYPHS[1] : m.group(2).equals("EB") ? GLYPHS[2] : GLYPHS[3];
-            m.appendReplacement(out, java.util.regex.Matcher.quoteReplacement(m.group(1) + coin));
-        }
-        m.appendTail(out);
-        return out.toString();
+        return PriceFormat.glyphs(text);
     }
-
-    private static final String[] GLYPHS = {"stx", "¼²", "²½", "²"};
-    private static final String[] LETTERS = {"stx", "LE", "EB", "E"};
 
     /** Text with the coin glyphs written as letters ("2LE 52EB 30E"), for readers without the game's font. */
     public static String letters(String text) {
-        return text.replace(GLYPHS[1], LETTERS[1]).replace(GLYPHS[2], LETTERS[2]).replace(GLYPHS[3], LETTERS[3]);
+        return PriceFormat.letters(text);
     }
 
-    /**
-     * Emeralds as Wynnventory writes them: from a stack up, stacks and liquid emeralds to a tenth
-     * ("3stx 12.5LE"); below, the two largest coins, the rest rounded ("12LE 34EB", "5EB 30E",
-     * "40E"). 1 stx = 64 LE, 1 LE = 64 EB = 4096 E.
-     */
+    /** Emeralds as Wynnventory writes them ({@link PriceFormat#fmt}): "3stx 12.5LE", "12LE 34EB", "40E". */
     public static String fmt(double emeralds) {
-        long e = Math.round(emeralds);
-        if (e < 0) {
-            return "-" + fmt(-e);
-        }
-        if (e >= 262_144) {
-            long rest = e % 262_144;
-            String stx = e / 262_144 + "stx";
-            return rest == 0 ? stx : stx + String.format(java.util.Locale.ROOT, " %.1f", rest / 4096.0)
-                    + LETTERS[1];
-        }
-        return exact(e >= 4096 ? Math.round(e / 64.0) * 64 : e);
+        return PriceFormat.fmt(emeralds);
     }
 
-    /**
-     * Emeralds in one coin, for the corner of an item slot: "40E", "14EB", "2.3LE", "1.2stx" (a
-     * tenth below ten, whole above). {@link #fmt} has the rest.
-     */
+    /** Emeralds in one coin, for the corner of an item slot: "40E", "14EB", "2.3LE", "1.2stx". */
     public static String slot(double emeralds) {
-        long e = Math.round(emeralds);
-        String[] names = coins ? GLYPHS : LETTERS;
-        long[] sizes = {262_144, 4096, 64, 1};
-        for (int k = 0; k < sizes.length - 1; k++) {
-            if (e >= sizes[k]) {
-                double v = (double) e / sizes[k];
-                return (v < 10 ? String.format(java.util.Locale.ROOT, "%.1f", v) : String.valueOf(Math.round(v))) + names[k];
-            }
-        }
-        return e + names[3];
+        return PriceFormat.slot(emeralds);
     }
 
     /** Emeralds to the emerald, every coin that is not 0: "1stx 12LE 34EB 1E", "40E", "0E". */
     public static String exact(long emeralds) {
-        if (emeralds < 0) {
-            return "-" + exact(-emeralds);
-        }
-        long[] sizes = {262_144, 4096, 64, 1};
-        String[] names = LETTERS;
-        StringBuilder b = new StringBuilder();
-        long left = emeralds;
-        for (int k = 0; k < sizes.length; k++) {
-            long n = left / sizes[k];
-            left %= sizes[k];
-            if (n > 0) {
-                b.append(b.length() > 0 ? " " : "").append(n).append(names[k]);
-            }
-        }
-        return b.length() == 0 ? "0" + names[3] : b.toString();
+        return PriceFormat.exact(emeralds);
     }
 
     public static JsonObject json() {
