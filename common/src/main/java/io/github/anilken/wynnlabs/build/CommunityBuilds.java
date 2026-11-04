@@ -289,6 +289,28 @@ public final class CommunityBuilds {
             return ids.getOrDefault(key, 0.0);
         }
 
+        /**
+         * Raw spell damage of every kind the pieces give: neutral, elemental, each element's, and
+         * the raw damage that counts for spells and attacks alike.
+         */
+        public double rawSpell() {
+            double r = id("rawSpellDamage") + id("rawElementalSpellDamage") + id("rawDamage") + id("rawElementalDamage");
+            for (String el : new String[] {"Earth", "Thunder", "Water", "Fire", "Air"}) {
+                r += id("raw" + el + "SpellDamage");
+            }
+            return r;
+        }
+
+        /** Spell damage %: its own and the % damage that counts for every hit. */
+        public double spellPct() {
+            return id("spellDamage") + id("damage");
+        }
+
+        /** Melee (main attack) damage %: its own and the % damage that counts for every hit. */
+        public double meleePct() {
+            return id("mainAttackDamage") + id("damage");
+        }
+
         /** Combat XP bonus % the pieces give (the item data names it either way). */
         public double xpBonus() {
             return id("xpBonus") + id("combatExperience");
@@ -315,6 +337,8 @@ public final class CommunityBuilds {
 
     /** The identifications {@link Totals} keeps. */
     static final List<String> ID_KEYS = List.of("spellDamage", "rawSpellDamage", "mainAttackDamage", "rawMainAttackDamage",
+            "damage", "rawDamage", "rawElementalSpellDamage", "rawElementalDamage",
+            "rawEarthSpellDamage", "rawThunderSpellDamage", "rawWaterSpellDamage", "rawFireSpellDamage", "rawAirSpellDamage",
             "healthRegen", "healthRegenRaw", "lifeSteal", "manaRegen", "manaSteal", "walkSpeed", "lootBonus", "xpBonus", "combatExperience",
             "gatherXpBonus", "gatheringExperience",
             "earthDefence", "thunderDefence", "waterDefence", "fireDefence", "airDefence", "elementalDefence");

@@ -471,9 +471,9 @@ final class CommunityRow {
 
     private static List<List<Line>> columns(CommunityBuilds.Totals t) {
         List<Line> off = List.of(
-                new Line(L.t("wynnlabs.community.st.spell_damage"), L.pct(CommunityPage.signed(t.id("spellDamage")))),
-                new Line(L.t("wynnlabs.community.st.raw_spell_damage"), CommunityPage.signed(t.id("rawSpellDamage"))),
-                new Line(L.t("wynnlabs.community.st.melee_damage"), L.pct(CommunityPage.signed(t.id("mainAttackDamage")))),
+                new Line(L.t("wynnlabs.community.st.spell_damage"), L.pct(CommunityPage.signed(t.spellPct()))),
+                new Line(L.t("wynnlabs.community.st.raw_spell_damage"), CommunityPage.signed(t.rawSpell())),
+                new Line(L.t("wynnlabs.community.st.melee_damage"), L.pct(CommunityPage.signed(t.meleePct()))),
                 new Line(L.t("wynnlabs.community.st.attack_speed"), ATTACK_SPEEDS[Math.max(0, Math.min(6, t.attackTier()))]));
         List<Line> def = List.of(
                 new Line(L.t("wynnlabs.community.st.health"), CommunityPage.big(t.health())),
