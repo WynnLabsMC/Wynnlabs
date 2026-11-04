@@ -165,6 +165,8 @@ final class CommunityPage {
                 CommunityBuilds.Compare c = cmp.get(e.id());
                 return c == null ? -1 : c.ownedPct();
             });
+            case 4 -> Comparator.<CommunityBuilds.Entry>comparingInt(CommunityBuilds.Entry::levelMin)
+                    .thenComparingInt(CommunityBuilds.Entry::levelMax);
             case 2 -> Comparator.comparingDouble(e -> {
                 Double v = statOf(cmp.get(e.id()), stat);
                 return v == null ? (sortDesc ? -1e9 : 1e9) : v;
@@ -257,6 +259,20 @@ final class CommunityPage {
     /** "Mage": a class as the game writes it. */
     static String className(Klass c) {
         return c.name().charAt(0) + c.name().substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    /** The level column's sort key in {@link #sortCol} (after the four header columns). */
+    static final int SORT_LEVEL = 4;
+
+    /** The level column's width: room for "100-121". */
+    private int levelW() {
+        Type role = tab.compact ? Type.META : Type.BODY;
+        return role.width(ui.font, "100-121") + Theme.SP_3;
+    }
+
+    /** "41-50", or "106" when the build is for one level (the column says Lv). */
+    static String levelRange(CommunityBuilds.Entry e) {
+        return e.levelMin() == e.levelMax() ? String.valueOf(e.levelMin()) : e.levelMin() + "-" + e.levelMax();
     }
 
     /** "Lv 41-50", or "Lv 106" when the build is for one level. */
@@ -356,13 +372,58 @@ final class CommunityPage {
     /** A check row: an 8 px box, the label, a muted count; returns the y under it. */
     private int check(GuiGraphics g, String text, String count, boolean on, int x, int y, int w, String act, Object arg,
             List<Component> tip, BuildWindow.Host host, int mx, int my) {
+        return choice(g, text, count, on, false, x, y, w, act, arg, tip, host, mx, my);
+    }
+
+    /** A radio button: one of a group is picked (the class). */
+    private int radio(GuiGraphics g, String text, boolean on, int x, int y, int w, String act, Object arg, BuildWindow.Host host,
+            int mx, int my) {
+        return choice(g, text, null, on, true, x, y, w, act, arg, null, host, mx, my);
+    }
+
+    /** A filled circle of radius {@code r} round cx, cy, row by row at the screen's own pixels. */
+    private static void disc(GuiGraphics g, float cx, float cy, float r, int colour) {
+        int sc;
+        try {
+            sc = Math.max(1, Math.round((float) net.minecraft.client.Minecraft.getInstance().getWindow().getGuiScale() * g.pose().m00()));
+        } catch (Throwable t) {
+            sc = 1;
+        }
+        g.pose().pushMatrix();
+        g.pose().translate(cx, cy);
+        g.pose().scale(1f / sc, 1f / sc);
+        float rr = r * sc;
+        int n = (int) Math.ceil(rr);
+        for (int dy = -n; dy < n; dy++) {
+            float yc = dy + 0.5f;
+            float half = (float) Math.sqrt(Math.max(0, rr * rr - yc * yc));
+            int x0 = Math.round(-half);
+            int x1 = Math.round(half);
+            if (x1 > x0) {
+                g.fill(x0, dy, x1, dy + 1, colour);
+            }
+        }
+        g.pose().popMatrix();
+    }
+
+    private int choice(GuiGraphics g, String text, String count, boolean on, boolean round, int x, int y, int w, String act, Object arg,
+            List<Component> tip, BuildWindow.Host host, int mx, int my) {
         int rh = Type.BODY.lineHeight;
         boolean hov = BuildControls.in(mx, my, x, y, w, rh);
         int by = Type.BODY.onCaps(y, 8);
-        g.fill(x, by, x + 8, by + 8, on ? Theme.WOOD : hov ? Theme.CARD_HOVER : Theme.CREAM);
-        Kit.outline(g, x, by, 8, 8, on ? Theme.WOOD_LO : Theme.INK_2);
-        if (on) {
-            Art.icon(g, "check", x + 1, by + 1, 6, Theme.CREAM);
+        if (round) {
+            // a round ring, a wood dot in it when picked (drawn at screen resolution so it stays round)
+            disc(g, x + 4, by + 4, 4f, on ? Theme.WOOD_LO : Theme.INK_2);
+            disc(g, x + 4, by + 4, 3.1f, hov && !on ? Theme.CARD_HOVER : Theme.CREAM);
+            if (on) {
+                disc(g, x + 4, by + 4, 1.9f, Theme.WOOD);
+            }
+        } else {
+            g.fill(x, by, x + 8, by + 8, on ? Theme.WOOD : hov ? Theme.CARD_HOVER : Theme.CREAM);
+            Kit.outline(g, x, by, 8, 8, on ? Theme.WOOD_LO : Theme.INK_2);
+            if (on) {
+                Art.icon(g, "check", x + 1, by + 1, 6, Theme.CREAM);
+            }
         }
         int tx = x + 8 + Theme.SP_2;
         int cw = count == null ? 0 : Type.META.width(ui.font, count) + Theme.SP_2;
@@ -407,8 +468,11 @@ final class CommunityPage {
             // the small menu: one line that opens the five classes, so the rail still fits
             cy = value(g, classesText(k), !filter.classes().isEmpty(), x, cy, w, MENU_CLASS, mx, my) + gap;
         } else {
+            // "All" first: ticked when every class is; ticking it picks them all, unticking goes back to yours
+            boolean all = picked.size() == CommunityFilter.CLASSES.size();
+            cy = radio(g, L.t("wynnlabs.community.all"), all, x, cy, w, "c.classes", true, host, mx, my);
             for (Klass c : CommunityFilter.CLASSES) {
-                cy = check(g, classLabel(c, k), null, picked.contains(c), x, cy, w, "c.class", c, null, host, mx, my);
+                cy = radio(g, classLabel(c, k), !all && picked.contains(c), x, cy, w, "c.class", c, host, mx, my);
             }
             cy += gap;
         }
@@ -613,7 +677,7 @@ final class CommunityPage {
      * the strip of nine pictures, the stat, the cost, the tags (none in the small menu).
      */
     int[] columns(int w) {
-        int gear = 9 * icon() + 8 * STRIP_GAP;
+        int gear = tab.compact ? 96 : 9 * icon() + 8 * STRIP_GAP;    // the key item and the owned count
         int stat = tab.compact ? 32 : 46;
         int cost = tab.compact ? 40 : 52;
         int tags = tab.compact ? 0 : Math.max(0, Math.min(90, w / 7));
@@ -631,9 +695,17 @@ final class CommunityPage {
     private void drawHeader(GuiGraphics g, BuildWindow.Host host, int x, int y, int[] c, int mx, int my) {
         String[] names = {L.t("wynnlabs.community.col_build"), L.t("wynnlabs.community.col_gear"),
             L.t("wynnlabs.community.stat." + STATS[stat]), L.t("wynnlabs.community.col_cost")};
+        // the level column sits first, after the chevrons' room, and sorts like the others
+        int lx = x + Theme.SP_1 + 6 + Theme.SP_1;
+        boolean lon = sortCol == SORT_LEVEL;
+        String lt = L.t("wynnlabs.community.col_level") + (lon ? sortDesc ? " ▾" : " ▴" : "");
+        int ltw = Type.META.width(ui.font, lt);
+        boolean lhov = BuildControls.in(mx, my, lx, y, ltw, Type.META.lineHeight);
+        Type.META.draw(g, ui.font, lt, lx, y, lon || lhov ? Theme.INK : Theme.INK_3);
+        ui.btn(lx, y, ltw, Type.META.lineHeight, "c.sort", SORT_LEVEL);
         for (int i = 0; i < 4; i++) {
-            int cx = x + c[i];
-            int cw = c[i + 1] - c[i] - Theme.SP_3;
+            int cx = x + c[i] + (i == 0 ? lx - x + levelW() : 0);
+            int cw = c[i + 1] - (cx - x) - Theme.SP_3;
             boolean on = sortCol == i;
             String t = Type.META.fit(ui.font, names[i] + (on ? sortDesc ? " ▾" : " ▴" : ""), cw);
             int tw = Type.META.width(ui.font, t);
@@ -657,39 +729,44 @@ final class CommunityPage {
         }
     }
 
-    /** The strip of a build's nine pictures at x, y: owned ones whole, missing ones faded in a dashed square. */
-    private void strip(GuiGraphics g, BuildWindow.Host host, CommunityBuilds.Compare cmp, int x, int y, List<Runnable> over) {
-        int ic = icon();
-        CommunityBuilds.Piece[] bySlot = CommunityRow.bySlot(cmp);
-        for (int i = 0; i < 9; i++) {
-            CommunityBuilds.Piece p = bySlot[i];
-            int px = x + i * (ic + STRIP_GAP);
-            if (p == null) {
-                continue;
+    /**
+     * The build's key item, its mythic or else its weapon, in its rarity's colour, then how much of
+     * the build you have ("Monster · 3/9"); its tooltip on hover. Text only: a list of hundreds of
+     * rows drawing nine items each stuttered.
+     */
+    private void keyItem(GuiGraphics g, BuildWindow.Host host, CommunityBuilds.Compare cmp, int x, int y, int w, int rh) {
+        CommunityBuilds.Piece key = null;
+        for (CommunityBuilds.Piece p : cmp.pieces()) {
+            if (p.info() != null && p.info().tier() == io.github.anilken.wynnlabs.model.Tier.MYTHIC) {
+                key = p;
+                break;
             }
-            ItemStack st = CommunityRow.icon(host, p);
-            // the piece's rarity behind it, as the game colours its items
-            int tier = CommunityRow.tierInk(p);
-            Kit.box(g, px - 1, y - 1, ic + 2, ic + 2, (tier & 0xFFFFFF) | 0x50000000, tier);
-            if (!st.isEmpty()) {
-                g.pose().pushMatrix();
-                g.pose().translate(px, y);
-                g.pose().scale(ic / 16f, ic / 16f);
-                g.renderItem(st, 0, 0);
-                g.pose().popMatrix();
-            }
-            if (!p.owned()) {
-                over.add(() -> {
-                    g.fill(px, y, px + ic, y + ic, 0x90E7D3A8);
-                    CommunityRow.dashed(g, px - 1, y - 1, ic + 2, ic + 2, tier);
-                });
-            }
-            if (p.info() != null) {
-                host.item(px, y, ic, ic, p.info(), st, CommunityRow.pieceTip(p).subList(1, CommunityRow.pieceTip(p).size()));
-            } else {
-                host.tip(px, y, ic, ic, CommunityRow.pieceTip(p));
+            if (p.slot() == io.github.anilken.wynnlabs.build.WynnBuilderLink.WEAPON) {
+                key = p;
             }
         }
+        Type role = tab.compact ? Type.META : Type.BODY;
+        int ty = role.yIn(y, rh);
+        String owned = " · " + cmp.owned() + "/" + cmp.total();
+        int ow = Type.META.width(ui.font, owned);
+        int cx = x;
+        if (key != null) {
+            // a crafted piece has no name of its own: "Crafted relik"
+            String label = key.recipe() != null && (key.name() == null || key.name().equals("?"))
+                    ? L.t("wynnlabs.community.crafted_piece", key.recipe().type().toLowerCase(Locale.ROOT)) : key.name();
+            String n = role.fit(ui.font, label == null ? "?" : label, Math.max(20, w - ow));
+            role.draw(g, ui.font, n, cx, ty, CommunityRow.tierInk(key));
+            int nw = role.width(ui.font, n);
+            if (key.info() != null) {
+                host.item(cx, y, nw, rh, key.info(), CommunityRow.icon(host, key),
+                        CommunityRow.pieceTip(key).subList(1, CommunityRow.pieceTip(key).size()));
+            } else {
+                host.tip(cx, y, nw, rh, CommunityRow.pieceTip(key));
+            }
+            cx += nw;
+        }
+        Type.META.draw(g, ui.font, Type.META.fit(ui.font, owned, x + w - cx), cx, Type.META.yIn(y, rh),
+                cmp.missing() == 0 ? Theme.GOOD : Theme.INK_3);
     }
 
     /** A small flat tag ("raid"). Returns its width. */
@@ -731,6 +808,11 @@ final class CommunityPage {
                 Art.icon(g, "target", nx, Type.BODY.onCaps(ty, 8), 8, Theme.ACCENT);
                 nx += 8 + Theme.SP_1;
             }
+            // the level first, in its own column, so the list reads and sorts by it
+            Type lvRole = pinned || !tab.compact ? Type.BODY : Type.META;
+            int lvX = x + Theme.SP_1 + 6 + Theme.SP_1;
+            lvRole.draw(g, ui.font, lvRole.fit(ui.font, levelRange(e), levelW() - Theme.SP_2), lvX, lvRole.yIn(y, rh), Theme.INK_2);
+            nx = Math.max(nx, lvX + levelW());
             int nameW = x + c[1] - Theme.SP_3 - nx;
             String name = e.name();
             if (pinned) {
@@ -738,22 +820,11 @@ final class CommunityPage {
                 Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, name, nameW), nx, ty, Theme.INK);
             } else {
                 Type role = tab.compact ? Type.META : Type.BODY;
-                // the level range after the name, muted; the name gives way first only when both cannot fit
-                String lvl = "  " + levels(e);
-                int lw = Type.META.width(ui.font, lvl);
-                if (tab.compact && role.width(ui.font, name) + lw > nameW) {
-                    lvl = "";                   // the small menu keeps the name; the level is in its tip and panel
-                    lw = 0;
-                }
-                String n = role.fit(ui.font, name, Math.max(nameW / 2, nameW - lw));
-                role.draw(g, ui.font, n, nx, role.yIn(y, rh), Theme.INK);
-                int after = nx + role.width(ui.font, n);
-                Type.META.draw(g, ui.font, Type.META.fit(ui.font, lvl, nx + nameW - after), after, Type.META.yIn(y, rh), Theme.INK_3);
+                role.draw(g, ui.font, role.fit(ui.font, name, nameW), nx, role.yIn(y, rh), Theme.INK);
             }
             host.tip(x, y, c[1] - Theme.SP_3, rh, rowTip(e, pinned));
-            int iy = y + (rh - icon()) / 2;
             if (cmp != null) {
-                strip(g, host, cmp, x + c[1], iy, over);
+                keyItem(g, host, cmp, x + c[1], y, c[2] - c[1] - Theme.SP_3, rh);
             } else {
                 Type.META.draw(g, ui.font, "…", x + c[1], Type.META.yIn(y, rh), Theme.INK_3);
             }
@@ -1111,10 +1182,7 @@ final class CommunityPage {
     void click(String act, Object arg, long now) {
         switch (act) {
             case "c.classes" -> set(filter.withClasses((boolean) arg));
-            case "c.class" -> {
-                Klass c = (Klass) arg;
-                set(filter.withClass(c, !filter.picked(klass()).contains(c), klass()));
-            }
+            case "c.class" -> set(filter.onlyClass((Klass) arg, klass()));
             case "c.role" -> {
                 String r = (String) arg;
                 set(filter.withRole(r, !filter.roles().contains(r)));
@@ -1131,7 +1199,7 @@ final class CommunityPage {
                     sortDesc = !sortDesc;
                 } else {
                     sortCol = col;
-                    sortDesc = col != 0 && col != 3;
+                    sortDesc = col != 0 && col != 3 && col != SORT_LEVEL;
                 }
             }
             case "c.stats" -> {
@@ -1224,9 +1292,11 @@ final class CommunityPage {
             }
             case MENU_CLASS -> {
                 Set<Klass> picked = filter.picked(klass());
+                items.add(UiMenu.Item.of("-1", null, L.t("wynnlabs.community.all"), null, picked.size() == CommunityFilter.CLASSES.size()));
                 for (int i = 0; i < CommunityFilter.CLASSES.size(); i++) {
                     Klass c = CommunityFilter.CLASSES.get(i);
-                    items.add(UiMenu.Item.of(String.valueOf(i), null, classLabel(c, klass()), null, picked.contains(c)));
+                    items.add(UiMenu.Item.of(String.valueOf(i), null, classLabel(c, klass()), null,
+                            picked.size() < CommunityFilter.CLASSES.size() && picked.contains(c)));
                 }
             }
             case MENU_OWN -> {
@@ -1249,8 +1319,7 @@ final class CommunityPage {
             case MENU_BUDGET -> set(filter.withBudget(i));
             case MENU_OWN -> set(filter.withOwn(i));
             case MENU_CLASS -> {
-                Klass c = CommunityFilter.CLASSES.get(i);
-                set(filter.withClass(c, !filter.picked(klass()).contains(c), klass()));
+                set(i < 0 ? filter.withClasses(true) : filter.onlyClass(CommunityFilter.CLASSES.get(i), klass()));
             }
             default -> {
                 stat = i;
