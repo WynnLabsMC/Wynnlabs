@@ -22,7 +22,7 @@ record CommunityFilter(boolean allClasses, int level, Set<String> roles, int bud
         boolean crafted, String query) {
 
     /** Level ranges: 0 your level, then fixed ranges, the last any level. */
-    static final int[][] LEVELS = {{0, 0}, {1, 20}, {21, 40}, {41, 60}, {61, 80}, {81, 99}, {100, 106}, {1, 106}};
+    static final int[][] LEVELS = {{0, 0}, {1, 20}, {21, 40}, {41, 60}, {61, 80}, {81, 99}, {100, 121}, {1, 121}};
     static final int ANY_LEVEL = LEVELS.length - 1;
     static final int[] OWN = {0, 25, 50, 75, 100};
 
