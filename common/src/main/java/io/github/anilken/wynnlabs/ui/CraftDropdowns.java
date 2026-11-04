@@ -78,7 +78,7 @@ final class CraftDropdowns extends CraftPanel {
             }
             case GOAL -> {
                 List<String> ids = idsForProfession();
-                for (String id : picksFirst(ids, tab.weights::containsKey)) {
+                for (String id : picksFirst(ids, tab.weights.keySet())) {
                     items.add(UiMenu.Item.of(id, null, menuName(id, ids), null, tab.weights.containsKey(id)));
                 }
             }
@@ -91,7 +91,7 @@ final class CraftDropdowns extends CraftPanel {
                 items.add(UiMenu.Item.of("cap", null, L.t("wynnlabs.craft.cond_points"), null, tab.capToPoints));
                 items.divide();
                 List<String> ids = idsForProfession();
-                for (String id : picksFirst(ids, tab.noNegative::contains)) {
+                for (String id : picksFirst(ids, tab.noNegative)) {
                     items.add(UiMenu.Item.of("neg:" + id, null, L.t("wynnlabs.craft.cond_no_negative_id", menuName(id, ids)), null,
                             tab.noNegative.contains(id)));
                 }
@@ -202,16 +202,14 @@ final class CraftDropdowns extends CraftPanel {
         }
     }
 
-    /** The ids picked now first, in their order, then the rest: what is chosen stays in sight. */
-    private static List<String> picksFirst(List<String> ids, java.util.function.Predicate<String> picked) {
-        List<String> out = new ArrayList<>();
+    /**
+     * The ids picked now first, in the order they were picked, then the rest: what is chosen stays
+     * in sight, even a pick this recipe's ingredients cannot give, so it can still be taken off.
+     */
+    private static List<String> picksFirst(List<String> ids, java.util.Collection<String> picked) {
+        List<String> out = new ArrayList<>(picked);
         for (String id : ids) {
-            if (picked.test(id)) {
-                out.add(id);
-            }
-        }
-        for (String id : ids) {
-            if (!picked.test(id)) {
+            if (!picked.contains(id)) {
                 out.add(id);
             }
         }
