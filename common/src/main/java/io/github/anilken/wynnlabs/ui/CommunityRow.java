@@ -661,6 +661,7 @@ final class CommunityRow {
         // owned: the tier's ring; missing: a paler face and the ring at half strength
         Kit.box(g, x, y, tw, th, p.owned() ? TILE : TILE_MISSING, p.owned() ? ink : (ink & 0xFFFFFF) | 0x80000000);
         Kit.slot(g, sx, sy, sl, 0);
+        g.fill(sx + 1, sy + 1, sx + sl - 1, sy + sl - 1, (ink & 0xFFFFFF) | 0x48000000);   // the rarity's colour in the slot
         ItemStack st = icon(host, p);
         int off = (sl - 16) / 2;
         if (!st.isEmpty()) {

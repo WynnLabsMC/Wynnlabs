@@ -636,6 +636,9 @@ final class CommunityPage {
                 continue;
             }
             ItemStack st = CommunityRow.icon(host, p);
+            // the piece's rarity behind it, as the game colours its items
+            int tier = CommunityRow.tierInk(p);
+            Kit.box(g, px - 1, y - 1, ic + 2, ic + 2, (tier & 0xFFFFFF) | 0x50000000, tier);
             if (!st.isEmpty()) {
                 g.pose().pushMatrix();
                 g.pose().translate(px, y);
@@ -645,8 +648,8 @@ final class CommunityPage {
             }
             if (!p.owned()) {
                 over.add(() -> {
-                    g.fill(px, y, px + ic, y + ic, 0xA0E7D3A8);
-                    CommunityRow.dashed(g, px - 1, y - 1, ic + 2, ic + 2, 0xFFA0522D);
+                    g.fill(px, y, px + ic, y + ic, 0x90E7D3A8);
+                    CommunityRow.dashed(g, px - 1, y - 1, ic + 2, ic + 2, tier);
                 });
             }
             if (p.info() != null) {
