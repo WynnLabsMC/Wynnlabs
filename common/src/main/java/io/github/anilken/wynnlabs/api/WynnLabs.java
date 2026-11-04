@@ -7,61 +7,37 @@ import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import io.github.anilken.wynnlabs.Startup;
 import io.github.anilken.wynnlabs.advice.Advice;
-import io.github.anilken.wynnlabs.advice.SellSummary;
-import io.github.anilken.wynnlabs.advice.WearCheck;
-import io.github.anilken.wynnlabs.build.Around;
 import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.build.ClassProfiles;
 import io.github.anilken.wynnlabs.build.DamageReport;
-import io.github.anilken.wynnlabs.build.Setup;
 import io.github.anilken.wynnlabs.build.TreePlanner;
 import io.github.anilken.wynnlabs.build.roadmap.Roadmap;
-import io.github.anilken.wynnlabs.coach.Coach;
-import io.github.anilken.wynnlabs.coach.Danger;
 import io.github.anilken.wynnlabs.coach.DeathCoach;
-import io.github.anilken.wynnlabs.coach.DpsMeter;
-import io.github.anilken.wynnlabs.coach.Today;
-import io.github.anilken.wynnlabs.coach.XpMeter;
-import io.github.anilken.wynnlabs.core.DevHooks;
 import io.github.anilken.wynnlabs.core.Dirs;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Perf;
 import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.core.Profile;
 import io.github.anilken.wynnlabs.core.Rules;
-import io.github.anilken.wynnlabs.core.Saver;
 import io.github.anilken.wynnlabs.core.Settings;
-import io.github.anilken.wynnlabs.core.Stamp;
-import io.github.anilken.wynnlabs.core.UpdateCheck;
 import io.github.anilken.wynnlabs.core.Workers;
-import io.github.anilken.wynnlabs.endgame.AspectBook;
-import io.github.anilken.wynnlabs.endgame.LootrunLog;
-import io.github.anilken.wynnlabs.endgame.RaidLog;
-import io.github.anilken.wynnlabs.endgame.RaidPool;
 import io.github.anilken.wynnlabs.game.Fixture;
 import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.game.MenuWatcher;
 import io.github.anilken.wynnlabs.game.Professions;
-import io.github.anilken.wynnlabs.game.WornGear;
 import io.github.anilken.wynnlabs.game.Wyn;
-import io.github.anilken.wynnlabs.game.WynntilsEvents;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Shopping;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.quests.Discoveries;
-import io.github.anilken.wynnlabs.quests.DiscoveryBook;
 import io.github.anilken.wynnlabs.quests.Grind;
 import io.github.anilken.wynnlabs.quests.QuestAdvisor;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.quests.Waypoints;
-import io.github.anilken.wynnlabs.ui.DpsHud;
 import io.github.anilken.wynnlabs.ui.GroundDebug;
-import io.github.anilken.wynnlabs.ui.GroundMarkers;
-import io.github.anilken.wynnlabs.ui.MobTracker;
-import io.github.anilken.wynnlabs.ui.HotbarBadges;
-import io.github.anilken.wynnlabs.ui.RoadmapScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 
@@ -110,335 +86,15 @@ public final class WynnLabs {
 
     /**
      * The mod's start-up, the same on every loader: the loader's entrypoint calls it once with its
-     * {@link Platform}, and every listener is registered through that, in this order.
+     * {@link Platform}; {@link Startup} registers every listener through that.
      */
     public static void init(Platform platform) {
-        Platform.install(platform);
-        Dirs.migrate();                         // before anything reads config
-        try {
-            var marker = Dirs.config().resolve("ai-write-migrated");
-            if (!java.nio.file.Files.exists(marker)) {
-                if (Settings.on("localApi")) {
-                    Settings.set("apiWrite", true);  // the API was already in use: keep its tools writing
-                }
-                java.nio.file.Files.createDirectories(marker.getParent());
-                java.nio.file.Files.writeString(marker, "done");
-            }
-        } catch (Exception ignored) {
-        }
-        Advice.load();
-        Rules.load();
-        // read in the background now, so tooltips never read these files
-        Vault.preloadClasses();
-        Prices.key();
-        platform.onTooltip((stack, lines) -> {
-            long t = Perf.start();
-            try {
-                lines.addAll(Advice.linesCached(stack));
-                // where the item comes from, one short line (setting sourceHint)
-                var from = io.github.anilken.wynnlabs.advice.SourceHint.line(stack);
-                if (from != null) {
-                    lines.add(from);
-                }
-            } catch (Throwable ignored) {
-                // a broken advice line must never break the tooltip
-            } finally {
-                Perf.end("tooltip.loader", t);
-            }
-        });
-        // the timing sections follow the Debug setting (read once a tick)
-        platform.onEndTick(Perf::onTick);
-        // what the player carries, as one number caches compare against (before anything reads it)
-        platform.onEndTick(Perf.tick("tick.Stamp", Stamp::onTick));
-        platform.onEndTick(Perf.tick("tick.MenuWatcher", MenuWatcher::onTick));
-        platform.onEndTick(Perf.tick("tick.Profile", Profile::onTick));
-        platform.onEndTick(Perf.tick("tick.Crowd", io.github.anilken.wynnlabs.ui.CrowdMode::onTick));
-        platform.onEndTick(Perf.tick("tick.Setup", Setup::onTick));
-        platform.onEndTick(Perf.tick("tick.Wyn", Wyn::onTick));
-        platform.onEndTick(Perf.tick("tick.Prices", Prices::onTick));
-        platform.onEndTick(Perf.tick("tick.Build", Build::onTick));
-        // the road map is built only when asked (the J menu's button, its refresh, a setting you
-        // change there); in the background only the applied plan's level-up check runs
-        platform.onEndTick(Perf.tick("tick.Roadmap", client -> {
-            if (client.player != null && client.player.tickCount % 40 == 0) {
-                Around.watch();                     // only with a plan: the better-build check after a level-up
-            }
-        }));
-        platform.onEndTick(Perf.tick("tick.TreePlanner", TreePlanner::onTick));
-        platform.onEndTick(Perf.tick("tick.GroundMarkers", GroundMarkers::onTick));
-        platform.onEndTick(Perf.tick("tick.MobTracker", MobTracker::onTick));
-        platform.onEndTick(Perf.tick("tick.DropTracker", io.github.anilken.wynnlabs.ui.DropTracker::onTick));
-        platform.onEndTick(Perf.tick("tick.ChestBeams", io.github.anilken.wynnlabs.ui.ChestBeams::onTick));
-        platform.onEndTick(Perf.tick("tick.GuideLine", io.github.anilken.wynnlabs.ui.GuideLine::onTick));
-        platform.onEndTick(Perf.tick("tick.KeptMarks", io.github.anilken.wynnlabs.ui.KeptMarksSync::onTick));
-        platform.onEndTick(Perf.tick("tick.QuestBook", QuestBook::onTick));
-        platform.onEndTick(Perf.tick("tick.AutoAdvice", WornGear::snapshotArmour));
-        io.github.anilken.wynnlabs.advice.AutoAdvice.budgeted = true;   // verdicts a few a frame, never a frozen chest
-        io.github.anilken.wynnlabs.market.Prices.coins = true;          // prices in the game's emerald glyphs
-        platform.onGameMessage(QuestBook::onChat);
-        platform.onGameMessage(io.github.anilken.wynnlabs.quests.CaveMap::onChat);
-        platform.onGameMessage(DeathCoach::onChat);
-        platform.onEndTick(Perf.tick("tick.DeathCoach", DeathCoach::onTick));
-        platform.onEndTick(Perf.tick("tick.Today", Today::onTick));
-        platform.onEndTick(Perf.tick("tick.WearCheck", WearCheck::onTick));
-        // once per game run, a few seconds into a world: a chat line (or the auto update) when GitHub has a newer release
-        platform.onEndTick(Perf.tick("tick.UpdateCheck", UpdateCheck::onTick));
-        // once ever, a little later: whether to turn live prices on ([Yes] [No] in chat)
-        platform.onEndTick(Perf.tick("tick.PricePrompt", io.github.anilken.wynnlabs.market.PricePrompt::onTick));
-        platform.onEndTick(Perf.tick("tick.DiscoveryBook", DiscoveryBook::onTick));
-        platform.onEndTick(Perf.tick("tick.Danger", Danger::onTick));
-        platform.onEndTick(Perf.tick("tick.SellSummary", SellSummary::onTick));
-        platform.onEndTick(Perf.tick("tick.XpMeter", XpMeter::onTick));
-        platform.onEndTick(Perf.tick("tick.Vault", Vault::onTick));
-        platform.onEndTick(Perf.tick("tick.Bags", io.github.anilken.wynnlabs.market.Bags::onTick));
-        platform.onEndTick(Perf.tick("tick.MountBook", io.github.anilken.wynnlabs.mounts.MountBook::onTick));
-        // the mount panel's ridden mount, and its refresh (only with the panel and its refresh on)
-        platform.onEndTick(Perf.tick("tick.RideWatch", io.github.anilken.wynnlabs.mounts.RideWatch::onTick));
-        // the powerups around a rider, for their labels (setting powerupLabels); reads only
-        platform.onEndTick(Perf.tick("tick.Powerups", io.github.anilken.wynnlabs.mounts.Powerups::onTick));
-        platform.onGameMessage((text, overlay) -> {
-            if (overlay) {
-                io.github.anilken.wynnlabs.mounts.RideWatch.onBar(text);
-            }
-        });
-        platform.onEndTick(Perf.tick("tick.Coach", Coach::onTick));
-        // the Endgame tab: raid and lootrun history, the reward pool seen, the aspect list
-        platform.onEndTick(Perf.tick("tick.RaidLog", RaidLog::onTick));
-        platform.onEndTick(Perf.tick("tick.RaidPool", RaidPool::onTick));
-        platform.onEndTick(Perf.tick("tick.LootrunLog", LootrunLog::onTick));
-        platform.onEndTick(Perf.tick("tick.AspectBook", AspectBook::onTick));
-        // the coach's HUD: the death warning and the hunt line
-        platform.addHud(net.minecraft.resources.Identifier.fromNamespaceAndPath("wynnlabs", "coach"), (g, dt) -> {
-            long t = Perf.start();
-            try {
-                Coach.renderHud(g, dt);
-            } finally {
-                Perf.end("hud.Coach", t);
-            }
-        });
-        // the live DPS meter in a corner (setting dpsHud, off by default)
-        platform.addHud(net.minecraft.resources.Identifier.fromNamespaceAndPath("wynnlabs", "dps"), (g, dt) -> {
-            long t = Perf.start();
-            try {
-                DpsHud.render(g, dt);
-            } finally {
-                Perf.end("hud.DpsHud", t);
-            }
-        });
-        // the mount panel while riding (setting ridePanel, off by default)
-        platform.addHud(net.minecraft.resources.Identifier.fromNamespaceAndPath("wynnlabs", "ride"), (g, dt) -> {
-            long t = Perf.start();
-            try {
-                io.github.anilken.wynnlabs.ui.RidePanel.render(g, dt);
-            } catch (Throwable ignored) {
-                // a panel must never break the HUD
-            } finally {
-                Perf.end("hud.RidePanel", t);
-            }
-        });
-        // the verdict badges on the hotbar's items (setting hotbarBadges), after the hotbar is drawn
-        platform.addHud(net.minecraft.resources.Identifier.fromNamespaceAndPath("wynnlabs", "hotbar_badges"), (g, dt) -> {
-            long t = Perf.start();
-            try {
-                HotbarBadges.render(g, dt);
-            } catch (Throwable ignored) {
-                // a badge must never break the HUD
-            } finally {
-                Perf.end("hud.HotbarBadges", t);
-            }
-        });
-        // tracked mobs: the notice on the HUD, the markers in the world (only in plain sight)
-        platform.addHud(net.minecraft.resources.Identifier.fromNamespaceAndPath("wynnlabs", "mob_track"), (g, dt) -> {
-            long t = Perf.start();
-            try {
-                MobTracker.renderHud(g, dt);
-            } catch (Throwable ignored) {
-                // a notice must never break the HUD
-            } finally {
-                Perf.end("hud.MobTracker", t);
-            }
-        });
-        platform.onWorldRender((pose, buffers) -> {
-            long t = Perf.start();
-            try {
-                MobTracker.renderWorld(pose, buffers);
-            } catch (Throwable ignored) {
-                // a marker must never break the frame
-            } finally {
-                Perf.end("world.MobTracker", t);
-            }
-        });
-        // the beams above known loot chests (setting chestBeams)
-        platform.onWorldRender((pose, buffers) -> {
-            long t = Perf.start();
-            try {
-                io.github.anilken.wynnlabs.ui.ChestBeams.renderWorld(pose, buffers);
-            } catch (Throwable ignored) {
-                // a beam must never break the frame
-            } finally {
-                Perf.end("world.ChestBeams", t);
-            }
-        });
-        // the line to the compass target (setting guideLine)
-        platform.onWorldRender((pose, buffers) -> {
-            long t = Perf.start();
-            try {
-                io.github.anilken.wynnlabs.ui.GuideLine.renderWorld(pose, buffers);
-            } catch (Throwable ignored) {
-                // a line must never break the frame
-            } finally {
-                Perf.end("world.GuideLine", t);
-            }
-        });
-        // the beams and names over tracked items on the ground (setting trackedDrops)
-        platform.onWorldRender((pose, buffers) -> {
-            long t = Perf.start();
-            try {
-                io.github.anilken.wynnlabs.ui.DropTracker.renderWorld(pose, buffers);
-            } catch (Throwable ignored) {
-                // a marker must never break the frame
-            } finally {
-                Perf.end("world.DropTracker", t);
-            }
-        });
-        // the labels over mount powerups while riding
-        platform.onWorldRender((pose, buffers) -> {
-            long t = Perf.start();
-            try {
-                io.github.anilken.wynnlabs.ui.PowerupLabels.renderWorld(pose, buffers);
-            } catch (Throwable ignored) {
-                // a label must never break the frame
-            } finally {
-                Perf.end("world.PowerupLabels", t);
-            }
-        });
-        // leaving the server closes the session report
-        platform.onDisconnect(() -> {
-            Coach.saveSession(System.currentTimeMillis());
-            DpsMeter.LIVE.reset();
-            MobTracker.reset();
-            io.github.anilken.wynnlabs.ui.DropTracker.reset();
-            RaidLog.disconnected();
-            LootrunLog.disconnected();
-        });
-        // /av <item>: a hunt (client-side command, never sent to the server)
-        platform.registerClientCommand(WynnLabs::huntCommand);
-        // /wynnlabs-update: the update window, from the chat line's [Update] (client-side, never sent to the server)
-        platform.registerClientCommand(io.github.anilken.wynnlabs.ui.UpdateScreen::command);
-        // /wynnlabs-prices yes|no: the answer to the live prices question (client-side, never sent to the server)
-        platform.registerClientCommand(io.github.anilken.wynnlabs.market.PricePrompt::command);
-        // dev builds only: the developer tools (the /wynnlabs shots command); nothing in a release jar
-        if (DevHooks.ON) {
-            DevHooks.register(platform);
-        }
-        // Y opens the road map (rebindable in Controls; J clashed with Wynntils)
-        var category = platform.keyCategory(
-                net.minecraft.resources.Identifier.fromNamespaceAndPath("wynnlabs", "main"));
-        var roadmapKey = platform.registerKey(
-                new net.minecraft.client.KeyMapping("key.wynnlabs.roadmap",
-                        com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM, org.lwjgl.glfw.GLFW.GLFW_KEY_Y, category));
-        platform.onEndTick(client -> {
-            while (roadmapKey.consumeClick()) {
-                if (client.player == null || client.screen != null) {
-                    continue;
-                }
-                // Shift with the menu key: crowd mode on or off instead
-                if (io.github.anilken.wynnlabs.ui.CrowdMode.shiftDown(client)) {
-                    io.github.anilken.wynnlabs.ui.CrowdMode.flip(client);
-                    continue;
-                }
-                client.setScreen(new RoadmapScreen());
-            }
-        });
-        // the key under Esc opens the search tab, or the tab on the item under the mouse
-        io.github.anilken.wynnlabs.ui.SearchKey.register(platform, category);
-        // T over a gear box in a container: the box contents window over it
-        io.github.anilken.wynnlabs.ui.BoxKey.register(platform, category);
-        // files waiting in the background writer reach the disk before the game closes
-        platform.onClientStopping(Saver::flush);
-        // Wynntils' event bus only exists once the client has started.
-        platform.onClientStarted(() -> {
-            try {
-                Wyn.listen(new WynntilsEvents());
-            } catch (Throwable t) {
-                System.out.println("[WynnLabs] tooltip hook unavailable: " + t);
-            }
-            // tooltips drawn smaller while a menu is open (MenuTooltips)
-            try {
-                Wyn.listen(new WynntilsEvents.Tooltips());
-            } catch (Throwable t) {
-                System.out.println("[WynnLabs] menu tooltip size hook unavailable: " + t);
-            }
-            // the mount panel: the mount Wynntils saw summoned or mounted
-            try {
-                Wyn.listen(new WynntilsEvents.Mounts());
-            } catch (Throwable t) {
-                System.out.println("[WynnLabs] mount events unavailable: " + t);
-            }
-            // the Mount Feeder's marks and row card
-            try {
-                Wyn.listen(new WynntilsEvents.Feeder());
-            } catch (Throwable t) {
-                System.out.println("[WynnLabs] mount feeder overlay unavailable: " + t);
-            }
-            // the quests tab's "read quests with Wynntils": the lists Wynntils posts after the press
-            try {
-                Wyn.listen(Wyn.Feature.QUESTS, new WynntilsEvents.Quests());
-            } catch (Throwable t) {
-                System.out.println("[WynnLabs] quest list hook unavailable: " + t);
-            }
-            // the Endgame tab's events, each under its own feature
-            try {
-                Wyn.listen(Wyn.Feature.RAIDS, new WynntilsEvents.Raids());
-                Wyn.listen(Wyn.Feature.LOOTRUNS, new WynntilsEvents.Lootruns());
-                Wyn.listen(Wyn.Feature.LOOTRUNS, new WynntilsEvents.Valuables());
-            } catch (Throwable t) {
-                System.out.println("[WynnLabs] raid and lootrun hooks unavailable: " + t);
-            }
-            // the crafting planner's XP per gather: the gains the game shows
-            try {
-                Wyn.listen(Wyn.Feature.PROFESSIONS, new WynntilsEvents.ProfessionGains());
-            } catch (Throwable t) {
-                System.out.println("[WynnLabs] profession xp hook unavailable: " + t);
-            }
-        });
-        // The local API only runs while "Local API for tools" is on; checked once a second, so
-        // flipping the setting starts or stops it without a restart
-        syncServer();
-        platform.onEndTick(client -> {
-            if (++serverTick % 20 == 0) {
-                syncServer();
-                // finished caves red and dim on Wynntils' map: follows its setting the same way
-                if (client.player != null) {
-                    Wyn.caveMapSync();
-                }
-            }
-        });
-    }
-
-    /** {@code /av [item]}: the hunt line, shown on this client only (built once, for any loader's source). */
-    private static <S> com.mojang.brigadier.builder.LiteralArgumentBuilder<S> huntCommand(
-            java.util.function.BiConsumer<S, net.minecraft.network.chat.Component> feedback) {
-        return com.mojang.brigadier.builder.LiteralArgumentBuilder.<S>literal("av")
-                .executes(c -> {
-                    feedback.accept(c.getSource(), net.minecraft.network.chat.Component.literal(Coach.hunt(null))
-                            .withStyle(net.minecraft.ChatFormatting.GOLD));
-                    return 1;
-                })
-                .then(com.mojang.brigadier.builder.RequiredArgumentBuilder.<S, String>argument("item",
-                                com.mojang.brigadier.arguments.StringArgumentType.greedyString())
-                        .executes(c -> {
-                            feedback.accept(c.getSource(), net.minecraft.network.chat.Component.literal(
-                                    Coach.hunt(com.mojang.brigadier.arguments.StringArgumentType.getString(c, "item")))
-                                    .withStyle(net.minecraft.ChatFormatting.GOLD));
-                            return 1;
-                        }));
+        Startup.init(platform);
     }
 
     private static HttpServer server;
     private static java.util.concurrent.ExecutorService serverThreads;
     private static int serverPort;
-    private static int serverTick;
     private static long serverRetryAt;
 
     /** Starts, stops or moves the local API to match the settings. Loopback only. */
