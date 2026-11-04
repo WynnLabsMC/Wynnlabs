@@ -317,7 +317,7 @@ public final class WynntilsItems {
         return List.copyOf(minor);
     }
 
-    static Klass klass(String name) {
+    public static Klass klass(String name) {
         try {
             return Klass.valueOf(name);
         } catch (RuntimeException e) {
@@ -576,7 +576,7 @@ public final class WynntilsItems {
         return m.isPresent() ? (Integer) Wyn.call(m.get(), c) : dps(c.getDamages(), c.getAttackSpeed());
     }
 
-    static Capped capped(CappedValue v) {
+    public static Capped capped(CappedValue v) {
         return v == null ? null : new Capped(v.current(), v.max());
     }
 
