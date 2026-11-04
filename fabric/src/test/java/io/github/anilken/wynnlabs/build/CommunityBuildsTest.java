@@ -200,6 +200,6 @@ class CommunityBuildsTest {
     }
 
     private static Map<String, Damage.Piece> set(GameState s, CommunityBuilds.Entry e) {
-        return LinkImport.set(LinkImport.of(s, WynnBuilderLink.decode(e.link()), TestIngredients.byName()::get));
+        return LinkImport.whole(LinkImport.of(s, WynnBuilderLink.decode(e.link()), TestIngredients.byName()::get));   // as compare() does
     }
 }
