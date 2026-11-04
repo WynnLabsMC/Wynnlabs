@@ -233,6 +233,11 @@ final class CommunityPage {
         return sign + n + (a < 1e6 ? "k" : "M");
     }
 
+    /** "Lv 41-50", or "Lv 106" when the build is for one level. */
+    static String levels(CommunityBuilds.Entry e) {
+        return e.levelMin() == e.levelMax() ? "Lv " + e.levelMin() : L.t("wynnlabs.community.levels", e.levelMin(), e.levelMax());
+    }
+
     /** The build set as the goal: the entry whose kept items are the items the road map builds around. */
     CommunityBuilds.Entry goal() {
         CommunityBuilds.Doc d = CommunityList.doc();
@@ -698,7 +703,17 @@ final class CommunityPage {
                 Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, name, nameW), nx, ty, Theme.INK);
             } else {
                 Type role = tab.compact ? Type.META : Type.BODY;
-                role.draw(g, ui.font, role.fit(ui.font, name, nameW), nx, role.yIn(y, rh), Theme.INK);
+                // the level range after the name, muted; the name gives way first only when both cannot fit
+                String lvl = "  " + levels(e);
+                int lw = Type.META.width(ui.font, lvl);
+                if (tab.compact && role.width(ui.font, name) + lw > nameW) {
+                    lvl = "";                   // the small menu keeps the name; the level is in its tip and panel
+                    lw = 0;
+                }
+                String n = role.fit(ui.font, name, Math.max(nameW / 2, nameW - lw));
+                role.draw(g, ui.font, n, nx, role.yIn(y, rh), Theme.INK);
+                int after = nx + role.width(ui.font, n);
+                Type.META.draw(g, ui.font, Type.META.fit(ui.font, lvl, nx + nameW - after), after, Type.META.yIn(y, rh), Theme.INK_3);
             }
             host.tip(x, y, c[1] - Theme.SP_3, rh, rowTip(e, pinned));
             int iy = y + (rh - icon()) / 2;
