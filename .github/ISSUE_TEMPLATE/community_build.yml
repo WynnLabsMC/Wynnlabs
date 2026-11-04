@@ -1,0 +1,75 @@
+name: Community build
+description: Suggest a build for the community list in the build window
+title: "Community build: "
+labels: [community-build, needs-review]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Builds suggested here are reviewed by a maintainer before they are added to the list the mod shows.
+        The build link is what gets added; your description may be shortened.
+  - type: input
+    id: link
+    attributes:
+      label: Build link
+      description: The builder link with all nine pieces (crafted pieces are fine).
+      placeholder: "https://.../builder/#..."
+    validations:
+      required: true
+  - type: dropdown
+    id: class
+    attributes:
+      label: Class
+      options:
+        - Warrior
+        - Mage
+        - Archer
+        - Assassin
+        - Shaman
+        - Any class (a set without a weapon)
+    validations:
+      required: true
+  - type: input
+    id: levels
+    attributes:
+      label: Level range
+      description: The levels the build is meant for.
+      placeholder: 85-106
+    validations:
+      required: true
+  - type: checkboxes
+    id: tags
+    attributes:
+      label: Play style
+      options:
+        - label: Damage
+        - label: Spell
+        - label: Melee
+        - label: Tank
+        - label: Healer / support
+        - label: Speed
+        - label: Budget
+        - label: Leveling
+        - label: Lootrun
+        - label: Raid
+        - label: Solo
+        - label: XP bonus / gathering XP
+  - type: textarea
+    id: description
+    attributes:
+      label: Short description
+      description: One or two sentences, up to 200 characters, in English.
+    validations:
+      required: true
+  - type: input
+    id: credit
+    attributes:
+      label: In-game name to credit (optional)
+      description: Leave empty to be listed without a name.
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Permission
+      options:
+        - label: This is my own build, or I have the author's permission to share it, and it may be listed in Wynn Labs.
+          required: true

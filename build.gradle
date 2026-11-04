@@ -326,7 +326,7 @@ tasks.register('checkPersonal') {
             }
         }
         def roots = ['common/src', 'common/build.gradle', 'fabric/src', 'fabric/build.gradle', 'neoforge/src',
-                     'neoforge/build.gradle', 'neoforge/gradle.properties', 'tools', 'ai', 'openspec', 'README.md',
+                     'neoforge/build.gradle', 'neoforge/gradle.properties', 'tools', 'ai', 'data', '.github', 'openspec', 'README.md',
                      'build.gradle', 'gradle.properties', 'settings.gradle', 'install-when-closed.sh']
                 .collect { file(it) }.findAll { it.exists() }
         def hits = []
@@ -336,7 +336,7 @@ tasks.register('checkPersonal') {
             files.each { f ->
                 def bytes = f.bytes
                 def big = bytes.length > 2_000_000 && !f.toPath().startsWith(fixtures)
-                if (big || f.name ==~ /.*\.(png|jar|class|ogg)$/) {
+                if (big || f.name ==~ /.*\.(png|jar|class|ogg|bin)$/) {
                     return
                 }
                 new String(bytes, 'UTF-8').readLines().eachWithIndex { text, n ->
