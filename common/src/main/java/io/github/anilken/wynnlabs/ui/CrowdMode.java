@@ -78,9 +78,21 @@ public final class CrowdMode {
                 now ? io.github.anilken.wynnlabs.ui.Hud.GOLD : io.github.anilken.wynnlabs.ui.Hud.CREAM);
     }
 
+    /** Raids and lootruns: a boss's own effects must stay in sight, so crowd mode rests there. */
+    private static boolean resting;
+
     /** Once a tick: the switch, the radius and which stacks have a label. */
     public static void onTick(Minecraft mc) {
-        on = Settings.on("crowdMode");
+        boolean wanted = Settings.on("crowdMode");
+        boolean rest = wanted && mc.player != null && (io.github.anilken.wynnlabs.game.Wyn.inRaid()
+                || io.github.anilken.wynnlabs.game.Wyn.lootrunState().running());
+        if (rest != resting) {
+            resting = rest;
+            io.github.anilken.wynnlabs.coach.Coach.note(io.github.anilken.wynnlabs.core.L.t(
+                    rest ? "wynnlabs.crowd.resting" : "wynnlabs.crowd.on"), rest ? "sparkles" : "eye",
+                    rest ? io.github.anilken.wynnlabs.ui.Hud.CREAM : io.github.anilken.wynnlabs.ui.Hud.GOLD);
+        }
+        on = wanted && !rest;
         if (!on || mc.level == null || mc.player == null) {
             bodies = Map.of();
             return;
