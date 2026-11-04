@@ -165,6 +165,8 @@ final class CommunityPage {
                 CommunityBuilds.Compare c = cmp.get(e.id());
                 return c == null ? -1 : c.ownedPct();
             });
+            case 4 -> Comparator.<CommunityBuilds.Entry>comparingInt(CommunityBuilds.Entry::levelMin)
+                    .thenComparingInt(CommunityBuilds.Entry::levelMax);
             case 2 -> Comparator.comparingDouble(e -> {
                 Double v = statOf(cmp.get(e.id()), stat);
                 return v == null ? (sortDesc ? -1e9 : 1e9) : v;
@@ -257,6 +259,20 @@ final class CommunityPage {
     /** "Mage": a class as the game writes it. */
     static String className(Klass c) {
         return c.name().charAt(0) + c.name().substring(1).toLowerCase(Locale.ROOT);
+    }
+
+    /** The level column's sort key in {@link #sortCol} (after the four header columns). */
+    static final int SORT_LEVEL = 4;
+
+    /** The level column's width: room for "100-121". */
+    private int levelW() {
+        Type role = tab.compact ? Type.META : Type.BODY;
+        return role.width(ui.font, "100-121") + Theme.SP_3;
+    }
+
+    /** "41-50", or "106" when the build is for one level (the column says Lv). */
+    static String levelRange(CommunityBuilds.Entry e) {
+        return e.levelMin() == e.levelMax() ? String.valueOf(e.levelMin()) : e.levelMin() + "-" + e.levelMax();
     }
 
     /** "Lv 41-50", or "Lv 106" when the build is for one level. */
@@ -631,9 +647,17 @@ final class CommunityPage {
     private void drawHeader(GuiGraphics g, BuildWindow.Host host, int x, int y, int[] c, int mx, int my) {
         String[] names = {L.t("wynnlabs.community.col_build"), L.t("wynnlabs.community.col_gear"),
             L.t("wynnlabs.community.stat." + STATS[stat]), L.t("wynnlabs.community.col_cost")};
+        // the level column sits first, after the chevrons' room, and sorts like the others
+        int lx = x + Theme.SP_1 + 6 + Theme.SP_1;
+        boolean lon = sortCol == SORT_LEVEL;
+        String lt = L.t("wynnlabs.community.col_level") + (lon ? sortDesc ? " ▾" : " ▴" : "");
+        int ltw = Type.META.width(ui.font, lt);
+        boolean lhov = BuildControls.in(mx, my, lx, y, ltw, Type.META.lineHeight);
+        Type.META.draw(g, ui.font, lt, lx, y, lon || lhov ? Theme.INK : Theme.INK_3);
+        ui.btn(lx, y, ltw, Type.META.lineHeight, "c.sort", SORT_LEVEL);
         for (int i = 0; i < 4; i++) {
-            int cx = x + c[i];
-            int cw = c[i + 1] - c[i] - Theme.SP_3;
+            int cx = x + c[i] + (i == 0 ? lx - x + levelW() : 0);
+            int cw = c[i + 1] - (cx - x) - Theme.SP_3;
             boolean on = sortCol == i;
             String t = Type.META.fit(ui.font, names[i] + (on ? sortDesc ? " ▾" : " ▴" : ""), cw);
             int tw = Type.META.width(ui.font, t);
@@ -667,23 +691,16 @@ final class CommunityPage {
             if (p == null) {
                 continue;
             }
-            ItemStack st = CommunityRow.icon(host, p);
-            // the piece's rarity behind it, as the game colours its items
+            // a square in the piece's rarity colour, no item drawn (hundreds of rows drawing items stuttered):
+            // full when you have it, pale with a dashed rim when you don't; the item shows on hover
             int tier = CommunityRow.tierInk(p);
-            Kit.box(g, px - 1, y - 1, ic + 2, ic + 2, (tier & 0xFFFFFF) | 0x50000000, tier);
-            if (!st.isEmpty()) {
-                g.pose().pushMatrix();
-                g.pose().translate(px, y);
-                g.pose().scale(ic / 16f, ic / 16f);
-                g.renderItem(st, 0, 0);
-                g.pose().popMatrix();
+            if (p.owned()) {
+                Kit.box(g, px, y, ic, ic, tier, 0);
+            } else {
+                Kit.box(g, px, y, ic, ic, (tier & 0xFFFFFF) | 0x38000000, 0);
+                CommunityRow.dashed(g, px, y, ic, ic, tier);
             }
-            if (!p.owned()) {
-                over.add(() -> {
-                    g.fill(px, y, px + ic, y + ic, 0x90E7D3A8);
-                    CommunityRow.dashed(g, px - 1, y - 1, ic + 2, ic + 2, tier);
-                });
-            }
+            ItemStack st = CommunityRow.icon(host, p);
             if (p.info() != null) {
                 host.item(px, y, ic, ic, p.info(), st, CommunityRow.pieceTip(p).subList(1, CommunityRow.pieceTip(p).size()));
             } else {
@@ -731,6 +748,11 @@ final class CommunityPage {
                 Art.icon(g, "target", nx, Type.BODY.onCaps(ty, 8), 8, Theme.ACCENT);
                 nx += 8 + Theme.SP_1;
             }
+            // the level first, in its own column, so the list reads and sorts by it
+            Type lvRole = pinned || !tab.compact ? Type.BODY : Type.META;
+            int lvX = x + Theme.SP_1 + 6 + Theme.SP_1;
+            lvRole.draw(g, ui.font, lvRole.fit(ui.font, levelRange(e), levelW() - Theme.SP_2), lvX, lvRole.yIn(y, rh), Theme.INK_2);
+            nx = Math.max(nx, lvX + levelW());
             int nameW = x + c[1] - Theme.SP_3 - nx;
             String name = e.name();
             if (pinned) {
@@ -738,17 +760,7 @@ final class CommunityPage {
                 Type.BODY.draw(g, ui.font, Type.BODY.fit(ui.font, name, nameW), nx, ty, Theme.INK);
             } else {
                 Type role = tab.compact ? Type.META : Type.BODY;
-                // the level range after the name, muted; the name gives way first only when both cannot fit
-                String lvl = "  " + levels(e);
-                int lw = Type.META.width(ui.font, lvl);
-                if (tab.compact && role.width(ui.font, name) + lw > nameW) {
-                    lvl = "";                   // the small menu keeps the name; the level is in its tip and panel
-                    lw = 0;
-                }
-                String n = role.fit(ui.font, name, Math.max(nameW / 2, nameW - lw));
-                role.draw(g, ui.font, n, nx, role.yIn(y, rh), Theme.INK);
-                int after = nx + role.width(ui.font, n);
-                Type.META.draw(g, ui.font, Type.META.fit(ui.font, lvl, nx + nameW - after), after, Type.META.yIn(y, rh), Theme.INK_3);
+                role.draw(g, ui.font, role.fit(ui.font, name, nameW), nx, role.yIn(y, rh), Theme.INK);
             }
             host.tip(x, y, c[1] - Theme.SP_3, rh, rowTip(e, pinned));
             int iy = y + (rh - icon()) / 2;
@@ -1131,7 +1143,7 @@ final class CommunityPage {
                     sortDesc = !sortDesc;
                 } else {
                     sortCol = col;
-                    sortDesc = col != 0 && col != 3;
+                    sortDesc = col != 0 && col != 3 && col != SORT_LEVEL;
                 }
             }
             case "c.stats" -> {

@@ -332,7 +332,12 @@ public final class CommunityBuilds {
             return id(new String[] {"earthDamage", "thunderDamage", "waterDamage", "fireDamage", "airDamage"}[el]) + id("elementalDamage");
         }
 
-        /** An element's defence ({@code el} 0 earth ... 4 air), the elemental defence included. */
+        /** An element's raw defence from the armour's base ({@code el} 0 earth ... 4 air), before the % IDs. */
+        public double baseDefence(int el) {
+            return id("_def:" + new String[] {"earth", "thunder", "water", "fire", "air"}[el]);
+        }
+
+        /** An element's defence % ({@code el} 0 earth ... 4 air), the elemental defence % included. */
         public double defence(int el) {
             return id(DEFENCES[el]) + id("elementalDefence");
         }
@@ -343,6 +348,7 @@ public final class CommunityBuilds {
 
     /** The identifications {@link Totals} keeps. */
     static final List<String> ID_KEYS = List.of("spellDamage", "rawSpellDamage", "mainAttackDamage", "rawMainAttackDamage",
+            "_def:earth", "_def:thunder", "_def:water", "_def:fire", "_def:air",
             "damage", "rawDamage", "elementalDamage", "earthDamage", "thunderDamage", "waterDamage", "fireDamage", "airDamage", "rawElementalSpellDamage", "rawElementalDamage", "rawNeutralSpellDamage",
             "rawEarthSpellDamage", "rawThunderSpellDamage", "rawWaterSpellDamage", "rawFireSpellDamage", "rawAirSpellDamage",
             "healthRegen", "healthRegenRaw", "lifeSteal", "manaRegen", "manaSteal", "walkSpeed", "lootBonus", "xpBonus", "combatExperience",

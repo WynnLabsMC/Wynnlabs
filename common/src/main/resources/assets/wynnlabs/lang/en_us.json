@@ -3184,6 +3184,7 @@
   "wynnlabs.community.has_crafted": "Has crafted gear",
   "wynnlabs.community.chip_uses": "Uses: %s",
   "wynnlabs.community.chip_own": "Own ≥ %s",
+  "wynnlabs.community.col_level": "Lv",
   "wynnlabs.community.col_build": "Build",
   "wynnlabs.community.col_gear": "Gear (owned)",
   "wynnlabs.community.col_cost": "Cost",

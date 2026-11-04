@@ -511,7 +511,9 @@ final class CommunityRow {
     private static List<String> chips(CommunityBuilds.Totals t) {
         List<String> out = new ArrayList<>();
         for (int i = 0; i < ELEMENT_NAMES.length; i++) {
-            out.add(ELEMENT_NAMES[i] + " " + CommunityPage.signed(t.defence(i)));
+            // the armour's own defence, then the % the IDs add to it ("Earth 175 +20%")
+            double pct = t.defence(i);
+            out.add(ELEMENT_NAMES[i] + " " + Math.round(t.baseDefence(i)) + (Math.round(pct) == 0 ? "" : " " + L.pct(CommunityPage.signed(pct))));
         }
         return out;
     }

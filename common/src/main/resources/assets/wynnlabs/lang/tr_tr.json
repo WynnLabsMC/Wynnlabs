@@ -3184,6 +3184,7 @@
   "wynnlabs.community.has_crafted": "Crafted gear içeren",
   "wynnlabs.community.chip_uses": "Kullanır: %s",
   "wynnlabs.community.chip_own": "Sende ≥ %s",
+  "wynnlabs.community.col_level": "Lv",
   "wynnlabs.community.col_build": "Build",
   "wynnlabs.community.col_gear": "Gear (sende)",
   "wynnlabs.community.col_cost": "Maliyet",
