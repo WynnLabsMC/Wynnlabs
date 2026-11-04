@@ -144,6 +144,15 @@ public final class Settings {
             "groundGlow", "groundGlowNormal", "groundGlowOther", "verdictBadges", "hotbarBadges", "glowTree", "menuAdvice",
             "updateCheck", "autoUpdate", "treeBonuses", "menuScale");
 
+    /**
+     * Number settings a screen keeps for itself, not shown on the settings tab: the sort and view
+     * a list was left on, the menu size, the language picked, the API port, whether the price
+     * prompt was answered. Listed so the build's checkSettings knows them (with LABELS, CHOICES,
+     * STEPS and REMOVED); the HUD places ("hud_" + id + "_" + part) are built, not listed.
+     */
+    static final java.util.Set<String> INTERNAL = java.util.Set.of("bankSort", "bankView", "discoveryShow",
+            "discoverySort", "discoveryWithinLevel", "langOverride", "localApiPort", "menuFill", "pricePromptAsked");
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Map<String, Boolean> VALUES = new LinkedHashMap<>();
     private static final Map<String, Integer> NUMBERS = new LinkedHashMap<>();
