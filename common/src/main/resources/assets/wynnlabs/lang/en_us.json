@@ -2536,6 +2536,7 @@
   "wynnlabs.about.key_crowd": "Crowd mode on or off (no spell effects)",
   "wynnlabs.crowd.on": "Crowd mode on: no spell effects",
   "wynnlabs.crowd.off": "Crowd mode off: effects back",
+  "wynnlabs.crowd.resting": "Crowd mode rests in raids and lootruns: effects back",
   "key.wynnlabs.box_guide": "Box & market window",
   "wynnlabs.box.no_roll": "Fixed stats",
   "wynnlabs.box.stats_unknown": "No item data yet",

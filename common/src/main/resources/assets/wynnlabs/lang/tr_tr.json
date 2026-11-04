@@ -2536,6 +2536,7 @@
   "wynnlabs.about.key_crowd": "Kalabalık modunu açar/kapatır (büyü efekti yok)",
   "wynnlabs.crowd.on": "Kalabalık modu açık: büyü efekti yok",
   "wynnlabs.crowd.off": "Kalabalık modu kapalı: efektler geri",
+  "wynnlabs.crowd.resting": "Kalabalık modu raid ve lootrun'da duruyor: efektler geri",
   "key.wynnlabs.box_guide": "Kutu ve market penceresi",
   "wynnlabs.box.no_roll": "Sabit statlar",
   "wynnlabs.box.stats_unknown": "Item verisi henüz yok",
