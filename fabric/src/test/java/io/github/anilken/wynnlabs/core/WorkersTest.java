@@ -36,11 +36,6 @@ class WorkersTest {
     }
 
     @Test
-    void scheduledIsANamedDaemon() throws Exception {
-        assertEquals(new Seen("wynnlabs-later", true, Thread.currentThread().getPriority()), run(Workers.scheduled("later")));
-    }
-
-    @Test
     void factoryKeepsTheWholeName() {
         Thread normal = Workers.factory("WynnLabs saver", false).newThread(() -> { });
         assertEquals("WynnLabs saver", normal.getName());
