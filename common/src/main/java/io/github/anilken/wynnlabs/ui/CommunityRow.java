@@ -467,21 +467,26 @@ final class CommunityRow {
     }
 
     /** One line of an All stats column: a label and its value; a null value marks the defence chips. */
-    private record Line(String label, String value) {}
+    private record Line(String label, String value, List<String> chips) {
+        Line(String label, String value) {
+            this(label, value, null);
+        }
+    }
 
     private static List<List<Line>> columns(CommunityBuilds.Totals t) {
         List<Line> off = List.of(
                 new Line(L.t("wynnlabs.community.st.spell_damage"), L.pct(CommunityPage.signed(t.spellPct()))),
                 new Line(L.t("wynnlabs.community.st.raw_spell_damage"), CommunityPage.signed(t.rawSpell())),
                 new Line(L.t("wynnlabs.community.st.melee_damage"), L.pct(CommunityPage.signed(t.meleePct()))),
-                new Line(L.t("wynnlabs.community.st.attack_speed"), ATTACK_SPEEDS[Math.max(0, Math.min(6, t.attackTier()))]));
+                new Line(L.t("wynnlabs.community.st.attack_speed"), ATTACK_SPEEDS[Math.max(0, Math.min(6, t.attackTier()))]),
+                new Line(L.t("wynnlabs.community.st.element_damage"), null, elementChips(t)));
         List<Line> def = List.of(
                 new Line(L.t("wynnlabs.community.st.health"), CommunityPage.big(t.health())),
                 new Line(L.t("wynnlabs.community.st.ehp"), CommunityPage.big(t.ehp())),
                 new Line(L.t("wynnlabs.community.st.health_regen"), CommunityPage.signed(t.id("healthRegenRaw"))
                         + (t.id("healthRegen") == 0 ? "" : " (" + L.pct(CommunityPage.signed(t.id("healthRegen"))) + ")")),
                 new Line(L.t("wynnlabs.community.st.life_steal"), CommunityPage.signed(t.id("lifeSteal")) + "/3s"),
-                new Line(L.t("wynnlabs.community.st.defences"), null));
+                new Line(L.t("wynnlabs.community.st.defences"), null, chips(t)));
         List<Line> util = List.of(
                 new Line(L.t("wynnlabs.community.st.mana_regen"), CommunityPage.signed(t.manaRegen()) + "/5s"),
                 new Line(L.t("wynnlabs.community.st.mana_steal"), CommunityPage.signed(t.id("manaSteal")) + "/3s"),
@@ -492,6 +497,15 @@ final class CommunityRow {
     }
 
     private static final String[] STAT_HEADS = {"wynnlabs.community.st.offence", "wynnlabs.community.st.defence", "wynnlabs.community.st.utility"};
+
+    /** The element damage chips' texts: "Fire +33%" (the elemental damage counted in each). */
+    private static List<String> elementChips(CommunityBuilds.Totals t) {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < ELEMENT_NAMES.length; i++) {
+            out.add(ELEMENT_NAMES[i] + " " + L.pct(CommunityPage.signed(t.elementDamage(i))));
+        }
+        return out;
+    }
 
     /** The defence chips' texts: "Earth +60". */
     private static List<String> chips(CommunityBuilds.Totals t) {
@@ -528,7 +542,6 @@ final class CommunityRow {
      */
     private int stats(GuiGraphics g, CommunityBuilds.Totals t, int x, int y, int inner, boolean compact) {
         List<List<Line>> cols = columns(t);
-        List<String> chips = chips(t);
         int cp = compact ? Theme.SP_2 : Theme.SP_3;
         int gap = compact ? Theme.SP_2 : Theme.SP_3;
         int need = 0;
@@ -539,8 +552,12 @@ final class CommunityRow {
                         + (l.value() == null ? 0 : Theme.SP_3 + Type.LABEL.width(ui.font, l.value())));
             }
         }
-        for (String c : chips) {
-            need = Math.max(need, chipW(c));
+        for (List<Line> col : cols) {
+            for (Line l : col) {
+                for (String c : l.chips() == null ? List.<String>of() : l.chips()) {
+                    need = Math.max(need, chipW(c));
+                }
+            }
         }
         need += 2 * cp;
         int per = 3 * need + 2 * gap <= inner ? 3 : 2 * need + gap <= inner ? 2 : 1;
@@ -551,7 +568,7 @@ final class CommunityRow {
             int h = cp + Type.META.lineHeight + Theme.SP_1;
             for (Line l : cols.get(i)) {
                 h += l.value() == null
-                        ? Type.META.lineHeight + Theme.SP_1 + chipLines(chips, colW - 2 * cp) * (Ui.SEAL_H + Theme.SP_1)
+                        ? Type.META.lineHeight + Theme.SP_1 + chipLines(l.chips(), colW - 2 * cp) * (Ui.SEAL_H + Theme.SP_1)
                         : lineH;
             }
             hs[i] = h + cp - Theme.SP_1;
@@ -564,7 +581,7 @@ final class CommunityRow {
             }
             if (g != null) {
                 for (int i = row * per; i < Math.min(3, row * per + per); i++) {
-                    statColumn(g, L.t(STAT_HEADS[i]), cols.get(i), chips, x + (i - row * per) * (colW + gap), y + total, colW, rowH, cp);
+                    statColumn(g, L.t(STAT_HEADS[i]), cols.get(i), x + (i - row * per) * (colW + gap), y + total, colW, rowH, cp);
                 }
             }
             total += rowH + gap;
@@ -572,7 +589,7 @@ final class CommunityRow {
         return total - gap;
     }
 
-    private void statColumn(GuiGraphics g, String head, List<Line> lines, List<String> chips, int x, int y, int w, int h, int cp) {
+    private void statColumn(GuiGraphics g, String head, List<Line> lines, int x, int y, int w, int h, int cp) {
         Kit.box(g, x, y, w, h, STATS_FACE, 0);
         int ix = x + cp;
         int room = w - 2 * cp;
@@ -586,6 +603,7 @@ final class CommunityRow {
                 Type.META.draw(g, ui.font, Type.META.fit(ui.font, l.label(), room), ix, cy, Theme.INK_3);
                 cy += Type.META.lineHeight + Theme.SP_1;
                 int cx = ix;
+                List<String> chips = l.chips();
                 for (int i = 0; i < chips.size(); i++) {
                     int cw = chipW(chips.get(i));
                     if (cx > ix && cx + cw > ix + room) {
