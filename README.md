@@ -1,4 +1,4 @@
-# Wynn Labs
+<h1 align="center"><img src=".github/assets/wynnlabs-logo.png" alt="Wynn Labs" width="640"></h1>
 
 [![Modrinth](https://img.shields.io/badge/Modrinth-wynnlabs-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/mod/wynnlabs)
 [![CurseForge](https://img.shields.io/badge/CurseForge-wynnlabs-F16436?logo=curseforge&logoColor=white)](https://www.curseforge.com/minecraft/mc-mods/wynnlabs)
