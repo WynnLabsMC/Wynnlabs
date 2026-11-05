@@ -658,6 +658,8 @@
   "wynnlabs.home.card_now": "Şu an",
   "wynnlabs.home.option_set": "Setin geri kalanı lazım: mevcut gear'ınla karşılaştırıldı",
   "wynnlabs.home.row_copy_tip": "Tıkla: adı kopyala (Trade Market aramasına yapıştır)",
+  "wynnlabs.home.powders_armour": "Toz: %s × herhangi bir element %s (zırhta sadece canı sayılır)",
+  "wynnlabs.home.powders_weapon": "Toz: %s × %s %s, boş slotlara",
   "wynnlabs.home.card_same": "Değişmeyen: %s",
   "wynnlabs.home.chip_wear_at": "Lv %s olunca giyilir",
   "wynnlabs.home.chip_community": "Topluluk seçimi (Lv %s build)",

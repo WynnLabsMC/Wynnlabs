@@ -360,9 +360,26 @@ final class HomeSlots extends HomePart {
      * The powders to put in the shown piece as small squares centred under its slot at {@code y}:
      * one per powder, in the weapon's element colour, armour's (any element) in the frame's brown.
      */
-    private void powderPips(GuiGraphics g, SlotView v, int x, int y, int s) {
-        io.github.anilken.wynnlabs.build.Damage.PowderAdd p;
+    private void powderPips(GuiGraphics g, Host host, SlotView v, int x, int y, int s) {
+        io.github.anilken.wynnlabs.build.Damage.PowderAdd p = powderOf(v);
+        if (p == null) {
+            return;
+        }
+        int n = Math.min(p.count(), (s + 1) / (PIP + 1));
+        int w = n * (PIP + 1) - 1;
+        int left = x + (s - w) / 2;
+        int colour = powderColour(p.element());
+        for (int i = 0; i < n; i++) {
+            g.fill(left + i * (PIP + 1), y, left + i * (PIP + 1) + PIP, y + PIP, colour);
+        }
+        // the marks say which powder in words when hovered
+        host.area(x, y - 1, s, PIP + 2, null, List.of(powderLine(p)), null);
+    }
+
+    /** The powders to put in the shown piece (see {@link #powderPips}); null for none. */
+    static io.github.anilken.wynnlabs.build.Damage.PowderAdd powderOf(SlotView v) {
         try {
+            io.github.anilken.wynnlabs.build.Damage.PowderAdd p;
             if (v.showsPlanned()) {
                 p = io.github.anilken.wynnlabs.build.Damage.powdersToAdd(v.planned(), null);
             } else if (v.gear() != null) {
@@ -370,18 +387,33 @@ final class HomeSlots extends HomePart {
             } else {
                 p = io.github.anilken.wynnlabs.build.Damage.powdersToAdd(null, v.worn());
             }
+            return p == null || p.count() <= 0 ? null : p;
         } catch (Throwable t) {
-            return;
+            return null;
         }
-        if (p == null || p.count() <= 0) {
-            return;
+    }
+
+    private static final String[] ROMAN = {"I", "II", "III", "IV", "V", "VI", "VII"};
+
+    /** "Powders: 3 × Fire VI into its empty slots", or for armour any element. */
+    static Component powderLine(io.github.anilken.wynnlabs.build.Damage.PowderAdd p) {
+        String tier = p.tier() >= 1 && p.tier() <= ROMAN.length ? ROMAN[p.tier() - 1] : String.valueOf(p.tier());
+        if (p.element() == null) {
+            return L.c("wynnlabs.home.powders_armour", p.count(), tier).withStyle(ChatFormatting.GRAY);
         }
-        int n = Math.min(p.count(), (s + 1) / (PIP + 1));
-        int w = n * (PIP + 1) - 1;
-        int colour = powderColour(p.element());
-        for (int i = 0; i < n; i++) {
-            g.fill(x + (s - w) / 2 + i * (PIP + 1), y, x + (s - w) / 2 + i * (PIP + 1) + PIP, y + PIP, colour);
+        String el = p.element().substring(0, 1).toUpperCase(Locale.ROOT) + p.element().substring(1).toLowerCase(Locale.ROOT);
+        return L.c("wynnlabs.home.powders_weapon", p.count(), el, tier).withStyle(ChatFormatting.GRAY);
+    }
+
+    /** {@code tip} with the powders' line under it, when the piece takes some. */
+    private static List<Component> withPowders(SlotView v, List<Component> tip) {
+        io.github.anilken.wynnlabs.build.Damage.PowderAdd p = powderOf(v);
+        if (p == null) {
+            return tip;
         }
+        List<Component> out = new java.util.ArrayList<>(tip == null ? List.of() : tip);
+        out.add(powderLine(p));
+        return out;
     }
 
     /** A powder's colour by element ("air", "Thunder"), the frame's brown for any (null). */
@@ -481,14 +513,14 @@ final class HomeSlots extends HomePart {
                 host.compare(rect, v);
             }
             host.item(rect[0], rect[1], rect[2], rect[3], v.planned(), worn ? v.worn() : ItemStack.EMPTY,
-                    v.lead() == null ? List.of() : v.lead(), v.tip());
+                    v.lead() == null ? List.of() : v.lead(), withPowders(v, v.tip()));
             if (v.gear() == null && !worn) {
                 // your pick or the plan's piece to get: the click copies its name, like an upgrade's
                 host.area(rect[0], rect[1], rect[2], rect[3], null, null, v.planned().name());
             }
         } else if (v.gear() != null) {
             host.compare(rect, v);
-            host.item(rect[0], rect[1], rect[2], rect[3], v.gear().info(), ItemStack.EMPTY, v.tip());
+            host.item(rect[0], rect[1], rect[2], rect[3], v.gear().info(), ItemStack.EMPTY, withPowders(v, v.tip()));
             if (!opens(v)) {
                 // no options to compare: the click copies the name, as its tooltip's last line says
                 host.area(rect[0], rect[1], rect[2], rect[3], null, null, v.gear().info().name());
@@ -538,7 +570,7 @@ final class HomeSlots extends HomePart {
         if (!show.isEmpty()) {
             item(g, show, x + o, y + o, false);
             levelTag(g, v, x, y, s);
-            powderPips(g, v, x, y + s + 1, s);
+            powderPips(g, host, v, x, y + s + 1, s);
         } else if (v.type() != null) {
             WynnTex.draw(g, "wynn/gui/slot/" + v.type().name().toLowerCase(Locale.ROOT), x + o, y + o, 16, 16);
         }
