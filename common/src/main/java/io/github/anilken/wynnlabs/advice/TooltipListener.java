@@ -123,6 +123,7 @@ public final class TooltipListener {
     /** The glow colour behind the slot, or -1 for none. */
     private static int glowOf(net.minecraft.world.item.ItemStack stack, boolean inBag) {
         var mc = Minecraft.getInstance();
+        int shopGlow = -1;
         Advice.Entry e = Advice.find(stack, k -> k.startsWith("ability:") || k.startsWith("name:"));
         if (e != null) {
             if (!(Settings.choice("treeHelp") == 2) || e.verdict() == Verdict.TAKEN) {
@@ -139,8 +140,9 @@ public final class TooltipListener {
             return sellHere(stack);               // at the Blacksmith / Trade Market: what to sell here
         } else if (mc.player != null && inBag && Settings.on("glowUpgrade") && upgrade(stack)) {
             return 0x55FF55;                      // green: wear this, it beats what you have on
-        } else if (mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack) && marketPick(stack)) {
-            return 0xFFAA00;                      // gold: on the shopping list, in a shop or chest
+        } else if (mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack)
+                && (shopGlow = marketGlow(stack)) >= 0) {
+            return shopGlow;                      // gold: on the shopping list (in the Trade Market the best for you; teal the best value)
         } else if (mc.player != null && !inBag && Settings.on("glowQuest") && QuestAdvisor.rankOf(stack) >= 0) {
             return 0x55FFFF;                      // aqua: a recommended quest in the content book
         }
@@ -438,25 +440,56 @@ public final class TooltipListener {
         return 3;
     }
 
-    /**
-     * In the Trade Market, of the listings on screen of one item only the {@link #marketPicks}
-     * cheapest and best rolled glow (a search shows a page of the same item, all on the list);
-     * anywhere else every one. A listing whose price is not read is ranked by its roll alone.
-     */
-    private static boolean marketPick(net.minecraft.world.item.ItemStack stack) {
-        // the Trade Market's buy screens only (a listing's price may not be read: the rolls still rank)
+    /** The glow of a listing that is the best for you (gold) or the best value (teal). */
+    static final int GOLD = 0xFFAA00;
+    static final int TEAL = 0x5FC9B0;
+
+    /** A listing's price over the market's usual price above which it never glows. A method: hot swaps keep no field values. */
+    static double tooDear() {
+        return 1.3;
+    }
+
+    /** Whether the screen open is one of the Trade Market's buy screens. */
+    static boolean inMarket() {
         MenuKind kind = Wyn.container();
-        if (kind == null || kind.marketSell() || !kind.type().startsWith("TradeMarket")
-                || !(Minecraft.getInstance().screen
+        return kind != null && !kind.marketSell() && kind.type().startsWith("TradeMarket");
+    }
+
+    /** A listing's score for you (0 to 1), its overall roll when no stat weighs; -1 unknown. */
+    static double forYou(ItemView v) {
+        if (v == null || v.rolled() == null) {
+            return -1;
+        }
+        try {
+            var sc = io.github.anilken.wynnlabs.build.StatWeights.of(v);
+            if (sc != null && !Double.isNaN(sc.value())) {
+                return sc.value();
+            }
+        } catch (Throwable ignored) {
+            // the model failed: the overall roll instead
+        }
+        return v.rolled().hasOverall() ? v.rolled().overallPercent() / 100.0 : -1;
+    }
+
+    /**
+     * Outside the Trade Market a shopping list item glows gold. In it, of the listings on screen of
+     * one item, the {@link #marketPicks} best for you glow gold and the {@link #marketPicks} with
+     * the most of it per emerald teal; a listing far above the usual price ({@link #tooDear})
+     * never. -1: no glow.
+     */
+    private static int marketGlow(net.minecraft.world.item.ItemStack stack) {
+        if (!inMarket() || !(Minecraft.getInstance().screen
                 instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
-            return true;
+            return GOLD;
         }
         String name = WynntilsItems.view(stack).flatMap(ItemView::gearData).map(ItemData::name).orElse(null);
         if (name == null) {
-            return true;
+            return GOLD;
         }
+        Prices.Price known = Prices.of(name);
+        Double usual = known == null ? null : known.typical();
         var mine = Minecraft.getInstance().player.getInventory();
-        List<Object[]> same = new ArrayList<>();          // {stack, price, overall %}
+        List<Object[]> same = new ArrayList<>();          // {stack, price, score}
         for (Slot sl : screen.getMenu().slots) {
             var st = sl.getItem();
             if (sl.container == mine || st.isEmpty()) {
@@ -466,28 +499,64 @@ public final class TooltipListener {
             if (v == null || v.gearData().map(d -> !d.name().equals(name)).orElse(true)) {
                 continue;
             }
-            float pct = v.rolled() != null && v.rolled().hasOverall() ? v.rolled().overallPercent() : -1;
-            same.add(new Object[] {st, Wyn.marketListingPrice(st), pct});
+            int price = Wyn.marketListingPrice(st);
+            if (price > 0 && usual != null && usual > 0 && price > usual * tooDear()) {
+                continue;                                 // far above the usual price: never glows
+            }
+            same.add(new Object[] {st, price, forYou(v)});
         }
         int n = marketPicks();
-        if (same.size() <= n) {
-            return true;
-        }
-        List<Object[]> byPrice = same.stream().filter(o -> (int) o[1] > 0)
-                .sorted(java.util.Comparator.comparingInt(o -> (int) o[1])).limit(n).toList();
-        List<Object[]> byRoll = same.stream().filter(o -> (float) o[2] >= 0)
-                .sorted(java.util.Comparator.comparingDouble(o -> -(float) o[2])).limit(n).toList();
-        for (Object[] o : byPrice) {
+        List<Object[]> best = same.stream().filter(o -> (double) o[2] >= 0)
+                .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2])).limit(n).toList();
+        for (Object[] o : best) {
             if (o[0] == stack) {
-                return true;
+                return GOLD;
             }
         }
-        for (Object[] o : byRoll) {
+        List<Object[]> value = same.stream().filter(o -> (double) o[2] > 0 && (int) o[1] > 0)
+                .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2] / (int) o[1])).limit(n).toList();
+        for (Object[] o : value) {
             if (o[0] == stack) {
-                return true;
+                return TEAL;
             }
         }
-        return false;
+        return -1;
+    }
+
+    /**
+     * A Trade Market listing's score for you, under the price: "For you (Ritualist): 64%" with a
+     * bar, then the stats that count with their weight ("Aura Cost ×1.0 · Air Damage ×1.0").
+     */
+    private static void forYouLines(ItemView g, List<Component> out, int at) {
+        io.github.anilken.wynnlabs.build.StatWeights.Score sc;
+        try {
+            sc = io.github.anilken.wynnlabs.build.StatWeights.of(g);
+        } catch (Throwable t) {
+            return;
+        }
+        if (sc == null || Double.isNaN(sc.value())) {
+            return;
+        }
+        int pct = (int) Math.round(sc.value() * 100);
+        String arch = io.github.anilken.wynnlabs.build.TreePlanner.chosenLabel(io.github.anilken.wynnlabs.build.TreePlanner.mostUnlocked());
+        StringBuilder bar = new StringBuilder();
+        for (int i = 0; i < 10; i++) {
+            bar.append(i < Math.round(sc.value() * 10) ? '\u2588' : '\u2591');
+        }
+        List<Component> lines = new ArrayList<>();
+        lines.add(Component.literal(L.t("wynnlabs.tooltip.for_you", arch == null || arch.isBlank() ? "-" : arch, pct) + " ")
+                .withStyle(net.minecraft.ChatFormatting.YELLOW)
+                .append(Component.literal(bar.toString()).withStyle(net.minecraft.ChatFormatting.GOLD)));
+        List<String> parts = new ArrayList<>();
+        sc.stats().stream().filter(st -> st.weight() >= 0.05)
+                .sorted((x, y) -> Double.compare(y.weight(), x.weight()))
+                .limit(4)
+                .forEach(st -> parts.add(st.name() + " \u00d7" + String.format(java.util.Locale.ROOT, "%.1f", st.weight())));
+        if (!parts.isEmpty()) {
+            lines.add(Component.literal(String.join(" \u00b7 ", parts)).withStyle(net.minecraft.ChatFormatting.GRAY));
+        }
+        lines.add(Component.empty());
+        out.addAll(Math.max(0, Math.min(at, out.size())), lines);
     }
 
     private static boolean onShoppingList(net.minecraft.world.item.ItemStack stack) {
@@ -767,6 +836,9 @@ public final class TooltipListener {
                 out.set(header, out.get(header).copy().append(price));
             } else {
                 out.add(Math.min(1, out.size()), price);
+            }
+            if (!ingredient && inMarket()) {
+                forYouLines(g, out, blank >= 0 ? blank + 3 : Math.max(1, header + 1));
             }
             return true;
         }

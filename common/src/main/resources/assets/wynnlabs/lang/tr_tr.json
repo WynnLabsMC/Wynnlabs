@@ -132,6 +132,7 @@
   "wynnlabs.caution.line": "Dikkat: %s",
   "wynnlabs.tooltip.past_banner": "ESKI",
   "wynnlabs.tooltip.advice_banner": "ÖNERİ",
+  "wynnlabs.tooltip.for_you": "Sana göre (%s): %%%s",
   "wynnlabs.tooltip.market_banner": "PAZAR",
   "wynnlabs.tooltip.marker": "✦ Öneri: ",
   "wynnlabs.tooltip.box_market": "Değerliler: %s",
