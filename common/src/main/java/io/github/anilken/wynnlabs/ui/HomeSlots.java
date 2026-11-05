@@ -353,6 +353,52 @@ final class HomeSlots extends HomePart {
     }
 
     /** The shown piece's level on a dark tag along the slot's bottom edge; nothing for a piece the item data lacks. */
+    /** The powder marks' side and the air between two. */
+    static final int PIP = 3;
+
+    /**
+     * The powders to put in the shown piece as small squares centred under its slot at {@code y}:
+     * one per powder, in the weapon's element colour, armour's (any element) in the frame's brown.
+     */
+    private void powderPips(GuiGraphics g, SlotView v, int x, int y, int s) {
+        io.github.anilken.wynnlabs.build.Damage.PowderAdd p;
+        try {
+            if (v.showsPlanned()) {
+                p = io.github.anilken.wynnlabs.build.Damage.powdersToAdd(v.planned(), null);
+            } else if (v.gear() != null) {
+                p = io.github.anilken.wynnlabs.build.Damage.powdersToAdd(v.gear().info(), null);
+            } else {
+                p = io.github.anilken.wynnlabs.build.Damage.powdersToAdd(null, v.worn());
+            }
+        } catch (Throwable t) {
+            return;
+        }
+        if (p == null || p.count() <= 0) {
+            return;
+        }
+        int n = Math.min(p.count(), (s + 1) / (PIP + 1));
+        int w = n * (PIP + 1) - 1;
+        int colour = powderColour(p.element());
+        for (int i = 0; i < n; i++) {
+            g.fill(x + (s - w) / 2 + i * (PIP + 1), y, x + (s - w) / 2 + i * (PIP + 1) + PIP, y + PIP, colour);
+        }
+    }
+
+    /** A powder's colour by element ("air", "Thunder"), the frame's brown for any (null). */
+    static int powderColour(String element) {
+        if (element == null || element.isEmpty()) {
+            return 0xFF8A6A3C;
+        }
+        return switch (Character.toLowerCase(element.charAt(0))) {
+            case 'e' -> 0xFF5DA548;
+            case 't' -> 0xFFD9C23A;
+            case 'w' -> 0xFF3E8FC9;
+            case 'f' -> 0xFFE8584A;
+            case 'a' -> 0xFFE8E8E0;
+            default -> 0xFF8A6A3C;
+        };
+    }
+
     private void levelTag(GuiGraphics g, SlotView v, int x, int y, int s) {
         ItemData info = BuildSources.itemOf(shownName(v));
         if (info == null) {
@@ -436,6 +482,10 @@ final class HomeSlots extends HomePart {
             }
             host.item(rect[0], rect[1], rect[2], rect[3], v.planned(), worn ? v.worn() : ItemStack.EMPTY,
                     v.lead() == null ? List.of() : v.lead(), v.tip());
+            if (v.gear() == null && !worn) {
+                // your pick or the plan's piece to get: the click copies its name, like an upgrade's
+                host.area(rect[0], rect[1], rect[2], rect[3], null, null, v.planned().name());
+            }
         } else if (v.gear() != null) {
             host.compare(rect, v);
             host.item(rect[0], rect[1], rect[2], rect[3], v.gear().info(), ItemStack.EMPTY, v.tip());
@@ -488,6 +538,7 @@ final class HomeSlots extends HomePart {
         if (!show.isEmpty()) {
             item(g, show, x + o, y + o, false);
             levelTag(g, v, x, y, s);
+            powderPips(g, v, x, y + s + 1, s);
         } else if (v.type() != null) {
             WynnTex.draw(g, "wynn/gui/slot/" + v.type().name().toLowerCase(Locale.ROOT), x + o, y + o, 16, 16);
         }

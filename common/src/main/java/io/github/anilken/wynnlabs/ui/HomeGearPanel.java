@@ -154,7 +154,10 @@ final class HomeGearPanel extends HomePart {
         Boolean shownSaved = in.plan() == null ? host.shownSaved() : null;
         TomeAdvice.Advice tomes = compact ? null : host.shownTomes();
         if (large && !compact) {
-            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, in.plan() != null || shownSaved != null, shownSaved, tomes, mx, my);
+            // what you wear now has a row too: its tomes and aspects (a milestone's Save, a plan's buttons elsewhere)
+            boolean now = in.plan() == null && shownSaved == null && tomes != null;
+            list(g, host, in, armour, weapon, trinkets, x, top, w, bottom, in.plan() != null || shownSaved != null || now,
+                    shownSaved, tomes, mx, my);
             corners.draw(g);
             barLine(g, in, host, x, y, w, h, barH, compact, count, gains, mx, my);
             return;
@@ -268,7 +271,8 @@ final class HomeGearPanel extends HomePart {
             int x, int top, int w, int bottom, boolean planRow, Boolean shownSaved, TomeAdvice.Advice tomes, int mx, int my) {
         int s = 24;
         int end = planRow ? bottom - 14 - Theme.SP_4 : bottom;
-        int rh = Math.max(s + Theme.SP_2, Math.min(s + Theme.SP_5, (end - top - s) / 4));
+        // at least the powder marks under a slot and air below them
+        int rh = Math.max(s + Theme.SP_3, Math.min(s + Theme.SP_5, (end - top - s) / 4));
         int colW = (w - Theme.SP_7) / 2;
         // a plan's marks are round seals: their column only that wide, the names get the rest
         int markW = in.plan() != null ? Ui.CHIP_H + 2 : font.width("+142%") + 8;
@@ -293,6 +297,8 @@ final class HomeGearPanel extends HomePart {
             bars.planRow(g, host, in, tomes, x, bottom - 14, w, mx, my);
         } else if (shownSaved != null) {
             bars.mapRow(g, host, shownSaved, tomes, x, bottom - 14, w, mx, my);
+        } else if (planRow && tomes != null) {
+            bars.nowRow(g, host, tomes, x, bottom - 14, w, mx, my);
         }
     }
 
