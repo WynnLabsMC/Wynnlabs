@@ -3333,5 +3333,13 @@
   "wynnlabs.setting.guildApi": "Guild map: members from Wynncraft",
   "wynnlabs.setting_desc.guildApi": "While the guild map is open, asks Wynncraft's API about the guilds in its panel: level, members, wars and who is online on which world. A guild at most once a minute",
   "wynnlabs.settings.example.guildApi": "On: Pavilion's panel shows Lv. 97, 88 members and its online members with their worlds",
-  "wynnlabs.guildmap.search": "Search territories or guilds"
+  "wynnlabs.guildmap.search": "Search territories or guilds",
+  "wynnlabs.guildmap.live": "Live from the game",
+  "wynnlabs.guildmap.updating": "Updating from Wynncraft…",
+  "wynnlabs.guildmap.updated": "Updated %s",
+  "wynnlabs.guildmap.online_updated": "Online %s",
+  "wynnlabs.guildmap.ago_now": "just now",
+  "wynnlabs.guildmap.ago_s": "%ss ago",
+  "wynnlabs.guildmap.ago_m": "%sm ago",
+  "wynnlabs.guildmap.ago_h": "%sh ago"
 }

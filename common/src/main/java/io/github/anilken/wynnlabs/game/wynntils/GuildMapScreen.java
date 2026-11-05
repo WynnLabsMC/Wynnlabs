@@ -68,7 +68,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
         renderCoordinates(g, pmx, pmy);
         renderZoomWidgets(g, mx, my, partialTick);
         if (hovered instanceof TerritoryPoi t) {
-            GuildMapLook.card(g, GuildMapReads.of(t), w() - (panel.open ? GuildMapPanel.W + 4 : 0), now);
+            GuildMapLook.card(g, GuildMapReads.of(t), w() - panel.taken(), now);
         }
         panel.draw(g, f(), w(), h(), looks, mx, my);
         renderTooltip(g, pmx, pmy);

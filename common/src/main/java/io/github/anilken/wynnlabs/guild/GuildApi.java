@@ -57,6 +57,20 @@ public final class GuildApi {
         return get(prefix, PICKED_EVERY);
     }
 
+    /** True while this guild is being asked for. */
+    public static boolean asking(String prefix) {
+        return prefix != null && QUEUED.contains(prefix);
+    }
+
+    /** When the newest answer of any guild came (0: none yet), for the list's "updated" line. */
+    public static long newest() {
+        long at = 0;
+        for (Info i : INFO.values()) {
+            at = Math.max(at, i.at());
+        }
+        return at;
+    }
+
     /** A guild in the list: what is known, asked again when five minutes old. */
     public static Info listed(String prefix) {
         return get(prefix, LIST_EVERY);

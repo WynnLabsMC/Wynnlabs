@@ -200,3 +200,4 @@ wynnlabs.nearest.sub_walk               "walking distance · Lv 44" after "Neare
 wynnlabs.nearest.sub_straight           "straight-line distance · Lv 44" after "Nearest to you · " on the nearest list
 wynnlabs.nearest.map_straight           "showing straight-line distances …" after "Route map downloading · " on its bar
 wynnlabs.guildmap.per_hour_short        "/h" after an amount on the guild map panel ("9K/h")
+wynnlabs.guildmap.ago_now                "just now" after "Updated " on the guild map
