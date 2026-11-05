@@ -3367,6 +3367,8 @@
   "wynnlabs.guildmap.tower_hp": "%s can · EHP %s",
   "wynnlabs.guildmap.tower_dmg": "%s–%s hasar · %s/sn",
   "wynnlabs.guildmap.cooldown_list": "COOLDOWN'DA",
-  "wynnlabs.guildmap.captures": "SON ELE GEÇİRİLENLER",
-  "wynnlabs.guildmap.captures_window": "1 sa"
+  "wynnlabs.guildmap.captures": "DAHA ÖNCE ALINANLAR",
+  "wynnlabs.guildmap.captures_window": "10–60 dk",
+  "wynnlabs.guildmap.tab_war": "War",
+  "wynnlabs.guildmap.war_quiet": "Son bir saatte el değiştiren bölge yok"
 }

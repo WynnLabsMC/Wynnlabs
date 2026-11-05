@@ -39,6 +39,8 @@ public final class GuildMapPanel {
     public boolean open = true;
     public boolean routes = true;
     public boolean timers = true;
+    /** The war tab (cooldowns and captures) in place of the guilds. */
+    public boolean warTab;
     /** The search box's text, and whether it has the keyboard. */
     public String query = "";
     public boolean typing;
@@ -104,6 +106,10 @@ public final class GuildMapPanel {
         g.drawString(font, tail(font, shown, right - left - 8), left + 4, cy + 3, hint ? GuildMapInk.INK_3 : GuildMapInk.INK, false);
         hits.add(new Hit(left, cy, right, cy + boxH, new Click("search", null)));
         cy += boxH + 5;
+        // the tabs: guilds, war
+        int tx = tab(g, font, left, cy, L.t("wynnlabs.guildmap.back"), !warTab, new Click("tab_guilds", null));
+        tab(g, font, tx + 4, cy, L.t("wynnlabs.guildmap.tab_war"), warTab, new Click("tab_war", null));
+        cy += lh + 7;
         // the switches
         int cx = chip(g, font, left, cy, L.t("wynnlabs.guildmap.routes_switch"), routes, new Click("routes", null));
         chip(g, font, cx + 4, cy, L.t("wynnlabs.guildmap.timers_switch"), timers, new Click("timers", null));
@@ -119,7 +125,9 @@ public final class GuildMapPanel {
         Guild picked = guild == null ? null : guilds.stream().filter(gd -> gd.name().equals(guild)).findFirst().orElse(null);
         String q = query.toLowerCase(Locale.ROOT).strip();
         footer = null;
-        if (picked == null) {
+        if (warTab) {
+            ry = war(g, font, all, left, right, ry, top, mx, my, now);
+        } else if (picked == null) {
             guild = null;
             ry = list(g, font, guilds, all, q, left, right, ry, top, mx, my, now);
         } else {
@@ -156,9 +164,6 @@ public final class GuildMapPanel {
     private int list(GuiGraphics g, Font font, List<Guild> guilds, List<GuildMapLook.Territory> all, String q,
             int left, int right, int ry, int top, int mx, int my, long now) {
         int lh = font.lineHeight;
-        if (q.isEmpty()) {
-            ry = war(g, font, all, left, right, ry, top, mx, my, now);
-        }
         g.drawString(font, L.t("wynnlabs.guildmap.top_guilds"), left, ry, GuildMapInk.INK_2, false);
         long newest = GuildApi.newest();
         if (newest > 0 && Settings.on("guildApi")) {
@@ -237,27 +242,28 @@ public final class GuildMapPanel {
             String n = String.valueOf(cooling.size());
             g.drawString(font, n, right - font.width(n), ry, GuildMapInk.INK_3, false);
             ry += lh + 4;
-            for (GuildMapLook.Territory t : cooling.subList(0, Math.min(6, cooling.size()))) {
+            for (GuildMapLook.Territory t : cooling) {
                 String left0 = GuildMapLook.clock(GuildMapLook.COOLDOWN_MS - (now - t.acquired()));
-                ry = warRow(g, font, t, null, left0, GuildMapInk.BAD, left, right, ry, top, mx, my);
+                ry = warRow(g, font, t, WarFeed.from(t.name(), t.guild()), left0, GuildMapInk.BAD, left, right, ry, top, mx, my);
             }
             ry += 3;
         }
-        if (!cooling.isEmpty() || !taken.isEmpty()) {
-            java.util.List<GuildMapLook.Territory> recent = new ArrayList<>(cooling);
-            recent.addAll(taken);
+        if (!taken.isEmpty()) {
+            // taken earlier in the hour, their cooldown over (the ones still on it are above)
+            java.util.List<GuildMapLook.Territory> recent = new ArrayList<>(taken);
             recent.sort(Comparator.comparingLong(t -> -t.acquired()));
             g.drawString(font, L.t("wynnlabs.guildmap.captures"), left, ry, GuildMapInk.INK_2, false);
             String w = L.t("wynnlabs.guildmap.captures_window");
             g.drawString(font, w, right - font.width(w), ry, GuildMapInk.INK_3, false);
             ry += lh + 4;
-            for (GuildMapLook.Territory t : recent.subList(0, Math.min(8, recent.size()))) {
+            for (GuildMapLook.Territory t : recent) {
                 ry = warRow(g, font, t, WarFeed.from(t.name(), t.guild()), GuildMapLook.ago(now - t.acquired()),
                         GuildMapInk.INK_3, left, right, ry, top, mx, my);
             }
-            ry += 3;
-            g.fill(left, ry, right, ry + 1, GuildMapInk.LINE);
-            ry += 6;
+        }
+        if (cooling.isEmpty() && taken.isEmpty()) {
+            small(g, font, L.t("wynnlabs.guildmap.war_quiet"), left, ry, false);
+            ry += lh;
         }
         return ry;
     }
@@ -525,6 +531,14 @@ public final class GuildMapPanel {
                     case "close" -> open = false;
                     case "routes" -> routes = !routes;
                     case "timers" -> timers = !timers;
+                    case "tab_guilds" -> {
+                        warTab = false;
+                        scroll = 0;
+                    }
+                    case "tab_war" -> {
+                        warTab = true;
+                        scroll = 0;
+                    }
                     case "guild" -> {
                         guild = h.click().arg();
                         scroll = 0;
@@ -553,6 +567,7 @@ public final class GuildMapPanel {
     /** Opens a guild's page in the panel (the panel opened too), from its top. */
     public void show(String guildName) {
         open = true;
+        warTab = false;
         guild = guildName;
         scroll = 0;
     }
@@ -575,6 +590,15 @@ public final class GuildMapPanel {
         List<Guild> out = new ArrayList<>(by.values());
         out.sort(Comparator.comparingInt(Guild::count).reversed().thenComparing(Guild::name));
         return out;
+    }
+
+    /** A tab: the chosen one framed in gold, the other quiet. */
+    private int tab(GuiGraphics g, Font font, int x, int y, String text, boolean on, Click click) {
+        int w = font.width(text) + 12;
+        GuildMapInk.box(g, x, y - 2, w, font.lineHeight + 3, on ? GuildMapInk.SELECTED : GuildMapInk.WELL, on ? GuildMapInk.GOLD_EDGE : 0);
+        g.drawString(font, text, x + 6, y, on ? GuildMapInk.PRICE : GuildMapInk.INK_3, false);
+        hits.add(new Hit(x, y - 2, x + w, y + font.lineHeight + 1, click));
+        return x + w;
     }
 
     /** A switch: a framed chip with a check while on. */

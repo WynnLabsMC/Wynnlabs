@@ -3367,6 +3367,8 @@
   "wynnlabs.guildmap.tower_hp": "%s HP · EHP %s",
   "wynnlabs.guildmap.tower_dmg": "%s–%s dmg · %s/s",
   "wynnlabs.guildmap.cooldown_list": "ON COOLDOWN",
-  "wynnlabs.guildmap.captures": "RECENT CAPTURES",
-  "wynnlabs.guildmap.captures_window": "1 h"
+  "wynnlabs.guildmap.captures": "EARLIER CAPTURES",
+  "wynnlabs.guildmap.captures_window": "10–60 min",
+  "wynnlabs.guildmap.tab_war": "War",
+  "wynnlabs.guildmap.war_quiet": "No territory changed hands in the last hour"
 }
