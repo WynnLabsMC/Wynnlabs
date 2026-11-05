@@ -14,7 +14,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * The guild map's side panel, on parchment in a wooden frame like the mod's other windows: a
+ * The guild map's side panel, dark like the card on the map: a
  * search box, switches for the map's extras, the guilds by territories held (with how many are
  * online), and for a picked guild its numbers, what it makes an hour, who is online where and its
  * territories (click one to centre the map on it). Says when the guild numbers were last asked.
@@ -34,7 +34,7 @@ public final class GuildMapPanel {
     /** The panel's width inside its frame. */
     public static final int W = 186;
     /** The frame's width beyond the panel on each side, and the gap to the screen's edge. */
-    static final int EDGE = 9;
+    static final int EDGE = 4;
 
     public boolean open = true;
     public boolean routes = true;
@@ -67,9 +67,8 @@ public final class GuildMapPanel {
         long now = System.currentTimeMillis();
         if (!open) {
             int x = screenW - 26;
-            KitFrame.window(g, x - 3, 6, 22, 22);
-            KitFrame.paper(g, x, 9, 16, 16);
-            g.drawString(font, "«", x + 8 - font.width("«") / 2, 13, Theme.INK, false);
+            GuildMapInk.face(g, x - 3, 6, 22, 22);
+            g.drawString(font, "«", x + 8 - font.width("«") / 2, 13, GuildMapInk.INK, false);
             hits.add(new Hit(x - 3, 6, x + 19, 28, new Click("open", null)));
             return;
         }
@@ -78,29 +77,28 @@ public final class GuildMapPanel {
         int h = screenH - 2 * EDGE;
         int pad = 8;
         int lh = font.lineHeight;
-        KitFrame.window(g, x - 5, y - 5, W + 10, h + 10);
-        KitFrame.paper(g, x + 2, y + 2, W - 4, h - 4);
+        GuildMapInk.face(g, x, y, W, h);
         int left = x + pad;
         int right = x + W - pad;
         int cy = y + pad;
-        g.drawString(font, L.t("wynnlabs.guildmap.title"), left, cy, Theme.INK, false);
-        g.drawString(font, "»", right - font.width("»"), cy, Theme.INK_3, false);
+        g.drawString(font, L.t("wynnlabs.guildmap.title"), left, cy, GuildMapInk.INK, false);
+        g.drawString(font, "»", right - font.width("»"), cy, GuildMapInk.INK_3, false);
         hits.add(new Hit(right - 12, cy - 2, right + 4, cy + lh, new Click("close", null)));
         cy += lh + 5;
         // the search box: guilds by name or tag, territories by name
         int boxH = lh + 6;
-        Kit.box(g, left, cy, right - left, boxH, Theme.WELL, typing ? Theme.GOLD_EDGE : Theme.LINE);
+        GuildMapInk.box(g, left, cy, right - left, boxH, GuildMapInk.WELL, typing ? GuildMapInk.GOLD_EDGE : GuildMapInk.LINE);
         boolean hint = query.isEmpty() && !typing;
         String shown = hint ? L.t("wynnlabs.guildmap.search")
                 : query + (typing && now / 500 % 2 == 0 ? "_" : "");
-        g.drawString(font, tail(font, shown, right - left - 8), left + 4, cy + 3, hint ? Theme.INK_3 : Theme.INK, false);
+        g.drawString(font, tail(font, shown, right - left - 8), left + 4, cy + 3, hint ? GuildMapInk.INK_3 : GuildMapInk.INK, false);
         hits.add(new Hit(left, cy, right, cy + boxH, new Click("search", null)));
         cy += boxH + 5;
         // the switches
         int cx = chip(g, font, left, cy, L.t("wynnlabs.guildmap.routes_switch"), routes, new Click("routes", null));
         chip(g, font, cx + 4, cy, L.t("wynnlabs.guildmap.timers_switch"), timers, new Click("timers", null));
         cy += lh + 7;
-        g.fill(left, cy, right, cy + 1, Theme.LINE);
+        g.fill(left, cy, right, cy + 1, GuildMapInk.LINE);
         cy += 5;
         int top = cy;
         int bottom = y + h - pad;
@@ -128,7 +126,7 @@ public final class GuildMapPanel {
     private int list(GuiGraphics g, Font font, List<Guild> guilds, List<GuildMapLook.Territory> all, String q,
             int left, int right, int ry, int top, int mx, int my, long now) {
         int lh = font.lineHeight;
-        g.drawString(font, L.t("wynnlabs.guildmap.top_guilds"), left, ry, Theme.INK_2, false);
+        g.drawString(font, L.t("wynnlabs.guildmap.top_guilds"), left, ry, GuildMapInk.INK_2, false);
         long newest = GuildApi.newest();
         if (newest > 0 && Settings.on("guildApi")) {
             small(g, font, L.t("wynnlabs.guildmap.online_updated", GuildMapLook.ago(now - newest)), right, ry + 1, true);
@@ -141,7 +139,7 @@ public final class GuildMapPanel {
                 continue;
             }
             hover(g, left, right, ry, lh, top, mx, my);
-            g.drawString(font, String.valueOf(rank), left, ry, Theme.INK_3, false);
+            g.drawString(font, String.valueOf(rank), left, ry, GuildMapInk.INK_3, false);
             swatch(g, left + 16, ry + 1, gd.colour());
             // the online count from the guild API, for the rows in sight
             boolean seen = ry + lh > top && ry < top + viewH;
@@ -149,13 +147,13 @@ public final class GuildMapPanel {
             int r = right;
             if (api != null) {
                 String on = "● " + api.online();
-                g.drawString(font, on, r - font.width(on), ry, api.online() > 0 ? Theme.GOOD : Theme.INK_3, false);
+                g.drawString(font, on, r - font.width(on), ry, api.online() > 0 ? GuildMapInk.GOOD : GuildMapInk.INK_3, false);
                 r -= 28;
             }
             String count = String.valueOf(gd.count());
-            g.drawString(font, count, r - font.width(count), ry, Theme.PRICE, false);
+            g.drawString(font, count, r - font.width(count), ry, GuildMapInk.PRICE, false);
             int nx = left + 28;
-            g.drawString(font, fit(font, gd.name(), r - font.width(count) - 4 - nx), nx, ry, Theme.INK, false);
+            g.drawString(font, fit(font, gd.name(), r - font.width(count) - 4 - nx), nx, ry, GuildMapInk.INK, false);
             hits.add(new Hit(left - 4, ry - 2, right + 4, ry + lh + 2, new Click("guild", gd.name())));
             ry += lh + 5;
         }
@@ -184,14 +182,14 @@ public final class GuildMapPanel {
         GuildApi.Info api = GuildApi.picked(picked.prefix());
         // the head: its colour, its name, the tag and level, how many are online
         g.fill(left, ry, left + 3, ry + lh * 2 + 3, picked.colour() | 0xFF000000);
-        g.drawString(font, fit(font, picked.name(), right - left - 20), left + 7, ry, Theme.INK, false);
-        g.drawString(font, "×", right - font.width("×"), ry, Theme.INK_3, false);
+        g.drawString(font, fit(font, picked.name(), right - left - 20), left + 7, ry, GuildMapInk.INK, false);
+        g.drawString(font, "×", right - font.width("×"), ry, GuildMapInk.INK_3, false);
         hits.add(new Hit(right - 10, ry - 2, right + 4, ry + lh, new Click("back", null)));
         String sub = picked.prefix() + (api == null ? "" : " · " + L.t("wynnlabs.guildmap.level", api.level()));
-        g.drawString(font, sub, left + 7, ry + lh + 3, Theme.INK_3, false);
+        g.drawString(font, sub, left + 7, ry + lh + 3, GuildMapInk.INK_3, false);
         if (api != null) {
             String on = L.t("wynnlabs.guildmap.online", api.online());
-            g.drawString(font, on, right - font.width(on), ry + lh + 3, api.online() > 0 ? Theme.GOOD : Theme.INK_3, false);
+            g.drawString(font, on, right - font.width(on), ry + lh + 3, api.online() > 0 ? GuildMapInk.GOOD : GuildMapInk.INK_3, false);
         }
         ry += lh * 2 + 6;
         // when the guild's numbers were asked
@@ -217,9 +215,9 @@ public final class GuildMapPanel {
         for (int i = 0; i < tiles.size(); i++) {
             int tx = left + (i % 2) * (tileW + 4);
             int ty = ry + (i / 2) * (tileH + 4);
-            Kit.box(g, tx, ty, tileW, tileH, Theme.CARD, Theme.LINE);
+            GuildMapInk.box(g, tx, ty, tileW, tileH, GuildMapInk.CARD, GuildMapInk.LINE);
             small(g, font, tiles.get(i)[0], tx + 4, ty + 3, false);
-            g.drawString(font, fit(font, tiles.get(i)[1], tileW - 8), tx + 4, ty + lh + 1, i == 0 ? Theme.PRICE : Theme.INK, false);
+            g.drawString(font, fit(font, tiles.get(i)[1], tileW - 8), tx + 4, ty + lh + 1, i == 0 ? GuildMapInk.PRICE : GuildMapInk.INK, false);
         }
         ry += ((tiles.size() + 1) / 2) * (tileH + 4) + 2;
         // what the guild makes an hour, all its territories together
@@ -243,7 +241,7 @@ public final class GuildMapPanel {
                     ry += lh + 3;
                 }
                 int iw = GuildMapLook.drawIcon(g, font, m.getKey(), px, ry, 9);
-                g.drawString(font, v, px + iw + 2, ry, Theme.INK, false);
+                g.drawString(font, v, px + iw + 2, ry, GuildMapInk.INK, false);
                 px += iw + 2 + font.width(v) + 8;
             }
             if (!made.isEmpty()) {
@@ -263,11 +261,11 @@ public final class GuildMapPanel {
                 g.pose().pushMatrix();
                 g.pose().translate(left, ry + 2);
                 g.pose().scale(0.75f, 0.75f);
-                g.drawString(font, rank, 0, 0, Theme.PRICE, false);
+                g.drawString(font, rank, 0, 0, GuildMapInk.PRICE, false);
                 g.pose().popMatrix();
                 int nx = left + 22;
-                g.drawString(font, fit(font, mb.name(), right - font.width(world) - 4 - nx), nx, ry, Theme.INK, false);
-                g.drawString(font, world, right - font.width(world), ry, Theme.INK_3, false);
+                g.drawString(font, fit(font, mb.name(), right - font.width(world) - 4 - nx), nx, ry, GuildMapInk.INK, false);
+                g.drawString(font, world, right - font.width(world), ry, GuildMapInk.INK_3, false);
                 ry += lh + 3;
             }
         }
@@ -296,9 +294,9 @@ public final class GuildMapPanel {
         if (t.acquired() > 0) {
             long ms = Math.max(0, now - t.acquired());
             held = GuildMapLook.shortHeld(ms);
-            g.drawString(font, held, right - font.width(held), ry, ms < GuildMapLook.COOLDOWN_MS ? Theme.BAD : Theme.GOOD, false);
+            g.drawString(font, held, right - font.width(held), ry, ms < GuildMapLook.COOLDOWN_MS ? GuildMapInk.BAD : GuildMapInk.GOOD, false);
         }
-        g.drawString(font, fit(font, t.name(), right - font.width(held) - 4 - (left + 11)), left + 11, ry, Theme.INK, false);
+        g.drawString(font, fit(font, t.name(), right - font.width(held) - 4 - (left + 11)), left + 11, ry, GuildMapInk.INK, false);
         hits.add(new Hit(left - 4, ry - 2, right + 4, ry + lh + 2, new Click("territory", t.name())));
         return ry + lh + 4;
     }
@@ -306,11 +304,11 @@ public final class GuildMapPanel {
     /** A section's rule and title, with a count on the right; returns the y under it. */
     private static int section(GuiGraphics g, Font font, String title, String count, int left, int right, int ry) {
         ry += 3;
-        g.fill(left, ry, right, ry + 1, Theme.LINE);
+        g.fill(left, ry, right, ry + 1, GuildMapInk.LINE);
         ry += 5;
-        g.drawString(font, title, left, ry, Theme.INK_2, false);
+        g.drawString(font, title, left, ry, GuildMapInk.INK_2, false);
         if (count != null) {
-            g.drawString(font, count, right - font.width(count), ry, Theme.INK_3, false);
+            g.drawString(font, count, right - font.width(count), ry, GuildMapInk.INK_3, false);
         }
         return ry + font.lineHeight + 4;
     }
@@ -320,18 +318,18 @@ public final class GuildMapPanel {
         g.pose().pushMatrix();
         g.pose().translate(alignRight ? x - font.width(s) * 0.75f : x, y);
         g.pose().scale(0.75f, 0.75f);
-        g.drawString(font, s, 0, 0, Theme.INK_3, false);
+        g.drawString(font, s, 0, 0, GuildMapInk.INK_3, false);
         g.pose().popMatrix();
     }
 
     private static void swatch(GuiGraphics g, int x, int y, int colour) {
-        g.fill(x - 1, y - 1, x + 8, y + 8, Theme.INK_2);
+        g.fill(x - 1, y - 1, x + 8, y + 8, 0xFF000000);
         g.fill(x, y, x + 7, y + 7, colour | 0xFF000000);
     }
 
     private static void hover(GuiGraphics g, int left, int right, int ry, int lh, int top, int mx, int my) {
         if (mx >= left - 4 && mx < right + 4 && my >= ry - 2 && my < ry + lh + 2 && my >= top) {
-            g.fill(left - 4, ry - 2, right + 4, ry + lh + 1, Theme.CARD_HOVER);
+            g.fill(left - 4, ry - 2, right + 4, ry + lh + 1, GuildMapInk.CARD_HOVER);
         }
     }
 
@@ -415,8 +413,8 @@ public final class GuildMapPanel {
     private int chip(GuiGraphics g, Font font, int x, int y, String text, boolean on, Click click) {
         String shown = (on ? "✓ " : "") + text;
         int w = font.width(shown) + 10;
-        Kit.box(g, x, y - 2, w, font.lineHeight + 3, on ? Theme.SELECTED : Theme.WELL, on ? Theme.GOLD_EDGE : Theme.LINE);
-        g.drawString(font, shown, x + 5, y, on ? Theme.PRICE : Theme.INK_3, false);
+        GuildMapInk.box(g, x, y - 2, w, font.lineHeight + 3, on ? GuildMapInk.SELECTED : GuildMapInk.WELL, on ? GuildMapInk.GOLD_EDGE : GuildMapInk.LINE);
+        g.drawString(font, shown, x + 5, y, on ? GuildMapInk.PRICE : GuildMapInk.INK_3, false);
         hits.add(new Hit(x, y - 2, x + w, y + font.lineHeight + 1, click));
         return x + w;
     }

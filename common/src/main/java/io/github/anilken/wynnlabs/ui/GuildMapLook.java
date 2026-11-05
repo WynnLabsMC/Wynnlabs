@@ -92,14 +92,13 @@ public final class GuildMapLook {
     }
 
     /**
-     * The hovered territory's card, on parchment in a wooden frame like the mod's other windows,
-     * in the map's top right corner ({@code right}: the free edge, left of the side panel).
+     * The hovered territory's card, dark like the side panel, in the map's top right corner ({@code right}: the free edge, left of the side panel).
      */
     public static void card(GuiGraphics g, Territory t, int right, long now) {
         Font font = Minecraft.getInstance().font;
         int w = 214;
         int pad = 8;
-        int x = right - 12 - w;
+        int x = right - 8 - w;
         int y = 44;
         int lh = font.lineHeight;
         List<Pill> pills = pills(t, now);
@@ -107,21 +106,20 @@ public final class GuildMapLook {
         int rows = t.known() ? t.res().size() : 0;
         int rowH = lh + 9;
         int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad;
-        KitFrame.window(g, x - 5, y - 5, w + 10, h + 10);
-        KitFrame.paper(g, x + 2, y + 2, w - 4, h - 4);
+        GuildMapInk.face(g, x, y, w, h);
         int cy = y + pad;
         // header: the holder's colour, the territory and its guild; the held time on the right
         g.fill(x + pad, cy, x + pad + 3, cy + lh * 2 + 3, t.guildColour() | 0xFF000000);
         int tx = x + pad + 7;
-        g.drawString(font, t.name(), tx, cy, Theme.INK, false);
+        g.drawString(font, t.name(), tx, cy, GuildMapInk.INK, false);
         String guild = t.guild() == null || t.guild().isBlank() ? L.t("wynnlabs.guildmap.no_guild")
                 : t.guild() + (t.prefix() == null || t.prefix().isBlank() ? "" : " · " + t.prefix());
-        g.drawString(font, guild, tx, cy + lh + 3, Theme.PRICE, false);
+        g.drawString(font, guild, tx, cy + lh + 3, GuildMapInk.PRICE, false);
         if (t.acquired() > 0) {
             String held = longHeld(Math.max(0, now - t.acquired()));
-            g.drawString(font, held, x + w - pad - font.width(held), cy, Theme.INK, false);
+            g.drawString(font, held, x + w - pad - font.width(held), cy, GuildMapInk.INK, false);
             String sub = L.t("wynnlabs.guildmap.held");
-            g.drawString(font, sub, x + w - pad - font.width(sub), cy + lh + 3, Theme.INK_3, false);
+            g.drawString(font, sub, x + w - pad - font.width(sub), cy + lh + 3, GuildMapInk.INK_3, false);
         }
         cy += lh * 2 + 3 + 6;
         // pills: cooldown or ready, defence, treasury, HQ
@@ -132,7 +130,7 @@ public final class GuildMapLook {
                 px = x + pad;
                 cy += lh + 5;
             }
-            Kit.box(g, px, cy - 2, pw, lh + 3, p.fill(), p.ink());
+            GuildMapInk.box(g, px, cy - 2, pw, lh + 3, p.fill(), p.ink());
             g.drawString(font, p.text(), px + 4, cy, p.ink(), false);
             px += pw + 4;
         }
@@ -146,29 +144,29 @@ public final class GuildMapLook {
                 int hourW = font.width(hour);
                 int barX = x + pad + Math.max(iw, 10) + 4;
                 int barW = x + w - pad - hourW - 6 - barX;
-                g.fill(barX, cy + 1, barX + barW, cy + 7, Theme.WELL);
+                g.fill(barX, cy + 1, barX + barW, cy + 7, GuildMapInk.WELL);
                 int fill = r.cap() <= 0 ? 0 : Math.round(barW * Math.min(1f, r.stored() / (float) r.cap()));
                 if (fill > 0) {
                     g.fill(barX, cy + 1, barX + fill, cy + 7, r.colour() | 0xFF000000);
                 }
-                g.renderOutline(barX - 1, cy, barW + 2, 8, Theme.LINE);
-                g.drawString(font, hour, x + w - pad - hourW, cy, r.perHour() > 0 ? Theme.GOOD : Theme.INK_3, false);
+                g.renderOutline(barX - 1, cy, barW + 2, 8, GuildMapInk.LINE);
+                g.drawString(font, hour, x + w - pad - hourW, cy, r.perHour() > 0 ? GuildMapInk.GOOD : GuildMapInk.INK_3, false);
                 String amount = L.t("wynnlabs.guildmap.res." + r.key().toLowerCase(java.util.Locale.ROOT)) + "  "
                         + compact(r.stored()) + " / " + compact(r.cap());
                 g.pose().pushMatrix();
                 g.pose().translate(barX, cy + 9);
                 g.pose().scale(0.75f, 0.75f);
-                g.drawString(font, amount, 0, 0, Theme.INK_3, false);
+                g.drawString(font, amount, 0, 0, GuildMapInk.INK_3, false);
                 g.pose().popMatrix();
                 cy += rowH;
             }
         }
         // the footer: trade routes, and where the numbers come from
         cy += 2;
-        g.fill(x + pad, cy, x + w - pad, cy + 1, Theme.LINE);
+        g.fill(x + pad, cy, x + w - pad, cy + 1, GuildMapInk.LINE);
         cy += 3;
         String foot = t.known() && t.routes() > 0 ? L.n("wynnlabs.guildmap.routes", t.routes()) + " · " : "";
-        g.drawString(font, foot + L.t("wynnlabs.guildmap.live"), x + pad, cy, Theme.INK_3, false);
+        g.drawString(font, foot + L.t("wynnlabs.guildmap.live"), x + pad, cy, GuildMapInk.INK_3, false);
     }
 
     /** A pill on the card: its text, its tinted face and its ink. */
@@ -178,8 +176,8 @@ public final class GuildMapLook {
         List<Pill> out = new ArrayList<>();
         if (t.acquired() > 0) {
             long left = COOLDOWN_MS - Math.max(0, now - t.acquired());
-            out.add(left > 0 ? new Pill(L.t("wynnlabs.guildmap.cooldown", clock(left)), 0xFFF0CDB8, Theme.BAD)
-                    : new Pill(L.t("wynnlabs.guildmap.ready"), 0xFFD3E6BE, Theme.GOOD));
+            out.add(left > 0 ? new Pill(L.t("wynnlabs.guildmap.cooldown", clock(left)), 0xFF2A1A1A, GuildMapInk.BAD)
+                    : new Pill(L.t("wynnlabs.guildmap.ready"), 0xFF17261A, GuildMapInk.GOOD));
         }
         if (t.known() && t.defenceLevel() > 0) {
             int[] c = level(t.defenceLevel(), false);
@@ -190,7 +188,7 @@ public final class GuildMapLook {
             out.add(new Pill(L.t("wynnlabs.guildmap.treasury", t.treasury()), c[0], c[1]));
         }
         if (t.hq()) {
-            out.add(new Pill("HQ", 0xFFF1DFA0, Theme.PRICE));
+            out.add(new Pill("HQ", 0xFF2A2516, GuildMapInk.PRICE));
         }
         return out;
     }
@@ -210,12 +208,12 @@ public final class GuildMapLook {
     }
 
     /**
-     * Very low to very high as {face, ink} on parchment: green to red for defence (weak is easy to
+     * Very low to very high as {face, ink} on the dark card: green to red for defence (weak is easy to
      * take), the other way round for treasury.
      */
     static int[] level(int level, boolean goodHigh) {
-        int[][] tones = {{0xFFD3E6BE, 0xFF285C16}, {0xFFE3E6B4, 0xFF4F5A10}, {0xFFF1E1A6, 0xFF754506},
-                {0xFFF3D2AE, 0xFF8A4A10}, {0xFFF0C4B4, 0xFF932C1D}};
+        int[][] tones = {{0xFF17261A, 0xFF8FE39A}, {0xFF20261A, 0xFFC6E36A}, {0xFF2A2516, 0xFFFFD24A},
+                {0xFF2A1F16, 0xFFFFA45A}, {0xFF2A1A1A, 0xFFFF8A8A}};
         int i = Math.max(1, Math.min(5, level)) - 1;
         return tones[goodHigh ? 4 - i : i];
     }
@@ -227,7 +225,7 @@ public final class GuildMapLook {
     static int drawIcon(GuiGraphics g, Font font, String key, int x, int y, int h) {
         Icon ic = icon(key);
         if (ic == null) {
-            g.drawString(font, "◆", x, y, Theme.GOOD, false);
+            g.drawString(font, "◆", x, y, GuildMapInk.GOOD, false);
             return font.width("◆");
         }
         float s = h / (float) ic.h();
