@@ -3362,5 +3362,5 @@
   "wynnlabs.guildmap.eco_made": "Üretim",
   "wynnlabs.guildmap.eco_cost": "Gider",
   "wynnlabs.guildmap.eco_net": "Net",
-  "wynnlabs.guildmap.eco_note": "Gider savunma derecelerinden tahmin"
+  "wynnlabs.guildmap.eco_note": "Gider derece, depo ve üretimden tahmin"
 }

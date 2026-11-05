@@ -3362,5 +3362,5 @@
   "wynnlabs.guildmap.eco_made": "Made",
   "wynnlabs.guildmap.eco_cost": "Cost",
   "wynnlabs.guildmap.eco_net": "Net",
-  "wynnlabs.guildmap.eco_note": "Cost guessed from defence ratings"
+  "wynnlabs.guildmap.eco_note": "Cost guessed from ratings, storage and output"
 }
