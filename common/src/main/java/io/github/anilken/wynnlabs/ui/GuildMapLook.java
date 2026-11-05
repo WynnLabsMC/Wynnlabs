@@ -106,7 +106,10 @@ public final class GuildMapLook {
         int rows = t.known() ? t.res().size() : 0;
         int rowH = lh + 3;
         long cooling = t.acquired() > 0 ? COOLDOWN_MS - Math.max(0, now - t.acquired()) : 0;
-        int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (cooling > 0 ? 7 : 0) + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad;
+        double[] tower = t.known() && t.defenceLevel() > 0 ? tower(t) : null;
+        int towerH = tower == null ? 0 : lh * 3 + 10;
+        int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (cooling > 0 ? 7 : 0) + towerH + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad
+                + (t.known() && (t.hq() || t.links() > 0) ? lh + 2 : 0);   // the links on a line of their own
         GuildMapInk.face(g, x, y, w, h);
         int cy = y + pad;
         // header: the holder's colour, the territory and its guild; the held time on the right
@@ -143,6 +146,16 @@ public final class GuildMapLook {
             g.fill(x + pad, cy, x + pad + Math.round(bw * cooling / (float) COOLDOWN_MS), cy + 3, GuildMapInk.PRICE);
             cy += 7;
         }
+        if (tower != null) {
+            // the tower as its rating, links and HQ make it likely: health, effective health, a hit, hits a second
+            GuildMapInk.box(g, x + pad, cy, w - 2 * pad, lh * 3 + 6, GuildMapInk.CARD, GuildMapInk.LINE);
+            int bx = x + pad + 4;
+            g.drawString(font, L.t("wynnlabs.guildmap.tower_title"), bx, cy + 3, GuildMapInk.INK_2, false);
+            g.drawString(font, L.t("wynnlabs.guildmap.tower_hp", big(tower[0]), big(tower[1])), bx, cy + 3 + lh, GuildMapInk.INK, false);
+            g.drawString(font, L.t("wynnlabs.guildmap.tower_dmg", big(tower[2]), big(tower[3]),
+                    String.format(java.util.Locale.ROOT, "%.2f", tower[4])), bx, cy + 3 + lh * 2, GuildMapInk.INK, false);
+            cy += towerH;
+        }
         if (rows > 0) {
             cy += 4;
             int textX = x + pad + 14 + 4;
@@ -169,16 +182,48 @@ public final class GuildMapLook {
         if (t.known() && t.hq()) {
             // an HQ: links and the externals within three routes multiply its tower together
             double power = (1 + 0.3 * t.links()) * (1.5 + 0.25 * t.externals());
-            foot = L.t("wynnlabs.guildmap.hq_links", t.links(), t.externals(), String.format(java.util.Locale.ROOT, "%.1f", power)) + " · ";
+            foot = L.t("wynnlabs.guildmap.hq_links", t.links(), t.externals(), String.format(java.util.Locale.ROOT, "%.1f", power));
         } else if (t.known() && t.links() > 0) {
-            foot = L.n("wynnlabs.guildmap.links", t.links(), t.links(), String.format(java.util.Locale.ROOT, "%.1f", 1 + 0.3 * t.links())) + " · ";
+            foot = L.n("wynnlabs.guildmap.links", t.links(), t.links(), String.format(java.util.Locale.ROOT, "%.1f", 1 + 0.3 * t.links()));
         }
-        g.drawString(font, foot + L.t("wynnlabs.guildmap.live"), x + pad, cy, GuildMapInk.INK_3, false);
+        if (!foot.isEmpty()) {
+            g.drawString(font, foot, x + pad, cy, GuildMapInk.INK_2, false);
+            cy += lh + 2;
+        }
+        g.drawString(font, L.t("wynnlabs.guildmap.live"), x + pad, cy, GuildMapInk.INK_3, false);
     }
 
     /** "+9.8K/h", or a dash for a resource the territory does not make. */
     private static String hourText(Res r) {
         return r.perHour() > 0 ? "+" + compact(r.perHour()) + L.t("wynnlabs.guildmap.per_hour_short") : "—";
+    }
+
+    /** Tower damage %, attack speed %, health % and defence % by upgrade level 0 to 11 (the game's upgrade tooltips). */
+    static final int[] DMG_PCT = {0, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440};
+    static final int[] ATK_PCT = {0, 50, 100, 150, 220, 300, 400, 500, 620, 660, 740, 840};
+    static final int[] HP_PCT = {0, 50, 100, 150, 220, 300, 400, 520, 640, 760, 880, 1000};
+    static final double[] DEF = {0.10, 0.40, 0.55, 0.625, 0.70, 0.75, 0.79, 0.82, 0.84, 0.86, 0.88, 0.90};
+
+    /**
+     * A territory's tower, likely: {health, effective health, lowest hit, highest hit, hits a
+     * second}. The levels are the setup its rating usually stands for ({@link GuildEco#tower});
+     * the base tower is 1000-1500 a hit, 0.5 hits a second, 300,000 health and 10% defence. Each
+     * owned neighbour adds 30% to damage and health, and an HQ multiplies them by 1.5 plus 0.25
+     * for each external.
+     */
+    static double[] tower(Territory t) {
+        int[] tw = GuildEco.tower(t.defenceLevel(), t.hq());
+        double mult = (1 + 0.3 * t.links()) * (t.hq() ? 1.5 + 0.25 * t.externals() : 1);
+        double hp = 300_000 * (1 + HP_PCT[tw[2]] / 100.0) * mult;
+        double def = DEF[tw[3]];
+        double dmg = 1 + DMG_PCT[tw[0]] / 100.0;
+        return new double[] {hp, hp / (1 - def), 1000 * dmg * mult, 1500 * dmg * mult, 0.5 * (1 + ATK_PCT[tw[1]] / 100.0)};
+    }
+
+    /** "2.1M", "5.7K", "950". */
+    static String big(double v) {
+        return v >= 1_000_000 ? String.format(java.util.Locale.ROOT, "%.1fM", v / 1_000_000)
+                : v >= 1000 ? String.format(java.util.Locale.ROOT, "%.1fK", v / 1000) : String.valueOf(Math.round(v));
     }
 
     /** A pill on the card: its text, its tinted face and its ink. */

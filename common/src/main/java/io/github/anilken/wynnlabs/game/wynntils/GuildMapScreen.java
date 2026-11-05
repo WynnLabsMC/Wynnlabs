@@ -36,6 +36,10 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     private java.util.Map<String, Integer> hqDist;
     private String hqDistFor;
     private long hqDistAt;
+    /** A press that began on the panel holds the map still until the button is let go (no pan behind a scroll). */
+    private boolean heldInPanel;
+    private float heldX;
+    private float heldZ;
 
     public GuildMapScreen() {
         super();
@@ -46,6 +50,16 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
 
     @Override
     public void doRender(GuiGraphics g, int mx, int my, float partialTick) {
+        if (heldInPanel) {
+            long window = net.minecraft.client.Minecraft.getInstance().getWindow().handle();
+            if (org.lwjgl.glfw.GLFW.glfwGetMouseButton(window, org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS) {
+                if (mapCenterX != heldX || mapCenterZ != heldZ) {
+                    updateMapCenter(heldX, heldZ);
+                }
+            } else {
+                heldInPanel = false;
+            }
+        }
         long now = System.currentTimeMillis();
         List<TerritoryPoi> pois = GuildMapReads.pois();
         if (now - lookedAt > 1000 || looks.size() != pois.size()) {
@@ -206,6 +220,14 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
                 int az = (int) Math.min(z0, z1);
                 g.renderOutline(ax, az, (int) Math.abs(x1 - x0), (int) Math.abs(z1 - z0), 0xFFFFFFFF);
             }
+            if (t.acquired() > 0 && now - t.acquired() < 10 * 60_000L) {
+                // just taken, still on cooldown: a red frame that pulses
+                int a = (int) (90 + 120 * (0.5 + 0.5 * Math.sin(now / 250.0)));
+                int ax = (int) Math.min(x0, x1);
+                int az = (int) Math.min(z0, z1);
+                g.renderOutline(ax, az, (int) Math.abs(x1 - x0), (int) Math.abs(z1 - z0), a << 24 | 0xFF5555);
+                g.renderOutline(ax + 1, az + 1, (int) Math.abs(x1 - x0) - 2, (int) Math.abs(z1 - z0) - 2, a << 24 | 0xFF5555);
+            }
             if (panel.timers) {
                 float cx = MapRenderer.getRenderX(p, mapCenterX, centerX, zoomRenderScale);
                 float cz = MapRenderer.getRenderZ(p, mapCenterZ, centerZ, zoomRenderScale);
@@ -217,6 +239,9 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     @Override
     public boolean doMouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (panel.over(mapRight(), mapTop(), mapBottom(), event.x(), event.y())) {
+            heldInPanel = true;
+            heldX = mapCenterX;
+            heldZ = mapCenterZ;
             GuildMapPanel.Click c = panel.click(event.x(), event.y());
             if (c != null && c.what().equals("territory")) {
                 for (TerritoryPoi p : GuildMapReads.pois()) {

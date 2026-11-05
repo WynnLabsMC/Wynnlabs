@@ -3362,5 +3362,13 @@
   "wynnlabs.guildmap.eco_made": "Made",
   "wynnlabs.guildmap.eco_cost": "Cost",
   "wynnlabs.guildmap.eco_net": "Net",
-  "wynnlabs.guildmap.eco_note": "Cost is an estimate"
+  "wynnlabs.guildmap.eco_note": "Cost is an estimate",
+  "wynnlabs.guildmap.tower_title": "TOWER (ESTIMATE)",
+  "wynnlabs.guildmap.tower_hp": "%s HP · EHP %s",
+  "wynnlabs.guildmap.tower_dmg": "%s–%s dmg · %s/s",
+  "wynnlabs.guildmap.cooldown_list": "ON COOLDOWN",
+  "wynnlabs.guildmap.captures": "EARLIER CAPTURES",
+  "wynnlabs.guildmap.captures_window": "10–60 min",
+  "wynnlabs.guildmap.tab_war": "War",
+  "wynnlabs.guildmap.war_quiet": "No territory changed hands in the last hour"
 }
