@@ -892,7 +892,7 @@ public final class TooltipListener {
             // Wynncraft's own font has no "◇": the price says its font, the default one
             Component price = Component.literal((blank >= 0 ? "" : "  ") + PRICE_TAG + p).withStyle(net.minecraft.ChatFormatting.GOLD)
                     .withStyle(s -> s.withFont(net.minecraft.network.chat.FontDescription.DEFAULT));
-            if (blank >= 0) {
+            if (blank >= 0 || header >= 0) {
                 // on its own line: a gold "MARKET" box like the game's own banners ("LE", "CURRENCY"
                 // in Wynncraft's banner font: a left cap, a cell per letter A-Z, a right cap, a step
                 // back over them, the letters on top), the price, and a grey "PAST" box when no
@@ -915,11 +915,15 @@ public final class TooltipListener {
                 if (tags[1] != null) {
                     line.append(tags[1]);
                 }
-                out.set(blank, line);
-                out.add(blank + 1, Component.empty());  // the stats keep their gap under it
-                out.add(blank, Component.empty());      // and the banners one over it
-            } else if (header >= 0) {
-                out.set(header, out.get(header).copy().append(price));
+                if (blank >= 0) {
+                    out.set(blank, line);
+                    out.add(blank + 1, Component.empty());  // the stats keep their gap under it
+                    out.add(blank, Component.empty());      // and the banners one over it
+                } else {
+                    // no empty line under the header (a material, a ward): its own line under the
+                    // tier and kind banners, as close to the name as the game's own lines allow
+                    out.add(Math.min(out.size(), header + 2), line);
+                }
             } else {
                 out.add(Math.min(1, out.size()), price);
             }
