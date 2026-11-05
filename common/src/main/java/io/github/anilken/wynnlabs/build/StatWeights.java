@@ -1,40 +1,55 @@
 package io.github.anilken.wynnlabs.build;
 
 import io.github.anilken.wynnlabs.core.Rules;
+import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.Roll;
 import io.github.anilken.wynnlabs.model.StatRange;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * How good a rolled piece is for you: each identification's roll (0 to 100 % of its range, the
- * higher, better end 100) weighed by how much that stat moves your build. The weight is the build score's
- * gain from the stat's whole range added to what you wear, as the damage page's what-ifs work it
- * out; the strongest stat of the piece weighs 1, a stat that changes nothing 0. So a Ritualist's
- * Aura Cost counts in full and a Healing Efficiency roll not at all.
+ * How good a rolled piece is for you: the piece put in its own slot of what you wear (a weapon in
+ * place of yours, a ring in place of the weaker of yours), its skill points worked out again, and
+ * the build score compared with what you wear now: "+12%". Each rolled stat's part is what the
+ * score loses when that stat drops to the bottom of its range, so the stats that matter to how
+ * you play come first and one that changes nothing counts 0. Worked out once per piece (its rolls)
+ * and build plan.
  */
 public final class StatWeights {
 
     private StatWeights() {}
 
-    /** One stat of the piece: its name, its roll (0 to 1) and its weight (0 to 1). */
-    public record Stat(String name, double roll, double weight) {}
+    /** One stat of the piece: its name, its roll (0 to 1, the higher end better) and its part of the gain, in points of %. */
+    public record Stat(String name, double roll, double part) {}
 
-    /** The piece for you: the weighed roll (0 to 1; NaN when no stat counts) and its stats. */
-    public record Score(double value, List<Stat> stats) {}
+    /** The piece for you: the build score's change with it in its slot, in % (NaN: not known), and its stats, biggest part first. */
+    public record Score(double gain, List<Stat> stats) {}
 
-    private static final Map<String, Map<String, Double>> CACHE = new HashMap<>();
+    private static final Map<String, Score> CACHE = new HashMap<>();
+    /** Pieces waiting to be worked out, oldest first: {view, stack}. */
+    private static final Map<String, Object[]> QUEUE = new java.util.LinkedHashMap<>();
+    /** None is not a score: a piece with nothing to work out, kept so it is not asked again. */
+    private static final Score NONE = new Score(Double.NaN, List.of());
     private static Object cachedFor;
     private static int cachedVersion;
 
-    /** The score of an identified piece; null without a build plan or rolls. */
-    public static synchronized Score of(ItemView view) {
-        if (view == null || !view.isGear() || view.rolled() == null || view.data() == null) {
+    /** How long one frame may spend working pieces out, in ns. A method: hot swaps keep no field values. */
+    static long budget() {
+        return 3_000_000L;
+    }
+
+    /**
+     * The score of an identified piece: null until it is worked out. A page of listings is worked
+     * out a few at a time ({@link #budget} a frame, on the game's own thread) so the game does not
+     * stall; asked again a moment later it is there. Null too without a build plan, rolls or a slot.
+     */
+    public static synchronized Score of(ItemView view, ItemStack stack) {
+        if (view == null || !view.isGear() || view.rolled() == null || view.data() == null || view.data().slot() == null) {
             return null;
         }
         Build.Plan p = Build.plan();
@@ -43,25 +58,97 @@ public final class StatWeights {
         }
         if (p != cachedFor || Rules.version != cachedVersion) {
             CACHE.clear();
+            QUEUE.clear();
             cachedFor = p;
             cachedVersion = Rules.version;
         }
-        Map<String, Double> weights = CACHE.computeIfAbsent(view.data().name(), k -> weights(p, view.rolled().rolls()));
+        String key = ItemJson.keyOf(stack);
+        Score s = CACHE.get(key);
+        if (s != null) {
+            return s == NONE ? null : s;
+        }
+        QUEUE.putIfAbsent(key, new Object[] {view, stack.copy()});
+        pump(p);
+        s = CACHE.get(key);
+        return s == null || s == NONE ? null : s;
+    }
+
+    /** Works queued pieces out until this frame's {@link #budget} is spent. */
+    private static void pump(Build.Plan p) {
+        long until = System.nanoTime() + budget();
+        var it = QUEUE.entrySet().iterator();
+        while (it.hasNext() && System.nanoTime() < until) {
+            var e = it.next();
+            it.remove();
+            Score w;
+            try {
+                w = work(p, (ItemView) e.getValue()[0], (ItemStack) e.getValue()[1]);
+            } catch (Throwable t) {
+                w = null;
+            }
+            CACHE.put(e.getKey(), w == null ? NONE : w);
+        }
+    }
+
+    private static Score work(Build.Plan p, ItemView view, ItemStack stack) {
+        Damage.Piece piece = Damage.piece(view, ItemJson.keyOf(stack), stack);
+        if (piece == null) {
+            return null;
+        }
+        Damage.Detail base = p.detailAsWorn();
+        double now = base.result().objective();
+        if (now <= 0) {
+            return null;
+        }
+        // its slot: a ring in place of whichever of yours it beats more
+        List<String> slots = new ArrayList<>();
+        if (view.data().slot() == io.github.anilken.wynnlabs.model.Slot.RING) {
+            slots.add("RING1");
+            slots.add("RING2");
+        } else {
+            String one = Build.slotOf(view.data().slot(), 0);
+            if (one == null) {
+                return null;
+            }
+            slots.add(one);
+        }
+        String slot = null;
+        double with = Double.NEGATIVE_INFINITY;
+        for (String sl : slots) {
+            Damage.Detail d = p.detailWith(sl, piece, null);
+            if (d != null && d.result().objective() > with) {
+                with = d.result().objective();
+                slot = sl;
+            }
+        }
+        if (slot == null) {
+            return new Score(Double.NaN, List.of());
+        }
+        double gain = (with / now - 1) * 100;
+        // each rolled stat's part: the score lost were it at the bottom of its range
         List<Stat> stats = new ArrayList<>();
-        double sum = 0;
-        double total = 0;
         for (Roll r : view.rolled().rolls()) {
             StatRange range = r.range();
             if (range == null || range.fixed()) {
                 continue;
             }
-            double roll = roll(r.value(), range);
-            double w = weights.getOrDefault(r.key(), 0.0);
-            stats.add(new Stat(r.name(), roll, w));
-            sum += roll * w;
-            total += w;
+            int lo = Math.min(range.min(), range.max());
+            double drop = r.value() - lo;
+            double part = 0;
+            if (drop != 0) {
+                Map<String, Double> less = new HashMap<>();
+                less.put(r.key(), -drop);
+                Damage.Piece extra = new Damage.Piece(null, "stat-weight", "stat-weight", null, 0, less, Map.of(), 0,
+                        Map.of("neutral", 1.0), 0);
+                Damage.Detail d = p.detailWith(slot, piece, extra);
+                if (d != null) {
+                    part = Math.max(0, (with - d.result().objective()) / now * 100);
+                }
+            }
+            stats.add(new Stat(r.name(), roll(r.value(), range), part));
         }
-        return new Score(total > 0 ? sum / total : Double.NaN, stats);
+        stats.sort((a, b) -> Double.compare(b.part(), a.part()));
+        return new Score(gain, stats);
     }
 
     /**
@@ -76,33 +163,5 @@ public final class StatWeights {
             return 1;
         }
         return Math.max(0, Math.min(1, (value - lo) / (double) (hi - lo)));
-    }
-
-    /** Each rolled stat's gain to your build score from its whole range, the largest scaled to 1. */
-    private static Map<String, Double> weights(Build.Plan p, List<Roll> rolls) {
-        Damage.Detail base = p.currentDetail(null, null);
-        double score = base.result().objective();
-        Map<String, Double> gain = new LinkedHashMap<>();
-        double top = 0;
-        for (Roll r : rolls) {
-            StatRange range = r.range();
-            if (range == null || range.fixed() || gain.containsKey(r.key())) {
-                continue;
-            }
-            double delta = Math.abs(range.max() - range.min());   // toward the better (higher) end
-            Map<String, Double> stats = new HashMap<>();
-            stats.put(r.key(), delta);
-            Damage.Piece extra = new Damage.Piece(null, "stat-weight", "stat-weight", null, 0, stats, Map.of(), 0,
-                    Map.of("neutral", 1.0), 0);
-            double g = score > 0 ? p.currentDetail(null, extra).result().objective() / score - 1 : 0;
-            g = Math.max(0, g);
-            gain.put(r.key(), g);
-            top = Math.max(top, g);
-        }
-        Map<String, Double> out = new HashMap<>();
-        for (var e : gain.entrySet()) {
-            out.put(e.getKey(), top > 0 ? e.getValue() / top : 0);
-        }
-        return out;
     }
 }

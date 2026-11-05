@@ -458,24 +458,20 @@ public final class TooltipListener {
     /** Set when the score's class is missing (a hot swap left it out): the rolls alone then. */
     private static boolean noWeights;
 
-    /** A listing's score for you (0 to 1), its overall roll when no stat weighs; -1 unknown. */
-    static double forYou(ItemView v) {
-        if (v == null || v.rolled() == null) {
-            return -1;
+    /** A listing's change to your build score with it in its slot, in %; NaN unknown. */
+    static double forYou(ItemView v, net.minecraft.world.item.ItemStack st) {
+        if (v == null || v.rolled() == null || noWeights) {
+            return Double.NaN;
         }
-        if (!noWeights) {
-            try {
-                var sc = io.github.anilken.wynnlabs.build.StatWeights.of(v);
-                if (sc != null && !Double.isNaN(sc.value())) {
-                    return sc.value();
-                }
-            } catch (LinkageError e) {
-                noWeights = true;                   // not in this game's jar (a hot swap): never tried again
-            } catch (Throwable ignored) {
-                // the model failed: the overall roll instead
-            }
+        try {
+            var sc = io.github.anilken.wynnlabs.build.StatWeights.of(v, st);
+            return sc == null ? Double.NaN : sc.gain();
+        } catch (LinkageError e) {
+            noWeights = true;                       // not in this game's jar (a hot swap): never tried again
+        } catch (Throwable ignored) {
+            // the model failed: no rank
         }
-        return v.rolled().hasOverall() ? v.rolled().overallPercent() / 100.0 : -1;
+        return Double.NaN;
     }
 
     /**
@@ -519,7 +515,7 @@ public final class TooltipListener {
             if (name == null) {
                 continue;
             }
-            byItem.computeIfAbsent(name, k -> new ArrayList<>()).add(new Object[] {st, Wyn.marketListingPrice(st), forYou(v)});
+            byItem.computeIfAbsent(name, k -> new ArrayList<>()).add(new Object[] {st, Wyn.marketListingPrice(st), forYou(v, st)});
         }
         int n = marketPicks();
         for (var e : byItem.entrySet()) {
@@ -528,7 +524,7 @@ public final class TooltipListener {
             List<Object[]> same = e.getValue().stream()
                     .filter(o -> !((int) o[1] > 0 && usual != null && usual > 0 && (int) o[1] > usual * tooDear()))
                     .toList();
-            same.stream().filter(o -> (double) o[2] >= 0)
+            same.stream().filter(o -> !Double.isNaN((double) o[2]) && (double) o[2] > 0)
                     .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2])).limit(n)
                     .forEach(o -> RANKED.put((net.minecraft.world.item.ItemStack) o[0], GOLD));
             same.stream().filter(o -> (double) o[2] > 0 && (int) o[1] > 0 && !RANKED.containsKey(o[0]))
@@ -538,41 +534,40 @@ public final class TooltipListener {
     }
 
     /**
-     * A Trade Market listing's score for you, under the price: "For you (Ritualist): 64%" with a
-     * bar, then the stats that count with their weight ("Aura Cost ×1.0 · Air Damage ×1.0").
+     * A Trade Market listing's worth for you, under the price, in the game's own banner: "[FIT]
+     * +12% · Ritualist" (your build score with it in its slot), then the two stats with the
+     * biggest part of that ("Aura Cost +4.1 · Air +3.2").
      */
-    private static void forYouLines(ItemView g, List<Component> out, int at) {
+    private static void forYouLines(ItemView g, net.minecraft.world.item.ItemStack stack, List<Component> out, int at) {
         if (noWeights) {
             return;
         }
         io.github.anilken.wynnlabs.build.StatWeights.Score sc;
         try {
-            sc = io.github.anilken.wynnlabs.build.StatWeights.of(g);
+            sc = io.github.anilken.wynnlabs.build.StatWeights.of(g, stack);
         } catch (LinkageError e) {
             noWeights = true;
             return;
         } catch (Throwable t) {
             return;
         }
-        if (sc == null || Double.isNaN(sc.value())) {
+        if (sc == null || Double.isNaN(sc.gain())) {
             return;
         }
-        int pct = (int) Math.round(sc.value() * 100);
+        String gain = (sc.gain() >= 0 ? "+" : "") + String.format(java.util.Locale.ROOT, "%.0f%%", sc.gain());
         String arch = io.github.anilken.wynnlabs.build.TreePlanner.chosenLabel(io.github.anilken.wynnlabs.build.TreePlanner.mostUnlocked());
         List<Component> lines = new ArrayList<>();
-        // the game's own banner, as the price's MARKET one: "[FIT] 72% \u00b7 Ritualist"
         String word = L.t("wynnlabs.tooltip.for_you_banner");
         lines.add(Component.empty().append(banner(word.startsWith("wynnlabs.") ? "FIT" : word, 0xF2C94C))
-                .append(Component.literal(" " + L.t("wynnlabs.tooltip.for_you", pct, arch == null || arch.isBlank() ? "-" : arch))
-                        .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.YELLOW)
+                .append(Component.literal(" " + L.t("wynnlabs.tooltip.for_you", gain, arch == null || arch.isBlank() ? "-" : arch))
+                        .setStyle(net.minecraft.network.chat.Style.EMPTY
+                                .withColor(sc.gain() > 0 ? net.minecraft.ChatFormatting.YELLOW : net.minecraft.ChatFormatting.GRAY)
                                 .withFont(net.minecraft.network.chat.FontDescription.DEFAULT))));
         List<String> parts = new ArrayList<>();
-        sc.stats().stream().filter(st -> st.weight() >= 0.05)
-                .sorted((x, y) -> Double.compare(y.weight(), x.weight()))
-                .limit(2)
-                .forEach(st -> parts.add(shortStat(st.name()) + " \u00d7" + String.format(java.util.Locale.ROOT, "%.1f", st.weight())));
+        sc.stats().stream().filter(st -> st.part() >= 0.5).limit(2)
+                .forEach(st -> parts.add(shortStat(st.name()) + " +" + String.format(java.util.Locale.ROOT, "%.1f", st.part())));
         if (!parts.isEmpty()) {
-            lines.add(Component.literal(String.join(" \u00b7 ", parts)).withStyle(net.minecraft.ChatFormatting.GRAY));
+            lines.add(Component.literal(String.join(" · ", parts)).withStyle(net.minecraft.ChatFormatting.GRAY));
         }
         lines.add(Component.empty());
         out.addAll(Math.max(0, Math.min(at, out.size())), lines);
@@ -862,7 +857,7 @@ public final class TooltipListener {
                 out.add(Math.min(1, out.size()), price);
             }
             if (!ingredient && inMarket()) {
-                forYouLines(g, out, blank >= 0 ? blank + 3 : Math.max(1, header + 1));
+                forYouLines(g, stack, out, blank >= 0 ? blank + 3 : Math.max(1, header + 1));
             }
             return true;
         }

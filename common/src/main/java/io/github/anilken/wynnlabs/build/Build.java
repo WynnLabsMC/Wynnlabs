@@ -71,6 +71,32 @@ public final class Build {
                     points == null ? wornAllocation : points, level));
         }
 
+        /**
+         * What you wear with {@code piece} in {@code slot} instead ("WEAPON", "RING1"...), its skill
+         * points worked out again for it (a new piece asks for others), plus {@code extra} stats.
+         * Null when the points cannot meet what the set asks.
+         */
+        Damage.Detail detailWith(String slot, Damage.Piece piece, Damage.Piece extra) {
+            Map<String, Damage.Piece> set = new java.util.LinkedHashMap<>(working);
+            set.put(slot, piece);
+            Eval e = allocate(set, level, earned);
+            if (e == null) {
+                return null;
+            }
+            List<Damage.Piece> armour = armour(set);
+            if (extra != null) {
+                armour.add(extra);
+            }
+            return TreeModel.with(tree, () -> Damage.detail(armour, set.get("WEAPON"), e.allocation(), level));
+        }
+
+        /** {@link #detailWith} for what you wear as it is, its points worked out the same way (a fair base). */
+        Damage.Detail detailAsWorn() {
+            Eval e = allocate(working, level, earned);
+            int[] points = e == null ? wornAllocation : e.allocation();
+            return TreeModel.with(tree, () -> Damage.detail(armour(working), working.get("WEAPON"), points, level));
+        }
+
         /** rules.model.{@code key} as the plan's ability tree has it (a Summoner's main attack before its first node). */
         double model(String key, double fallback) {
             return TreeModel.with(tree, () -> TreeModel.adjust(key, Rules.sub("model", key, fallback)));
