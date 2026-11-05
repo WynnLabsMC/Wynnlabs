@@ -237,11 +237,21 @@ public final class GuildMapLook {
     }
 
     /**
-     * A resource's mark, {@code h} pixels tall, at (x, y): the map icon for a material, the
-     * game's emerald for emeralds; returns its width.
+     * A resource's mark, {@code h} pixels tall, at (x, y): the map icon for a material,
+     * Wynncraft's emerald coin for emeralds; returns its width.
      */
     static int drawIcon(GuiGraphics g, Font font, String key, int x, int y, int h) {
-        Icon ic = "EMERALDS".equals(key) ? EMERALDS : icon(key);
+        if ("EMERALDS".equals(key)) {
+            // Wynncraft's own emerald: the "²" its font draws as the coin in every price
+            float s = h / (float) font.lineHeight;
+            g.pose().pushMatrix();
+            g.pose().translate(x, y);
+            g.pose().scale(s, s);
+            g.drawString(font, EMERALD, 0, 0, 0xFFFFFFFF, false);
+            g.pose().popMatrix();
+            return Math.round(font.width(EMERALD) * s);
+        }
+        Icon ic = icon(key);
         if (ic == null) {
             return 0;
         }
@@ -308,12 +318,14 @@ public final class GuildMapLook {
         return (v < 10 && Math.round(v * 10) % 10 != 0 ? String.format(java.util.Locale.ROOT, "%.1f", v) : String.valueOf(Math.round(v))) + unit;
     }
 
+    /** The character Wynncraft's font draws as its emerald coin. */
+    private static final String EMERALD = "²";
+
     private record Icon(Identifier id, int w, int h) {}
 
     private static final Icon ORE = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/mining.png"), 18, 14);
     private static final Icon WOOD = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/woodcutting.png"), 16, 17);
     private static final Icon FISH = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/fishing.png"), 16, 14);
-    private static final Icon EMERALDS = new Icon(Identifier.withDefaultNamespace("textures/item/emerald.png"), 16, 16);
     private static final Icon CROPS = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/farming.png"), 15, 19);
 
     /** The map icon of a material resource; null for emeralds (every territory makes them). */
