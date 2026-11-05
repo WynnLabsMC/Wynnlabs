@@ -280,6 +280,35 @@ final class Pieces {
     }
 
     /**
+     * The powders the damage model assumes go into a piece shown in the gear list: into the empty
+     * slots of the one you wear ({@code stack}), else into every slot of one to get ({@code info});
+     * null for none (no empty slot, a crafted or unidentified piece, powders turned off).
+     */
+    static Damage.PowderAdd toAdd(ItemData info, ItemStack stack) {
+        List<String> add;
+        ItemData data = info;
+        if (stack != null && !stack.isEmpty()) {
+            Optional<ItemView> v = GameState.current().view(stack);
+            if (v.isEmpty() || !v.get().isGear() || v.get().unidentified() || v.get().rolled() == null) {
+                return null;
+            }
+            data = v.get().data();
+            List<String> real = v.get().rolled().powders();
+            add = assumedPowders(data, normalise(sharesOf(data)), data.powderSlots() - real.size(),
+                    real.isEmpty() ? null : real.get(0));
+        } else if (info != null) {
+            add = assumedPowders(info, normalise(sharesOf(info)));
+        } else {
+            return null;
+        }
+        if (add.isEmpty() || data == null) {
+            return null;
+        }
+        boolean weapon = data.slot() != null && data.slot().isWeapon();
+        return new Damage.PowderAdd(weapon ? add.get(0) : null, add.size(), powderTier(data.level()));
+    }
+
+    /**
      * The powders the road map assumes in a piece on top of its own, as {count, tier}: a piece
      * from the item data ({@code info}) has every slot filled, one you have its empty ones.
      */

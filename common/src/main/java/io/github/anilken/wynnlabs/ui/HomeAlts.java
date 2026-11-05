@@ -171,6 +171,10 @@ final class HomeAlts {
             return TomeAdvice.forPlan(mine, tree);
         }
         int i = menu.selected;
+        if (i == 0 && plan != null && plan.worn() != null) {
+            // Now: the tomes for what you wear
+            return TomeAdvice.forSet(plan.worn(), new Build.Eval(plan.wornAllocation(), plan.current()), plan.level(), tree);
+        }
         if (i <= 0 || i >= menu.steps.size()) {
             return null;
         }

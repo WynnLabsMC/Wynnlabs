@@ -223,6 +223,12 @@ final class HomeGearBars extends HomePart {
         return full <= w ? full : 3 * 16 + 2 * 3;
     }
 
+    /** What you wear now: the Tomes and Aspects chips alone, centred in {@code w}. */
+    void nowRow(GuiGraphics g, Host host, TomeAdvice.Advice a, int x, int y, int w, int mx, int my) {
+        int tw = chipsWidth(a, w);
+        chips(g, host, a, x + (w - tw) / 2, y, w, mx, my);
+    }
+
     /** A milestone's Save and the Tomes chip, the two centred together in {@code w}. */
     void mapRow(GuiGraphics g, Host host, boolean saved, TomeAdvice.Advice a, int x, int y, int w, int mx, int my) {
         if (a == null) {

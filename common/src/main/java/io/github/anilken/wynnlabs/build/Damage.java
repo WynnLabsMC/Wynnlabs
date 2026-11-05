@@ -161,6 +161,20 @@ public final class Damage {
         return Pieces.bestRoll(info);
     }
 
+    /**
+     * Powders to put into a piece, as the gear list's marks show them: {@code element} the
+     * weapon's ("air"), null for armour (its powders count for health in any element).
+     */
+    public record PowderAdd(String element, int count, int tier) {}
+
+    /**
+     * The powders the model assumes go into a piece shown in the gear list: the empty slots of the
+     * one you wear ({@code stack}), else every slot of one to get ({@code info}); null for none.
+     */
+    public static PowderAdd powdersToAdd(ItemData info, ItemStack stack) {
+        return Pieces.toAdd(info, stack);
+    }
+
     /** {@link #piece(ItemData)} with the powders a WynnBuilder link gives it ("T6T6E7") instead of assumed ones. */
     /** {@link #piece(ItemData, String)} with every roll at its best. */
     public static Piece bestRoll(ItemData info, String powders) {
