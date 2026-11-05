@@ -3324,7 +3324,7 @@
   "wynnlabs.guildmap.resource": "Resource",
   "wynnlabs.guildmap.stored": "Stored",
   "wynnlabs.guildmap.per_hour": "Per hour",
-  "wynnlabs.guildmap.routes": "%s trade route|%s trade routes",
+  "wynnlabs.guildmap.links": "%s link · tower ×%s|%s links · tower ×%s",
   "wynnlabs.guildmap.no_guild": "No guild",
   "wynnlabs.guildmap.res.emeralds": "Emeralds",
   "wynnlabs.guildmap.res.ore": "Ore",
@@ -3356,5 +3356,6 @@
   "wynnlabs.setting.cannotWear": "Red frame on gear you can't wear",
   "wynnlabs.setting_desc.cannotWear": "Gear you can't wear yet (level, class, skill points or a quest) gets a red frame in every menu, so it is not bought or kept by mistake",
   "wynnlabs.settings.example.cannotWear": "On: a level 110 helmet in the Trade Market sits in a red frame while you are level 100",
-  "wynnlabs.settings.opt.cannotWear": "Can't wear"
+  "wynnlabs.settings.opt.cannotWear": "Can't wear",
+  "wynnlabs.guildmap.hq_links": "%s links · %s externals · tower ×%s"
 }

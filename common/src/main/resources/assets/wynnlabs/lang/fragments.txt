@@ -201,3 +201,5 @@ wynnlabs.nearest.sub_straight           "straight-line distance · Lv 44" after 
 wynnlabs.nearest.map_straight           "showing straight-line distances …" after "Route map downloading · " on its bar
 wynnlabs.guildmap.per_hour_short        "/h" after an amount on the guild map panel ("9K/h")
 wynnlabs.guildmap.ago_now                "just now" after "Updated " on the guild map
+wynnlabs.guildmap.links                  "3 links · tower ×1.9": a count first, on the guild map card
+wynnlabs.guildmap.hq_links               "3 links · 12 externals · tower ×6.0": a count first, on the guild map card
