@@ -263,6 +263,35 @@ public final class GuildMapPanel {
                 ry += lh;
             }
         }
+        // what its territories hold together, and what its HQ holds (resources flow there)
+        Map<String, int[]> held = new LinkedHashMap<>();
+        GuildMapLook.Territory hq = null;
+        for (GuildMapLook.Territory t : all) {
+            if (!picked.name().equals(t.guild()) || !t.known()) {
+                continue;
+            }
+            if (t.hq()) {
+                hq = t;
+            }
+            for (GuildMapLook.Res r : t.res()) {
+                int[] v = held.computeIfAbsent(r.key(), k -> new int[3]);
+                v[0] += r.stored();
+                v[1] += r.cap();
+                v[2] = r.colour();
+            }
+        }
+        if (!held.isEmpty()) {
+            ry = section(g, font, L.t("wynnlabs.guildmap.storage"), null, left, right, ry);
+            for (Map.Entry<String, int[]> e : held.entrySet()) {
+                ry = storageRow(g, font, e.getKey(), e.getValue()[0], e.getValue()[1], e.getValue()[2], left, right, ry);
+            }
+        }
+        if (hq != null) {
+            ry = section(g, font, L.t("wynnlabs.guildmap.hq_storage"), null, left, right, ry);
+            for (GuildMapLook.Res r : hq.res()) {
+                ry = storageRow(g, font, r.key(), r.stored(), r.cap(), r.colour(), left, right, ry);
+            }
+        }
         // who is online, and on which world
         if (api != null && !api.onlineMembers().isEmpty()) {
             ry = section(g, font, L.t("wynnlabs.guildmap.online_members"), String.valueOf(api.onlineMembers().size()), left, right, ry);
@@ -310,6 +339,28 @@ public final class GuildMapPanel {
         g.drawString(font, fit(font, t.name(), right - font.width(held) - 4 - (left + 11)), left + 11, ry, GuildMapInk.INK, false);
         hits.add(new Hit(left - 4, ry - 2, right + 4, ry + lh + 2, new Click("territory", t.name())));
         return ry + lh + 4;
+    }
+
+    /**
+     * One resource in store: its icon, a bar of how full it is, and "12.4K / 80K" on the right,
+     * red from 90% full on (a full store wastes what the territories make).
+     */
+    private static int storageRow(GuiGraphics g, Font font, String key, int stored, int cap, int colour,
+            int left, int right, int ry) {
+        int lh = font.lineHeight;
+        boolean full = cap > 0 && stored >= cap * 0.9;
+        GuildMapLook.drawIcon(g, font, key, left, ry, 9);
+        String amount = GuildMapLook.compact(stored) + " / " + GuildMapLook.compact(cap);
+        int aw = font.width(amount);
+        int barX = left + 14;
+        int barW = Math.max(10, right - aw - 6 - barX);
+        g.fill(barX, ry + 2, barX + barW, ry + 7, GuildMapInk.WELL);
+        int fill = cap <= 0 ? 0 : Math.round(barW * Math.min(1f, stored / (float) cap));
+        if (fill > 0) {
+            g.fill(barX, ry + 2, barX + fill, ry + 7, (full ? GuildMapInk.BAD : colour) | 0xFF000000);
+        }
+        g.drawString(font, amount, right - aw, ry, full ? GuildMapInk.BAD : GuildMapInk.INK_2, false);
+        return ry + lh + 3;
     }
 
     /** A section's rule and title, with a count on the right; returns the y under it. */
