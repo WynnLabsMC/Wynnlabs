@@ -560,8 +560,8 @@ public final class TooltipListener {
         int pct = (int) Math.round(sc.value() * 100);
         String arch = io.github.anilken.wynnlabs.build.TreePlanner.chosenLabel(io.github.anilken.wynnlabs.build.TreePlanner.mostUnlocked());
         StringBuilder bar = new StringBuilder();
-        for (int i = 0; i < 10; i++) {
-            bar.append(i < Math.round(sc.value() * 10) ? '\u2588' : '\u2591');
+        for (int i = 0; i < 5; i++) {
+            bar.append(i < Math.round(sc.value() * 5) ? '\u2588' : '\u2591');
         }
         List<Component> lines = new ArrayList<>();
         lines.add(Component.literal(L.t("wynnlabs.tooltip.for_you", arch == null || arch.isBlank() ? "-" : arch, pct) + " ")
@@ -570,13 +570,18 @@ public final class TooltipListener {
         List<String> parts = new ArrayList<>();
         sc.stats().stream().filter(st -> st.weight() >= 0.05)
                 .sorted((x, y) -> Double.compare(y.weight(), x.weight()))
-                .limit(4)
-                .forEach(st -> parts.add(st.name() + " \u00d7" + String.format(java.util.Locale.ROOT, "%.1f", st.weight())));
+                .limit(2)
+                .forEach(st -> parts.add(shortStat(st.name()) + " \u00d7" + String.format(java.util.Locale.ROOT, "%.1f", st.weight())));
         if (!parts.isEmpty()) {
             lines.add(Component.literal(String.join(" \u00b7 ", parts)).withStyle(net.minecraft.ChatFormatting.GRAY));
         }
         lines.add(Component.empty());
         out.addAll(Math.max(0, Math.min(at, out.size())), lines);
+    }
+
+    /** A stat's name kept short for the tooltip: "Fire Damage" is "Fire", "Water Defence" "Water Def". */
+    static String shortStat(String name) {
+        return name.replace(" Damage", "").replace(" Defence", " Def").replace("Spell Cost", "Cost");
     }
 
     private static boolean onShoppingList(net.minecraft.world.item.ItemStack stack) {
