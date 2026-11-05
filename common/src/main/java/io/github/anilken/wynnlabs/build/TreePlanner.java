@@ -139,9 +139,12 @@ public final class TreePlanner {
     /**
      * How much a node is worth on its own for the chosen archetype, or for two combined: each
      * archetype's nodes pulled by its share ({@link ArchetypeMix#affinity}), the lead's ultimate
-     * the one planned.
+     * the one planned. What a node does for one spell (cheaper, more damage, hitting again) counts
+     * as much as that spell is to you ({@link SpellShares#weight}): a Shaman whose damage is Aura
+     * takes Rebound, not Nature's Jolt for a Haul it never casts; a main attack boost counts by
+     * the main attack's weight (Hand of the Shaman's +70 % is little to a Summoner).
      */
-    private static double value(AbilityNode n, ArchetypeMix chosen) {
+    static double value(AbilityNode n, ArchetypeMix chosen, SpellShares shares, List<String> spells) {
         String a = arch(n);
         String d = text(n);
         String name = n.name().toLowerCase(Locale.ROOT);
@@ -149,6 +152,7 @@ public final class TreePlanner {
         if (spell(n)) {
             v += 6;                             // the class's spells come first
         }
+        double weight = spell(n) ? 1 : shares.weight(about(n, d, spells));
         double pull = chosen.affinity(a);
         if (pull > 0) {
             v += 3 * pull;
@@ -158,17 +162,25 @@ public final class TreePlanner {
         if (ultimate(n)) {
             v += a.equalsIgnoreCase(chosen.lead()) ? 8 : -10;
         }
+        double forSpell = 0;                    // what it does for the spell it names
         if (name.startsWith("cheaper") || d.contains("mana cost: -")) {
-            v += 2;                             // mana comfort
+            forSpell += 2;                      // mana comfort
         }
+        if (d.contains("total damage") || d.contains("damage bonus")) {
+            forSpell += 1;
+        }
+        if (repeats(d)) {
+            forSpell += 4;                      // the spell's whole effect again: its damage twice
+        }
+        if (d.contains("reset its duration") || d.contains("range: +")) {
+            v += 1;                             // a spell kept up longer or reaching further
+        }
+        v += forSpell * weight;
         if (d.contains("heal") || d.contains("resistance") || d.contains("health")) {
             v += 1.5;                           // staying alive
         }
-        if (d.contains("total damage") || d.contains("damage bonus")) {
-            v += 1;
-        }
         if (d.contains("overall damage by +")) {
-            v += 6;                             // e.g. Hand of the Shaman: +70 % main attack
+            v += 6 * shares.mainAttackWeight(); // e.g. Hand of the Shaman: +70 % main attack
         }
         if (d.contains("walk speed") || d.contains("launch you") || d.contains("leap")) {
             v += 0.5;
@@ -177,6 +189,40 @@ public final class TreePlanner {
             v += 0.5;
         }
         return v;
+    }
+
+    /** "Bounce back and deal its effects a second time", "will hit a second time", "hits twice". */
+    static boolean repeats(String d) {
+        return d.contains("a second time") || d.contains("bounce back") || d.contains("hit twice")
+                || d.contains("hits twice") || d.contains("activate twice");
+    }
+
+    /**
+     * The spell a node is about: the one its name names, else the first its text names; null for
+     * none ({@code d} the text in lower case).
+     */
+    static String about(AbilityNode n, String d, List<String> spells) {
+        String name = n.name().toLowerCase(Locale.ROOT);
+        String first = null;
+        int at = Integer.MAX_VALUE;
+        for (String s : spells) {
+            String l = s.toLowerCase(Locale.ROOT);
+            if (name.contains(l)) {
+                return s;
+            }
+            int i = d.indexOf(l);
+            if (i >= 0 && i < at) {
+                at = i;
+                first = s;
+            }
+        }
+        return first;
+    }
+
+    /** The class's spells by name, for {@link #about}. */
+    private static List<String> spellNames(List<AbilityNode> all) {
+        Klass cls = Wyn.classType();
+        return cls == null ? List.of() : TreeModel.spellNames(all, cls.name());
     }
 
     /** The plan from what you have now; empty when the tree is unknown. */
@@ -207,6 +253,11 @@ public final class TreePlanner {
      * the split; the tree's own locks (a node needing N of an archetype) stay as they are.
      */
     static List<Step> plan(ArchetypeMix mix, java.util.Collection<String> have) {
+        return plan(mix, have, SpellShares.current());
+    }
+
+    /** {@link #plan(ArchetypeMix, java.util.Collection)} with the spells weighed by {@code shares}. */
+    static List<Step> plan(ArchetypeMix mix, java.util.Collection<String> have, SpellShares shares) {
         List<AbilityNode> all = nodes();
         if (all.isEmpty()) {
             return List.of();
@@ -241,8 +292,9 @@ public final class TreePlanner {
 
         // Targets that pull the path: the chosen archetype's nodes and its ultimate
         Map<Integer, Double> value = new HashMap<>();
+        List<String> spells = spellNames(all);
         for (AbilityNode n : all) {
-            value.put(n.id(), value(n, mix));
+            value.put(n.id(), value(n, mix, shares, spells));
         }
         String lead = mix.lead();
 
