@@ -295,15 +295,19 @@ public final class GuildMapPanel {
         // who is online, and on which world
         if (api != null && !api.onlineMembers().isEmpty()) {
             ry = section(g, font, L.t("wynnlabs.guildmap.online_members"), String.valueOf(api.onlineMembers().size()), left, right, ry);
+            // the rank written out, small, in a column as wide as the longest rank here
+            int rankW = 0;
+            for (GuildApi.Member mb : api.onlineMembers()) {
+                rankW = Math.max(rankW, Math.round(font.width(mb.rank()) * 0.75f));
+            }
             for (GuildApi.Member mb : api.onlineMembers()) {
                 String world = mb.world() == null ? "" : mb.world();
-                String rank = shortRank(mb.rank());
                 g.pose().pushMatrix();
                 g.pose().translate(left, ry + 2);
                 g.pose().scale(0.75f, 0.75f);
-                g.drawString(font, rank, 0, 0, GuildMapInk.PRICE, false);
+                g.drawString(font, mb.rank(), 0, 0, GuildMapInk.PRICE, false);
                 g.pose().popMatrix();
-                int nx = left + 22;
+                int nx = left + rankW + 4;
                 g.drawString(font, fit(font, mb.name(), right - font.width(world) - 4 - nx), nx, ry, GuildMapInk.INK, false);
                 g.drawString(font, world, right - font.width(world), ry, GuildMapInk.INK_3, false);
                 ry += lh + 3;
@@ -393,19 +397,6 @@ public final class GuildMapPanel {
         if (mx >= left - 4 && mx < right + 4 && my >= ry - 2 && my < ry + lh + 2 && my >= top) {
             g.fill(left - 4, ry - 2, right + 4, ry + lh + 1, GuildMapInk.CARD_HOVER);
         }
-    }
-
-    /** "Strategist" → "STR": the rank in three letters, so the names line up. */
-    static String shortRank(String rank) {
-        return switch (rank.toLowerCase(Locale.ROOT)) {
-            case "owner" -> "OWN";
-            case "chief" -> "CHF";
-            case "strategist" -> "STR";
-            case "captain" -> "CPT";
-            case "recruiter" -> "RCR";
-            case "recruit" -> "RCT";
-            default -> rank.length() > 3 ? rank.substring(0, 3).toUpperCase(Locale.ROOT) : rank;
-        };
     }
 
     /** A typed character into the search box (while it has the focus). */
