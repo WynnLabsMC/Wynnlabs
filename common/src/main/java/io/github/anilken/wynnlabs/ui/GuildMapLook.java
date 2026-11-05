@@ -105,7 +105,8 @@ public final class GuildMapLook {
         int pillRows = pillRows(font, pills, w - 2 * pad);
         int rows = t.known() ? t.res().size() : 0;
         int rowH = lh + 9;
-        int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad;
+        long cooling = t.acquired() > 0 ? COOLDOWN_MS - Math.max(0, now - t.acquired()) : 0;
+        int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (cooling > 0 ? 7 : 0) + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad;
         GuildMapInk.face(g, x, y, w, h);
         int cy = y + pad;
         // header: the holder's colour, the territory and its guild; the held time on the right
@@ -135,6 +136,13 @@ public final class GuildMapLook {
             px += pw + 4;
         }
         cy += lh + 5;
+        if (cooling > 0) {
+            // the cooldown running out: a bar that empties over the ten minutes
+            int bw = w - 2 * pad;
+            g.fill(x + pad, cy, x + pad + bw, cy + 3, GuildMapInk.WELL);
+            g.fill(x + pad, cy, x + pad + Math.round(bw * cooling / (float) COOLDOWN_MS), cy + 3, GuildMapInk.PRICE);
+            cy += 7;
+        }
         if (rows > 0) {
             cy += 4;
             // one column for the icons, one for the hour's gains: every bar starts and ends alike
