@@ -55,6 +55,7 @@ final class BoxStatsPanel {
                 if (line.startsWith("Price") || line.startsWith("Fiyat") || line.contains("Click")) {
                     break;
                 }
+                line = line.replaceAll("\\[[^\\]\\p{L}\\p{N}]*\\]", "").strip();   // a tier bar ("[■■■■■□□]") says nothing as text
                 if (line.codePoints().filter(Character::isLetter).count() >= 2) {
                     lines.add(line);
                 }

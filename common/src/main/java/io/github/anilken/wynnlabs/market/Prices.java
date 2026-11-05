@@ -623,6 +623,13 @@ public final class Prices {
      */
     public static String key(io.github.anilken.wynnlabs.model.ItemView item, String fallback) {
         String name = item != null && item.name() != null ? item.name() : fallback;
+        if (item != null && item.kind() == io.github.anilken.wynnlabs.model.ItemView.Kind.POWDER && item.powder() != null
+                && item.powder().element() != null && item.powder().tier() > 0) {
+            // a powder by its element and tier ("Fire Powder T5"), as the market keeps them; its
+            // shown name has the element's glyph and the tier in Roman numerals
+            String e = item.powder().element().toLowerCase(java.util.Locale.ROOT);
+            return Character.toUpperCase(e.charAt(0)) + e.substring(1) + " Powder T" + item.powder().tier();
+        }
         if (item != null && item.kind() == io.github.anilken.wynnlabs.model.ItemView.Kind.MATERIAL
                 && item.qualityTier() != null && name != null && !TIERED.matcher(name).matches()) {
             return name + " T" + item.qualityTier();
