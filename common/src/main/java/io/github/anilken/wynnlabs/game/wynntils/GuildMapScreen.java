@@ -130,10 +130,10 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
                 int az = (int) Math.min(z0, z1);
                 g.renderOutline(ax, az, (int) Math.abs(x1 - x0), (int) Math.abs(z1 - z0), 0xFFFFFFFF);
             }
-            if (panel.timers && Math.abs(x1 - x0) >= 40) {
+            if (panel.timers) {
                 float cx = MapRenderer.getRenderX(p, mapCenterX, centerX, zoomRenderScale);
                 float cz = MapRenderer.getRenderZ(p, mapCenterZ, centerZ, zoomRenderScale);
-                GuildMapLook.label(g, t, cx, cz, now);
+                GuildMapLook.label(g, t, cx, cz, Math.abs(x1 - x0), Math.max(z0, z1), now);
             }
         }
     }

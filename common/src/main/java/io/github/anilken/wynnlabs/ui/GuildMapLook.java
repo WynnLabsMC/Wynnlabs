@@ -33,40 +33,64 @@ public final class GuildMapLook {
     /** A territory cannot be attacked for ten minutes after it is taken. */
     static final long COOLDOWN_MS = 10 * 60_000L;
 
+    /** The produce icons' height on the map, in GUI pixels. */
+    private static final float ICON_H = 12f;
     private static final int RED = 0xFFFF5555;
     private static final int GREEN = 0xFF55FF55;
     private static final int MUTED = 0xFF9A9A9A;
     private static final int TEXT = 0xFFE8E8E8;
 
-    /** The held time and produce under a territory's tag, centred on its middle (screen coordinates). */
-    public static void label(GuiGraphics g, Territory t, float cx, float cy, long now) {
+    /**
+     * The held time and produce under a territory's tag, centred on its middle (screen
+     * coordinates), shrunk to fit the territory's box ({@code boxW} wide, its bottom edge at
+     * {@code bottom}); what cannot fit even shrunk is left out, so nothing spills onto a neighbour.
+     */
+    public static void label(GuiGraphics g, Territory t, float cx, float cy, float boxW, float bottom, long now) {
         Font font = Minecraft.getInstance().font;
-        int x = Math.round(cx);
-        int y = Math.round(cy) + 6;
+        float room = boxW - 4;
+        float y = cy + 6;
         if (t.acquired() > 0) {
             long held = Math.max(0, now - t.acquired());
-            g.drawCenteredString(font, shortHeld(held), x, y, held < COOLDOWN_MS ? RED : GREEN);
-            y += font.lineHeight + 2;
+            String s = shortHeld(held);
+            float scale = Math.min(1f, Math.min(room / font.width(s), (bottom - y - 1) / font.lineHeight));
+            if (scale < 0.6f) {
+                return;                         // no room even for the time
+            }
+            g.pose().pushMatrix();
+            g.pose().translate(cx, y);
+            g.pose().scale(scale, scale);
+            g.drawCenteredString(font, s, 0, 0, held < COOLDOWN_MS ? RED : GREEN);
+            g.pose().popMatrix();
+            y += (font.lineHeight + 2) * scale;
         }
-        List<Res> made = new ArrayList<>();
+        List<Icon> made = new ArrayList<>();
+        int total = -2;
+        int tall = 0;
         for (Res r : t.res()) {
-            if (r.perHour() > 0 && icon(r.key()) != null) {
-                made.add(r);
+            Icon ic = icon(r.key());
+            if (r.perHour() > 0 && ic != null) {
+                made.add(ic);
+                total += ic.w() + 2;
+                tall = Math.max(tall, ic.h());
             }
         }
         if (made.isEmpty()) {
             return;
         }
-        int total = -2;
-        for (Res r : made) {
-            total += icon(r.key()).w() + 2;
+        // at most about a line of text tall, smaller when the box is narrow or short
+        float scale = Math.min(ICON_H / tall, Math.min(room / total, (bottom - y - 1) / tall));
+        if (scale < 0.3f) {
+            return;
         }
-        int ix = x - total / 2;
-        for (Res r : made) {
-            Icon ic = icon(r.key());
-            g.blit(RenderPipelines.GUI_TEXTURED, ic.id(), ix, y, 0f, 0f, ic.w(), ic.h(), ic.w(), ic.h(), ic.w(), ic.h());
+        g.pose().pushMatrix();
+        g.pose().translate(cx - total * scale / 2, y);
+        g.pose().scale(scale, scale);
+        int ix = 0;
+        for (Icon ic : made) {
+            g.blit(RenderPipelines.GUI_TEXTURED, ic.id(), ix, 0, 0f, 0f, ic.w(), ic.h(), ic.w(), ic.h(), ic.w(), ic.h());
             ix += ic.w() + 2;
         }
+        g.pose().popMatrix();
     }
 
     /** The hovered territory's card, in the map's top right corner where Wynntils puts its own. */
