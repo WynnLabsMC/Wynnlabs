@@ -28,7 +28,7 @@ public final class GuildMapLook {
      * (very low) to 5 (very high), 0 when unknown; {@code known}: the game sent its resources.
      */
     public record Territory(String name, String guild, String prefix, int guildColour, long acquired, boolean hq,
-            String treasury, int treasuryLevel, String defence, int defenceLevel, List<Res> res, int routes, boolean known) {}
+            String treasury, int treasuryLevel, String defence, int defenceLevel, List<Res> res, int links, int externals, boolean known) {}
 
     /** A territory cannot be attacked for ten minutes after it is taken. */
     static final long COOLDOWN_MS = 10 * 60_000L;
@@ -104,7 +104,7 @@ public final class GuildMapLook {
         List<Pill> pills = pills(t, now);
         int pillRows = pillRows(font, pills, w - 2 * pad);
         int rows = t.known() ? t.res().size() : 0;
-        int rowH = lh + 9;
+        int rowH = lh + 3;
         long cooling = t.acquired() > 0 ? COOLDOWN_MS - Math.max(0, now - t.acquired()) : 0;
         int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (cooling > 0 ? 7 : 0) + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad;
         GuildMapInk.face(g, x, y, w, h);
@@ -145,40 +145,34 @@ public final class GuildMapLook {
         }
         if (rows > 0) {
             cy += 4;
-            // one column for the icons, one for the hour's gains: every bar starts and ends alike
-            int hourCol = 0;
+            int textX = x + pad + 14 + 4;
             for (Res r : t.res()) {
-                hourCol = Math.max(hourCol, font.width(hourText(r)));
-            }
-            int barX = x + pad + 14 + 4;
-            int barW = x + w - pad - hourCol - 6 - barX;
-            for (Res r : t.res()) {
-                // the icon, the storage bar with its amounts under it, the hour's gain on the right
+                // the icon, "Crops 235 / 1.2K" (red from 90% full), the hour's gain on the right
                 drawIcon(g, font, r.key(), x + pad, cy, 9);
+                boolean full = r.cap() > 0 && r.stored() >= r.cap() * 0.9;
+                String name = L.t("wynnlabs.guildmap.res." + r.key().toLowerCase(java.util.Locale.ROOT)) + "  ";
+                String have = compact(r.stored());
+                g.drawString(font, name, textX, cy, GuildMapInk.INK_3, false);
+                int ax = textX + font.width(name);
+                g.drawString(font, have, ax, cy, full ? GuildMapInk.BAD : GuildMapInk.INK, false);
+                g.drawString(font, " / " + compact(r.cap()), ax + font.width(have), cy, full ? GuildMapInk.BAD : GuildMapInk.INK_3, false);
                 String hour = hourText(r);
-                int hourW = font.width(hour);
-                g.fill(barX, cy + 1, barX + barW, cy + 7, GuildMapInk.WELL);
-                int fill = r.cap() <= 0 ? 0 : Math.round(barW * Math.min(1f, r.stored() / (float) r.cap()));
-                if (fill > 0) {
-                    g.fill(barX, cy + 1, barX + fill, cy + 7, r.colour() | 0xFF000000);
-                }
-                g.renderOutline(barX - 1, cy, barW + 2, 8, GuildMapInk.LINE);
-                g.drawString(font, hour, x + w - pad - hourW, cy, r.perHour() > 0 ? GuildMapInk.GOOD : GuildMapInk.INK_3, false);
-                String amount = L.t("wynnlabs.guildmap.res." + r.key().toLowerCase(java.util.Locale.ROOT)) + "  "
-                        + compact(r.stored()) + " / " + compact(r.cap());
-                g.pose().pushMatrix();
-                g.pose().translate(barX, cy + 9);
-                g.pose().scale(0.75f, 0.75f);
-                g.drawString(font, amount, 0, 0, GuildMapInk.INK_3, false);
-                g.pose().popMatrix();
+                g.drawString(font, hour, x + w - pad - font.width(hour), cy, r.perHour() > 0 ? GuildMapInk.GOOD : GuildMapInk.INK_3, false);
                 cy += rowH;
             }
         }
-        // the footer: trade routes, and where the numbers come from
+        // the footer: links (owned neighbours, which raise the tower's damage and health), and where the numbers come from
         cy += 2;
         g.fill(x + pad, cy, x + w - pad, cy + 1, GuildMapInk.LINE);
         cy += 3;
-        String foot = t.known() && t.routes() > 0 ? L.n("wynnlabs.guildmap.routes", t.routes()) + " · " : "";
+        String foot = "";
+        if (t.known() && t.hq()) {
+            // an HQ: links and the externals within three routes multiply its tower together
+            double power = (1 + 0.3 * t.links()) * (1.5 + 0.25 * t.externals());
+            foot = L.t("wynnlabs.guildmap.hq_links", t.links(), t.externals(), String.format(java.util.Locale.ROOT, "%.1f", power)) + " · ";
+        } else if (t.known() && t.links() > 0) {
+            foot = L.n("wynnlabs.guildmap.links", t.links(), t.links(), String.format(java.util.Locale.ROOT, "%.1f", 1 + 0.3 * t.links())) + " · ";
+        }
         g.drawString(font, foot + L.t("wynnlabs.guildmap.live"), x + pad, cy, GuildMapInk.INK_3, false);
     }
 

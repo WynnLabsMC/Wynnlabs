@@ -256,33 +256,38 @@ public final class GuildMapPanel {
             g.drawString(font, fit(font, tiles.get(i)[1], tileW - 8), tx + 4, ty + lh + 1, i == 0 ? GuildMapInk.PRICE : GuildMapInk.INK, false);
         }
         ry += ((tiles.size() + 1) / 2) * (tileH + 4) + 2;
-        // what the guild makes an hour, all its territories together
-        Map<String, Integer> made = new LinkedHashMap<>();
-        for (GuildMapLook.Territory t : all) {
-            if (picked.name().equals(t.guild())) {
-                for (GuildMapLook.Res r : t.res()) {
-                    made.merge(r.key(), r.perHour(), Integer::sum);
+        // its economy an hour: what its territories make (the game says), what their upgrades
+        // likely cost (guessed from each territory's defence rating), and what is left
+        Map<String, long[]> eco = GuildEco.of(picked.name(), all);
+        if (!eco.isEmpty() || picked.hq() != null) {
+            ry = section(g, font, L.t("wynnlabs.guildmap.eco"), null, left, right, ry);
+            int prodR = left + 72;
+            int costR = left + 118;
+            small(g, font, L.t("wynnlabs.guildmap.eco_made"), prodR, ry, true);
+            small(g, font, L.t("wynnlabs.guildmap.eco_cost"), costR, ry, true);
+            small(g, font, L.t("wynnlabs.guildmap.eco_net"), right, ry, true);
+            ry += lh - 1;
+            for (Map.Entry<String, long[]> m : eco.entrySet()) {
+                long made = m.getValue()[0];
+                long cost = m.getValue()[1];
+                boolean known = m.getValue()[2] != 0;
+                GuildMapLook.drawIcon(g, font, m.getKey(), left, ry, 9);
+                String mv = GuildMapLook.compact((int) Math.min(Integer.MAX_VALUE, made));
+                g.drawString(font, mv, prodR - font.width(mv), ry, GuildMapInk.INK, false);
+                if (known) {
+                    String cv = GuildMapLook.compact((int) Math.min(Integer.MAX_VALUE, cost));
+                    g.drawString(font, cv, costR - font.width(cv), ry, GuildMapInk.INK_3, false);
+                    long net = made - cost;
+                    String nv = (net >= 0 ? "+" : "−") + GuildMapLook.compact((int) Math.min(Integer.MAX_VALUE, Math.abs(net)));
+                    g.drawString(font, nv, right - font.width(nv), ry, net >= 0 ? GuildMapInk.GOOD : GuildMapInk.BAD, false);
+                } else {
+                    g.drawString(font, "—", costR - font.width("—"), ry, GuildMapInk.INK_3, false);
+                    g.drawString(font, "—", right - font.width("—"), ry, GuildMapInk.INK_3, false);
                 }
+                ry += lh + 2;
             }
-        }
-        made.values().removeIf(v -> v <= 0);
-        if (!made.isEmpty() || picked.hq() != null) {
-            ry = section(g, font, L.t("wynnlabs.guildmap.per_hour"), null, left, right, ry);
-            int px = left;
-            for (Map.Entry<String, Integer> m : made.entrySet()) {
-                String v = GuildMapLook.compact(m.getValue());
-                int need = 12 + font.width(v) + 8;
-                if (px + need > right && px > left) {
-                    px = left;
-                    ry += lh + 3;
-                }
-                int iw = GuildMapLook.drawIcon(g, font, m.getKey(), px, ry, 9);
-                g.drawString(font, v, px + iw + 2, ry, GuildMapInk.INK, false);
-                px += iw + 2 + font.width(v) + 8;
-            }
-            if (!made.isEmpty()) {
-                ry += lh + 3;
-            }
+            small(g, font, L.t("wynnlabs.guildmap.eco_note"), left, ry, false);
+            ry += lh;
             if (picked.hq() != null) {
                 small(g, font, "HQ · " + picked.hq(), left, ry, false);
                 ry += lh;
@@ -469,6 +474,13 @@ public final class GuildMapPanel {
         }
         double f = (my - barTop - thumbH / 2.0) / (barH - thumbH);
         scroll = (int) Math.round(Math.max(0, Math.min(1, f)) * Math.max(0, contentH - viewH));
+    }
+
+    /** Opens a guild's page in the panel (the panel opened too), from its top. */
+    public void show(String guildName) {
+        open = true;
+        guild = guildName;
+        scroll = 0;
     }
 
     public void scroll(double amount) {

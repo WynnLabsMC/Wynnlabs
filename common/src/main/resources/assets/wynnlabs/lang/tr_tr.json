@@ -3324,7 +3324,7 @@
   "wynnlabs.guildmap.resource": "Kaynak",
   "wynnlabs.guildmap.stored": "Depoda",
   "wynnlabs.guildmap.per_hour": "Saatte",
-  "wynnlabs.guildmap.routes": "%s ticaret yolu|%s ticaret yolu",
+  "wynnlabs.guildmap.links": "%s bağlantı · kule ×%s|%s bağlantı · kule ×%s",
   "wynnlabs.guildmap.no_guild": "Guild yok",
   "wynnlabs.guildmap.res.emeralds": "Emerald",
   "wynnlabs.guildmap.res.ore": "Maden",
@@ -3356,5 +3356,11 @@
   "wynnlabs.setting.cannotWear": "Giyemeyeceğin ekipmana kırmızı çerçeve",
   "wynnlabs.setting_desc.cannotWear": "Henüz giyemeyeceğin ekipman (seviye, sınıf, skill puanı ya da görev) her menüde kırmızı çerçeveyle işaretlenir; yanlışlıkla alınmasın ya da saklanmasın",
   "wynnlabs.settings.example.cannotWear": "Açık: sen 100. seviyedeyken Trade Market'teki 110. seviye kask kırmızı çerçevede durur",
-  "wynnlabs.settings.opt.cannotWear": "Giyemeyeceklerin"
+  "wynnlabs.settings.opt.cannotWear": "Giyemeyeceklerin",
+  "wynnlabs.guildmap.hq_links": "%s bağlantı · %s dış bağlantı · kule ×%s",
+  "wynnlabs.guildmap.eco": "SAATLİK EKO",
+  "wynnlabs.guildmap.eco_made": "Üretim",
+  "wynnlabs.guildmap.eco_cost": "Gider",
+  "wynnlabs.guildmap.eco_net": "Net",
+  "wynnlabs.guildmap.eco_note": "Gider tahminidir"
 }

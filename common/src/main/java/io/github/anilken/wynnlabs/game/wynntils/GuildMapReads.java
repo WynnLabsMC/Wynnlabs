@@ -76,11 +76,80 @@ public final class GuildMapReads {
             defence = d == null ? "" : d.getAsString();
             tl = t == null ? 0 : t.getLevel();
             dl = d == null ? 0 : d.getLevel();
-            routes = info.getTradingRoutes() == null ? 0 : info.getTradingRoutes().size();
+            // links: neighbours on a trade route held by the same guild (each adds 30% to the
+            // tower's damage and health in a war)
+            if (info.getTradingRoutes() != null) {
+                for (String n : info.getTradingRoutes()) {
+                    TerritoryPoi o = neighbour(n);
+                    if (o != null && o.getTerritoryInfo() != null && guild != null && guild.equals(o.getTerritoryInfo().getGuildName())) {
+                        routes++;
+                    }
+                }
+            }
             hq = info.isHeadquarters();
         }
+        int externals = hq && guild != null ? externals(p.getName(), guild) : 0;
         return new GuildMapLook.Territory(p.getName(), guild, prefix, colour, acquired, hq, treasury, tl, defence, dl,
-                res, routes, info != null);
+                res, routes, externals, info != null);
+    }
+
+    /**
+     * An HQ's externals: territories of its guild within three trade routes of it, whoever holds
+     * the ones in between (each adds 25% to the HQ's tower on top of its 50%).
+     */
+    static int externals(String hq, String guild) {
+        java.util.Set<String> seen = new java.util.HashSet<>(List.of(hq));
+        List<String> ring = List.of(hq);
+        int count = 0;
+        for (int step = 0; step < 3; step++) {
+            List<String> next = new ArrayList<>();
+            for (String name : ring) {
+                TerritoryPoi poi = neighbour(name);
+                if (poi == null || poi.getTerritoryInfo() == null || poi.getTerritoryInfo().getTradingRoutes() == null) {
+                    continue;
+                }
+                for (String n : poi.getTerritoryInfo().getTradingRoutes()) {
+                    if (seen.add(n)) {
+                        next.add(n);
+                        TerritoryPoi o = neighbour(n);
+                        if (o != null && o.getTerritoryInfo() != null && guild.equals(o.getTerritoryInfo().getGuildName())) {
+                            count++;
+                        }
+                    }
+                }
+            }
+            ring = next;
+        }
+        return count;
+    }
+
+    /** Every territory's distance in trade routes from {@code from} (resources move one a minute). */
+    static java.util.Map<String, Integer> distances(String from) {
+        java.util.Map<String, Integer> dist = new java.util.HashMap<>();
+        dist.put(from, 0);
+        java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>(List.of(from));
+        while (!queue.isEmpty()) {
+            String name = queue.poll();
+            TerritoryPoi poi = neighbour(name);
+            if (poi == null || poi.getTerritoryInfo() == null || poi.getTerritoryInfo().getTradingRoutes() == null) {
+                continue;
+            }
+            for (String n : poi.getTerritoryInfo().getTradingRoutes()) {
+                if (!dist.containsKey(n)) {
+                    dist.put(n, dist.get(name) + 1);
+                    queue.add(n);
+                }
+            }
+        }
+        return dist;
+    }
+
+    private static TerritoryPoi neighbour(String name) {
+        try {
+            return Models.Territory.getTerritoryPoiFromAdvancement(name);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     /** A resource's ink, as the game's own colour for it. */
