@@ -104,7 +104,7 @@ public final class TooltipListener {
         int rules = Stamp.now();
         int advice = Advice.version;
         long t0 = io.github.anilken.wynnlabs.core.Perf.start();
-        boolean cannot = cannotWear(stack);
+        boolean cannot = Settings.on("cannotWear") && cannotWear(stack);
         io.github.anilken.wynnlabs.core.Perf.end("slot.cannot", t0);
         long t1 = io.github.anilken.wynnlabs.core.Perf.start();
         int glow = glowOf(stack, inBag);

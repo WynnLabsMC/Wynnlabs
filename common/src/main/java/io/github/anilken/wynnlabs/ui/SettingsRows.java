@@ -67,7 +67,7 @@ final class SettingsRows {
             "warnings", multi("dangerWarn", "survivalWarn", "healerAdvice"),
             "chat", multi("chatUpgrade", "chatSkills", "chatLevelUp"),
             "extras", multi("wornHint", "sourceHint", "bankHint", "powderHint"),
-            "slotGlow", multi("glowUpgrade", "glowShop", "sellGlow"),
+            "slotGlow", multi("glowUpgrade", "glowShop", "sellGlow", "cannotWear"),
             "hide", multi("no_mythic", "no_event", "no_raid"));
 
     private static Multi multi(String... keys) {

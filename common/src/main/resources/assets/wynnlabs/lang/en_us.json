@@ -3352,5 +3352,9 @@
   "wynnlabs.guildmap.ago_h": "%sh ago",
   "wynnlabs.guildmap.back": "Guilds",
   "wynnlabs.guildmap.storage": "STORAGE",
-  "wynnlabs.guildmap.storage_all": "All"
+  "wynnlabs.guildmap.storage_all": "All",
+  "wynnlabs.setting.cannotWear": "Red frame on gear you can't wear",
+  "wynnlabs.setting_desc.cannotWear": "Gear you can't wear yet (level, class, skill points or a quest) gets a red frame in every menu, so it is not bought or kept by mistake",
+  "wynnlabs.settings.example.cannotWear": "On: a level 110 helmet in the Trade Market sits in a red frame while you are level 100",
+  "wynnlabs.settings.opt.cannotWear": "Can't wear"
 }

@@ -3352,5 +3352,9 @@
   "wynnlabs.guildmap.ago_h": "%s sa önce",
   "wynnlabs.guildmap.back": "Guild'ler",
   "wynnlabs.guildmap.storage": "DEPO",
-  "wynnlabs.guildmap.storage_all": "Tümü"
+  "wynnlabs.guildmap.storage_all": "Tümü",
+  "wynnlabs.setting.cannotWear": "Giyemeyeceğin ekipmana kırmızı çerçeve",
+  "wynnlabs.setting_desc.cannotWear": "Henüz giyemeyeceğin ekipman (seviye, sınıf, skill puanı ya da görev) her menüde kırmızı çerçeveyle işaretlenir; yanlışlıkla alınmasın ya da saklanmasın",
+  "wynnlabs.settings.example.cannotWear": "Açık: sen 100. seviyedeyken Trade Market'teki 110. seviye kask kırmızı çerçevede durur",
+  "wynnlabs.settings.opt.cannotWear": "Giyemeyeceklerin"
 }
