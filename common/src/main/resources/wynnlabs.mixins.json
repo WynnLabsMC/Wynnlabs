@@ -23,7 +23,10 @@
     "CrowdEntityMixin",
     "CrowdFireMixin",
     "CrowdParticleMixin",
-    "PriceBoxMixin"
+    "PriceBoxMixin",
+    "GuildMapSwapMixin",
+    "RawInputMixin",
+    "RawScrollMixin"
   ],
   "injectors": {
     "defaultRequire": 1
