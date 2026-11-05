@@ -3343,6 +3343,6 @@
   "wynnlabs.guildmap.ago_m": "%sm ago",
   "wynnlabs.guildmap.ago_h": "%sh ago",
   "wynnlabs.guildmap.back": "Guilds",
-  "wynnlabs.guildmap.storage": "STORAGE · ALL TERRITORIES",
-  "wynnlabs.guildmap.hq_storage": "HQ STORAGE"
+  "wynnlabs.guildmap.storage": "STORAGE",
+  "wynnlabs.guildmap.storage_all": "All"
 }

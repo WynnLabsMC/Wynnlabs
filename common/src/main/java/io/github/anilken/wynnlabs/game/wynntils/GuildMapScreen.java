@@ -145,7 +145,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             if (c != null && c.what().equals("territory")) {
                 for (TerritoryPoi p : GuildMapReads.pois()) {
                     if (p.getName().equals(c.arg())) {
-                        updateMapCenter(p.getLocation().getX(), p.getLocation().getZ());
+                        focus(p);
                         break;
                     }
                 }
@@ -154,6 +154,27 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
         }
         panel.typing = false;
         return super.doMouseClicked(event, doubleClick);
+    }
+
+    /**
+     * Centres the map on a territory and zooms so it fills about a third of the map's width (or
+     * height), the most Wynntils' zoom allows at either end.
+     */
+    private void focus(TerritoryPoi p) {
+        TerritoryProfile prof = p.getTerritoryProfile();
+        if (prof != null) {
+            float tw = Math.max(1, Math.abs(prof.getEndX() - prof.getStartX()));
+            float th = Math.max(1, Math.abs(prof.getEndZ() - prof.getStartZ()));
+            float want = Math.min(mapWidth / 3f / tw, mapHeight / 3f / th);
+            int level = 1;
+            for (int l = 1; l <= 100; l++) {
+                if (MapRenderer.getZoomRenderScaleFromLevel(l) <= want) {
+                    level = l;
+                }
+            }
+            setZoomLevel(level);
+        }
+        updateMapCenter(p.getLocation().getX(), p.getLocation().getZ());
     }
 
     /** While the search box has the keyboard, letters go to it and never reach the map's shortcuts. */

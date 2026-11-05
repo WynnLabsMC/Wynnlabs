@@ -3343,6 +3343,6 @@
   "wynnlabs.guildmap.ago_m": "%s dk önce",
   "wynnlabs.guildmap.ago_h": "%s sa önce",
   "wynnlabs.guildmap.back": "Guild'ler",
-  "wynnlabs.guildmap.storage": "DEPO · TÜM BÖLGELER",
-  "wynnlabs.guildmap.hq_storage": "HQ DEPOSU"
+  "wynnlabs.guildmap.storage": "DEPO",
+  "wynnlabs.guildmap.storage_all": "Tümü"
 }
