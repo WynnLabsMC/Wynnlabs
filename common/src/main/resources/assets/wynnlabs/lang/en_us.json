@@ -3322,5 +3322,15 @@
   "wynnlabs.guildmap.res.ore": "Ore",
   "wynnlabs.guildmap.res.wood": "Wood",
   "wynnlabs.guildmap.res.fish": "Fish",
-  "wynnlabs.guildmap.res.crops": "Crops"
+  "wynnlabs.guildmap.res.crops": "Crops",
+  "wynnlabs.guildmap.level": "Lv. %s",
+  "wynnlabs.guildmap.online": "● %s online",
+  "wynnlabs.guildmap.members": "Members",
+  "wynnlabs.guildmap.wars": "Wars",
+  "wynnlabs.guildmap.created": "Created",
+  "wynnlabs.guildmap.loading": "Asking Wynncraft…",
+  "wynnlabs.guildmap.online_members": "ONLINE MEMBERS",
+  "wynnlabs.setting.guildApi": "Guild map: members from Wynncraft",
+  "wynnlabs.setting_desc.guildApi": "While the guild map is open, asks Wynncraft's API about the guilds in its panel: level, members, wars and who is online on which world. A guild at most once a minute",
+  "wynnlabs.settings.example.guildApi": "On: Pavilion's panel shows Lv. 97, 88 members and its online members with their worlds"
 }

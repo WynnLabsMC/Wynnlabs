@@ -25,7 +25,8 @@ public final class GuildMapPanel {
 
     private record Hit(int x0, int y0, int x1, int y1, Click click) {}
 
-    public static final int W = 170;
+    public static final int W = 180;
+    private static final int ONLINE_W = 26;
 
     public boolean open = true;
     public boolean routes = true;
@@ -94,8 +95,18 @@ public final class GuildMapPanel {
                 }
                 g.drawString(font, String.valueOf(rank++), x + pad, ry, MUTED, false);
                 g.fill(x + pad + 16, ry + 1, x + pad + 23, ry + 8, gd.colour() | 0xFF000000);
+                // the online count from the guild API, for the rows in sight
+                boolean seen = ry + lh > top && ry < top + viewH;
+                io.github.anilken.wynnlabs.guild.GuildApi.Info api = seen && rank <= 31
+                        ? io.github.anilken.wynnlabs.guild.GuildApi.listed(gd.prefix()) : null;
+                int right = x + W - pad;
+                if (api != null) {
+                    String on = "● " + api.online();
+                    g.drawString(font, on, right - font.width(on), ry, api.online() > 0 ? 0xFF7DFF7D : 0xFF666666, false);
+                    right -= ONLINE_W;
+                }
                 String count = String.valueOf(gd.count());
-                int countX = x + W - pad - font.width(count);
+                int countX = right - font.width(count);
                 String name = fit(font, gd.name(), countX - (x + pad + 28) - 4);
                 g.drawString(font, name, x + pad + 28, ry, TEXT, false);
                 g.drawString(font, count, countX, ry, GOLD, false);
@@ -107,9 +118,25 @@ public final class GuildMapPanel {
             g.drawString(font, "×", x + W - pad - font.width("×"), ry, MUTED, false);
             hits.add(new Hit(x + W - pad - 10, ry - 2, x + W, ry + lh, new Click("back", null)));
             ry += lh + 2;
-            g.drawString(font, "[" + picked.prefix() + "]", x + pad, ry, MUTED, false);
+            io.github.anilken.wynnlabs.guild.GuildApi.Info api = io.github.anilken.wynnlabs.guild.GuildApi.picked(picked.prefix());
+            String sub = "[" + picked.prefix() + "]" + (api == null ? "" : " · " + L.t("wynnlabs.guildmap.level", api.level()));
+            g.drawString(font, sub, x + pad, ry, MUTED, false);
+            if (api != null) {
+                String on = L.t("wynnlabs.guildmap.online", api.online());
+                g.drawString(font, on, x + W - pad - font.width(on), ry, api.online() > 0 ? 0xFF7DFF7D : 0xFF666666, false);
+            }
             ry += lh + 6;
             ry = pair(g, font, x, ry, L.t("wynnlabs.guildmap.territories"), String.valueOf(picked.count()), GOLD);
+            if (api != null) {
+                ry = pair(g, font, x, ry, L.t("wynnlabs.guildmap.members"), String.valueOf(api.members()), TEXT);
+                ry = pair(g, font, x, ry, L.t("wynnlabs.guildmap.wars"), String.format(java.util.Locale.ROOT, "%,d", api.wars()), TEXT);
+                if (api.created().length() >= 10) {
+                    ry = pair(g, font, x, ry, L.t("wynnlabs.guildmap.created"), api.created().substring(0, 10), TEXT);
+                }
+            } else if (io.github.anilken.wynnlabs.core.Settings.on("guildApi")) {
+                g.drawString(font, L.t("wynnlabs.guildmap.loading"), x + pad, ry, MUTED, false);
+                ry += lh + 3;
+            }
             if (picked.hq() != null) {
                 ry = pair(g, font, x, ry, "HQ", fit(font, picked.hq(), W / 2), TEXT);
             }
@@ -128,6 +155,22 @@ public final class GuildMapPanel {
                 if (m.getValue()[0] > 0) {
                     ry = pair(g, font, x, ry, L.t("wynnlabs.guildmap.res." + m.getKey().toLowerCase(java.util.Locale.ROOT)),
                             GuildMapLook.compact(m.getValue()[0]) + L.t("wynnlabs.guildmap.per_hour_short"), m.getValue()[1] | 0xFF000000);
+                }
+            }
+            if (api != null && !api.onlineMembers().isEmpty()) {
+                ry += 4;
+                g.fill(x + pad, ry, x + W - pad, ry + 1, LINE);
+                ry += 5;
+                g.drawString(font, L.t("wynnlabs.guildmap.online_members"), x + pad, ry, MUTED, false);
+                ry += lh + 4;
+                for (io.github.anilken.wynnlabs.guild.GuildApi.Member mb : api.onlineMembers()) {
+                    String world = mb.world() == null ? "" : mb.world();
+                    String rank = "[" + mb.rank() + "] ";
+                    g.drawString(font, rank, x + pad, ry, 0xFFE8B84A, false);
+                    int nx = x + pad + font.width(rank);
+                    g.drawString(font, fit(font, mb.name(), x + W - pad - font.width(world) - 4 - nx), nx, ry, TEXT, false);
+                    g.drawString(font, world, x + W - pad - font.width(world), ry, MUTED, false);
+                    ry += lh + 3;
                 }
             }
             ry += 4;
