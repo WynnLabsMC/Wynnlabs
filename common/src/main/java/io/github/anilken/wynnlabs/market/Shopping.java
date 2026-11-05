@@ -92,6 +92,12 @@ public final class Shopping {
         if (!state.inGame()) {
             return;
         }
+        // a rebuild can take half a second: never while a chest, the bank or the Trade Market is
+        // open (their tooltips and glows ask all the time); the list as it is serves until the
+        // menu closes, unless there is none yet
+        if (!picks.isEmpty() && inContainer()) {
+            return;
+        }
         Klass cls = state.classType();
         int level = state.level();
         // the list says where each piece comes from in words: the language is part of the key
@@ -110,6 +116,16 @@ public final class Shopping {
             builtAt = now;
         } catch (Throwable t) {
             System.out.println("[WynnLabs] shopping list failed: " + t);
+        }
+    }
+
+    /** Whether a container screen (a chest, the bank, a shop, the Trade Market) is open; false without the game. */
+    private static boolean inContainer() {
+        try {
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            return mc != null && mc.screen instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>;
+        } catch (Throwable t) {
+            return false;
         }
     }
 

@@ -280,7 +280,9 @@ public final class Advice {
             return List.of(L.c("wynnlabs.wyn.items_off", Wyn.version()).withStyle(ChatFormatting.DARK_GRAY));
         }
         // a bank item shown in the J menu: its saved verdict and place, not a live guess
+        long pfadv_tipExtra = io.github.anilken.wynnlabs.core.Perf.start();
         List<Component> saved = Vault.tipExtra(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("adv.tipExtra", pfadv_tipExtra);
         if (saved != null) {
             return saved;
         }
@@ -291,15 +293,21 @@ public final class Advice {
         Entry e = ENTRIES.isEmpty() || !showAdvice ? null : ENTRIES.get(key);
         String tag = null;
         String caution = null;
+        long pfadv_gear = io.github.anilken.wynnlabs.core.Perf.start();
         ItemView gear = gearOf(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("adv.gear", pfadv_gear);
         // the Blacksmith's and the Trade Market's sell menus hold only your own items, nothing to buy
         var menuKind = Wyn.container();
+        long pfadv_own = io.github.anilken.wynnlabs.core.Perf.start();
         boolean own = Shopping.isOwn(stack)
                 || menuKind != null && (menuKind.blacksmithSell() || menuKind.marketSell());
         boolean inBank = !own && Vault.inOpenBank(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("adv.own", pfadv_own);
         if (e == null && gear != null && !own && !inBank && showAdvice) {
             // In a shop, the Trade Market or a chest: is it on the shopping list?
+            long pfadv_shop = io.github.anilken.wynnlabs.core.Perf.start();
             Shopping.Pick pick = Shopping.find(gear.data().name());
+            io.github.anilken.wynnlabs.core.Perf.end("adv.shop", pfadv_shop);
             if (pick != null) {
                 int lv = pick.info().requirements().level();
                 int now = Wyn.level();
@@ -316,7 +324,9 @@ public final class Advice {
         }
         if (e == null && (own || inBank || gear == null) && showAdvice) {
             // the rules judge your own items (bag and bank); in shops and chests only the shopping list speaks
+            long pfadv_auto = io.github.anilken.wynnlabs.core.Perf.start();
             e = AutoAdvice.cached(stack);
+            io.github.anilken.wynnlabs.core.Perf.end("adv.auto", pfadv_auto);
             tag = inBank ? L.t("wynnlabs.advice.tag_rule_bank") : L.t("wynnlabs.advice.tag_rule");
         }
         List<Component> out = new ArrayList<>();
@@ -417,8 +427,10 @@ public final class Advice {
         }
         if (e == null && gear != null && own && Settings.on("wornHint") && AutoAdvice.isWorn(stack)) {
             // What you wear: point at the next upgrade for this slot from the shopping list
+            long pfadv_next = io.github.anilken.wynnlabs.core.Perf.start();
             Shopping.Pick next = Shopping.best(gear.data().slot());
             Roadmap.Gear road = Roadmap.lastUpgrade(gear.data().slot());
+            io.github.anilken.wynnlabs.core.Perf.end("adv.next", pfadv_next);
             out.add(Component.empty());
             out.add(Component.literal(TooltipListener.marker()).withStyle(ChatFormatting.LIGHT_PURPLE)
                     .append(L.c("wynnlabs.advice.worn").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD)));
@@ -426,7 +438,9 @@ public final class Advice {
             // the road map only when one was built (this session or the last); an old one says so
             // a piece in the bag the advice says to wear instead of this one comes first: the
             // shopping list and the road map only know what you could get, not what you carry
+            long pfadv_beaten = io.github.anilken.wynnlabs.core.Perf.start();
             String beaten = beatenBy(gear.data().name());
+            io.github.anilken.wynnlabs.core.Perf.end("adv.beaten", pfadv_beaten);
             String note = beaten != null ? L.t("wynnlabs.advice.worn_beaten", beaten)
                     : road != null && !Double.isNaN(road.gain())
                     ? L.t("wynnlabs.advice.next_target_gain", road.info().name(), road.info().requirements().level(),
@@ -457,7 +471,9 @@ public final class Advice {
         }
         if (Settings.on("bankHint") && !inBank && !Vault.bankOpen() && !AutoAdvice.isWorn(stack)) {
             // the same thing kept in the bank (pages you opened): how many and on which page
+            long pfadv_bank = io.github.anilken.wynnlabs.core.Perf.start();
             String in = Vault.tooltipLine(nameOf(stack, gear));
+            io.github.anilken.wynnlabs.core.Perf.end("adv.bank", pfadv_bank);
             if (in != null && !in.isEmpty()) {
                 if (out.isEmpty()) {
                     out.add(Component.empty());
@@ -467,7 +483,9 @@ public final class Advice {
                 }
             }
         }
+        long pfadv_quest = io.github.anilken.wynnlabs.core.Perf.start();
         int quest = Settings.on("glowQuest") && !own ? QuestAdvisor.rankOf(stack) : -1;
+        io.github.anilken.wynnlabs.core.Perf.end("adv.quest", pfadv_quest);
         if (quest >= 0) {
             // A quest in the content book that the advisor ranks among the best three
             QuestAdvisor.Suggestion q = QuestAdvisor.top().get(quest);
@@ -484,7 +502,9 @@ public final class Advice {
             var parsedForPrice = WynntilsItems.view(stack);
             if (!(parsedForPrice.isPresent()
                     && parsedForPrice.get().isBox())) {
+                long pfadv_price = io.github.anilken.wynnlabs.core.Perf.start();
                 priceLines(stack, gear, out);
+                io.github.anilken.wynnlabs.core.Perf.end("adv.price", pfadv_price);
             }
         }
         // the verdict line alone (setting adviceOnly): "✦ Advice: KEEP", and a red "Can't equip" with it
