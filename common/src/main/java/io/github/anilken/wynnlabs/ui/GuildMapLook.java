@@ -108,7 +108,8 @@ public final class GuildMapLook {
         long cooling = t.acquired() > 0 ? COOLDOWN_MS - Math.max(0, now - t.acquired()) : 0;
         double[] tower = t.known() && t.defenceLevel() > 0 ? tower(t) : null;
         int towerH = tower == null ? 0 : lh * 3 + 10;
-        int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (cooling > 0 ? 7 : 0) + towerH + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad;
+        int h = pad + lh * 2 + 3 + 6 + pillRows * (lh + 5) + (cooling > 0 ? 7 : 0) + towerH + (rows > 0 ? 4 + rows * rowH : 0) + 4 + lh + pad
+                + (t.known() && (t.hq() || t.links() > 0) ? lh + 2 : 0);   // the links on a line of their own
         GuildMapInk.face(g, x, y, w, h);
         int cy = y + pad;
         // header: the holder's colour, the territory and its guild; the held time on the right
@@ -181,11 +182,15 @@ public final class GuildMapLook {
         if (t.known() && t.hq()) {
             // an HQ: links and the externals within three routes multiply its tower together
             double power = (1 + 0.3 * t.links()) * (1.5 + 0.25 * t.externals());
-            foot = L.t("wynnlabs.guildmap.hq_links", t.links(), t.externals(), String.format(java.util.Locale.ROOT, "%.1f", power)) + " · ";
+            foot = L.t("wynnlabs.guildmap.hq_links", t.links(), t.externals(), String.format(java.util.Locale.ROOT, "%.1f", power));
         } else if (t.known() && t.links() > 0) {
-            foot = L.n("wynnlabs.guildmap.links", t.links(), t.links(), String.format(java.util.Locale.ROOT, "%.1f", 1 + 0.3 * t.links())) + " · ";
+            foot = L.n("wynnlabs.guildmap.links", t.links(), t.links(), String.format(java.util.Locale.ROOT, "%.1f", 1 + 0.3 * t.links()));
         }
-        g.drawString(font, foot + L.t("wynnlabs.guildmap.live"), x + pad, cy, GuildMapInk.INK_3, false);
+        if (!foot.isEmpty()) {
+            g.drawString(font, foot, x + pad, cy, GuildMapInk.INK_2, false);
+            cy += lh + 2;
+        }
+        g.drawString(font, L.t("wynnlabs.guildmap.live"), x + pad, cy, GuildMapInk.INK_3, false);
     }
 
     /** "+9.8K/h", or a dash for a resource the territory does not make. */
