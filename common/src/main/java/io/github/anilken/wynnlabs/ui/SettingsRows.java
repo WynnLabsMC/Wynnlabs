@@ -117,6 +117,7 @@ final class SettingsRows {
                 p.row("switch", "boxCompactTooltip");
                 p.head("wynnlabs.settings.sec_bag");
                 p.row("multi", "slotGlow");
+                p.row("switch", "marketFit");
                 p.row("choice", "slotBadges");
             }
             case "world" -> {

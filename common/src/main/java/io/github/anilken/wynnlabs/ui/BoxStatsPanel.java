@@ -32,7 +32,39 @@ final class BoxStatsPanel {
     private static long readAt;
     private static Source from;
 
+    /** The item's own words, read once per item. */
+    private static String aboutFor;
+    private static String aboutText;
+
     private BoxStatsPanel() {}
+
+    /**
+     * The item's description from its own lore, as one paragraph without the game's glyphs and
+     * colours; it stops at the market's price block. Null when the lore says nothing.
+     */
+    static String about(String name, net.minecraft.world.item.ItemStack stack) {
+        if (name != null && name.equals(aboutFor)) {
+            return aboutText;
+        }
+        String text = null;
+        var lore = stack == null ? null : stack.get(net.minecraft.core.component.DataComponents.LORE);
+        if (lore != null) {
+            List<String> lines = new ArrayList<>();
+            for (Component c : lore.lines()) {
+                String line = io.github.anilken.wynnlabs.game.ItemJson.clean(c.getString());
+                if (line.startsWith("Price") || line.startsWith("Fiyat") || line.contains("Click")) {
+                    break;
+                }
+                if (line.codePoints().filter(Character::isLetter).count() >= 2) {
+                    lines.add(line);
+                }
+            }
+            text = lines.isEmpty() ? null : String.join(" ", lines);
+        }
+        aboutFor = name;
+        aboutText = text;
+        return text;
+    }
 
     static void draw(BoxScreen s, GuiGraphics g, String name, int x, int y, int w, int h) {
         Entry e = ItemIndex.get().byName(name);
@@ -49,6 +81,13 @@ final class BoxStatsPanel {
                     BoxChips.draw(g, s.font(), st, null, false, false, x, cy);
                     cy += BoxChips.H + Theme.SP_2;
                 }
+                return;
+            }
+            String text = about(name, s.singleIcon);
+            if (text != null) {
+                // not in the item list (a ward, a rune…): what the item itself says
+                int cy = head(s, g, L.t("wynnlabs.box.stats_about"), null, x, y, w);
+                Type.BODY.drawWrapped(g, s.font(), text, x, cy, w, Math.max(1, (bottom - cy) / Type.BODY.lineHeight), Theme.INK_2);
                 return;
             }
             Type.MUTED.draw(g, s.font(), Type.MUTED.fit(s.font(), L.t("wynnlabs.box.stats_unknown"), w), x, y, Theme.INK_3);
