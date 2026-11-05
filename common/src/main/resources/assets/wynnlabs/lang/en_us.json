@@ -658,6 +658,8 @@
   "wynnlabs.home.card_now": "Now",
   "wynnlabs.home.option_set": "Needs the rest of its set: compared to your current gear",
   "wynnlabs.home.row_copy_tip": "Click: copy the name (paste it in Trade Market search)",
+  "wynnlabs.home.powders_armour": "Powders: %s × any element %s (on armour only their health counts)",
+  "wynnlabs.home.powders_weapon": "Powders: %s × %s %s into the empty slots",
   "wynnlabs.home.card_same": "Same as now: %s",
   "wynnlabs.home.chip_wear_at": "Equippable at Lv %s",
   "wynnlabs.home.chip_community": "Community pick (Lv %s build)",
