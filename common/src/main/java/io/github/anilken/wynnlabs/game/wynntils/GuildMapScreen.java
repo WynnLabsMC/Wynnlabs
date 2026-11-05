@@ -36,6 +36,10 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     private java.util.Map<String, Integer> hqDist;
     private String hqDistFor;
     private long hqDistAt;
+    /** A press that began on the panel holds the map still until the button is let go (no pan behind a scroll). */
+    private boolean heldInPanel;
+    private float heldX;
+    private float heldZ;
 
     public GuildMapScreen() {
         super();
@@ -46,6 +50,16 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
 
     @Override
     public void doRender(GuiGraphics g, int mx, int my, float partialTick) {
+        if (heldInPanel) {
+            long window = net.minecraft.client.Minecraft.getInstance().getWindow().handle();
+            if (org.lwjgl.glfw.GLFW.glfwGetMouseButton(window, org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS) {
+                if (mapCenterX != heldX || mapCenterZ != heldZ) {
+                    updateMapCenter(heldX, heldZ);
+                }
+            } else {
+                heldInPanel = false;
+            }
+        }
         long now = System.currentTimeMillis();
         List<TerritoryPoi> pois = GuildMapReads.pois();
         if (now - lookedAt > 1000 || looks.size() != pois.size()) {
@@ -225,6 +239,9 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     @Override
     public boolean doMouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (panel.over(mapRight(), mapTop(), mapBottom(), event.x(), event.y())) {
+            heldInPanel = true;
+            heldX = mapCenterX;
+            heldZ = mapCenterZ;
             GuildMapPanel.Click c = panel.click(event.x(), event.y());
             if (c != null && c.what().equals("territory")) {
                 for (TerritoryPoi p : GuildMapReads.pois()) {
