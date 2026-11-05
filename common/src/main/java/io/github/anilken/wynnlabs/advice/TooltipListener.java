@@ -455,18 +455,25 @@ public final class TooltipListener {
         return kind != null && !kind.marketSell() && kind.type().startsWith("TradeMarket");
     }
 
+    /** Set when the score's class is missing (a hot swap left it out): the rolls alone then. */
+    private static boolean noWeights;
+
     /** A listing's score for you (0 to 1), its overall roll when no stat weighs; -1 unknown. */
     static double forYou(ItemView v) {
         if (v == null || v.rolled() == null) {
             return -1;
         }
-        try {
-            var sc = io.github.anilken.wynnlabs.build.StatWeights.of(v);
-            if (sc != null && !Double.isNaN(sc.value())) {
-                return sc.value();
+        if (!noWeights) {
+            try {
+                var sc = io.github.anilken.wynnlabs.build.StatWeights.of(v);
+                if (sc != null && !Double.isNaN(sc.value())) {
+                    return sc.value();
+                }
+            } catch (LinkageError e) {
+                noWeights = true;                   // not in this game's jar (a hot swap): never tried again
+            } catch (Throwable ignored) {
+                // the model failed: the overall roll instead
             }
-        } catch (Throwable ignored) {
-            // the model failed: the overall roll instead
         }
         return v.rolled().hasOverall() ? v.rolled().overallPercent() / 100.0 : -1;
     }
@@ -482,45 +489,52 @@ public final class TooltipListener {
                 instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
             return GOLD;
         }
-        String name = WynntilsItems.view(stack).flatMap(ItemView::gearData).map(ItemData::name).orElse(null);
-        if (name == null) {
-            return GOLD;
+        long now = System.currentTimeMillis();
+        if (screen != rankedScreen || now - rankedAt > 500) {
+            rank(screen);                               // the page once every half second, not once per slot
+            rankedScreen = screen;
+            rankedAt = now;
         }
-        Prices.Price known = Prices.of(name);
-        Double usual = known == null ? null : known.typical();
+        Integer c = RANKED.get(stack);
+        return c == null ? -1 : c;
+    }
+
+    /** The page's listings ranked: each listing's glow colour, worked out once for the whole page. */
+    private static final java.util.Map<net.minecraft.world.item.ItemStack, Integer> RANKED = new java.util.IdentityHashMap<>();
+    private static Object rankedScreen;
+    private static long rankedAt;
+
+    private static void rank(net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen) {
+        RANKED.clear();
         var mine = Minecraft.getInstance().player.getInventory();
-        List<Object[]> same = new ArrayList<>();          // {stack, price, score}
+        // listings by item: {stack, price, score}
+        java.util.Map<String, List<Object[]>> byItem = new java.util.HashMap<>();
         for (Slot sl : screen.getMenu().slots) {
             var st = sl.getItem();
             if (sl.container == mine || st.isEmpty()) {
                 continue;
             }
             var v = WynntilsItems.view(st).orElse(null);
-            if (v == null || v.gearData().map(d -> !d.name().equals(name)).orElse(true)) {
+            String name = v == null ? null : v.gearData().map(ItemData::name).orElse(null);
+            if (name == null) {
                 continue;
             }
-            int price = Wyn.marketListingPrice(st);
-            if (price > 0 && usual != null && usual > 0 && price > usual * tooDear()) {
-                continue;                                 // far above the usual price: never glows
-            }
-            same.add(new Object[] {st, price, forYou(v)});
+            byItem.computeIfAbsent(name, k -> new ArrayList<>()).add(new Object[] {st, Wyn.marketListingPrice(st), forYou(v)});
         }
         int n = marketPicks();
-        List<Object[]> best = same.stream().filter(o -> (double) o[2] >= 0)
-                .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2])).limit(n).toList();
-        for (Object[] o : best) {
-            if (o[0] == stack) {
-                return GOLD;
-            }
+        for (var e : byItem.entrySet()) {
+            Prices.Price known = Prices.of(e.getKey());
+            Double usual = known == null ? null : known.typical();
+            List<Object[]> same = e.getValue().stream()
+                    .filter(o -> !((int) o[1] > 0 && usual != null && usual > 0 && (int) o[1] > usual * tooDear()))
+                    .toList();
+            same.stream().filter(o -> (double) o[2] >= 0)
+                    .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2])).limit(n)
+                    .forEach(o -> RANKED.put((net.minecraft.world.item.ItemStack) o[0], GOLD));
+            same.stream().filter(o -> (double) o[2] > 0 && (int) o[1] > 0 && !RANKED.containsKey(o[0]))
+                    .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2] / (int) o[1])).limit(n)
+                    .forEach(o -> RANKED.put((net.minecraft.world.item.ItemStack) o[0], TEAL));
         }
-        List<Object[]> value = same.stream().filter(o -> (double) o[2] > 0 && (int) o[1] > 0)
-                .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2] / (int) o[1])).limit(n).toList();
-        for (Object[] o : value) {
-            if (o[0] == stack) {
-                return TEAL;
-            }
-        }
-        return -1;
     }
 
     /**
@@ -528,9 +542,15 @@ public final class TooltipListener {
      * bar, then the stats that count with their weight ("Aura Cost ×1.0 · Air Damage ×1.0").
      */
     private static void forYouLines(ItemView g, List<Component> out, int at) {
+        if (noWeights) {
+            return;
+        }
         io.github.anilken.wynnlabs.build.StatWeights.Score sc;
         try {
             sc = io.github.anilken.wynnlabs.build.StatWeights.of(g);
+        } catch (LinkageError e) {
+            noWeights = true;
+            return;
         } catch (Throwable t) {
             return;
         }
