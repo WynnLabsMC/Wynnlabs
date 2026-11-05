@@ -123,6 +123,27 @@ public final class GuildMapReads {
         return count;
     }
 
+    /** Every territory's distance in trade routes from {@code from} (resources move one a minute). */
+    static java.util.Map<String, Integer> distances(String from) {
+        java.util.Map<String, Integer> dist = new java.util.HashMap<>();
+        dist.put(from, 0);
+        java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>(List.of(from));
+        while (!queue.isEmpty()) {
+            String name = queue.poll();
+            TerritoryPoi poi = neighbour(name);
+            if (poi == null || poi.getTerritoryInfo() == null || poi.getTerritoryInfo().getTradingRoutes() == null) {
+                continue;
+            }
+            for (String n : poi.getTerritoryInfo().getTradingRoutes()) {
+                if (!dist.containsKey(n)) {
+                    dist.put(n, dist.get(name) + 1);
+                    queue.add(n);
+                }
+            }
+        }
+        return dist;
+    }
+
     private static TerritoryPoi neighbour(String name) {
         try {
             return Models.Territory.getTerritoryPoiFromAdvancement(name);

@@ -32,6 +32,10 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     private static GuildMapPanel panel;
     private List<GuildMapLook.Territory> looks = List.of();
     private long lookedAt;
+    /** The picked guild's routes to its HQ: each territory's distance, worked out once a second. */
+    private java.util.Map<String, Integer> hqDist;
+    private String hqDistFor;
+    private long hqDistAt;
 
     public GuildMapScreen() {
         super();
@@ -101,6 +105,8 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     protected void renderPois(List<Poi> pois, GuiGraphics g, BoundingBox box, float scale, int mx, int my) {
         hovered = null;
         List<Poi> shown = getRenderedPois(pois, box, scale, mx, my);
+        java.util.Map<String, Integer> dist = flowFor();
+        List<float[]> flows = new ArrayList<>();
         if (panel.routes) {
             for (Poi p : shown) {
                 if (!(p instanceof TerritoryPoi t) || t.isFakeTerritoryInfo() || t.getTerritoryInfo() == null) {
@@ -114,6 +120,12 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
                             float ox = MapRenderer.getRenderX(o, mapCenterX, centerX, zoomRenderScale);
                             float oz = MapRenderer.getRenderZ(o, mapCenterZ, centerZ, zoomRenderScale);
                             RenderUtils.drawLine(g, CommonColors.DARK_GRAY, x, z, ox, oz, 1f);
+                            // the picked guild's resources flow along it toward the HQ
+                            Integer dp = dist == null ? null : dist.get(p.getName());
+                            Integer dq = dist == null ? null : dist.get(o.getName());
+                            if (dp != null && dq != null && dp > dq) {
+                                flows.add(new float[] {x, z, ox, oz, Math.abs(p.getName().hashCode() % 1000) / 1000f});
+                            }
                             break;
                         }
                     }
@@ -126,6 +138,39 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             float z = MapRenderer.getRenderZ(p, mapCenterZ, centerZ, zoomRenderScale);
             p.renderAt(g, x, z, hovered == p, scale, zoomRenderScale, zoomLevel, true);
         }
+        // flowing dots over the boxes: two on each route, from the farther territory to the nearer
+        double t = (System.currentTimeMillis() % 2000L) / 2000.0;
+        for (float[] f : flows) {
+            for (int k = 0; k < 2; k++) {
+                double s = (t + k * 0.5 + f[4]) % 1.0;
+                int px = Math.round((float) (f[0] + (f[2] - f[0]) * s));
+                int pz = Math.round((float) (f[1] + (f[3] - f[1]) * s));
+                g.fill(px - 2, pz - 2, px + 2, pz + 2, 0xFF3A2A00);
+                g.fill(px - 1, pz - 1, px + 1, pz + 1, 0xFFFFD24A);
+            }
+        }
+    }
+
+    /** Distances to the picked guild's HQ, or null without a picked guild (or its HQ unknown). */
+    private java.util.Map<String, Integer> flowFor() {
+        if (panel.guild == null) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        if (panel.guild.equals(hqDistFor) && now - hqDistAt < 1000) {
+            return hqDist;
+        }
+        String hq = null;
+        for (GuildMapLook.Territory t : looks) {
+            if (t.hq() && panel.guild.equals(t.guild())) {
+                hq = t.name();
+                break;
+            }
+        }
+        hqDist = hq == null ? null : GuildMapReads.distances(hq);
+        hqDistFor = panel.guild;
+        hqDistAt = now;
+        return hqDist;
     }
 
     /** Held times and produce under the tags, and the picked guild's territories outlined. */
