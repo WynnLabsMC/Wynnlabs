@@ -275,14 +275,50 @@ public final class GuildMapPanel {
         hover(g, left, right, ry, lh, top, mx, my);
         swatch(g, left, ry + 1, t.guildColour());
         String tag = " " + (t.prefix() == null ? "" : t.prefix()) + (from == null ? "" : " \u2190 " + from);
-        int tw = font.width(time);
+        int tw = monoWidth(font, time);
         int nameW = right - tw - 4 - (left + 11) - font.width(tag);
         String name = fit(font, t.name(), Math.max(20, nameW));
         g.drawString(font, name, left + 11, ry, GuildMapInk.INK, false);
         g.drawString(font, tag, left + 11 + font.width(name), ry, GuildMapInk.INK_3, false);
-        g.drawString(font, time, right - tw, ry, timeInk, false);
+        mono(g, font, time, right - tw, ry, timeInk);
         hits.add(new Hit(left - 4, ry - 2, right + 4, ry + lh + 2, new Click("territory", t.name())));
         return ry + lh + 3;
+    }
+
+    /** A digit's cell: the widest digit, so a ticking time keeps its place. */
+    private static int digitCell(Font font) {
+        int w = 0;
+        for (char c = '0'; c <= '9'; c++) {
+            w = Math.max(w, font.width(String.valueOf(c)));
+        }
+        return w;
+    }
+
+    /** {@code text}'s width with every digit in a cell of the same width. */
+    private static int monoWidth(Font font, String text) {
+        int cell = digitCell(font);
+        int w = 0;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            w += Character.isDigit(c) ? cell : font.width(String.valueOf(c));
+        }
+        return w;
+    }
+
+    /** Draws {@code text} with its digits in equal cells (each centred in its cell). */
+    private static void mono(GuiGraphics g, Font font, String text, int x, int y, int ink) {
+        int cell = digitCell(font);
+        for (int i = 0; i < text.length(); i++) {
+            String c = String.valueOf(text.charAt(i));
+            int cw = font.width(c);
+            if (Character.isDigit(text.charAt(i))) {
+                g.drawString(font, c, x + (cell - cw) / 2, y, ink, false);
+                x += cell;
+            } else {
+                g.drawString(font, c, x, y, ink, false);
+                x += cw;
+            }
+        }
     }
 
     /** A picked guild: its numbers, its production, who is online where, its territories. */
