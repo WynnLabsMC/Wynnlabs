@@ -140,13 +140,22 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
         }
         // flowing dots over the boxes: two on each route, from the farther territory to the nearer
         double t = (System.currentTimeMillis() % 6000L) / 6000.0;   // a route crossed in six seconds
+        // the dots grow and shrink with the map (half a GUI pixel far out, two close in) and glide
+        // between pixels; a route too short on screen gets none
+        float size = Math.max(0.5f, Math.min(2f, zoomRenderScale * 1.5f));
         for (float[] f : flows) {
+            float len = (float) Math.hypot(f[2] - f[0], f[3] - f[1]);
+            if (len < size * 12) {
+                continue;
+            }
             for (int k = 0; k < 2; k++) {
                 double s = (t + k * 0.5 + f[4]) % 1.0;
-                int px = Math.round((float) (f[0] + (f[2] - f[0]) * s));
-                int pz = Math.round((float) (f[1] + (f[3] - f[1]) * s));
-                g.fill(px - 2, pz - 2, px + 2, pz + 2, 0xFF3A2A00);
-                g.fill(px - 1, pz - 1, px + 1, pz + 1, 0xFFFFD24A);
+                g.pose().pushMatrix();
+                g.pose().translate((float) (f[0] + (f[2] - f[0]) * s), (float) (f[1] + (f[3] - f[1]) * s));
+                g.pose().scale(size, size);
+                g.fill(-2, -2, 2, 2, 0xFF3A2A00);
+                g.fill(-1, -1, 1, 1, 0xFFFFD24A);
+                g.pose().popMatrix();
             }
         }
     }
