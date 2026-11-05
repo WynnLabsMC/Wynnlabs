@@ -575,6 +575,20 @@ public final class TooltipListener {
 
     /** A stat's name kept short for the tooltip: "Fire Damage" is "Fire", "Water Defence" "Water Def". */
     static String shortStat(String name) {
+        // "3rd Spell Cost" as the game words it on the item: the class's own spell ("Aura Cost")
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(1st|2nd|3rd|4th) Spell Cost$").matcher(name);
+        if (m.find()) {
+            int n = "1st2nd3rd4th".indexOf(m.group(1)) / 3 + 1;
+            var model = io.github.anilken.wynnlabs.core.Rules.get().getAsJsonObject("model");
+            if (model != null && model.has("spells")) {
+                for (var e : model.getAsJsonArray("spells")) {
+                    var o = e.getAsJsonObject();
+                    if (o.has("index") && o.get("index").getAsInt() == n && o.has("name")) {
+                        return o.get("name").getAsString() + " Cost";
+                    }
+                }
+            }
+        }
         return name.replace(" Damage", "").replace(" Defence", " Def").replace("Spell Cost", "Cost");
     }
 
