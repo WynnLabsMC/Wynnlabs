@@ -238,18 +238,18 @@ public final class GuildMapLook {
 
     /**
      * A resource's mark, {@code h} pixels tall, at (x, y): the map icon for a material,
-     * Wynncraft's emerald coin for emeralds; returns its width.
+     * Wynncraft's emerald item for emeralds; returns its width.
      */
     static int drawIcon(GuiGraphics g, Font font, String key, int x, int y, int h) {
         if ("EMERALDS".equals(key)) {
-            // Wynncraft's own emerald: the "²" its font draws as the coin in every price
-            float s = h / (float) font.lineHeight;
+            // Wynncraft's own emerald: the emerald item, which its pack draws as the game's coin
+            float s = h / 16f;
             g.pose().pushMatrix();
             g.pose().translate(x, y);
             g.pose().scale(s, s);
-            g.drawString(font, EMERALD, 0, 0, 0xFFFFFFFF, false);
+            g.renderItem(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.EMERALD), 0, 0);
             g.pose().popMatrix();
-            return Math.round(font.width(EMERALD) * s);
+            return Math.round(16 * s);
         }
         Icon ic = icon(key);
         if (ic == null) {
@@ -317,9 +317,6 @@ public final class GuildMapLook {
         String unit = n >= 1_000_000 ? "M" : "K";
         return (v < 10 && Math.round(v * 10) % 10 != 0 ? String.format(java.util.Locale.ROOT, "%.1f", v) : String.valueOf(Math.round(v))) + unit;
     }
-
-    /** The character Wynncraft's font draws as its emerald coin. */
-    private static final String EMERALD = "²";
 
     private record Icon(Identifier id, int w, int h) {}
 
