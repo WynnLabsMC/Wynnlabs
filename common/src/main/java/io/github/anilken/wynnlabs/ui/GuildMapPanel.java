@@ -295,19 +295,12 @@ public final class GuildMapPanel {
         // who is online, and on which world
         if (api != null && !api.onlineMembers().isEmpty()) {
             ry = section(g, font, L.t("wynnlabs.guildmap.online_members"), String.valueOf(api.onlineMembers().size()), left, right, ry);
-            // the rank written out, small, in a column as wide as the longest rank here
-            int rankW = 0;
-            for (GuildApi.Member mb : api.onlineMembers()) {
-                rankW = Math.max(rankW, Math.round(font.width(mb.rank()) * 0.75f));
-            }
+            // "[Chief] name" with the world on the right
             for (GuildApi.Member mb : api.onlineMembers()) {
                 String world = mb.world() == null ? "" : mb.world();
-                g.pose().pushMatrix();
-                g.pose().translate(left, ry + 2);
-                g.pose().scale(0.75f, 0.75f);
-                g.drawString(font, mb.rank(), 0, 0, GuildMapInk.PRICE, false);
-                g.pose().popMatrix();
-                int nx = left + rankW + 4;
+                String rank = "[" + mb.rank() + "] ";
+                g.drawString(font, rank, left, ry, GuildMapInk.PRICE, false);
+                int nx = left + font.width(rank);
                 g.drawString(font, fit(font, mb.name(), right - font.width(world) - 4 - nx), nx, ry, GuildMapInk.INK, false);
                 g.drawString(font, world, right - font.width(world), ry, GuildMapInk.INK_3, false);
                 ry += lh + 3;
