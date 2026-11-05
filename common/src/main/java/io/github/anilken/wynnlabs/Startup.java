@@ -177,9 +177,13 @@ public final class Startup {
         platform.onTooltip((stack, lines) -> {
             long t = Perf.start();
             try {
+                long ta = Perf.start();
                 lines.addAll(Advice.linesCached(stack));
+                Perf.end("tooltip.advice", ta);
                 // where the item comes from, one short line (setting sourceHint)
+                long ts = Perf.start();
                 var from = io.github.anilken.wynnlabs.advice.SourceHint.line(stack);
+                Perf.end("tooltip.source", ts);
                 if (from != null) {
                     lines.add(from);
                 }

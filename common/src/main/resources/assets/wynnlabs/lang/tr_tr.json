@@ -132,6 +132,8 @@
   "wynnlabs.caution.line": "Dikkat: %s",
   "wynnlabs.tooltip.past_banner": "ESKI",
   "wynnlabs.tooltip.advice_banner": "ÖNERİ",
+  "wynnlabs.tooltip.for_you": "%s · %s",
+  "wynnlabs.tooltip.for_you_banner": "UYUM",
   "wynnlabs.tooltip.market_banner": "PAZAR",
   "wynnlabs.tooltip.marker": "✦ Öneri: ",
   "wynnlabs.tooltip.box_market": "Değerliler: %s",
@@ -3300,5 +3302,8 @@
   "wynnlabs.community.st.mana_steal": "Mana steal",
   "wynnlabs.community.st.walk_speed": "Walk speed",
   "wynnlabs.community.st.loot_bonus": "Loot bonus",
-  "wynnlabs.community.st.xp_bonus": "XP bonus"
+  "wynnlabs.community.st.xp_bonus": "XP bonus",
+  "wynnlabs.setting.marketFit": "Trade Market: sana uyanlar",
+  "wynnlabs.setting_desc.marketFit": "Trade Market'te build'ine en çok katkı yapan ilanlar altın, fiyatına göre en iyileri turkuaz parlar ve UYUM satırı her birinin ne kadar katacağını söyler. Sayfadaki her ilan için build'i yeniden hesapladığından yavaş bilgisayarda takılma yapabilir",
+  "wynnlabs.settings.example.marketFit": "Açık: üç Ritualist relik altın parlar, biri UYUM +37%% · Ritualist yazar"
 }

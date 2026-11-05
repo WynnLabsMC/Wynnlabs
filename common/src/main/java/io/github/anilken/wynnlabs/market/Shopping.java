@@ -79,6 +79,14 @@ public final class Shopping {
         return byName.get(gearName);
     }
 
+    private static int builtPrices = -1;
+    private static long builtAt;
+
+    /** How often new prices alone rebuild the list, in ms. A method: hot swaps keep no field values. */
+    static long pricesEvery() {
+        return 30_000L;
+    }
+
     private static void refresh() {
         GameState state = GameState.current();
         if (!state.inGame()) {
@@ -88,14 +96,18 @@ public final class Shopping {
         int level = state.level();
         // the list says where each piece comes from in words: the language is part of the key
         // where a piece is had and which close pick comes first follow the prices too
-        String key = cls + ":" + level + ":" + Rules.version + ":" + System.identityHashCode(Build.plan()) + ":" + L.code()
-                + ":" + Prices.version;
-        if (key.equals(builtFor)) {
+        String key = cls + ":" + level + ":" + Rules.version + ":" + System.identityHashCode(Build.plan()) + ":" + L.code();
+        long now = System.currentTimeMillis();
+        if (key.equals(builtFor) && (Prices.version == builtPrices || now - builtAt < pricesEvery())) {
+            // the prices only order close picks and word the source: new ones while browsing the
+            // Trade Market (they come in all the time) rebuild the list at most every half minute
             return;
         }
         try {
             build(cls, level);
             builtFor = key;
+            builtPrices = Prices.version;
+            builtAt = now;
         } catch (Throwable t) {
             System.out.println("[WynnLabs] shopping list failed: " + t);
         }

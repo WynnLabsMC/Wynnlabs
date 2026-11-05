@@ -71,6 +71,16 @@ public final class TooltipListener {
         return 500 + (System.identityHashCode(stack) & 255);
     }
 
+    /** Nothing known yet: drawn plain until its turn comes. */
+    private static final SlotFacts NO_FACTS = new SlotFacts(0, 0, 0, false, false, -1, 0, 0);
+    private static long workWindow;
+    private static int workedNow;
+
+    /** How many slots are worked out in one frame (8 ms) at most. A method: hot swaps keep no field values. */
+    static int slotsPerFrame() {
+        return 8;
+    }
+
     private static SlotFacts slotFacts(Slot slot) {
         var stack = slot.getItem();
         var mc = Minecraft.getInstance();
@@ -80,10 +90,26 @@ public final class TooltipListener {
         if (f != null && now < f.until() && f.rules() == Stamp.now() && f.inBag() == inBag) {
             return f;
         }
+        // a menu just opened has every slot to work out: a few a frame, the rest the frames after
+        // (an old one is drawn meanwhile, or none), so opening the bank or the market never stalls
+        long nano = System.nanoTime();
+        if (nano - workWindow > 8_000_000L) {
+            workWindow = nano;
+            workedNow = 0;
+        }
+        if (workedNow >= slotsPerFrame()) {
+            return f != null ? f : NO_FACTS;
+        }
+        workedNow++;
         int rules = Stamp.now();
         int advice = Advice.version;
-        f = new SlotFacts(now + lifetime(stack), rules, advice, inBag, cannotWear(stack), glowOf(stack, inBag),
-                stepOf(stack), stepColourOf(stack));
+        long t0 = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean cannot = cannotWear(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("slot.cannot", t0);
+        long t1 = io.github.anilken.wynnlabs.core.Perf.start();
+        int glow = glowOf(stack, inBag);
+        io.github.anilken.wynnlabs.core.Perf.end("slot.glow", t1);
+        f = new SlotFacts(now + lifetime(stack), rules, advice, inBag, cannot, glow, stepOf(stack), stepColourOf(stack));
         SLOT_FACTS.put(stack, f);
         return f;
     }
@@ -123,6 +149,7 @@ public final class TooltipListener {
     /** The glow colour behind the slot, or -1 for none. */
     private static int glowOf(net.minecraft.world.item.ItemStack stack, boolean inBag) {
         var mc = Minecraft.getInstance();
+        int shopGlow = -1;
         Advice.Entry e = Advice.find(stack, k -> k.startsWith("ability:") || k.startsWith("name:"));
         if (e != null) {
             if (!(Settings.choice("treeHelp") == 2) || e.verdict() == Verdict.TAKEN) {
@@ -135,16 +162,27 @@ public final class TooltipListener {
             }
             Advice.Entry auto = AutoAdvice.cached(stack);
             return auto == null ? -1 : Advice.rgb(auto.verdict());
-        } else if (mc.player != null && inBag && Settings.on("sellGlow") && sellHere(stack) != 0) {
-            return sellHere(stack);               // at the Blacksmith / Trade Market: what to sell here
-        } else if (mc.player != null && inBag && Settings.on("glowUpgrade") && upgrade(stack)) {
-            return 0x55FF55;                      // green: wear this, it beats what you have on
-        } else if (mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack)) {
-            return 0xFFAA00;                      // gold: on the shopping list, in a shop or chest
-        } else if (mc.player != null && !inBag && Settings.on("glowQuest") && QuestAdvisor.rankOf(stack) >= 0) {
-            return 0x55FFFF;                      // aqua: a recommended quest in the content book
         }
-        return -1;
+        long tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean sell = mc.player != null && inBag && Settings.on("sellGlow") && sellHere(stack) != 0;
+        io.github.anilken.wynnlabs.core.Perf.end("glow.sell", tq);
+        tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean up = !sell && mc.player != null && inBag && Settings.on("glowUpgrade") && upgrade(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("glow.upgrade", tq);
+        tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean shop = !sell && !up && mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("glow.shop", tq);
+        if (sell) {
+            return sellHere(stack);               // at the Blacksmith / Trade Market: what to sell here
+        } else if (up) {
+            return 0x55FF55;                      // green: wear this, it beats what you have on
+        } else if (shop && (shopGlow = marketGlow(stack)) >= 0) {
+            return shopGlow;                      // gold: on the shopping list (in the Trade Market the best for you; teal the best value)
+        }
+        tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean quest = mc.player != null && !inBag && Settings.on("glowQuest") && QuestAdvisor.rankOf(stack) >= 0;
+        io.github.anilken.wynnlabs.core.Perf.end("glow.quest", tq);
+        return quest ? 0x55FFFF : -1;             // aqua: a recommended quest in the content book
     }
 
     /** The plan's step on an ability tree node, or 0. */
@@ -433,6 +471,167 @@ public final class TooltipListener {
         return 0;
     }
 
+    /** How many of the cheapest and how many of the best rolled listings glow. A method: hot swaps keep no field values. */
+    static int marketPicks() {
+        return 3;
+    }
+
+    /** The glow of a listing that is the best for you (gold) or the best value (teal). */
+    static final int GOLD = 0xFFAA00;
+    static final int TEAL = 0x5FC9B0;
+
+    /** A listing's price over the market's usual price above which it never glows. A method: hot swaps keep no field values. */
+    static double tooDear() {
+        return 1.3;
+    }
+
+    /** Whether the screen open is one of the Trade Market's buy screens. */
+    static boolean inMarket() {
+        MenuKind kind = Wyn.container();
+        return kind != null && !kind.marketSell() && kind.type().startsWith("TradeMarket");
+    }
+
+    /** Set when the score's class is missing (a hot swap left it out): the rolls alone then. */
+    private static boolean noWeights;
+
+    /** A listing's change to your build score with it in its slot, in %; NaN unknown. */
+    static double forYou(ItemView v, net.minecraft.world.item.ItemStack st) {
+        if (v == null || v.rolled() == null || noWeights) {
+            return Double.NaN;
+        }
+        try {
+            var sc = io.github.anilken.wynnlabs.build.StatWeights.of(v, st);
+            return sc == null ? Double.NaN : sc.gain();
+        } catch (LinkageError e) {
+            noWeights = true;                       // not in this game's jar (a hot swap): never tried again
+        } catch (Throwable ignored) {
+            // the model failed: no rank
+        }
+        return Double.NaN;
+    }
+
+    /**
+     * Outside the Trade Market a shopping list item glows gold. In it, of the listings on screen of
+     * one item, the {@link #marketPicks} best for you glow gold and the {@link #marketPicks} with
+     * the most of it per emerald teal; a listing far above the usual price ({@link #tooDear})
+     * never. -1: no glow.
+     */
+    private static int marketGlow(net.minecraft.world.item.ItemStack stack) {
+        // the ranking only with its switch on (setting marketFit): a plain gold glow otherwise
+        if (!inMarket() || !Settings.on("marketFit") || !(Minecraft.getInstance().screen
+                instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
+            return GOLD;
+        }
+        long now = System.currentTimeMillis();
+        if (screen != rankedScreen || now - rankedAt > 500) {
+            long t = io.github.anilken.wynnlabs.core.Perf.start();
+            rank(screen);                               // the page once every half second, not once per slot
+            io.github.anilken.wynnlabs.core.Perf.end("slot.rank", t);
+            rankedScreen = screen;
+            rankedAt = now;
+        }
+        Integer c = RANKED.get(stack);
+        return c == null ? -1 : c;
+    }
+
+    /** The page's listings ranked: each listing's glow colour, worked out once for the whole page. */
+    private static final java.util.Map<net.minecraft.world.item.ItemStack, Integer> RANKED = new java.util.IdentityHashMap<>();
+    private static Object rankedScreen;
+    private static long rankedAt;
+
+    private static void rank(net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen) {
+        RANKED.clear();
+        var mine = Minecraft.getInstance().player.getInventory();
+        // listings by item: {stack, price, score}
+        java.util.Map<String, List<Object[]>> byItem = new java.util.HashMap<>();
+        for (Slot sl : screen.getMenu().slots) {
+            var st = sl.getItem();
+            if (sl.container == mine || st.isEmpty()) {
+                continue;
+            }
+            var v = WynntilsItems.view(st).orElse(null);
+            String name = v == null ? null : v.gearData().map(ItemData::name).orElse(null);
+            if (name == null) {
+                continue;
+            }
+            byItem.computeIfAbsent(name, k -> new ArrayList<>()).add(new Object[] {st, Wyn.marketListingPrice(st), forYou(v, st)});
+        }
+        int n = marketPicks();
+        for (var e : byItem.entrySet()) {
+            Prices.Price known = Prices.of(e.getKey());
+            Double usual = known == null ? null : known.typical();
+            List<Object[]> same = e.getValue().stream()
+                    .filter(o -> !((int) o[1] > 0 && usual != null && usual > 0 && (int) o[1] > usual * tooDear()))
+                    .toList();
+            same.stream().filter(o -> !Double.isNaN((double) o[2]) && (double) o[2] > 0)
+                    .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2])).limit(n)
+                    .forEach(o -> RANKED.put((net.minecraft.world.item.ItemStack) o[0], GOLD));
+            same.stream().filter(o -> (double) o[2] > 0 && (int) o[1] > 0 && !RANKED.containsKey(o[0]))
+                    .sorted(java.util.Comparator.comparingDouble(o -> -(double) o[2] / (int) o[1])).limit(n)
+                    .forEach(o -> RANKED.put((net.minecraft.world.item.ItemStack) o[0], TEAL));
+        }
+    }
+
+    /**
+     * A Trade Market listing's worth for you, under the price, in the game's own banner: "[FIT]
+     * +12% · Ritualist" (your build score with it in its slot), then the two stats with the
+     * biggest part of that ("Aura Cost +4.1 · Air +3.2").
+     */
+    private static void forYouLines(ItemView g, net.minecraft.world.item.ItemStack stack, List<Component> out, int at) {
+        if (noWeights) {
+            return;
+        }
+        io.github.anilken.wynnlabs.build.StatWeights.Score sc;
+        try {
+            sc = io.github.anilken.wynnlabs.build.StatWeights.of(g, stack);
+        } catch (LinkageError e) {
+            noWeights = true;
+            return;
+        } catch (Throwable t) {
+            return;
+        }
+        // nothing to say when it gains you nothing (0 %) or less: no line at all
+        if (sc == null || Double.isNaN(sc.gain()) || Math.round(sc.gain()) <= 0) {
+            return;
+        }
+        String gain = (sc.gain() >= 0 ? "+" : "") + String.format(java.util.Locale.ROOT, "%.0f%%", sc.gain());
+        String arch = io.github.anilken.wynnlabs.build.TreePlanner.chosenLabel(io.github.anilken.wynnlabs.build.TreePlanner.mostUnlocked());
+        List<Component> lines = new ArrayList<>();
+        String word = L.t("wynnlabs.tooltip.for_you_banner");
+        lines.add(Component.empty().append(banner(word.startsWith("wynnlabs.") ? "FIT" : word, 0xF2C94C))
+                .append(Component.literal(" " + L.t("wynnlabs.tooltip.for_you", gain, arch == null || arch.isBlank() ? "-" : arch))
+                        .setStyle(net.minecraft.network.chat.Style.EMPTY
+                                .withColor(sc.gain() > 0 ? net.minecraft.ChatFormatting.YELLOW : net.minecraft.ChatFormatting.GRAY)
+                                .withFont(net.minecraft.network.chat.FontDescription.DEFAULT))));
+        List<String> parts = new ArrayList<>();
+        sc.stats().stream().filter(st -> st.part() >= 0.5).limit(2)
+                .forEach(st -> parts.add(shortStat(st.name()) + " +" + String.format(java.util.Locale.ROOT, "%.1f", st.part())));
+        if (!parts.isEmpty()) {
+            lines.add(Component.literal(String.join(" · ", parts)).withStyle(net.minecraft.ChatFormatting.GRAY));
+        }
+        lines.add(Component.empty());
+        out.addAll(Math.max(0, Math.min(at, out.size())), lines);
+    }
+
+    /** A stat's name kept short for the tooltip: "Fire Damage" is "Fire", "Water Defence" "Water Def". */
+    static String shortStat(String name) {
+        // "3rd Spell Cost" as the game words it on the item: the class's own spell ("Aura Cost")
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("^(1st|2nd|3rd|4th) Spell Cost$").matcher(name);
+        if (m.find()) {
+            int n = "1st2nd3rd4th".indexOf(m.group(1)) / 3 + 1;
+            var model = io.github.anilken.wynnlabs.core.Rules.get().getAsJsonObject("model");
+            if (model != null && model.has("spells")) {
+                for (var e : model.getAsJsonArray("spells")) {
+                    var o = e.getAsJsonObject();
+                    if (o.has("index") && o.get("index").getAsInt() == n && o.has("name")) {
+                        return o.get("name").getAsString() + " Cost";
+                    }
+                }
+            }
+        }
+        return name.replace(" Damage", "").replace(" Defence", " Def").replace("Spell Cost", "Cost");
+    }
+
     private static boolean onShoppingList(net.minecraft.world.item.ItemStack stack) {
         if (stack.isEmpty()) {
             return false;
@@ -713,6 +912,9 @@ public final class TooltipListener {
                 out.set(header, out.get(header).copy().append(price));
             } else {
                 out.add(Math.min(1, out.size()), price);
+            }
+            if (!ingredient && inMarket() && Settings.on("marketFit")) {
+                forYouLines(g, stack, out, blank >= 0 ? blank + 3 : Math.max(1, header + 1));
             }
             return true;
         }
