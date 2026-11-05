@@ -476,6 +476,13 @@ public final class GuildMapPanel {
         scroll = (int) Math.round(Math.max(0, Math.min(1, f)) * Math.max(0, contentH - viewH));
     }
 
+    /** Opens a guild's page in the panel (the panel opened too), from its top. */
+    public void show(String guildName) {
+        open = true;
+        guild = guildName;
+        scroll = 0;
+    }
+
     public void scroll(double amount) {
         scroll = Math.max(0, Math.min(Math.max(0, contentH - viewH), scroll - (int) Math.round(amount * 20)));
     }

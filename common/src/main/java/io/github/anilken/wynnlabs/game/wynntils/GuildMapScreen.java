@@ -175,6 +175,14 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             return true;
         }
         panel.typing = false;
+        // a left click on a territory opens its guild in the panel
+        if (event.button() == 0 && hovered instanceof TerritoryPoi t) {
+            String guild = GuildMapReads.of(t).guild();
+            if (guild != null && !guild.isBlank()) {
+                panel.show(guild);
+                return true;
+            }
+        }
         return super.doMouseClicked(event, doubleClick);
     }
 
