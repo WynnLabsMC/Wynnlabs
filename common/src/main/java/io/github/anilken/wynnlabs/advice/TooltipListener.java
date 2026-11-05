@@ -433,10 +433,15 @@ public final class TooltipListener {
         return 0;
     }
 
+    /** How many of the cheapest and how many of the best rolled listings glow. A method: hot swaps keep no field values. */
+    static int marketPicks() {
+        return 3;
+    }
+
     /**
-     * In the Trade Market, of the listings on screen of one item only the cheapest and the best
-     * rolled one glow (a search shows a page of the same item, all on the list); anywhere else, and
-     * for a listing whose price or roll is not read, every one.
+     * In the Trade Market, of the listings on screen of one item only the {@link #marketPicks}
+     * cheapest and best rolled glow (a search shows a page of the same item, all on the list);
+     * anywhere else, and for a listing whose price is not read, every one.
      */
     private static boolean marketPick(net.minecraft.world.item.ItemStack stack) {
         int price = Wyn.marketListingPrice(stack);
@@ -449,10 +454,7 @@ public final class TooltipListener {
             return true;
         }
         var mine = Minecraft.getInstance().player.getInventory();
-        net.minecraft.world.item.ItemStack cheapest = null;
-        net.minecraft.world.item.ItemStack best = null;
-        int low = Integer.MAX_VALUE;
-        float top = -1;
+        List<Object[]> same = new ArrayList<>();          // {stack, price, overall %}
         for (Slot sl : screen.getMenu().slots) {
             var st = sl.getItem();
             if (sl.container == mine || st.isEmpty()) {
@@ -462,17 +464,28 @@ public final class TooltipListener {
             if (v == null || v.gearData().map(d -> !d.name().equals(name)).orElse(true)) {
                 continue;
             }
-            int pr = Wyn.marketListingPrice(st);
-            if (pr > 0 && pr < low) {
-                low = pr;
-                cheapest = st;
-            }
-            if (v.rolled() != null && v.rolled().hasOverall() && v.rolled().overallPercent() > top) {
-                top = v.rolled().overallPercent();
-                best = st;
+            float pct = v.rolled() != null && v.rolled().hasOverall() ? v.rolled().overallPercent() : -1;
+            same.add(new Object[] {st, Wyn.marketListingPrice(st), pct});
+        }
+        int n = marketPicks();
+        if (same.size() <= n) {
+            return true;
+        }
+        List<Object[]> byPrice = same.stream().filter(o -> (int) o[1] > 0)
+                .sorted(java.util.Comparator.comparingInt(o -> (int) o[1])).limit(n).toList();
+        List<Object[]> byRoll = same.stream().filter(o -> (float) o[2] >= 0)
+                .sorted(java.util.Comparator.comparingDouble(o -> -(float) o[2])).limit(n).toList();
+        for (Object[] o : byPrice) {
+            if (o[0] == stack) {
+                return true;
             }
         }
-        return stack == cheapest || stack == best || cheapest == null && best == null;
+        for (Object[] o : byRoll) {
+            if (o[0] == stack) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean onShoppingList(net.minecraft.world.item.ItemStack stack) {
