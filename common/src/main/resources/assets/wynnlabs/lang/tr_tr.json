@@ -3362,5 +3362,11 @@
   "wynnlabs.guildmap.eco_made": "Üretim",
   "wynnlabs.guildmap.eco_cost": "Gider",
   "wynnlabs.guildmap.eco_net": "Net",
-  "wynnlabs.guildmap.eco_note": "Gider tahminidir"
+  "wynnlabs.guildmap.eco_note": "Gider tahminidir",
+  "wynnlabs.guildmap.tower_title": "KULE (TAHMİN)",
+  "wynnlabs.guildmap.tower_hp": "%s can · EHP %s",
+  "wynnlabs.guildmap.tower_dmg": "%s–%s hasar · %s/sn",
+  "wynnlabs.guildmap.cooldown_list": "COOLDOWN'DA",
+  "wynnlabs.guildmap.captures": "SON ELE GEÇİRİLENLER",
+  "wynnlabs.guildmap.captures_window": "1 sa"
 }

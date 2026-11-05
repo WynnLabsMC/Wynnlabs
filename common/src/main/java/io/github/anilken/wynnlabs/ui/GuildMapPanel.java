@@ -156,6 +156,9 @@ public final class GuildMapPanel {
     private int list(GuiGraphics g, Font font, List<Guild> guilds, List<GuildMapLook.Territory> all, String q,
             int left, int right, int ry, int top, int mx, int my, long now) {
         int lh = font.lineHeight;
+        if (q.isEmpty()) {
+            ry = war(g, font, all, left, right, ry, top, mx, my, now);
+        }
         g.drawString(font, L.t("wynnlabs.guildmap.top_guilds"), left, ry, GuildMapInk.INK_2, false);
         long newest = GuildApi.newest();
         if (newest > 0 && Settings.on("guildApi")) {
@@ -203,6 +206,77 @@ public final class GuildMapPanel {
             }
         }
         return ry;
+    }
+
+    /**
+     * War at a glance: territories still on their ten-minute cooldown (soonest free first) and
+     * the ones taken in the last hour (newest first, with the guild they were taken from when the
+     * map saw it change hands). A click on a row centres the map on it.
+     */
+    private int war(GuiGraphics g, Font font, List<GuildMapLook.Territory> all, int left, int right, int ry, int top,
+            int mx, int my, long now) {
+        WarFeed.observe(all, now);
+        int lh = font.lineHeight;
+        List<GuildMapLook.Territory> cooling = new ArrayList<>();
+        List<GuildMapLook.Territory> taken = new ArrayList<>();
+        for (GuildMapLook.Territory t : all) {
+            if (t.acquired() <= 0 || t.guild() == null || t.guild().isBlank()) {
+                continue;
+            }
+            long held = now - t.acquired();
+            if (held < GuildMapLook.COOLDOWN_MS) {
+                cooling.add(t);
+            } else if (held < 60 * 60_000L) {
+                taken.add(t);
+            }
+        }
+        if (!cooling.isEmpty()) {
+            cooling.sort(Comparator.comparingLong(t -> -t.acquired()));
+            java.util.Collections.reverse(cooling);       // the soonest free first
+            g.drawString(font, L.t("wynnlabs.guildmap.cooldown_list"), left, ry, GuildMapInk.INK_2, false);
+            String n = String.valueOf(cooling.size());
+            g.drawString(font, n, right - font.width(n), ry, GuildMapInk.INK_3, false);
+            ry += lh + 4;
+            for (GuildMapLook.Territory t : cooling.subList(0, Math.min(6, cooling.size()))) {
+                String left0 = GuildMapLook.clock(GuildMapLook.COOLDOWN_MS - (now - t.acquired()));
+                ry = warRow(g, font, t, null, left0, GuildMapInk.BAD, left, right, ry, top, mx, my);
+            }
+            ry += 3;
+        }
+        if (!cooling.isEmpty() || !taken.isEmpty()) {
+            java.util.List<GuildMapLook.Territory> recent = new ArrayList<>(cooling);
+            recent.addAll(taken);
+            recent.sort(Comparator.comparingLong(t -> -t.acquired()));
+            g.drawString(font, L.t("wynnlabs.guildmap.captures"), left, ry, GuildMapInk.INK_2, false);
+            String w = L.t("wynnlabs.guildmap.captures_window");
+            g.drawString(font, w, right - font.width(w), ry, GuildMapInk.INK_3, false);
+            ry += lh + 4;
+            for (GuildMapLook.Territory t : recent.subList(0, Math.min(8, recent.size()))) {
+                ry = warRow(g, font, t, WarFeed.from(t.name(), t.guild()), GuildMapLook.ago(now - t.acquired()),
+                        GuildMapInk.INK_3, left, right, ry, top, mx, my);
+            }
+            ry += 3;
+            g.fill(left, ry, right, ry + 1, GuildMapInk.LINE);
+            ry += 6;
+        }
+        return ry;
+    }
+
+    /** One war row: the holder's colour, the territory, the holder's tag (and who held it), a time on the right. */
+    private int warRow(GuiGraphics g, Font font, GuildMapLook.Territory t, String from, String time, int timeInk,
+            int left, int right, int ry, int top, int mx, int my) {
+        int lh = font.lineHeight;
+        hover(g, left, right, ry, lh, top, mx, my);
+        swatch(g, left, ry + 1, t.guildColour());
+        String tag = " " + (t.prefix() == null ? "" : t.prefix()) + (from == null ? "" : " \u2190 " + from);
+        int tw = font.width(time);
+        int nameW = right - tw - 4 - (left + 11) - font.width(tag);
+        String name = fit(font, t.name(), Math.max(20, nameW));
+        g.drawString(font, name, left + 11, ry, GuildMapInk.INK, false);
+        g.drawString(font, tag, left + 11 + font.width(name), ry, GuildMapInk.INK_3, false);
+        g.drawString(font, time, right - tw, ry, timeInk, false);
+        hits.add(new Hit(left - 4, ry - 2, right + 4, ry + lh + 2, new Click("territory", t.name())));
+        return ry + lh + 3;
     }
 
     /** A picked guild: its numbers, its production, who is online where, its territories. */
