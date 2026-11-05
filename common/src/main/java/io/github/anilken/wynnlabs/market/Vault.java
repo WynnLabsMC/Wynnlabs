@@ -149,6 +149,10 @@ public final class Vault {
         if (!stable) {
             return;
         }
+        // read in full once per page as shown: again only while stacks are still waiting to be kept
+        if (seenNow.equals(lastFull) && !lastDeferred) {
+            return;
+        }
         List<Stored> items = new ArrayList<>();
         long now = System.currentTimeMillis();
         String by = Wyn.classType().name();
@@ -187,7 +191,13 @@ public final class Vault {
             version++;
             save();
         }
+        lastFull = seenNow;
+        lastDeferred = encodeDeferred;
     }
+
+    /** The page last read in full (its names and counts) and whether some of its stacks still wait to be kept. */
+    private static String lastFull;
+    private static boolean lastDeferred;
 
     /** The name a bank stack is stored under, or null for none (what {@link #read} uses). */
     private static String nameOf(ItemStack stack) {
