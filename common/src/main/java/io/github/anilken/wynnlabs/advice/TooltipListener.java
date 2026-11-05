@@ -139,7 +139,7 @@ public final class TooltipListener {
             return sellHere(stack);               // at the Blacksmith / Trade Market: what to sell here
         } else if (mc.player != null && inBag && Settings.on("glowUpgrade") && upgrade(stack)) {
             return 0x55FF55;                      // green: wear this, it beats what you have on
-        } else if (mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack)) {
+        } else if (mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack) && marketPick(stack)) {
             return 0xFFAA00;                      // gold: on the shopping list, in a shop or chest
         } else if (mc.player != null && !inBag && Settings.on("glowQuest") && QuestAdvisor.rankOf(stack) >= 0) {
             return 0x55FFFF;                      // aqua: a recommended quest in the content book
@@ -431,6 +431,48 @@ public final class TooltipListener {
             return 0xFFAA00;
         }
         return 0;
+    }
+
+    /**
+     * In the Trade Market, of the listings on screen of one item only the cheapest and the best
+     * rolled one glow (a search shows a page of the same item, all on the list); anywhere else, and
+     * for a listing whose price or roll is not read, every one.
+     */
+    private static boolean marketPick(net.minecraft.world.item.ItemStack stack) {
+        int price = Wyn.marketListingPrice(stack);
+        if (price <= 0 || !(Minecraft.getInstance().screen
+                instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
+            return true;
+        }
+        String name = WynntilsItems.view(stack).flatMap(ItemView::gearData).map(ItemData::name).orElse(null);
+        if (name == null) {
+            return true;
+        }
+        var mine = Minecraft.getInstance().player.getInventory();
+        net.minecraft.world.item.ItemStack cheapest = null;
+        net.minecraft.world.item.ItemStack best = null;
+        int low = Integer.MAX_VALUE;
+        float top = -1;
+        for (Slot sl : screen.getMenu().slots) {
+            var st = sl.getItem();
+            if (sl.container == mine || st.isEmpty()) {
+                continue;
+            }
+            var v = WynntilsItems.view(st).orElse(null);
+            if (v == null || v.gearData().map(d -> !d.name().equals(name)).orElse(true)) {
+                continue;
+            }
+            int pr = Wyn.marketListingPrice(st);
+            if (pr > 0 && pr < low) {
+                low = pr;
+                cheapest = st;
+            }
+            if (v.rolled() != null && v.rolled().hasOverall() && v.rolled().overallPercent() > top) {
+                top = v.rolled().overallPercent();
+                best = st;
+            }
+        }
+        return stack == cheapest || stack == best || cheapest == null && best == null;
     }
 
     private static boolean onShoppingList(net.minecraft.world.item.ItemStack stack) {
