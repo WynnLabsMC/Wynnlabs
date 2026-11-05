@@ -71,6 +71,16 @@ public final class TooltipListener {
         return 500 + (System.identityHashCode(stack) & 255);
     }
 
+    /** Nothing known yet: drawn plain until its turn comes. */
+    private static final SlotFacts NO_FACTS = new SlotFacts(0, 0, 0, false, false, -1, 0, 0);
+    private static long workWindow;
+    private static int workedNow;
+
+    /** How many slots are worked out in one frame (8 ms) at most. A method: hot swaps keep no field values. */
+    static int slotsPerFrame() {
+        return 8;
+    }
+
     private static SlotFacts slotFacts(Slot slot) {
         var stack = slot.getItem();
         var mc = Minecraft.getInstance();
@@ -80,10 +90,26 @@ public final class TooltipListener {
         if (f != null && now < f.until() && f.rules() == Stamp.now() && f.inBag() == inBag) {
             return f;
         }
+        // a menu just opened has every slot to work out: a few a frame, the rest the frames after
+        // (an old one is drawn meanwhile, or none), so opening the bank or the market never stalls
+        long nano = System.nanoTime();
+        if (nano - workWindow > 8_000_000L) {
+            workWindow = nano;
+            workedNow = 0;
+        }
+        if (workedNow >= slotsPerFrame()) {
+            return f != null ? f : NO_FACTS;
+        }
+        workedNow++;
         int rules = Stamp.now();
         int advice = Advice.version;
-        f = new SlotFacts(now + lifetime(stack), rules, advice, inBag, cannotWear(stack), glowOf(stack, inBag),
-                stepOf(stack), stepColourOf(stack));
+        long t0 = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean cannot = cannotWear(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("slot.cannot", t0);
+        long t1 = io.github.anilken.wynnlabs.core.Perf.start();
+        int glow = glowOf(stack, inBag);
+        io.github.anilken.wynnlabs.core.Perf.end("slot.glow", t1);
+        f = new SlotFacts(now + lifetime(stack), rules, advice, inBag, cannot, glow, stepOf(stack), stepColourOf(stack));
         SLOT_FACTS.put(stack, f);
         return f;
     }
@@ -487,7 +513,9 @@ public final class TooltipListener {
         }
         long now = System.currentTimeMillis();
         if (screen != rankedScreen || now - rankedAt > 500) {
+            long t = io.github.anilken.wynnlabs.core.Perf.start();
             rank(screen);                               // the page once every half second, not once per slot
+            io.github.anilken.wynnlabs.core.Perf.end("slot.rank", t);
             rankedScreen = screen;
             rankedAt = now;
         }
