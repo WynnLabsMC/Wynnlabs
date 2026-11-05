@@ -98,8 +98,8 @@ public final class GuildApi {
                     if (got != null) {
                         INFO.put(prefix, got);
                     }
-                } catch (Exception e) {
-                    // offline or a changed answer: what we had stays
+                } catch (Throwable e) {
+                    // offline, a changed answer or anything worse: what we had stays, the game goes on
                 } finally {
                     QUEUED.remove(prefix);
                 }
