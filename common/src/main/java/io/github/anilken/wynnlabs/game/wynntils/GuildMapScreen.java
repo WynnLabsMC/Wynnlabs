@@ -12,7 +12,9 @@ import com.wynntils.utils.render.RenderUtils;
 import com.wynntils.utils.type.BoundingBox;
 import io.github.anilken.wynnlabs.ui.GuildMapLook;
 import io.github.anilken.wynnlabs.ui.GuildMapPanel;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 
 import java.util.ArrayList;
@@ -24,7 +26,7 @@ import java.util.List;
  * its tag, a fuller card for the hovered territory, and a side panel with the guilds by
  * territories held.
  */
-public final class GuildMapScreen extends AbstractMapScreen {
+public final class GuildMapScreen extends AbstractMapScreen implements io.github.anilken.wynnlabs.ui.RawInput {
 
     /** The panel outlives the screen, so the map opens as it was left. */
     private static GuildMapPanel panel;
@@ -50,14 +52,14 @@ public final class GuildMapScreen extends AbstractMapScreen {
             looks = out;
             lookedAt = now;
         }
-        boolean overPanel = panel.over(width, height, mx, my);
+        boolean overPanel = panel.over(w(), h(), mx, my);
         int pmx = overPanel ? -10000 : mx;
         int pmy = overPanel ? -10000 : my;
         renderMap(g);
         RenderUtils.enableScissor(g, (int) (renderX + renderedBorderXOffset), (int) (renderY + renderedBorderYOffset),
                 (int) mapWidth, (int) mapHeight);
-        renderPois(new ArrayList<>(pois), g, BoundingBox.centered(mapCenterX, mapCenterZ, width / zoomRenderScale,
-                height / zoomRenderScale), 1f, pmx, pmy);
+        renderPois(new ArrayList<>(pois), g, BoundingBox.centered(mapCenterX, mapCenterZ, w() / zoomRenderScale,
+                h() / zoomRenderScale), 1f, pmx, pmy);
         extras(g, pois, now);
         GuildMapFeature f = Managers.Feature.getFeatureInstance(GuildMapFeature.class);
         renderCursor(g, 1.5f, f.pointerColor.get(), f.pointerType.get());
@@ -66,9 +68,9 @@ public final class GuildMapScreen extends AbstractMapScreen {
         renderCoordinates(g, pmx, pmy);
         renderZoomWidgets(g, mx, my, partialTick);
         if (hovered instanceof TerritoryPoi t) {
-            GuildMapLook.card(g, GuildMapReads.of(t), width - (panel.open ? GuildMapPanel.W + 4 : 0), now);
+            GuildMapLook.card(g, GuildMapReads.of(t), w() - (panel.open ? GuildMapPanel.W + 4 : 0), now);
         }
-        panel.draw(g, font, width, height, looks, mx, my);
+        panel.draw(g, f(), w(), h(), looks, mx, my);
         renderTooltip(g, pmx, pmy);
     }
 
@@ -138,7 +140,7 @@ public final class GuildMapScreen extends AbstractMapScreen {
 
     @Override
     public boolean doMouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (panel.over(width, height, event.x(), event.y())) {
+        if (panel.over(w(), h(), event.x(), event.y())) {
             GuildMapPanel.Click c = panel.click(event.x(), event.y());
             if (c != null && c.what().equals("territory")) {
                 for (TerritoryPoi p : GuildMapReads.pois()) {
@@ -156,34 +158,48 @@ public final class GuildMapScreen extends AbstractMapScreen {
 
     /** While the search box has the keyboard, letters go to it and never reach the map's shortcuts. */
     @Override
-    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
+    public boolean rawChar(int codepoint) {
         if (panel.typing) {
-            panel.type(event.codepoint());
+            panel.type(codepoint);
             return true;
         }
-        return super.charTyped(event);
+        return false;
     }
 
     @Override
-    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if (panel.typing) {
-            int k = event.key();
-            if (k == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE) {
-                panel.erase();
-            } else if (k == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE || k == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER) {
-                panel.typing = false;
-            }
-            return true;
+    public boolean rawKey(int key) {
+        if (!panel.typing) {
+            return false;
         }
-        return super.keyPressed(event);
+        if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE) {
+            panel.erase();
+        } else if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE || key == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER) {
+            panel.typing = false;
+        }
+        return true;
     }
 
+    /** The wheel over the panel scrolls it; over the map it zooms as before. */
     @Override
-    public boolean mouseScrolled(double mx, double my, double horizontal, double vertical) {
-        if (panel.over(width, height, mx, my)) {
-            panel.scroll(vertical);
+    public boolean rawScroll(double mx, double my, double amount) {
+        if (panel.over(w(), h(), mx, my)) {
+            panel.scroll(amount);
             return true;
         }
-        return super.mouseScrolled(mx, my, horizontal, vertical);
+        return false;
+    }
+
+    // Minecraft's own fields through Screen: the build renames them only when the owner it sees
+    // is Minecraft's class, not this one (whose parent comes from Wynntils' jar)
+    private int w() {
+        return ((Screen) this).width;
+    }
+
+    private int h() {
+        return ((Screen) this).height;
+    }
+
+    private Font f() {
+        return ((Screen) this).font;
     }
 }
