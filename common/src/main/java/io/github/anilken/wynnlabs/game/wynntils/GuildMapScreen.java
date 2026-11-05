@@ -166,7 +166,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     }
 
     /**
-     * Centres the map on a territory and zooms so it fills about a third of the map's width (or
+     * Centres the map on a territory and zooms so it fills about a sixth of the map's width (or
      * height), the most Wynntils' zoom allows at either end.
      */
     private void focus(TerritoryPoi p) {
@@ -174,7 +174,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
         if (prof != null) {
             float tw = Math.max(1, Math.abs(prof.getEndX() - prof.getStartX()));
             float th = Math.max(1, Math.abs(prof.getEndZ() - prof.getStartZ()));
-            float want = Math.min(mapWidth / 3f / tw, mapHeight / 3f / th);
+            float want = Math.min(mapWidth / 6f / tw, mapHeight / 6f / th);
             int level = 1;
             for (int l = 1; l <= 100; l++) {
                 if (MapRenderer.getZoomRenderScaleFromLevel(l) <= want) {
