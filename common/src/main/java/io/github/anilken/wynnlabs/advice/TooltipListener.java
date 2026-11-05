@@ -551,7 +551,8 @@ public final class TooltipListener {
         } catch (Throwable t) {
             return;
         }
-        if (sc == null || Double.isNaN(sc.gain())) {
+        // nothing to say when it gains you nothing (0 %) or less: no line at all
+        if (sc == null || Double.isNaN(sc.gain()) || Math.round(sc.gain()) <= 0) {
             return;
         }
         String gain = (sc.gain() >= 0 ? "+" : "") + String.format(java.util.Locale.ROOT, "%.0f%%", sc.gain());
