@@ -52,15 +52,28 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             looks = out;
             lookedAt = now;
         }
+        // a guild picked in the panel: only its territories on the map
+        List<TerritoryPoi> shown = pois;
+        List<GuildMapLook.Territory> shownLooks = looks;
+        if (panel.guild != null && looks.size() == pois.size()) {
+            shown = new ArrayList<>();
+            shownLooks = new ArrayList<>();
+            for (int i = 0; i < pois.size(); i++) {
+                if (panel.guild.equals(looks.get(i).guild())) {
+                    shown.add(pois.get(i));
+                    shownLooks.add(looks.get(i));
+                }
+            }
+        }
         boolean overPanel = panel.over(mapRight(), mapTop(), mapBottom(), mx, my);
         int pmx = overPanel ? -10000 : mx;
         int pmy = overPanel ? -10000 : my;
         renderMap(g);
         RenderUtils.enableScissor(g, (int) (renderX + renderedBorderXOffset), (int) (renderY + renderedBorderYOffset),
                 (int) mapWidth, (int) mapHeight);
-        renderPois(new ArrayList<>(pois), g, BoundingBox.centered(mapCenterX, mapCenterZ, w() / zoomRenderScale,
+        renderPois(new ArrayList<>(shown), g, BoundingBox.centered(mapCenterX, mapCenterZ, w() / zoomRenderScale,
                 h() / zoomRenderScale), 1f, pmx, pmy);
-        extras(g, pois, now);
+        extras(g, shown, shownLooks, now);
         GuildMapFeature f = Managers.Feature.getFeatureInstance(GuildMapFeature.class);
         renderCursor(g, 1.5f, f.pointerColor.get(), f.pointerType.get());
         RenderUtils.disableScissor(g);
@@ -116,7 +129,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     }
 
     /** Held times and produce under the tags, and the picked guild's territories outlined. */
-    private void extras(GuiGraphics g, List<TerritoryPoi> pois, long now) {
+    private void extras(GuiGraphics g, List<TerritoryPoi> pois, List<GuildMapLook.Territory> looks, long now) {
         float left = renderX + renderedBorderXOffset;
         float top = renderY + renderedBorderYOffset;
         for (int i = 0; i < pois.size() && i < looks.size(); i++) {
