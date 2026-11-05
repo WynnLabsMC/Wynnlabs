@@ -200,6 +200,6 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     }
 
     private Font f() {
-        return ((Screen) this).font;
+        return net.minecraft.client.Minecraft.getInstance().font;
     }
 }
