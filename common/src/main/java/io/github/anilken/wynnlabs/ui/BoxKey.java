@@ -93,7 +93,9 @@ public final class BoxKey {
                     return null;
                 }
                 int level = v.level() == null ? 0 : v.level();
-                return new BoxScreen.Single(new BoxMarket.Item(v.name(), io.github.anilken.wynnlabs.model.Slot.UNKNOWN, Tier.NORMAL, level, null, 0, true),
+                // the market's name: a material or powder with its tier ("Fire Powder T5")
+                String name = io.github.anilken.wynnlabs.market.Prices.key(v, v.name());
+                return new BoxScreen.Single(new BoxMarket.Item(name, io.github.anilken.wynnlabs.model.Slot.UNKNOWN, Tier.NORMAL, level, null, 0, true),
                         null, false);
             }
             default -> {
