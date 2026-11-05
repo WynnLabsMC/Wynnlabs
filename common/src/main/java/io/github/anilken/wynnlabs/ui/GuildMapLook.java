@@ -206,7 +206,7 @@ public final class GuildMapLook {
             out.add(new Pill(L.t("wynnlabs.guildmap.treasury", t.treasury()), c[0], c[1]));
         }
         if (t.hq()) {
-            out.add(new Pill("HQ", 0xFF2A2516, GuildMapInk.PRICE));
+            out.add(new Pill("★ Guild HQ", 0xFF24182E, 0xFFD58CFF));
         }
         return out;
     }
