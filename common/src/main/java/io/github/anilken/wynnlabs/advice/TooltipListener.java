@@ -559,14 +559,13 @@ public final class TooltipListener {
         }
         int pct = (int) Math.round(sc.value() * 100);
         String arch = io.github.anilken.wynnlabs.build.TreePlanner.chosenLabel(io.github.anilken.wynnlabs.build.TreePlanner.mostUnlocked());
-        StringBuilder bar = new StringBuilder();
-        for (int i = 0; i < 5; i++) {
-            bar.append(i < Math.round(sc.value() * 5) ? '\u2588' : '\u2591');
-        }
         List<Component> lines = new ArrayList<>();
-        lines.add(Component.literal(L.t("wynnlabs.tooltip.for_you", arch == null || arch.isBlank() ? "-" : arch, pct) + " ")
-                .withStyle(net.minecraft.ChatFormatting.YELLOW)
-                .append(Component.literal(bar.toString()).withStyle(net.minecraft.ChatFormatting.GOLD)));
+        // the game's own banner, as the price's MARKET one: "[FIT] 72% \u00b7 Ritualist"
+        String word = L.t("wynnlabs.tooltip.for_you_banner");
+        lines.add(Component.empty().append(banner(word.startsWith("wynnlabs.") ? "FIT" : word, 0xF2C94C))
+                .append(Component.literal(" " + L.t("wynnlabs.tooltip.for_you", pct, arch == null || arch.isBlank() ? "-" : arch))
+                        .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.YELLOW)
+                                .withFont(net.minecraft.network.chat.FontDescription.DEFAULT))));
         List<String> parts = new ArrayList<>();
         sc.stats().stream().filter(st -> st.weight() >= 0.05)
                 .sorted((x, y) -> Double.compare(y.weight(), x.weight()))
