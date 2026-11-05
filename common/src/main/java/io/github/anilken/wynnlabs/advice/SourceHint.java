@@ -64,21 +64,36 @@ public final class SourceHint {
         if (hit == null) {
             Entry e = index.byName(name);
             String made = null;
+            Prices.Price price;
             if (e != null) {
-                Prices.Price price = e.tradable() ? Prices.of(e.name()) : null;
+                price = e.tradable() ? Prices.of(e.name()) : null;
                 ItemWiki.Info wiki = ItemWiki.peek(e.name());
                 made = SourceText.tooltip(Sources.of(e, index.places(), Sources.Owned.NONE, price, null), wiki);
             } else {
                 // not in the item list (wards, runes, amplifiers…): the market price when it has one
-                Prices.Price price = Prices.of(name);
-                if (price != null && price.typical() != null) {
-                    made = L.t("wynnlabs.search.tooltip_from", L.t("wynnlabs.search.src.market", Prices.fmt(price.typical())));
-                }
+                price = Prices.of(name);
             }
+            made = withPrice(made, price);
             hit = made == null ? NONE : made;
             LINES.put(name, hit);
         }
         return hit.isEmpty() ? null : hit;
+    }
+
+    /**
+     * Every item with a market price shows it: the line alone ("From: Trade Market ~2LE") when
+     * nothing else is known, else the price after the easiest way ("From: Merchant · ~2LE"),
+     * unless that way is the market and already says it.
+     */
+    static String withPrice(String line, Prices.Price price) {
+        if (price == null || price.typical() == null) {
+            return line;
+        }
+        String fmt = Prices.fmt(price.typical());
+        if (line == null) {
+            return L.t("wynnlabs.search.tooltip_from", L.t("wynnlabs.search.src.market", fmt));
+        }
+        return line.contains(fmt) ? line : line + " · ~" + fmt;
     }
 
     /** Works the item's line out again next time (its wiki page just loaded: a merchant's cost). */
