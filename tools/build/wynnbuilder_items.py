@@ -68,6 +68,16 @@ def table(entries, baseline):
         names[e["id"]] = shown
         if e["name"] != shown:
             aliases[str(e["id"])] = e["name"]
+    # an old id whose name a current entry now has (the site renumbered it): links go to the current one
+    current = {}
+    for e in entries:
+        if "remapID" not in e:
+            current.setdefault(e.get("displayName") or e["name"], e["id"])
+    live = {e["id"] for e in entries}
+    for i, name in list(names.items()):
+        if i not in live and name in current and str(i) not in moved:
+            moved[str(i)] = current[name]
+            names.pop(i)
     top = max(names) if names else -1
     return [names.get(i) for i in range(top + 1)], aliases, moved
 
