@@ -67,6 +67,14 @@ public final class Wyn {
         return Bridge.guard(f, call, fallback);
     }
 
+    /** The screen to open instead: the mod's guild map in place of Wynntils' own (setting guildMap). */
+    public static net.minecraft.client.gui.screens.Screen guildMap(net.minecraft.client.gui.screens.Screen s) {
+        if (s == null || !s.getClass().getName().endsWith(".GuildMapScreen") || !Bridge.up(Feature.WORLD)) {
+            return s;
+        }
+        return io.github.anilken.wynnlabs.game.wynntils.GuildMapReads.swap(s);
+    }
+
     public static boolean up(Feature f) {
         return Bridge.up(f);
     }
