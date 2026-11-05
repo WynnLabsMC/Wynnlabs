@@ -150,7 +150,32 @@ public final class GuildMapScreen extends AbstractMapScreen {
             }
             return true;
         }
+        panel.typing = false;
         return super.doMouseClicked(event, doubleClick);
+    }
+
+    /** While the search box has the keyboard, letters go to it and never reach the map's shortcuts. */
+    @Override
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
+        if (panel.typing) {
+            panel.type(event.codepoint());
+            return true;
+        }
+        return super.charTyped(event);
+    }
+
+    @Override
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        if (panel.typing) {
+            int k = event.key();
+            if (k == org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE) {
+                panel.erase();
+            } else if (k == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE || k == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER) {
+                panel.typing = false;
+            }
+            return true;
+        }
+        return super.keyPressed(event);
     }
 
     @Override

@@ -31,6 +31,9 @@ public final class GuildMapPanel {
     public boolean open = true;
     public boolean routes = true;
     public boolean timers = true;
+    /** The search box's text, and whether it has the keyboard. */
+    public String query = "";
+    public boolean typing;
     /** The picked guild's name, or null for the list of guilds. */
     public String guild;
     private int scroll;
@@ -72,6 +75,16 @@ public final class GuildMapPanel {
         g.drawString(font, "»", x + W - pad - font.width("»"), cy, MUTED, false);
         hits.add(new Hit(x + W - pad - 12, cy - 2, x + W - 2, cy + lh, new Click("close", null)));
         cy += lh + 6;
+        // the search box: guilds by name or tag, territories by name
+        int boxH = lh + 6;
+        g.fill(x + pad, cy, x + W - pad, cy + boxH, 0xFF1E2127);
+        g.renderOutline(x + pad, cy, W - 2 * pad, boxH, typing ? GOLD : 0xFF33363D);
+        boolean hint = query.isEmpty() && !typing;
+        String shown = hint ? L.t("wynnlabs.guildmap.search")
+                : query + (typing && System.currentTimeMillis() / 500 % 2 == 0 ? "_" : "");
+        g.drawString(font, tail(font, shown, W - 2 * pad - 8), x + pad + 4, cy + 3, hint ? 0xFF777777 : TEXT, false);
+        hits.add(new Hit(x + pad, cy, x + W - pad, cy + boxH, new Click("search", null)));
+        cy += boxH + 6;
         // the switches
         int cx = x + pad;
         cx = chip(g, font, cx, cy, L.t("wynnlabs.guildmap.routes_switch"), routes, new Click("routes", null));
@@ -87,13 +100,18 @@ public final class GuildMapPanel {
             guild = null;
             g.drawString(font, L.t("wynnlabs.guildmap.top_guilds"), x + pad, ry, MUTED, false);
             ry += lh + 4;
-            int rank = 1;
+            String q = query.toLowerCase(java.util.Locale.ROOT).strip();
             for (Guild gd : guilds) {
+                int rank = guilds.indexOf(gd) + 1;
+                if (!q.isEmpty() && !gd.name().toLowerCase(java.util.Locale.ROOT).contains(q)
+                        && !gd.prefix().toLowerCase(java.util.Locale.ROOT).contains(q)) {
+                    continue;
+                }
                 boolean hover = mx >= x && mx < x + W && my >= ry - 2 && my < ry + lh + 2 && my >= top;
                 if (hover) {
                     g.fill(x + 1, ry - 2, x + W - 1, ry + lh + 1, 0x30FFFFFF);
                 }
-                g.drawString(font, String.valueOf(rank++), x + pad, ry, MUTED, false);
+                g.drawString(font, String.valueOf(rank), x + pad, ry, MUTED, false);
                 g.fill(x + pad + 16, ry + 1, x + pad + 23, ry + 8, gd.colour() | 0xFF000000);
                 // the online count from the guild API, for the rows in sight
                 boolean seen = ry + lh > top && ry < top + viewH;
@@ -112,6 +130,24 @@ public final class GuildMapPanel {
                 g.drawString(font, count, countX, ry, GOLD, false);
                 hits.add(new Hit(x, ry - 2, x + W, ry + lh + 2, new Click("guild", gd.name())));
                 ry += lh + 4;
+            }
+            if (!q.isEmpty()) {
+                // territories whose name matches, each with its holder's colour
+                List<GuildMapLook.Territory> found = new ArrayList<>();
+                for (GuildMapLook.Territory t : all) {
+                    if (t.name().toLowerCase(java.util.Locale.ROOT).contains(q)) {
+                        found.add(t);
+                    }
+                }
+                found.sort(Comparator.comparing(GuildMapLook.Territory::name));
+                if (!found.isEmpty()) {
+                    ry += 4;
+                    g.drawString(font, L.t("wynnlabs.guildmap.territories_list"), x + pad, ry, MUTED, false);
+                    ry += lh + 4;
+                }
+                for (GuildMapLook.Territory t : found) {
+                    ry = territoryRow(g, font, x, ry, t, t.guildColour(), mx, my, top);
+                }
             }
         } else {
             g.drawString(font, fit(font, picked.name(), W - 2 * pad - 12), x + pad, ry, picked.colour() | 0xFF000000, false);
@@ -185,15 +221,11 @@ public final class GuildMapPanel {
                 }
             }
             own.sort(Comparator.comparing(GuildMapLook.Territory::name));
+            String q = query.toLowerCase(java.util.Locale.ROOT).strip();
             for (GuildMapLook.Territory t : own) {
-                boolean hover = mx >= x && mx < x + W && my >= ry - 2 && my < ry + lh + 2 && my >= top;
-                if (hover) {
-                    g.fill(x + 1, ry - 2, x + W - 1, ry + lh + 1, 0x30FFFFFF);
+                if (q.isEmpty() || t.name().toLowerCase(java.util.Locale.ROOT).contains(q)) {
+                    ry = territoryRow(g, font, x, ry, t, picked.colour(), mx, my, top);
                 }
-                g.fill(x + pad, ry + 1, x + pad + 7, ry + 8, picked.colour() | 0xFF000000);
-                g.drawString(font, fit(font, t.name(), W - 2 * pad - 12), x + pad + 11, ry, TEXT, false);
-                hits.add(new Hit(x, ry - 2, x + W, ry + lh + 2, new Click("territory", t.name())));
-                ry += lh + 4;
             }
         }
         g.disableScissor();
@@ -204,11 +236,41 @@ public final class GuildMapPanel {
                 ? hit.y1() <= top || hit.y0() >= top + viewH : false);
     }
 
+    /** One territory row: its holder's colour and its name; a click centres the map on it. */
+    private int territoryRow(GuiGraphics g, Font font, int x, int ry, GuildMapLook.Territory t, int colour, int mx, int my, int top) {
+        int lh = font.lineHeight;
+        if (mx >= x && mx < x + W && my >= ry - 2 && my < ry + lh + 2 && my >= top) {
+            g.fill(x + 1, ry - 2, x + W - 1, ry + lh + 1, 0x30FFFFFF);
+        }
+        g.fill(x + 6, ry + 1, x + 13, ry + 8, colour | 0xFF000000);
+        g.drawString(font, fit(font, t.name(), W - 24), x + 17, ry, TEXT, false);
+        hits.add(new Hit(x, ry - 2, x + W, ry + lh + 2, new Click("territory", t.name())));
+        return ry + lh + 4;
+    }
+
+    /** A typed character into the search box (while it has the focus). */
+    public void type(int codepoint) {
+        if (query.length() < 32 && !Character.isISOControl(codepoint)) {
+            query += new String(Character.toChars(codepoint));
+            scroll = 0;
+        }
+    }
+
+    /** Backspace in the search box. */
+    public void erase() {
+        if (!query.isEmpty()) {
+            query = query.substring(0, query.offsetByCodePoints(query.length(), -1));
+            scroll = 0;
+        }
+    }
+
     /** What a click at (mx, my) asks for, or null; the panel's own switches are applied here. */
     public Click click(double mx, double my) {
+        typing = false;
         for (Hit h : hits) {
             if (mx >= h.x0() && mx < h.x1() && my >= h.y0() && my < h.y1()) {
                 switch (h.click().what()) {
+                    case "search" -> typing = true;
                     case "open" -> open = true;
                     case "close" -> open = false;
                     case "routes" -> routes = !routes;
@@ -261,6 +323,15 @@ public final class GuildMapPanel {
         g.drawString(font, label, x + 6, y, MUTED, false);
         g.drawString(font, value, x + W - 6 - font.width(value), y, ink, false);
         return y + font.lineHeight + 3;
+    }
+
+    /** The end of {@code s} that fits in {@code w} (a long search shows what was typed last). */
+    private static String tail(Font font, String s, int w) {
+        String t = s;
+        while (t.length() > 1 && font.width(t) > w) {
+            t = t.substring(1);
+        }
+        return t;
     }
 
     private static String fit(Font font, String s, int w) {
