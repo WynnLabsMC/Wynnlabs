@@ -30,25 +30,23 @@ public final class StatWeights {
     /** The piece for you: the build score's change with it in its slot, in % (NaN: not known), and its stats, biggest part first. */
     public record Score(double gain, List<Stat> stats) {}
 
-    private static final Map<String, Score> CACHE = new HashMap<>();
-    /** Pieces waiting to be worked out, oldest first: {view, stack}. */
-    private static final Map<String, Object[]> QUEUE = new java.util.LinkedHashMap<>();
-    /** None is not a score: a piece with nothing to work out, kept so it is not asked again. */
+    private static final Map<String, Score> CACHE = new java.util.concurrent.ConcurrentHashMap<>();
+    private static final java.util.Set<String> QUEUED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    /** None is not a score (the map holds no null): a piece with nothing to work out, not asked again. */
     private static final Score NONE = new Score(Double.NaN, List.of());
-    private static Object cachedFor;
-    private static int cachedVersion;
-
-    /** How long one frame may spend working pieces out, in ns. A method: hot swaps keep no field values. */
-    static long budget() {
-        return 3_000_000L;
-    }
+    /** One low-priority worker, as the build plan's own: the game's frames never wait for it. */
+    private static final java.util.concurrent.ExecutorService WORKER = io.github.anilken.wynnlabs.core.Workers.singleLow("stat-weights");
+    private static volatile Object cachedFor;
+    private static volatile int cachedVersion;
+    /** The score of what you wear, per plan: the base every listing is compared with. */
+    private static volatile double baseFor = Double.NaN;
 
     /**
-     * The score of an identified piece: null until it is worked out. A page of listings is worked
-     * out a few at a time ({@link #budget} a frame, on the game's own thread) so the game does not
-     * stall; asked again a moment later it is there. Null too without a build plan, rolls or a slot.
+     * The score of an identified piece, worked out on a worker thread: null until it is ready (a
+     * moment later it is there), and null without a build plan, rolls or a slot to put it in. The
+     * piece is read here, on the game's thread; only the model runs on the worker.
      */
-    public static synchronized Score of(ItemView view, ItemStack stack) {
+    public static Score of(ItemView view, ItemStack stack) {
         if (view == null || !view.isGear() || view.rolled() == null || view.data() == null || view.data().slot() == null) {
             return null;
         }
@@ -58,7 +56,8 @@ public final class StatWeights {
         }
         if (p != cachedFor || Rules.version != cachedVersion) {
             CACHE.clear();
-            QUEUE.clear();
+            QUEUED.clear();
+            baseFor = Double.NaN;
             cachedFor = p;
             cachedVersion = Rules.version;
         }
@@ -67,67 +66,71 @@ public final class StatWeights {
         if (s != null) {
             return s == NONE ? null : s;
         }
-        QUEUE.putIfAbsent(key, new Object[] {view, stack.copy()});
-        pump(p);
-        s = CACHE.get(key);
-        return s == null || s == NONE ? null : s;
+        if (QUEUED.add(key)) {
+            Damage.Piece piece = Damage.piece(view, key, stack);
+            List<String> slots = slotsOf(view);
+            List<Roll> rolls = List.copyOf(view.rolled().rolls());
+            io.github.anilken.wynnlabs.model.Klass cls = io.github.anilken.wynnlabs.game.Wyn.classType();
+            WORKER.execute(() -> {
+                Score w = null;
+                Damage.CLASS_FOR_THREAD.set(cls);
+                try {
+                    w = piece == null || slots.isEmpty() ? null : work(p, piece, slots, rolls);
+                } catch (Throwable t) {
+                    w = null;
+                } finally {
+                    Damage.CLASS_FOR_THREAD.remove();
+                }
+                if (p == cachedFor) {
+                    CACHE.put(key, w == null ? NONE : w);
+                }
+                QUEUED.remove(key);
+            });
+        }
+        return null;
     }
 
-    /** Works queued pieces out until this frame's {@link #budget} is spent. */
-    private static void pump(Build.Plan p) {
-        long until = System.nanoTime() + budget();
-        var it = QUEUE.entrySet().iterator();
-        while (it.hasNext() && System.nanoTime() < until) {
-            var e = it.next();
-            it.remove();
-            Score w;
-            try {
-                w = work(p, (ItemView) e.getValue()[0], (ItemStack) e.getValue()[1]);
-            } catch (Throwable t) {
-                w = null;
-            }
-            CACHE.put(e.getKey(), w == null ? NONE : w);
+    /** The slots a piece can go in: its own, or either ring slot. */
+    private static List<String> slotsOf(ItemView view) {
+        if (view.data().slot() == io.github.anilken.wynnlabs.model.Slot.RING) {
+            return List.of("RING1", "RING2");
         }
+        String one = Build.slotOf(view.data().slot(), 0);
+        return one == null ? List.of() : List.of(one);
     }
 
-    private static Score work(Build.Plan p, ItemView view, ItemStack stack) {
-        Damage.Piece piece = Damage.piece(view, ItemJson.keyOf(stack), stack);
-        if (piece == null) {
-            return null;
+    private static Score work(Build.Plan p, Damage.Piece piece, List<String> slots, List<Roll> rolls) {
+        double now = baseFor;
+        if (Double.isNaN(now)) {
+            now = p.detailAsWorn().result().objective();
+            baseFor = now;
         }
-        Damage.Detail base = p.detailAsWorn();
-        double now = base.result().objective();
         if (now <= 0) {
             return null;
         }
-        // its slot: a ring in place of whichever of yours it beats more
-        List<String> slots = new ArrayList<>();
-        if (view.data().slot() == io.github.anilken.wynnlabs.model.Slot.RING) {
-            slots.add("RING1");
-            slots.add("RING2");
-        } else {
-            String one = Build.slotOf(view.data().slot(), 0);
-            if (one == null) {
-                return null;
-            }
-            slots.add(one);
-        }
+        // its slot (a ring in place of whichever of yours it beats more), its skill points worked out once
         String slot = null;
+        int[] points = null;
         double with = Double.NEGATIVE_INFINITY;
         for (String sl : slots) {
-            Damage.Detail d = p.detailWith(sl, piece, null);
-            if (d != null && d.result().objective() > with) {
-                with = d.result().objective();
+            int[] pts = p.pointsWith(sl, piece);
+            if (pts == null) {
+                continue;
+            }
+            double o = p.detailWith(sl, piece, null, pts).result().objective();
+            if (o > with) {
+                with = o;
                 slot = sl;
+                points = pts;
             }
         }
         if (slot == null) {
-            return new Score(Double.NaN, List.of());
+            return null;
         }
         double gain = (with / now - 1) * 100;
-        // each rolled stat's part: the score lost were it at the bottom of its range
+        // each rolled stat's part: the score lost were it at the bottom of its range (same points)
         List<Stat> stats = new ArrayList<>();
-        for (Roll r : view.rolled().rolls()) {
+        for (Roll r : rolls) {
             StatRange range = r.range();
             if (range == null || range.fixed()) {
                 continue;
@@ -140,14 +143,11 @@ public final class StatWeights {
                 less.put(r.key(), -drop);
                 Damage.Piece extra = new Damage.Piece(null, "stat-weight", "stat-weight", null, 0, less, Map.of(), 0,
                         Map.of("neutral", 1.0), 0);
-                Damage.Detail d = p.detailWith(slot, piece, extra);
-                if (d != null) {
-                    part = Math.max(0, (with - d.result().objective()) / now * 100);
-                }
+                part = Math.max(0, (with - p.detailWith(slot, piece, extra, points).result().objective()) / now * 100);
             }
             stats.add(new Stat(r.name(), roll(r.value(), range), part));
         }
-        stats.sort((a, b) -> Double.compare(b.part(), a.part()));
+        stats.sort((x, y) -> Double.compare(y.part(), x.part()));
         return new Score(gain, stats);
     }
 

@@ -77,22 +77,32 @@ public final class Build {
          * Null when the points cannot meet what the set asks.
          */
         Damage.Detail detailWith(String slot, Damage.Piece piece, Damage.Piece extra) {
+            int[] points = pointsWith(slot, piece);
+            return points == null ? null : detailWith(slot, piece, extra, points);
+        }
+
+        /** The skill points what you wear asks for with {@code piece} in {@code slot}; null when they cannot be met. */
+        int[] pointsWith(String slot, Damage.Piece piece) {
             Map<String, Damage.Piece> set = new java.util.LinkedHashMap<>(working);
             set.put(slot, piece);
-            Eval e = allocate(set, level, earned);
-            if (e == null) {
-                return null;
-            }
+            Eval e = TreeModel.with(tree, () -> allocate(set, level, earned));
+            return e == null ? null : e.allocation();
+        }
+
+        /** {@link #detailWith} with the skill points given (worked out once by {@link #pointsWith}). */
+        Damage.Detail detailWith(String slot, Damage.Piece piece, Damage.Piece extra, int[] points) {
+            Map<String, Damage.Piece> set = new java.util.LinkedHashMap<>(working);
+            set.put(slot, piece);
             List<Damage.Piece> armour = armour(set);
             if (extra != null) {
                 armour.add(extra);
             }
-            return TreeModel.with(tree, () -> Damage.detail(armour, set.get("WEAPON"), e.allocation(), level));
+            return TreeModel.with(tree, () -> Damage.detail(armour, set.get("WEAPON"), points, level));
         }
 
         /** {@link #detailWith} for what you wear as it is, its points worked out the same way (a fair base). */
         Damage.Detail detailAsWorn() {
-            Eval e = allocate(working, level, earned);
+            Eval e = TreeModel.with(tree, () -> allocate(working, level, earned));
             int[] points = e == null ? wornAllocation : e.allocation();
             return TreeModel.with(tree, () -> Damage.detail(armour(working), working.get("WEAPON"), points, level));
         }
