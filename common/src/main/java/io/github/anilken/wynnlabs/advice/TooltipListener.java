@@ -441,11 +441,13 @@ public final class TooltipListener {
     /**
      * In the Trade Market, of the listings on screen of one item only the {@link #marketPicks}
      * cheapest and best rolled glow (a search shows a page of the same item, all on the list);
-     * anywhere else, and for a listing whose price is not read, every one.
+     * anywhere else every one. A listing whose price is not read is ranked by its roll alone.
      */
     private static boolean marketPick(net.minecraft.world.item.ItemStack stack) {
-        int price = Wyn.marketListingPrice(stack);
-        if (price <= 0 || !(Minecraft.getInstance().screen
+        // the Trade Market's buy screens only (a listing's price may not be read: the rolls still rank)
+        MenuKind kind = Wyn.container();
+        if (kind == null || kind.marketSell() || !kind.type().startsWith("TradeMarket")
+                || !(Minecraft.getInstance().screen
                 instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
             return true;
         }
