@@ -217,6 +217,20 @@ public final class CrowdMode {
                             .append('\t').append(String.format(java.util.Locale.ROOT, "%.1f", Math.sqrt(e.distanceToSqr(me0)))).append('\n');
                     continue;
                 }
+                if (!(e instanceof Display) && e.distanceToSqr(me0) <= 48 * 48 && e != mc.player) {
+                    String held = e instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow a
+                            ? net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(a.getPickupItemStackOrigin().getItem()).toString()
+                            : e instanceof net.minecraft.world.entity.projectile.ItemSupplier s
+                            ? net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(s.getItem().getItem()).toString() : "";
+                    out.append("ENT\t").append(e.getId()).append('\t')
+                            .append(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType())).append('\t')
+                            .append(e.tickCount).append('\t').append(held).append('\t')
+                            .append(e.displayFireAnimation() ? "FIRE" : "").append('\t')
+                            .append(e.getVehicle() == null ? "" : String.valueOf(e.getVehicle().getId())).append('\t')
+                            .append(String.format(java.util.Locale.ROOT, "%.1f", Math.sqrt(e.distanceToSqr(me0)))).append('\t')
+                            .append(e.getName().getString().replace('\n', ' ')).append('\n');
+                    continue;
+                }
                 if (!(e instanceof Display) || e.distanceToSqr(me0) > 48 * 48) {
                     continue;
                 }
@@ -247,6 +261,14 @@ public final class CrowdMode {
                         .append('\t').append(String.format(java.util.Locale.ROOT, "%.3f %.3f %.3f %.1f %.1f",
                                 e.getX(), e.getY(), e.getZ(), e.getYRot(), e.getXRot()))
                         .append('\t').append(matrix((Display) e)).append('\n');
+            }
+            net.minecraft.core.BlockPos c = mc.player.blockPosition();
+            for (net.minecraft.core.BlockPos p : net.minecraft.core.BlockPos.betweenClosed(c.offset(-24, -8, -24), c.offset(24, 8, 24))) {
+                var bs = mc.level.getBlockState(p);
+                if (bs.is(net.minecraft.tags.BlockTags.FIRE)) {
+                    out.append("FIREBLOCK\t").append(p.getX()).append(' ').append(p.getY()).append(' ').append(p.getZ())
+                            .append('\t').append(bs.getBlock()).append('\n');
+                }
             }
             java.nio.file.Files.writeString(dir.resolve("crowd-dump.txt"), out.toString());
         } catch (Throwable t) {
@@ -332,6 +354,10 @@ public final class CrowdMode {
         if (mc.player == null || e == mc.player) {
             return false;
         }
+        if (e instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow a) {
+            // an arrow is someone's ability (an archer's volley): yours stays, the rest as effects
+            return a.getOwner() != mc.player && (radius == 0 || far(e, radius));
+        }
         if (e instanceof Display.TextDisplay t) {
             String text = t.getText().getString();
             if (othersSummon(text)) {
@@ -363,6 +389,18 @@ public final class CrowdMode {
             return radius == 0 || far(e, radius);
         }
         return false;
+    }
+
+    /**
+     * Whether the flames drawn on a burning entity are left out (a fire ability sets mobs and
+     * players alight): yours stay, the rest go like the effects.
+     */
+    public static boolean hideFire(Entity e) {
+        if (!on) {
+            return false;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player != null && e != mc.player && (radius == 0 || far(e, radius));
     }
 
     /** Whether a particle at this spot is left out. */

@@ -21,6 +21,7 @@
     "PowerupLayerAccessor",
     "PowerupSpriteAccessor",
     "CrowdEntityMixin",
+    "CrowdFireMixin",
     "CrowdParticleMixin",
     "PriceBoxMixin"
   ],
