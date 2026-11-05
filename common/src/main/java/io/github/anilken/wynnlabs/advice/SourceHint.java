@@ -1,5 +1,6 @@
 package io.github.anilken.wynnlabs.advice;
 
+import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -67,6 +68,12 @@ public final class SourceHint {
                 Prices.Price price = e.tradable() ? Prices.of(e.name()) : null;
                 ItemWiki.Info wiki = ItemWiki.peek(e.name());
                 made = SourceText.tooltip(Sources.of(e, index.places(), Sources.Owned.NONE, price, null), wiki);
+            } else {
+                // not in the item list (wards, runes, amplifiers…): the market price when it has one
+                Prices.Price price = Prices.of(name);
+                if (price != null && price.typical() != null) {
+                    made = L.t("wynnlabs.search.tooltip_from", L.t("wynnlabs.search.src.market", Prices.fmt(price.typical())));
+                }
             }
             hit = made == null ? NONE : made;
             LINES.put(name, hit);

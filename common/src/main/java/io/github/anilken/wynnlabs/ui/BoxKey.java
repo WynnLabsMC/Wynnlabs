@@ -120,7 +120,8 @@ public final class BoxKey {
 
     /**
      * Whether the Trade Market sells it: gear by its restriction; anything else by the search
-     * index's entry (an unknown "other" item is left alone, an unknown ingredient or material is not).
+     * index's entry (an unknown "other" item only when the market has a price for it, an unknown
+     * ingredient or material always).
      */
     private static boolean tradable(ItemView v) {
         if (v.isGear()) {
@@ -130,7 +131,8 @@ public final class BoxKey {
         if (e != null) {
             return e.tradable();
         }
-        return v.kind() != ItemView.Kind.OTHER;
+        // not in the item list (wards, runes, amplifiers…): a market price says it is sold there
+        return v.kind() != ItemView.Kind.OTHER || io.github.anilken.wynnlabs.market.Prices.of(v.name()) != null;
     }
 
     /** A press while a screen is open; true when it opened the window (the screen then never sees it). */
