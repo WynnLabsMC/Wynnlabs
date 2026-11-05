@@ -52,7 +52,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             looks = out;
             lookedAt = now;
         }
-        boolean overPanel = panel.over(w(), h(), mx, my);
+        boolean overPanel = panel.over(mapRight(), mapTop(), mapBottom(), mx, my);
         int pmx = overPanel ? -10000 : mx;
         int pmy = overPanel ? -10000 : my;
         renderMap(g);
@@ -68,9 +68,9 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
         renderCoordinates(g, pmx, pmy);
         renderZoomWidgets(g, mx, my, partialTick);
         if (hovered instanceof TerritoryPoi t) {
-            GuildMapLook.card(g, GuildMapReads.of(t), w() - panel.taken(), now);
+            GuildMapLook.card(g, GuildMapReads.of(t), mapRight() - panel.taken(), mapTop(), now);
         }
-        panel.draw(g, f(), w(), h(), looks, mx, my);
+        panel.draw(g, f(), mapRight(), mapTop(), mapBottom(), looks, mx, my);
         renderTooltip(g, pmx, pmy);
     }
 
@@ -140,7 +140,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
 
     @Override
     public boolean doMouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (panel.over(w(), h(), event.x(), event.y())) {
+        if (panel.over(mapRight(), mapTop(), mapBottom(), event.x(), event.y())) {
             GuildMapPanel.Click c = panel.click(event.x(), event.y());
             if (c != null && c.what().equals("territory")) {
                 for (TerritoryPoi p : GuildMapReads.pois()) {
@@ -182,7 +182,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     /** The wheel over the panel scrolls it; over the map it zooms as before. */
     @Override
     public boolean rawScroll(double mx, double my, double amount) {
-        if (panel.over(w(), h(), mx, my)) {
+        if (panel.over(mapRight(), mapTop(), mapBottom(), mx, my)) {
             panel.scroll(amount);
             return true;
         }
@@ -191,6 +191,19 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
 
     // Minecraft's own fields through Screen: the build renames them only when the owner it sees
     // is Minecraft's class, not this one (whose parent comes from Wynntils' jar)
+    /** The map's drawn area inside its frame: the panel and the card stay within it. */
+    private int mapTop() {
+        return (int) (renderY + renderedBorderYOffset);
+    }
+
+    private int mapBottom() {
+        return (int) (renderY + renderedBorderYOffset + mapHeight);
+    }
+
+    private int mapRight() {
+        return (int) (renderX + renderedBorderXOffset + mapWidth);
+    }
+
     private int w() {
         return ((Screen) this).width;
     }

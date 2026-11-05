@@ -94,12 +94,12 @@ public final class GuildMapLook {
     /**
      * The hovered territory's card, dark like the side panel, in the map's top right corner ({@code right}: the free edge, left of the side panel).
      */
-    public static void card(GuiGraphics g, Territory t, int right, long now) {
+    public static void card(GuiGraphics g, Territory t, int right, int top, long now) {
         Font font = Minecraft.getInstance().font;
         int w = 214;
         int pad = 8;
         int x = right - 8 - w;
-        int y = 44;
+        int y = top + 8;
         int lh = font.lineHeight;
         List<Pill> pills = pills(t, now);
         int pillRows = pillRows(font, pills, w - 2 * pad);

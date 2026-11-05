@@ -3331,7 +3331,7 @@
   "wynnlabs.guildmap.loading": "Wynncraft'a soruluyor…",
   "wynnlabs.guildmap.online_members": "ÇEVRİMİÇİ ÜYELER",
   "wynnlabs.setting.guildApi": "Guild haritası: üyeler Wynncraft'tan",
-  "wynnlabs.setting_desc.guildApi": "Guild haritası açıkken paneldeki guild'leri Wynncraft'ın API'sine sorar: seviye, üyeler, savaşlar ve kim hangi dünyada çevrimiçi. Bir guild en fazla dakikada bir",
+  "wynnlabs.setting_desc.guildApi": "Guild haritası açıkken paneldeki guild'leri Wynncraft'ın API'sine sorar: seviye, üyeler, savaşlar ve kim hangi dünyada çevrimiçi. Bir guild en fazla iki dakikada bir; API'nin istek hakkı azalınca bekler",
   "wynnlabs.settings.example.guildApi": "Açık: Pavilion panelinde Sv. 97, 88 üye ve çevrimiçi üyeler dünyalarıyla görünür",
   "wynnlabs.guildmap.search": "Bölge ya da guild ara",
   "wynnlabs.guildmap.live": "Oyundan canlı",

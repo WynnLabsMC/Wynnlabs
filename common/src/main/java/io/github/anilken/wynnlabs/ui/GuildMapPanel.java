@@ -54,27 +54,30 @@ public final class GuildMapPanel {
         return open ? W + 2 * EDGE : 0;
     }
 
-    /** True when (mx, my) is over the panel (or its collapsed button). */
-    public boolean over(int screenW, int screenH, double mx, double my) {
+    /**
+     * True when (mx, my) is over the panel (or its collapsed button). The panel lies inside the
+     * map's drawn area, along its {@code right} edge from {@code top} to {@code bottom}.
+     */
+    public boolean over(int right, int top, int bottom, double mx, double my) {
         if (!open) {
-            return mx >= screenW - 30 && mx < screenW - 4 && my >= 4 && my < 30;
+            return mx >= right - 30 && mx < right - 4 && my >= top + 4 && my < top + 30;
         }
-        return mx >= screenW - W - 2 * EDGE && mx < screenW && my >= 0 && my < screenH;
+        return mx >= right - W - 2 * EDGE && mx < right && my >= top && my < bottom;
     }
 
-    public void draw(GuiGraphics g, Font font, int screenW, int screenH, List<GuildMapLook.Territory> all, int mx, int my) {
+    public void draw(GuiGraphics g, Font font, int mapRight, int mapTop, int mapBottom, List<GuildMapLook.Territory> all, int mx, int my) {
         hits.clear();
         long now = System.currentTimeMillis();
         if (!open) {
-            int x = screenW - 26;
-            GuildMapInk.face(g, x - 3, 6, 22, 22);
-            g.drawString(font, "«", x + 8 - font.width("«") / 2, 13, GuildMapInk.INK, false);
-            hits.add(new Hit(x - 3, 6, x + 19, 28, new Click("open", null)));
+            int x = mapRight - 26;
+            GuildMapInk.face(g, x - 3, mapTop + 6, 22, 22);
+            g.drawString(font, "«", x + 8 - font.width("«") / 2, mapTop + 13, GuildMapInk.INK, false);
+            hits.add(new Hit(x - 3, mapTop + 6, x + 19, mapTop + 28, new Click("open", null)));
             return;
         }
-        int x = screenW - EDGE - W;
-        int y = EDGE;
-        int h = screenH - 2 * EDGE;
+        int x = mapRight - EDGE - W;
+        int y = mapTop + EDGE;
+        int h = mapBottom - mapTop - 2 * EDGE;
         int pad = 8;
         int lh = font.lineHeight;
         GuildMapInk.face(g, x, y, W, h);

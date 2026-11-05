@@ -23,8 +23,10 @@ import java.util.concurrent.ExecutorService;
 /**
  * Guilds from Wynncraft's own API ({@code /v3/guild/prefix/<prefix>}): level, members, wars, and
  * who is online on which world. Asked only while the guild map is open, one guild at a time on a
- * low-priority worker, each guild at most once a minute (the one you picked) or once in five
- * (the list's online counts), and never more than 20 asks a minute; the API allows 50.
+ * low-priority worker, each guild at most once in two minutes (the one you picked; the API caches
+ * a guild that long) or once in five (the list's online counts), and never more than 20 asks a
+ * minute. The GUILD bucket allows 50 a minute to everything on this computer together, so with
+ * fewer than ten left, or after a 429, the mod waits until the bucket's reset.
  */
 public final class GuildApi {
 
@@ -38,9 +40,11 @@ public final class GuildApi {
             int online, String created, List<Member> onlineMembers, long at) {}
 
     private static final String[] RANKS = {"owner", "chief", "strategist", "captain", "recruiter", "recruit"};
-    private static final long PICKED_EVERY = 60_000L;
+    private static final long PICKED_EVERY = 120_000L;
     private static final long LIST_EVERY = 5 * 60_000L;
     private static final int PER_MINUTE = 20;
+    /** Asks of the GUILD bucket left for everything else on this computer before the mod waits. */
+    private static final int KEEP_FREE = 10;
 
     private static final Map<String, Info> INFO = new ConcurrentHashMap<>();
     private static final Map<String, Long> ASKED = new ConcurrentHashMap<>();
@@ -125,8 +129,13 @@ public final class GuildApi {
                 .header("User-Agent", "WynnLabs (Minecraft client mod; guild map; https://github.com/WynnLabsMC/Wynnlabs)")
                 .GET().build(), HttpResponse.BodyHandlers.ofString());
         if (r.statusCode() == 429) {
-            quietUntil = System.currentTimeMillis() + 60_000L;
+            quietUntil = System.currentTimeMillis() + 1000L * header(r, "ratelimit-reset", 60);
             return null;
+        }
+        // the GUILD bucket is shared with everything else asking from this computer (Wynntils'
+        // territory list among them): with few asks left, wait for the bucket to refill
+        if (header(r, "ratelimit-remaining", 50) < KEEP_FREE) {
+            quietUntil = System.currentTimeMillis() + 1000L * header(r, "ratelimit-reset", 60);
         }
         if (r.statusCode() != 200) {
             return null;
@@ -160,6 +169,15 @@ public final class GuildApi {
         }
         return new Info(str(o, "name"), str(o, "prefix"), num(o, "level"), num(o, "xpPercent"), num(o, "territories"),
                 num(o, "wars"), members, Math.max(num(o, "online"), online.size()), str(o, "created"), List.copyOf(online), at);
+    }
+
+    /** A number header of the answer, or {@code fallback}. */
+    private static int header(HttpResponse<?> r, String name, int fallback) {
+        try {
+            return r.headers().firstValue(name).map(v -> Integer.parseInt(v.trim())).orElse(fallback);
+        } catch (RuntimeException e) {
+            return fallback;
+        }
     }
 
     private static String str(JsonObject o, String k) {
