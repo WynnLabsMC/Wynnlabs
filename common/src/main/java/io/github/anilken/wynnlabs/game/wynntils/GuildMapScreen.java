@@ -139,7 +139,7 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             p.renderAt(g, x, z, hovered == p, scale, zoomRenderScale, zoomLevel, true);
         }
         // flowing dots over the boxes: two on each route, from the farther territory to the nearer
-        double t = (System.currentTimeMillis() % 2000L) / 2000.0;
+        double t = (System.currentTimeMillis() % 6000L) / 6000.0;   // a route crossed in six seconds
         for (float[] f : flows) {
             for (int k = 0; k < 2; k++) {
                 double s = (t + k * 0.5 + f[4]) % 1.0;
@@ -220,6 +220,11 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             return true;
         }
         panel.typing = false;
+        // a right click lets the picked guild go: every territory comes back
+        if (event.button() == 1 && panel.guild != null) {
+            panel.guild = null;
+            return true;
+        }
         // a left click on a territory opens its guild in the panel
         if (event.button() == 0 && hovered instanceof TerritoryPoi t) {
             String guild = GuildMapReads.of(t).guild();
