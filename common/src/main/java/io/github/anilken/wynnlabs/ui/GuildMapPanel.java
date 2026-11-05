@@ -48,6 +48,11 @@ public final class GuildMapPanel {
     private int contentH;
     private int viewH;
     private final List<Hit> hits = new ArrayList<>();
+    /** The scroll bar: its track (top and height), its thumb's height, and whether it is held. */
+    private int barTop;
+    private int barH;
+    private int thumbH;
+    public boolean dragging;
 
     /** The width the panel takes from the right of the screen, frame included (0 when closed). */
     public int taken() {
@@ -120,6 +125,20 @@ public final class GuildMapPanel {
         g.disableScissor();
         contentH = ry + scroll - top;
         scroll = Math.max(0, Math.min(scroll, Math.max(0, contentH - viewH)));
+        // the scroll bar along the right edge, when the list is longer than the panel
+        if (contentH > viewH) {
+            int bx = x + W - 5;
+            barTop = top;
+            barH = viewH;
+            thumbH = Math.max(16, viewH * viewH / contentH);
+            int thumbY = top + (viewH - thumbH) * scroll / Math.max(1, contentH - viewH);
+            boolean lit = dragging || mx >= bx - 3 && mx < x + W && my >= top && my < bottom;
+            g.fill(bx, top, bx + 3, bottom, GuildMapInk.WELL);
+            g.fill(bx, thumbY, bx + 3, thumbY + thumbH, lit ? GuildMapInk.INK_2 : GuildMapInk.INK_3);
+            hits.add(0, new Hit(bx - 3, top, x + W, bottom, new Click("bar", null)));
+        } else {
+            barH = 0;
+        }
         // a click on a row scrolled out of sight does nothing
         hits.removeIf(hit -> (hit.click().what().equals("guild") || hit.click().what().equals("territory")
                 || hit.click().what().equals("back")) && (hit.y1() <= top || hit.y0() >= bottom));
@@ -413,6 +432,10 @@ public final class GuildMapPanel {
             if (mx >= h.x0() && mx < h.x1() && my >= h.y0() && my < h.y1()) {
                 switch (h.click().what()) {
                     case "search" -> typing = true;
+                    case "bar" -> {
+                        dragging = true;
+                        drag(my);
+                    }
                     case "open" -> open = true;
                     case "close" -> open = false;
                     case "routes" -> routes = !routes;
@@ -431,6 +454,15 @@ public final class GuildMapPanel {
             }
         }
         return null;
+    }
+
+    /** The scroll bar held at {@code my}: the thumb's middle follows the mouse. */
+    public void drag(double my) {
+        if (barH <= thumbH) {
+            return;
+        }
+        double f = (my - barTop - thumbH / 2.0) / (barH - thumbH);
+        scroll = (int) Math.round(Math.max(0, Math.min(1, f)) * Math.max(0, contentH - viewH));
     }
 
     public void scroll(double amount) {

@@ -70,6 +70,15 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
         if (hovered instanceof TerritoryPoi t) {
             GuildMapLook.card(g, GuildMapReads.of(t), mapRight() - panel.taken(), mapTop(), now);
         }
+        // the panel's scroll bar follows the mouse while its button is held
+        if (panel.dragging) {
+            long window = net.minecraft.client.Minecraft.getInstance().getWindow().handle();
+            if (org.lwjgl.glfw.GLFW.glfwGetMouseButton(window, org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT) == org.lwjgl.glfw.GLFW.GLFW_PRESS) {
+                panel.drag(my);
+            } else {
+                panel.dragging = false;
+            }
+        }
         panel.draw(g, f(), mapRight(), mapTop(), mapBottom(), looks, mx, my);
         renderTooltip(g, pmx, pmy);
     }
