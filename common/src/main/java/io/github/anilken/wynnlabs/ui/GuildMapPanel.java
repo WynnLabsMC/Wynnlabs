@@ -53,6 +53,8 @@ public final class GuildMapPanel {
     private int barH;
     private int thumbH;
     public boolean dragging;
+    /** The footer's line this frame (when the numbers were asked), or null. */
+    private String footer;
 
     /** The width the panel takes from the right of the screen, frame included (0 when closed). */
     public int taken() {
@@ -109,13 +111,14 @@ public final class GuildMapPanel {
         g.fill(left, cy, right, cy + 1, GuildMapInk.LINE);
         cy += 5;
         int top = cy;
-        int bottom = y + h - pad;
+        int bottom = y + h - pad - lh - 4;
         viewH = bottom - top;
         g.enableScissor(x + 3, top, x + W - 3, bottom);
-        int ry = top - scroll;
+        int ry = top - scroll + 4;                   // room above the first row (the back button's frame)
         List<Guild> guilds = guilds(all);
         Guild picked = guild == null ? null : guilds.stream().filter(gd -> gd.name().equals(guild)).findFirst().orElse(null);
         String q = query.toLowerCase(Locale.ROOT).strip();
+        footer = null;
         if (picked == null) {
             guild = null;
             ry = list(g, font, guilds, all, q, left, right, ry, top, mx, my, now);
@@ -123,6 +126,11 @@ public final class GuildMapPanel {
             ry = detail(g, font, picked, all, q, left, right, ry, top, mx, my, now);
         }
         g.disableScissor();
+        // the footer, outside the scrolled part: when the guild numbers were last asked
+        if (footer != null) {
+            g.fill(left, bottom + 1, right, bottom + 2, GuildMapInk.LINE);
+            small(g, font, footer, left, bottom + 5, false);
+        }
         contentH = ry + scroll - top;
         scroll = Math.max(0, Math.min(scroll, Math.max(0, contentH - viewH)));
         // the scroll bar along the right edge, when the list is longer than the panel
@@ -151,7 +159,7 @@ public final class GuildMapPanel {
         g.drawString(font, L.t("wynnlabs.guildmap.top_guilds"), left, ry, GuildMapInk.INK_2, false);
         long newest = GuildApi.newest();
         if (newest > 0 && Settings.on("guildApi")) {
-            small(g, font, L.t("wynnlabs.guildmap.online_updated", GuildMapLook.ago(now - newest)), right, ry + 1, true);
+            footer = L.t("wynnlabs.guildmap.online_updated", GuildMapLook.ago(now - newest));
         }
         ry += lh + 4;
         for (Guild gd : guilds) {
@@ -224,11 +232,9 @@ public final class GuildMapPanel {
         ry += lh * 2 + 6;
         // when the guild's numbers were asked
         if (Settings.on("guildApi")) {
-            String when = GuildApi.asking(picked.prefix()) ? L.t("wynnlabs.guildmap.updating")
+            footer = GuildApi.asking(picked.prefix()) ? L.t("wynnlabs.guildmap.updating")
                     : api == null ? L.t("wynnlabs.guildmap.loading")
                     : L.t("wynnlabs.guildmap.updated", GuildMapLook.ago(now - api.at()));
-            small(g, font, when, left, ry, false);
-            ry += lh;
         }
         // the numbers, two by two
         List<String[]> tiles = new ArrayList<>();
