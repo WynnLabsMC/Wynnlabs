@@ -162,17 +162,27 @@ public final class TooltipListener {
             }
             Advice.Entry auto = AutoAdvice.cached(stack);
             return auto == null ? -1 : Advice.rgb(auto.verdict());
-        } else if (mc.player != null && inBag && Settings.on("sellGlow") && sellHere(stack) != 0) {
-            return sellHere(stack);               // at the Blacksmith / Trade Market: what to sell here
-        } else if (mc.player != null && inBag && Settings.on("glowUpgrade") && upgrade(stack)) {
-            return 0x55FF55;                      // green: wear this, it beats what you have on
-        } else if (mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack)
-                && (shopGlow = marketGlow(stack)) >= 0) {
-            return shopGlow;                      // gold: on the shopping list (in the Trade Market the best for you; teal the best value)
-        } else if (mc.player != null && !inBag && Settings.on("glowQuest") && QuestAdvisor.rankOf(stack) >= 0) {
-            return 0x55FFFF;                      // aqua: a recommended quest in the content book
         }
-        return -1;
+        long tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean sell = mc.player != null && inBag && Settings.on("sellGlow") && sellHere(stack) != 0;
+        io.github.anilken.wynnlabs.core.Perf.end("glow.sell", tq);
+        tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean up = !sell && mc.player != null && inBag && Settings.on("glowUpgrade") && upgrade(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("glow.upgrade", tq);
+        tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean shop = !sell && !up && mc.player != null && !inBag && Settings.on("glowShop") && onShoppingList(stack);
+        io.github.anilken.wynnlabs.core.Perf.end("glow.shop", tq);
+        if (sell) {
+            return sellHere(stack);               // at the Blacksmith / Trade Market: what to sell here
+        } else if (up) {
+            return 0x55FF55;                      // green: wear this, it beats what you have on
+        } else if (shop && (shopGlow = marketGlow(stack)) >= 0) {
+            return shopGlow;                      // gold: on the shopping list (in the Trade Market the best for you; teal the best value)
+        }
+        tq = io.github.anilken.wynnlabs.core.Perf.start();
+        boolean quest = mc.player != null && !inBag && Settings.on("glowQuest") && QuestAdvisor.rankOf(stack) >= 0;
+        io.github.anilken.wynnlabs.core.Perf.end("glow.quest", tq);
+        return quest ? 0x55FFFF : -1;             // aqua: a recommended quest in the content book
     }
 
     /** The plan's step on an ability tree node, or 0. */
@@ -507,7 +517,8 @@ public final class TooltipListener {
      * never. -1: no glow.
      */
     private static int marketGlow(net.minecraft.world.item.ItemStack stack) {
-        if (!inMarket() || !(Minecraft.getInstance().screen
+        // the ranking only with its switch on (setting marketFit): a plain gold glow otherwise
+        if (!inMarket() || !Settings.on("marketFit") || !(Minecraft.getInstance().screen
                 instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?> screen)) {
             return GOLD;
         }
@@ -899,7 +910,7 @@ public final class TooltipListener {
             } else {
                 out.add(Math.min(1, out.size()), price);
             }
-            if (!ingredient && inMarket()) {
+            if (!ingredient && inMarket() && Settings.on("marketFit")) {
                 forYouLines(g, stack, out, blank >= 0 ? blank + 3 : Math.max(1, header + 1));
             }
             return true;

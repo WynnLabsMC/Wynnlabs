@@ -3299,5 +3299,8 @@
   "wynnlabs.community.st.mana_steal": "Mana steal",
   "wynnlabs.community.st.walk_speed": "Walk speed",
   "wynnlabs.community.st.loot_bonus": "Loot bonus",
-  "wynnlabs.community.st.xp_bonus": "XP bonus"
+  "wynnlabs.community.st.xp_bonus": "XP bonus",
+  "wynnlabs.setting.marketFit": "Trade Market: what fits you",
+  "wynnlabs.setting_desc.marketFit": "In the Trade Market, the listings that help your build most glow gold and the best value ones teal, and a FIT line says how much each one adds. Works the build out for every listing on the page, so it can stutter on a slow computer",
+  "wynnlabs.settings.example.marketFit": "On: three Ritualist relics glow gold and one reads FIT +37%% · Ritualist"
 }
