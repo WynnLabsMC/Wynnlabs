@@ -40,6 +40,15 @@ class WynnBuilderExportTest {
     }
 
     @Test
+    void aRenumberedTomeGoesOutUnderItsCurrentId() {
+        // the site renumbered the guild tomes: 42 is gone, Arsonist's is 47 now (an export with 42 showed "undefined")
+        WynnBuilderLink.Table t = WynnBuilderLink.table();
+        assertEquals("Arsonist's Tome of Allegiance", t.tomes()[47]);
+        assertNull(t.tomes()[42], "the old id names nothing, so the export cannot pick it");
+        assertEquals(47, t.tomeMoved().get(42), "an old link's 42 still reads as Arsonist's");
+    }
+
+    @Test
     void readsBackWhatItWrites() {
         String version = latest();
         List<WynnBuilderLink.Piece> pieces = List.of(
