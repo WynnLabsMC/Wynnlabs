@@ -137,13 +137,18 @@ public final class GuildMapLook {
         cy += lh + 5;
         if (rows > 0) {
             cy += 4;
+            // one column for the icons, one for the hour's gains: every bar starts and ends alike
+            int hourCol = 0;
+            for (Res r : t.res()) {
+                hourCol = Math.max(hourCol, font.width(hourText(r)));
+            }
+            int barX = x + pad + 14 + 4;
+            int barW = x + w - pad - hourCol - 6 - barX;
             for (Res r : t.res()) {
                 // the icon, the storage bar with its amounts under it, the hour's gain on the right
-                int iw = drawIcon(g, font, r.key(), x + pad, cy, 9);
-                String hour = r.perHour() > 0 ? "+" + compact(r.perHour()) + L.t("wynnlabs.guildmap.per_hour_short") : "—";
+                drawIcon(g, font, r.key(), x + pad, cy, 9);
+                String hour = hourText(r);
                 int hourW = font.width(hour);
-                int barX = x + pad + Math.max(iw, 10) + 4;
-                int barW = x + w - pad - hourW - 6 - barX;
                 g.fill(barX, cy + 1, barX + barW, cy + 7, GuildMapInk.WELL);
                 int fill = r.cap() <= 0 ? 0 : Math.round(barW * Math.min(1f, r.stored() / (float) r.cap()));
                 if (fill > 0) {
@@ -167,6 +172,11 @@ public final class GuildMapLook {
         cy += 3;
         String foot = t.known() && t.routes() > 0 ? L.n("wynnlabs.guildmap.routes", t.routes()) + " · " : "";
         g.drawString(font, foot + L.t("wynnlabs.guildmap.live"), x + pad, cy, GuildMapInk.INK_3, false);
+    }
+
+    /** "+9.8K/h", or a dash for a resource the territory does not make. */
+    private static String hourText(Res r) {
+        return r.perHour() > 0 ? "+" + compact(r.perHour()) + L.t("wynnlabs.guildmap.per_hour_short") : "—";
     }
 
     /** A pill on the card: its text, its tinted face and its ink. */
@@ -219,14 +229,13 @@ public final class GuildMapLook {
     }
 
     /**
-     * A resource's mark, {@code h} pixels tall, at (x, y): the map icon for a material, a green
-     * diamond for emeralds; returns its width.
+     * A resource's mark, {@code h} pixels tall, at (x, y): the map icon for a material, the
+     * game's emerald for emeralds; returns its width.
      */
     static int drawIcon(GuiGraphics g, Font font, String key, int x, int y, int h) {
-        Icon ic = icon(key);
+        Icon ic = "EMERALDS".equals(key) ? EMERALDS : icon(key);
         if (ic == null) {
-            g.drawString(font, "◆", x, y, GuildMapInk.GOOD, false);
-            return font.width("◆");
+            return 0;
         }
         float s = h / (float) ic.h();
         g.pose().pushMatrix();
@@ -296,11 +305,13 @@ public final class GuildMapLook {
     private static final Icon ORE = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/mining.png"), 18, 14);
     private static final Icon WOOD = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/woodcutting.png"), 16, 17);
     private static final Icon FISH = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/fishing.png"), 16, 14);
+    private static final Icon EMERALDS = new Icon(Identifier.withDefaultNamespace("textures/item/emerald.png"), 16, 16);
     private static final Icon CROPS = new Icon(Identifier.fromNamespaceAndPath("wynntils", "textures/icons/map/farming.png"), 15, 19);
 
     /** The map icon of a material resource; null for emeralds (every territory makes them). */
     private static Icon icon(String key) {
         return switch (key) {
+            case "EMERALDS" -> null;
             case "ORE" -> ORE;
             case "WOOD" -> WOOD;
             case "FISH" -> FISH;

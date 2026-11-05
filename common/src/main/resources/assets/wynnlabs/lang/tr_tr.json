@@ -3341,5 +3341,6 @@
   "wynnlabs.guildmap.ago_now": "az önce",
   "wynnlabs.guildmap.ago_s": "%s sn önce",
   "wynnlabs.guildmap.ago_m": "%s dk önce",
-  "wynnlabs.guildmap.ago_h": "%s sa önce"
+  "wynnlabs.guildmap.ago_h": "%s sa önce",
+  "wynnlabs.guildmap.back": "Guild'ler"
 }

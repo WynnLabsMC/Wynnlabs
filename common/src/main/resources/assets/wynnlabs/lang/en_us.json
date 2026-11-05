@@ -3341,5 +3341,6 @@
   "wynnlabs.guildmap.ago_now": "just now",
   "wynnlabs.guildmap.ago_s": "%ss ago",
   "wynnlabs.guildmap.ago_m": "%sm ago",
-  "wynnlabs.guildmap.ago_h": "%sh ago"
+  "wynnlabs.guildmap.ago_h": "%sh ago",
+  "wynnlabs.guildmap.back": "Guilds"
 }

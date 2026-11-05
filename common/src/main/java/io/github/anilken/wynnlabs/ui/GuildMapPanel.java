@@ -185,9 +185,17 @@ public final class GuildMapPanel {
         GuildApi.Info api = GuildApi.picked(picked.prefix());
         // the head: its colour, its name, the tag and level, how many are online
         g.fill(left, ry, left + 3, ry + lh * 2 + 3, picked.colour() | 0xFF000000);
-        g.drawString(font, fit(font, picked.name(), right - left - 20), left + 7, ry, GuildMapInk.INK, false);
-        g.drawString(font, "×", right - font.width("×"), ry, GuildMapInk.INK_3, false);
-        hits.add(new Hit(right - 10, ry - 2, right + 4, ry + lh, new Click("back", null)));
+        // back to the list: a framed button with the list's name, lit under the mouse
+        String back = "‹ " + L.t("wynnlabs.guildmap.back");
+        int bw = font.width(back) + 8;
+        int bx = right - bw;
+        // the click area reaches a few pixels past the button, so it never needs aiming
+        boolean lit = mx >= bx - 4 && mx < right + 6 && my >= ry - 5 && my < ry + lh + 5 && my >= top;
+        GuildMapInk.box(g, bx, ry - 2, bw, lh + 3, lit ? GuildMapInk.SELECTED : GuildMapInk.WELL,
+                lit ? GuildMapInk.GOLD_EDGE : GuildMapInk.INK_3);
+        g.drawString(font, back, bx + 4, ry, lit ? GuildMapInk.PRICE : GuildMapInk.INK, false);
+        hits.add(new Hit(bx - 4, ry - 5, right + 6, ry + lh + 5, new Click("back", null)));
+        g.drawString(font, fit(font, picked.name(), bx - 4 - (left + 7)), left + 7, ry, GuildMapInk.INK, false);
         String sub = picked.prefix() + (api == null ? "" : " · " + L.t("wynnlabs.guildmap.level", api.level()));
         g.drawString(font, sub, left + 7, ry + lh + 3, GuildMapInk.INK_3, false);
         if (api != null) {
