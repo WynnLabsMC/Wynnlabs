@@ -91,7 +91,8 @@ public final class SourceHint {
         }
         String fmt = Prices.fmt(price.typical());
         if (line == null) {
-            return L.t("wynnlabs.search.tooltip_from", L.t("wynnlabs.search.src.market", fmt));
+            // nothing else known: the tooltip's MARKET line already says the price
+            return Settings.on("tooltipPrice") ? null : L.t("wynnlabs.search.tooltip_from", L.t("wynnlabs.search.src.market", fmt));
         }
         return line.contains(fmt) ? line : line + " · ~" + fmt;
     }

@@ -643,13 +643,16 @@ public final class TooltipListener {
         if (parsed.isEmpty()) {
             return false;
         }
-        boolean ingredient = parsed.get().kind() == ItemView.Kind.INGREDIENT && parsed.get().name() != null;
+        // gear, and anything else with a name the market prices (ingredients, materials, wards, runes…)
+        boolean ingredient = !parsed.get().isGear() && !parsed.get().isBox() && parsed.get().name() != null
+                && !parsed.get().name().isBlank();
         if (parsed.get().isGear() || ingredient) {
             ItemView g = parsed.get();
             if (!Settings.on("tooltipPrice")) {
                 return false;
             }
-            String name = ingredient ? g.name() : g.data().name();
+            String shown = ingredient ? g.name() : g.data().name();
+            String name = ingredient ? Prices.key(g, g.name()) : shown;
             String p = Prices.text(name, g.unidentified());
             if (p == null) {
                 return false;
@@ -669,7 +672,7 @@ public final class TooltipListener {
             // with the emblem) is the next line holding it. Under it come the tier and powder
             // banners, then an empty line before the stats: the price fills that line, so the
             // header keeps its width. Without such a line it goes at the header's end.
-            int header = headerLine(out, name);
+            int header = headerLine(out, shown);
             int blank = -1;
             for (int i = header + 1; header >= 0 && i < Math.min(out.size(), header + 5); i++) {
                 if (out.get(i).getString().isBlank()) {
