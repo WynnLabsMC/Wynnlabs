@@ -922,7 +922,10 @@ public final class TooltipListener {
                 } else {
                     // no empty line under the header (a material, a ward): its own line under the
                     // tier and kind banners, as close to the name as the game's own lines allow
-                    out.add(Math.min(out.size(), header + 2), line);
+                    // one empty line first, so it sits under the item's picture box
+                    int at = Math.min(out.size(), header + 2);
+                    out.add(at, line);
+                    out.add(at, Component.empty());
                 }
             } else {
                 out.add(Math.min(1, out.size()), price);
