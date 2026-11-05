@@ -104,7 +104,7 @@ public final class TooltipListener {
         int rules = Stamp.now();
         int advice = Advice.version;
         long t0 = io.github.anilken.wynnlabs.core.Perf.start();
-        boolean cannot = cannotWear(stack);
+        boolean cannot = Settings.on("cannotWear") && cannotWear(stack);
         io.github.anilken.wynnlabs.core.Perf.end("slot.cannot", t0);
         long t1 = io.github.anilken.wynnlabs.core.Perf.start();
         int glow = glowOf(stack, inBag);
@@ -784,6 +784,8 @@ public final class TooltipListener {
     private static long debugCheckedAt;
     private static boolean debugOn;
     private static String lastDumped = "";
+    private static final java.util.concurrent.ExecutorService DUMPER =
+            io.github.anilken.wynnlabs.core.Workers.singleLow("tooltip-dump");
 
     /**
      * While the Debug setting is on, writes the lines of the last hovered item
@@ -805,21 +807,29 @@ public final class TooltipListener {
                 return;
             }
             lastDumped = name;
-            StringBuilder sb = new StringBuilder("item: " + name + "\n");
+            // the JSON and the file on a worker: a frame never waits for the disk
+            List<Component> copy = List.copyOf(lines);
             var ops = Minecraft.getInstance().level == null ? null
                     : Minecraft.getInstance().level.registryAccess().createSerializationContext(
                             com.mojang.serialization.JsonOps.INSTANCE);
-            for (int i = 0; i < lines.size(); i++) {
-                Component c = lines.get(i);
-                sb.append(i).append(" | ").append(c.getString().replace("\n", "\\n")).append('\n');
-                if (ops != null) {
-                    var json = net.minecraft.network.chat.ComponentSerialization.CODEC.encodeStart(ops, c);
-                    json.result().ifPresent(j -> sb.append("    ").append(j.toString(), 0,
-                            Math.min(400, j.toString().length())).append('\n'));
+            DUMPER.execute(() -> {
+                try {
+                    StringBuilder sb = new StringBuilder("item: " + name + "\n");
+                    for (int i = 0; i < copy.size(); i++) {
+                        Component c = copy.get(i);
+                        sb.append(i).append(" | ").append(c.getString().replace("\n", "\\n")).append('\n');
+                        if (ops != null) {
+                            var json = net.minecraft.network.chat.ComponentSerialization.CODEC.encodeStart(ops, c);
+                            json.result().ifPresent(j -> sb.append("    ").append(j.toString(), 0,
+                                    Math.min(400, j.toString().length())).append('\n'));
+                        }
+                    }
+                    java.nio.file.Files.writeString(dir.resolve("tooltip-debug.txt"), sb.toString(),
+                            java.nio.charset.StandardCharsets.UTF_8);
+                } catch (Throwable ignored) {
+                    // debugging only
                 }
-            }
-            java.nio.file.Files.writeString(dir.resolve("tooltip-debug.txt"), sb.toString(),
-                    java.nio.charset.StandardCharsets.UTF_8);
+            });
         } catch (Throwable ignored) {
             // debugging only
         }
