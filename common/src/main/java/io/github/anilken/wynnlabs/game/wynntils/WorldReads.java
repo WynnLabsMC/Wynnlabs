@@ -379,7 +379,7 @@ public final class WorldReads {
                     io.github.anilken.wynnlabs.quests.WorldEvents.heard(e.name(), at);
                 }
             }
-            EventMarks.show(open ? io.github.anilken.wynnlabs.quests.WorldEvents.shown(now) : List.of());
+            EventMarks.show(io.github.anilken.wynnlabs.quests.WorldEvents.shown(now));   // the main map and the minimap
         });
     }
 
@@ -447,6 +447,14 @@ public final class WorldReads {
             if (EventMarks.broken) {
                 return;
             }
+            // drawn at whole pixels and moved by the rest, so the minimap's smooth scrolling does not
+            // make the area, icon and time jump a pixel at a time while walking
+            float px = (float) Math.floor(x);
+            float pz = (float) Math.floor(z);
+            g.pose().pushMatrix();
+            g.pose().translate(x - px, z - pz);
+            x = px;
+            z = pz;
             try {
                 int r = io.github.anilken.wynnlabs.ui.WorldEventPaint.area(g, shown, x, z, hovered, zoomRenderScale);
                 com.wynntils.utils.render.Texture icon = com.wynntils.utils.render.Texture.WORLD_EVENT_ICON;
@@ -462,6 +470,8 @@ public final class WorldReads {
             } catch (Throwable t) {
                 EventMarks.broken = true;           // the rest of the map keeps working
                 System.out.println("[WynnLabs] world events on the map are off: " + t);
+            } finally {
+                g.pose().popMatrix();
             }
         }
 
