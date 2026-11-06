@@ -137,6 +137,11 @@ public final class WorldEvents {
         heardMap().put(key(name), start);
     }
 
+    /** The start kept for this event (null: none), for tests. */
+    static Long heardFor(String name) {
+        return heardMap().get(key(name));
+    }
+
     private static Map<String, Long> heardMap() {
         Map<String, Long> h = heard;
         if (h == null) {
@@ -149,6 +154,29 @@ public final class WorldEvents {
     private static final Pattern CHAT = Pattern.compile(
             "([A-Z][A-Za-z'\\- ]*?) World Event starts in(?: (\\d+)h)?(?: (\\d+)m)?(?: (\\d+)s)?!");
     private static final Pattern LABEL = Pattern.compile("^Starts in(?: (\\d+)h)?(?: (\\d+)m)?(?: (\\d+)s)?$");
+
+    private static final Pattern BOOK_STARTS = Pattern.compile("Event starting in(?: (\\d+)h)?(?: (\\d+)m)?(?: (\\d+)s)?");
+
+    /** True while the content book's world events are being read (half a minute at most). */
+    public static boolean reading() {
+        long asked = askedBookAt;
+        return asked > 0 && bookAt < asked && System.currentTimeMillis() - asked < 30_000L;
+    }
+
+    /** One content book entry seen during the read: its "Event starting in 3m 54s", to the second. */
+    public static void fromLore(String name, List<String> lore, long now) {
+        String n = io.github.anilken.wynnlabs.game.ItemJson.clean(name).strip();
+        if (n.isEmpty()) {
+            return;
+        }
+        for (String line : lore) {
+            Matcher m = BOOK_STARTS.matcher(io.github.anilken.wynnlabs.game.ItemJson.clean(line));
+            if (m.find() && (m.group(1) != null || m.group(2) != null || m.group(3) != null)) {
+                exact(n, now + seconds(m.group(1), m.group(2), m.group(3)) * 1000);
+                return;
+            }
+        }
+    }
 
     /** "The Slimy Schism World Event starts in 3m 59s! (345 blocks away)": its start, to the second. */
     public static void onChat(net.minecraft.network.chat.Component message, boolean overlay) {

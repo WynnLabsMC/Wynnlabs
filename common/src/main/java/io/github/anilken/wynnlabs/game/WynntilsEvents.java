@@ -227,6 +227,50 @@ public final class WynntilsEvents {
 
     public static final class Quests {
 
+        /**
+         * While the world events are being read from the content book (Wynntils' hidden read), the
+         * pages pass through here before Wynntils takes them: an entry's "Event starting in 3m 54s"
+         * is the one thing Wynntils' read drops, so it is read from the lore here. Reading only.
+         */
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
+        public void onBookPage(com.wynntils.mc.event.ContainerSetContentEvent.Pre e) {
+            if (!io.github.anilken.wynnlabs.quests.WorldEvents.reading()) {
+                return;
+            }
+            try {
+                for (net.minecraft.world.item.ItemStack s : e.getItems()) {
+                    bookEntry(s);
+                }
+            } catch (Throwable t) {
+                System.out.println("[WynnLabs] world event page unreadable: " + t);
+            }
+        }
+
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
+        public void onBookSlot(com.wynntils.mc.event.ContainerSetSlotEvent.Pre e) {
+            if (!io.github.anilken.wynnlabs.quests.WorldEvents.reading()) {
+                return;
+            }
+            try {
+                bookEntry(e.getItemStack());
+            } catch (Throwable t) {
+                System.out.println("[WynnLabs] world event page unreadable: " + t);
+            }
+        }
+
+        private static void bookEntry(net.minecraft.world.item.ItemStack s) {
+            var lore = s == null || s.isEmpty() ? null : s.get(net.minecraft.core.component.DataComponents.LORE);
+            if (lore == null) {
+                return;
+            }
+            List<String> lines = new java.util.ArrayList<>();
+            for (var l : lore.lines()) {
+                lines.add(l.getString());
+            }
+            io.github.anilken.wynnlabs.quests.WorldEvents.fromLore(s.getHoverName().getString(), lines,
+                    System.currentTimeMillis());
+        }
+
         @SubscribeEvent
         public void onActivityUpdated(ActivityUpdatedEvent e) {
             ActivityType type = Wyn.guard(Wyn.Feature.QUESTS, e::getActivityType, null);
