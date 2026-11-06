@@ -698,7 +698,12 @@ public final class Advice {
             // gear, and anything else with a name the market knows (ingredients, materials, powders…)
             String priced = gear != null ? gear.data().name()
                     : parsed.isPresent() && parsed.get().name() != null
-                            && !parsed.get().isBox() ? parsed.get().name() : null;
+                            && !parsed.get().isBox() ? Prices.key(parsed.get(), parsed.get().name()) : null;
+            if (priced == null && Wyn.marketListingPrice(stack) > 0) {
+                // a Trade Market listing the item reader gave no name: the name it shows
+                String shown = ItemJson.clean(stack.getHoverName().getString());
+                priced = shown.isBlank() ? null : shown;
+            }
             Mount mount = WynntilsItems.mount(stack);
             if (mount != null || MountPrices.isMountName(priced)) {
                 // a mount's price follows its potential; its name price mixes every potential

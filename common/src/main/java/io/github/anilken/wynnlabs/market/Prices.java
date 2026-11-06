@@ -614,6 +614,25 @@ public final class Prices {
         }
     }
 
+    /** A name ending in a Roman numeral, I to X ("Corkian Amplifier II"). */
+    private static final java.util.regex.Pattern ROMAN_TAIL = java.util.regex.Pattern.compile("^(.+) (I{1,3}|IV|V|VI{0,3}|IX|X)$");
+
+    /** A Roman numeral I to X as a number. */
+    static int roman(String r) {
+        return switch (r) {
+            case "I" -> 1;
+            case "II" -> 2;
+            case "III" -> 3;
+            case "IV" -> 4;
+            case "V" -> 5;
+            case "VI" -> 6;
+            case "VII" -> 7;
+            case "VIII" -> 8;
+            case "IX" -> 9;
+            default -> 10;
+        };
+    }
+
     /** "Cinnabar Gem T3": a material's name with its quality tier, as Wynnventory keeps them. */
     private static final java.util.regex.Pattern TIERED = java.util.regex.Pattern.compile("^(.+) T([0-3])$");
 
@@ -623,6 +642,14 @@ public final class Prices {
      */
     public static String key(io.github.anilken.wynnlabs.model.ItemView item, String fallback) {
         String name = item != null && item.name() != null ? item.name() : fallback;
+        if (item != null && "AmplifierItem".equals(item.type()) && name != null) {
+            // a Corkian Amplifier by its tier ("Corkian Amplifier T2"), as the market keeps it;
+            // the game writes the tier in Roman numerals ("Corkian Amplifier II")
+            java.util.regex.Matcher m = ROMAN_TAIL.matcher(name);
+            if (m.matches()) {
+                return m.group(1) + " T" + roman(m.group(2));
+            }
+        }
         if (item != null && item.kind() == io.github.anilken.wynnlabs.model.ItemView.Kind.POWDER && item.powder() != null
                 && item.powder().element() != null && item.powder().tier() > 0) {
             // a powder by its element and tier ("Fire Powder T5"), as the market keeps them; its
@@ -673,6 +700,7 @@ public final class Prices {
         String q = java.net.URLEncoder.encode(base, StandardCharsets.UTF_8).replace("+", "%20");
         var req = java.net.http.HttpRequest.newBuilder(
                         java.net.URI.create("https://www.wynnventory.com/api/v2/market/listings?item_name=" + q
+                                + (tier != null ? "&tier=" + tier : "")
                                 + (page > 1 ? "&page=" + page : "")))
                 .header("X-API-Key", k)
                 .timeout(java.time.Duration.ofSeconds(20))
