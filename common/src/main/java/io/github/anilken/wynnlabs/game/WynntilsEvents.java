@@ -238,13 +238,7 @@ public final class WynntilsEvents {
                 return;
             }
             try {
-                int n = 0;
                 for (net.minecraft.world.item.ItemStack s : e.getItems()) {
-                    var lore = s == null || s.isEmpty() ? null : s.get(net.minecraft.core.component.DataComponents.LORE);
-                    if (lore != null && n++ < 3) {
-                        System.out.println("[WynnLabs] world event page item: " + s.getHoverName().getString() + " | "
-                                + lore.lines().stream().limit(3).map(net.minecraft.network.chat.Component::getString).toList());
-                    }
                     bookEntry(s);
                 }
             } catch (Throwable t) {

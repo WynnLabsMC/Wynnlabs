@@ -93,9 +93,7 @@ public final class WorldEvents {
         }
         if (now - askedBookAt > BOOK_EVERY) {
             askedBookAt = now;
-            System.out.println("[WynnLabs] world events: reading the content book");
             Wyn.scanWorldEvents(lines -> {
-                System.out.println("[WynnLabs] world events: book read, " + lines.size() + " entries");
                 long at = System.currentTimeMillis();
                 book = fromBook(lines, at);
                 bookAt = at;
