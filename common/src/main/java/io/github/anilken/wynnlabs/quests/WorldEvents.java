@@ -72,12 +72,15 @@ public final class WorldEvents {
 
     /** Once a second: asks what is due while the main map is open and the setting is on. */
     public static void tick(boolean mapOpen, long now) {
-        if (!mapOpen || !Settings.on(SETTING)) {
+        if (!Settings.on(SETTING)) {
             return;
         }
         if (!loaded) {
             loaded = true;
-            loadCache();
+            loadCache();                            // the places, so a start heard in chat finds its event
+        }
+        if (!mapOpen) {
+            return;
         }
         if (!fetching && now - fetchedAt > FETCH_EVERY) {
             fetching = true;
@@ -102,18 +105,47 @@ public final class WorldEvents {
         if (!Settings.on(SETTING)) {
             return List.of();
         }
-        return shown(events, bookAt > 0 && now - bookAt < BOOK_TRUSTED ? book : null, now);
+        Map<String, Long> h = heard;
+        return shown(events, bookAt > 0 && now - bookAt < BOOK_TRUSTED ? book : null, h == null ? Map.of() : h, now);
+    }
+
+    /** Every known event (for the bridge to ask Wynntils which ones it heard about in chat). */
+    public static List<Event> all() {
+        return events;
+    }
+
+    /** Start times heard in chat ("… World Event starts in 3m 59s!"): name key → start. */
+    private static volatile Map<String, Long> heard;
+
+    /** A start time Wynntils heard in chat for this event, in this world. */
+    public static void heard(String name, long start) {
+        Map<String, Long> h = heard;
+        if (h == null) {
+            h = new java.util.concurrent.ConcurrentHashMap<>();
+            heard = h;
+        }
+        h.put(key(name), start);
+    }
+
+    static List<Shown> shown(List<Event> all, Map<String, Long> fromBook, long now) {
+        return shown(all, fromBook, Map.of(), now);
     }
 
     /**
-     * With the content book's list ({@code fromBook} non-null): its events, at the book's start
-     * time or else the schedule's. Without it: the scheduled events from {@link #SOON} before
-     * their start until {@link #RUNS} after.
+     * An event heard in chat: from the message until {@link #RUNS} after its start, at that time.
+     * Else, with the content book's list ({@code fromBook} non-null): its events, at the
+     * schedule's time. Without it: the scheduled events from {@link #SOON} before their start
+     * until {@link #RUNS} after.
      */
-    static List<Shown> shown(List<Event> all, Map<String, Long> fromBook, long now) {
+    static List<Shown> shown(List<Event> all, Map<String, Long> fromBook, Map<String, Long> fromChat, long now) {
         List<Shown> out = new ArrayList<>();
         for (Event e : all) {
             long start;
+            Long c = fromChat.get(key(e.name()));
+            if (c != null && c > 0 && now - c <= RUNS && (fromBook == null || fromBook.containsKey(key(e.name())) || c > now)) {
+                out.add(new Shown(e, c, c <= now));
+                continue;
+            }
             if (fromBook != null) {
                 Long b = fromBook.get(key(e.name()));
                 if (b == null) {

@@ -370,18 +370,16 @@ public final class WorldReads {
             long now = System.currentTimeMillis();
             boolean open = net.minecraft.client.Minecraft.getInstance().screen instanceof com.wynntils.screens.maps.MainMapScreen;
             io.github.anilken.wynnlabs.quests.WorldEvents.tick(open, now);
-            if (!open) {
-                EventMarks.show(List.of());
-                return;
-            }
-            // a "… World Event starts in 3m 54s!" in chat gives Wynntils the exact start in this world
-            List<io.github.anilken.wynnlabs.quests.WorldEvents.Shown> shown = new ArrayList<>();
-            for (var s : io.github.anilken.wynnlabs.quests.WorldEvents.shown(now)) {
-                var heard = s.active() ? null : Models.WorldEvent.getWorldEvent(s.event().name());
+            // a "… World Event starts in 3m 59s!" in chat gives Wynntils the exact start in this world;
+            // Wynntils forgets it once the event starts, so the start is kept on our side, map open or not
+            for (var e : io.github.anilken.wynnlabs.quests.WorldEvents.all()) {
+                var heard = Models.WorldEvent.getWorldEvent(e.name());
                 long at = heard == null || heard.getStartTime() == null ? 0 : heard.getStartTime().timestamp();
-                shown.add(at > 0 ? new io.github.anilken.wynnlabs.quests.WorldEvents.Shown(s.event(), at, at <= now) : s);
+                if (at > 0) {
+                    io.github.anilken.wynnlabs.quests.WorldEvents.heard(e.name(), at);
+                }
             }
-            EventMarks.show(shown);
+            EventMarks.show(open ? io.github.anilken.wynnlabs.quests.WorldEvents.shown(now) : List.of());
         });
     }
 

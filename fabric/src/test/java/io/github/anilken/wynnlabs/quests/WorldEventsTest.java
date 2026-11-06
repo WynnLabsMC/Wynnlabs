@@ -74,6 +74,18 @@ class WorldEventsTest {
     }
 
     @Test
+    void aStartHeardInChatShowsEvenWithoutSchedule() {
+        long now = 5_000_000L;
+        Map<String, Long> chat = Map.of("mole meet-up", now + 239_000L);
+        List<WorldEvents.Shown> shown = WorldEvents.shown(WorldEvents.parse(JSON), null, chat, now);
+        assertEquals(1, shown.size());
+        assertEquals("Mole Meet-Up", shown.get(0).event().name());
+        assertEquals(now + 239_000L, shown.get(0).start());
+        assertTrue(WorldEvents.shown(WorldEvents.parse(JSON), null, chat, now + 300_000L).get(0).active());
+        assertTrue(WorldEvents.shown(WorldEvents.parse(JSON), null, chat, now + 60 * 60_000L).isEmpty());
+    }
+
+    @Test
     void aBookEventWithNoTimeIsOnNow() {
         Map<String, Long> book = WorldEvents.fromBook(List.of(new Wyn.ContentLine("Mole Meet-Up", "STARTED", 0, "")), 1000L);
         List<WorldEvents.Shown> shown = WorldEvents.shown(WorldEvents.parse(JSON), book, 1000L);
