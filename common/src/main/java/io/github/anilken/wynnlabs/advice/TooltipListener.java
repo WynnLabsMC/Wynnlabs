@@ -869,15 +869,18 @@ public final class TooltipListener {
             return false;
         }
         // gear, and anything else with a name the market prices (ingredients, materials, wards, runes…)
-        boolean ingredient = !parsed.get().isGear() && !parsed.get().isBox() && parsed.get().name() != null
-                && !parsed.get().name().isBlank();
+        // a Trade Market listing the item reader gave no name: the name it shows
+        String listed = !parsed.get().isGear() && !parsed.get().isBox() && (parsed.get().name() == null || parsed.get().name().isBlank())
+                && Wyn.marketListingPrice(stack) > 0 ? ItemJson.clean(stack.getHoverName().getString()) : null;
+        boolean ingredient = !parsed.get().isGear() && !parsed.get().isBox()
+                && (parsed.get().name() != null && !parsed.get().name().isBlank() || listed != null && !listed.isBlank());
         if (parsed.get().isGear() || ingredient) {
             ItemView g = parsed.get();
             if (!Settings.on("tooltipPrice")) {
                 return false;
             }
-            String shown = ingredient ? g.name() : g.data().name();
-            String name = ingredient ? Prices.key(g, g.name()) : shown;
+            String shown = ingredient ? (g.name() != null && !g.name().isBlank() ? g.name() : listed) : g.data().name();
+            String name = ingredient ? Prices.key(g, shown) : shown;
             String p = Prices.text(name, g.unidentified());
             if (p == null) {
                 return false;
