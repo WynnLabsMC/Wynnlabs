@@ -735,12 +735,17 @@ public final class TooltipListener {
                 .replace('Ö', 'O').replace('Ş', 'S').replace('Ü', 'U');
         StringBuilder back = new StringBuilder().append('');
         StringBuilder front = new StringBuilder();
-        int span = 0;                               // the cells' width: 6 a letter, 4 for the narrow I
+        int span = 0;                               // the cells' width: 6 a letter or digit, 4 for the narrow I and 1
         for (char c : plain.toCharArray()) {
             if (c >= 'A' && c <= 'Z') {
                 back.appendCodePoint(0xcffff).append((char) (0xe030 + c - 'A'));
                 front.append((char) (0xe000 + c - 'A'));
                 span += c == 'I' ? 4 : 6;
+            } else if (c >= '0' && c <= '9') {
+                // the digits sit in the font's third row, their cells in the seventh
+                back.appendCodePoint(0xcffff).append((char) (0xe050 + c - '0'));
+                front.append((char) (0xe020 + c - '0'));
+                span += c == '1' ? 4 : 6;
             }
         }
         back.appendCodePoint(0xcffff).append('').appendCodePoint(0xd0000 - (span + 2));
@@ -887,11 +892,15 @@ public final class TooltipListener {
             }
             p = p.contains(" (") ? p.substring(0, p.indexOf(" (")) : p;   // just the price, short
             Prices.Price known = GameState.current().price(name);
+            String bare = p;
+            int stackOf = 0;
+            String stackWorth = null;
             if (ingredient && stack.getCount() > 1 && known != null && known.typical() != null) {
                 // a stack of ingredients: what the whole stack is worth too
-                p += " ×" + stack.getCount() + " ≈ " + Prices.fmt(known.typical() * stack.getCount());
+                stackOf = stack.getCount();
+                stackWorth = Prices.fmt(known.typical() * stackOf);
+                p += " ×" + stackOf + " ≈ " + stackWorth;
             }
-            String bare = p;
             boolean old = known != null && known.uncertain();
             if (old) {
                 p = Prices.past(p);                 // nothing listed now, or only old listings
@@ -929,9 +938,16 @@ public final class TooltipListener {
                 }
                 net.minecraft.network.chat.MutableComponent line = Component.empty()
                         .withStyle(st -> st.withInsertion(PRICE_MARK)).append(tags[0])
-                        .append(Component.literal(" " + bare + (tags[1] != null ? " " : ""))
+                        .append(Component.literal(" " + bare + (stackOf > 1 || tags[1] != null ? " " : ""))
                                 .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.GOLD)
                                         .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)));
+                if (stackOf > 1) {
+                    // the stack's size in a grey box ("X28"), then what the whole stack is worth
+                    line.append(banner("X" + stackOf, 0xAAAAAA))
+                            .append(Component.literal(" ≈ " + stackWorth + (tags[1] != null ? " " : ""))
+                                    .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.GOLD)
+                                            .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)));
+                }
                 if (tags[1] != null) {
                     line.append(tags[1]);
                 }
