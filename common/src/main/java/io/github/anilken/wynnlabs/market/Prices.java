@@ -717,6 +717,7 @@ public final class Prices {
             // the box window says the service did not answer, and the item is asked again later
             if (page <= 1 && res.statusCode() == 404) {
                 MISSES.put(name, System.currentTimeMillis());
+                pastPrice(name, base, tier);
             } else if (page <= 1) {
                 FAILS.put(name, System.currentTimeMillis());
             }
@@ -773,6 +774,7 @@ public final class Prices {
             p = old == null ? null : new Price(old.lowest(), old.median(), old.avg80(), old.unidLowest(), old.unidAvg80(),
                     now, null, 0);
             if (p == null) {
+                pastPrice(name, base, tier);     // never priced before: the market's recent days instead
                 return true;
             }
         } else {
@@ -886,6 +888,87 @@ public final class Prices {
             if (!ok) {
                 History.failed(name, System.currentTimeMillis());
             }
+        }
+    }
+
+    /**
+     * An item with no current listing and no price of its own yet (cheap ingredients are rarely
+     * uploaded as listings): the market's daily history of the last week instead, shown as a
+     * past price. Nothing when the history has none either.
+     */
+    private static void pastPrice(String name, String base, Integer tier) {
+        try {
+            String q = java.net.URLEncoder.encode(base, StandardCharsets.UTF_8).replace("+", "%20");
+            var req = java.net.http.HttpRequest.newBuilder(
+                            java.net.URI.create("https://www.wynnventory.com/api/trademarket/history/" + q + "?days=7"))
+                    .timeout(java.time.Duration.ofSeconds(20))
+                    .GET().build();
+            var res = HTTP.send(req, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (res.statusCode() != 200) {
+                return;
+            }
+            var body = GSON.fromJson(res.body(), com.google.gson.JsonElement.class);
+            Price p = body != null && body.isJsonArray() ? fromHistory(base, tier, body.getAsJsonArray(), System.currentTimeMillis()) : null;
+            if (p != null && PRICES.get(name) == null) {
+                PRICES.put(name, p);
+                save();
+                version++;
+            }
+        } catch (Exception e) {
+            // no history: the item stays unpriced
+        }
+    }
+
+    /**
+     * The newest day of an item's history as a past price (no current listing: count 0), or null.
+     * Only this item, unshiny, and the tier asked for when there is one.
+     */
+    static Price fromHistory(String base, Integer tier, JsonArray days, long now) {
+        JsonObject best = null;
+        long bestAt = Long.MIN_VALUE;
+        for (var el : days) {
+            if (!el.isJsonObject()) {
+                continue;
+            }
+            JsonObject d = el.getAsJsonObject();
+            if (!d.has("name") || !base.equalsIgnoreCase(d.get("name").getAsString())
+                    || d.has("shiny") && !d.get("shiny").isJsonNull() && d.get("shiny").getAsBoolean()) {
+                continue;
+            }
+            if (tier != null && !tier.equals(listingTier(d))) {
+                continue;
+            }
+            long at = dayAt(d);
+            if (at >= bestAt) {
+                bestAt = at;
+                best = d;
+            }
+        }
+        if (best == null) {
+            return null;
+        }
+        // the middle of the day's market, not one cheap listing seen once
+        Double mid = num(best, "average_mid_80_percent_price");
+        if (mid == null) {
+            mid = num(best, "average_price");
+        }
+        if (mid == null || mid < 1) {
+            return null;
+        }
+        return new Price(null, mid, mid, null, null, now, null, 0);
+    }
+
+    private static Double num(JsonObject o, String key) {
+        return o.has(key) && !o.get(key).isJsonNull() ? o.get(key).getAsDouble() : null;
+    }
+
+    /** A history day's date ("Thu, 29 Oct 2026 00:00:00 GMT"), in epoch millis; 0 when unknown. */
+    private static long dayAt(JsonObject d) {
+        try {
+            return java.time.ZonedDateTime.parse(d.get("timestamp").getAsString(),
+                    java.time.format.DateTimeFormatter.RFC_1123_DATE_TIME).toInstant().toEpochMilli();
+        } catch (Exception e) {
+            return 0;
         }
     }
 
