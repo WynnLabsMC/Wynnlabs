@@ -242,6 +242,8 @@ public final class Startup {
                 // finished caves red and dim on Wynntils' map: follows its setting the same way
                 if (client.player != null) {
                     Wyn.caveMapSync();
+                    // world events on Wynntils' main map while it is open
+                    Wyn.worldEventSync();
                 }
             }
         });

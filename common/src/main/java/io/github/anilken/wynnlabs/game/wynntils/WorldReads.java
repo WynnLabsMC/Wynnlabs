@@ -357,6 +357,119 @@ public final class WorldReads {
         }
     }
 
+    // ---- world events on Wynntils' main map ----
+
+    public static boolean mainMapOpen() {
+        return guard(Feature.WAYPOINTS,
+                () -> net.minecraft.client.Minecraft.getInstance().screen instanceof com.wynntils.screens.maps.MainMapScreen, false);
+    }
+
+    /** Once a second: lets the world events ask what is due and hands the map what to draw. */
+    public static void worldEventSync() {
+        run(Feature.WAYPOINTS, () -> {
+            long now = System.currentTimeMillis();
+            boolean open = net.minecraft.client.Minecraft.getInstance().screen instanceof com.wynntils.screens.maps.MainMapScreen;
+            io.github.anilken.wynnlabs.quests.WorldEvents.tick(open, now);
+            EventMarks.show(open ? io.github.anilken.wynnlabs.quests.WorldEvents.shown(now) : List.of());
+        });
+    }
+
+    /** The world events on Wynntils' map: points of interest only (no world markers or beacons). */
+    private static final class EventMarks
+            implements com.wynntils.models.marker.type.MarkerProvider<com.wynntils.services.map.pois.Poi> {
+        private static EventMarks registered;
+        private static volatile boolean broken;
+        private volatile List<com.wynntils.services.map.pois.Poi> pois = List.of();
+
+        static void show(List<io.github.anilken.wynnlabs.quests.WorldEvents.Shown> shown) {
+            if (registered == null) {
+                if (shown.isEmpty()) {
+                    return;
+                }
+                registered = new EventMarks();
+                Models.Marker.registerMarkerProvider(registered);
+            }
+            List<com.wynntils.services.map.pois.Poi> out = new ArrayList<>();
+            for (io.github.anilken.wynnlabs.quests.WorldEvents.Shown s : shown) {
+                var e = s.event();
+                out.add(new EventPoi(s, new com.wynntils.utils.mc.type.PoiLocation(e.x(), e.y(), e.z())));
+            }
+            registered.pois = List.copyOf(out);
+        }
+
+        @Override
+        public java.util.stream.Stream<com.wynntils.models.marker.type.MarkerInfo> getMarkerInfos() {
+            return java.util.stream.Stream.empty();
+        }
+
+        @Override
+        public java.util.stream.Stream<com.wynntils.services.map.pois.Poi> getPois() {
+            return pois.stream();
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return !pois.isEmpty();
+        }
+    }
+
+    /** One world event as Wynntils' map draws it: a blue area, the event icon, and its time above. */
+    private record EventPoi(io.github.anilken.wynnlabs.quests.WorldEvents.Shown shown,
+            com.wynntils.utils.mc.type.PoiLocation location) implements com.wynntils.services.map.pois.Poi {
+
+        @Override
+        public com.wynntils.utils.mc.type.PoiLocation getLocation() {
+            return location;
+        }
+
+        @Override
+        public com.wynntils.services.map.type.DisplayPriority getDisplayPriority() {
+            return com.wynntils.services.map.type.DisplayPriority.HIGH;
+        }
+
+        @Override
+        public boolean hasStaticLocation() {
+            return true;
+        }
+
+        @Override
+        public void renderAt(net.minecraft.client.gui.GuiGraphics g, float x, float z, boolean hovered, float scale,
+                float zoomRenderScale, float zoomLevel, boolean showLabels) {
+            if (EventMarks.broken) {
+                return;
+            }
+            try {
+                int r = io.github.anilken.wynnlabs.ui.WorldEventPaint.area(g, shown, x, z, hovered, zoomRenderScale);
+                com.wynntils.utils.render.Texture icon = com.wynntils.utils.render.Texture.WORLD_EVENT_ICON;
+                float s = Math.max(0.6f, Math.min(1f, scale));
+                float w = icon.width() * s;
+                float h = icon.height() * s;
+                com.wynntils.utils.render.RenderUtils.drawScalingTexturedRect(g, icon,
+                        com.wynntils.utils.colors.CustomColor.fromARGBInt(0xFFFFFFFF), x - w / 2, z - h / 2, w, h);
+                io.github.anilken.wynnlabs.ui.WorldEventPaint.labels(g, shown, x, z - Math.max(r, h / 2), hovered,
+                        System.currentTimeMillis());
+            } catch (Throwable t) {
+                EventMarks.broken = true;           // the rest of the map keeps working
+                System.out.println("[WynnLabs] world events on the map are off: " + t);
+            }
+        }
+
+        @Override
+        public int getWidth(float zoomRenderScale, float scale) {
+            return Math.max(20, 2 * io.github.anilken.wynnlabs.ui.WorldEventPaint.radiusPx(shown, zoomRenderScale));
+        }
+
+        @Override
+        public int getHeight(float zoomRenderScale, float scale) {
+            return getWidth(zoomRenderScale, scale);
+        }
+
+        @Override
+        public String getName() {
+            return shown.event().name();
+        }
+    }
+
     // ---- finished caves red and dim on Wynntils' map ----
 
     /**
