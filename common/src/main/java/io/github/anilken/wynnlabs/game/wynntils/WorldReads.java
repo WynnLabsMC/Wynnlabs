@@ -370,7 +370,18 @@ public final class WorldReads {
             long now = System.currentTimeMillis();
             boolean open = net.minecraft.client.Minecraft.getInstance().screen instanceof com.wynntils.screens.maps.MainMapScreen;
             io.github.anilken.wynnlabs.quests.WorldEvents.tick(open, now);
-            EventMarks.show(open ? io.github.anilken.wynnlabs.quests.WorldEvents.shown(now) : List.of());
+            if (!open) {
+                EventMarks.show(List.of());
+                return;
+            }
+            // a "… World Event starts in 3m 54s!" in chat gives Wynntils the exact start in this world
+            List<io.github.anilken.wynnlabs.quests.WorldEvents.Shown> shown = new ArrayList<>();
+            for (var s : io.github.anilken.wynnlabs.quests.WorldEvents.shown(now)) {
+                var heard = s.active() ? null : Models.WorldEvent.getWorldEvent(s.event().name());
+                long at = heard == null || heard.getStartTime() == null ? 0 : heard.getStartTime().timestamp();
+                shown.add(at > 0 ? new io.github.anilken.wynnlabs.quests.WorldEvents.Shown(s.event(), at, at <= now) : s);
+            }
+            EventMarks.show(shown);
         });
     }
 

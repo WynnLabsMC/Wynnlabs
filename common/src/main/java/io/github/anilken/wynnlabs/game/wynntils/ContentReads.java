@@ -170,7 +170,7 @@ public final class ContentReads {
 
     /**
      * The content book's world events, read by Wynntils' hidden content book read: name, status,
-     * and as description the entry's extra line (its "Event starting in 3m 54s") before its text.
+     * and as description the entry's region line before its text (the read keeps no countdown).
      * The one read that runs on its own: every few minutes while the main map is open, behind
      * the world events setting (approved for this feature only).
      */

@@ -60,6 +60,20 @@ class WorldEventsTest {
     }
 
     @Test
+    void aWaitingBookEventWithNoTimeIsSoonNotActive() {
+        long now = START + 60 * 60_000L;            // the schedule's time has passed
+        Map<String, Long> book = WorldEvents.fromBook(List.of(
+                new Wyn.ContentLine("Tainted Shoreline", "AVAILABLE", 0, "Pirate Bay Foreshore")), now);
+        List<WorldEvents.Shown> shown = WorldEvents.shown(WorldEvents.parse(JSON), book, now);
+        assertEquals(0, shown.get(0).start());
+        assertFalse(shown.get(0).active());
+        long early = START - 5 * 60_000L;          // the schedule gives the time
+        shown = WorldEvents.shown(WorldEvents.parse(JSON), WorldEvents.fromBook(List.of(
+                new Wyn.ContentLine("Tainted Shoreline", "AVAILABLE", 0, "Pirate Bay Foreshore")), early), early);
+        assertEquals(START, shown.get(0).start());
+    }
+
+    @Test
     void aBookEventWithNoTimeIsOnNow() {
         Map<String, Long> book = WorldEvents.fromBook(List.of(new Wyn.ContentLine("Mole Meet-Up", "STARTED", 0, "")), 1000L);
         List<WorldEvents.Shown> shown = WorldEvents.shown(WorldEvents.parse(JSON), book, 1000L);

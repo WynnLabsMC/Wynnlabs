@@ -3345,6 +3345,7 @@
   "wynnlabs.setting_desc.worldEvents": "Wynntils'in ana haritası açıkken, aktif olan ya da birazdan başlayacak world event'leri mavi alan ve başlamasına kalan süreyle gösterir. Yerleri herkese açık bir world event listesinden gelir, en fazla saatte bir sorulur; birkaç dakikada bir içerik kitabı arka planda okunup senin dünyanda hangi event'lerin açık olduğuna bakılır",
   "wynnlabs.settings.example.worldEvents": "Açık: Tainted Shoreline, Pirate Bay'de üstünde 3:54 yazan mavi bir çember olarak görünür",
   "wynnlabs.worldevent.active": "Aktif",
+  "wynnlabs.worldevent.soon": "Birazdan",
   "wynnlabs.guildmap.search": "Bölge ya da guild ara",
   "wynnlabs.guildmap.live": "Oyundan canlı",
   "wynnlabs.guildmap.updating": "Wynncraft'tan yenileniyor…",

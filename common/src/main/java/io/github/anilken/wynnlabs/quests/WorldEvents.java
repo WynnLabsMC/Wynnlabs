@@ -48,17 +48,21 @@ public final class WorldEvents {
     /** With only the schedule: shown from this long before the start until this long after. */
     static final long SOON = 30 * 60_000L;
     static final long RUNS = 15 * 60_000L;
+    /** A book entry that has started ("Event has started"). */
+    static final long ON = 0;
+    /** A book entry that is about to start ("Event starting in …"), its time not kept by the read. */
+    static final long WAITING = -1;
 
     /** One world event: its name, centre, radius in blocks, level, and next start (0 when not scheduled). */
     public record Event(String name, int x, int y, int z, int radius, int level, String difficulty, long start) {}
 
-    /** An event to draw: the event, when it starts (or started) and whether it is on now. */
+    /** An event to draw: the event, when it starts (0: soon, time unknown) and whether it is on now. */
     public record Shown(Event event, long start, boolean active) {}
 
     private static volatile List<Event> events = List.of();
     private static volatile long fetchedAt;
     private static volatile boolean fetching;
-    /** The content book's world events: name → start time (0: on, no time given). */
+    /** The content book's world events: name → {@link #ON}, {@link #SOON} or a start time. */
     private static volatile Map<String, Long> book = Map.of();
     private static volatile long bookAt;
     private static volatile long askedBookAt;
@@ -115,14 +119,18 @@ public final class WorldEvents {
                 if (b == null) {
                     continue;
                 }
-                start = b > 0 ? b : e.start() > 0 ? e.start() : now;
+                if (b == ON) {
+                    out.add(new Shown(e, e.start() > 0 && e.start() <= now ? e.start() : now, true));
+                    continue;
+                }
+                start = b > 0 ? b : e.start() > now ? e.start() : 0;
             } else {
                 if (e.start() <= 0 || e.start() - now > SOON || now - e.start() > RUNS) {
                     continue;
                 }
                 start = e.start();
             }
-            out.add(new Shown(e, start, start <= now));
+            out.add(new Shown(e, start, start > 0 && start <= now));
         }
         return out;
     }
@@ -130,8 +138,10 @@ public final class WorldEvents {
     private static final Pattern STARTS_IN = Pattern.compile("(?i)starting in\\s*(?:(\\d+)h\\s*)?(?:(\\d+)m\\s*)?(?:(\\d+)s)?");
 
     /**
-     * The book's world events that are on or about to start (not finished, not out of reach):
-     * name → start time from its "starting in 3m 54s" line, 0 when it has none (on now).
+     * The book's world events that are on (STARTED: "Event has started") or about to start
+     * (AVAILABLE: "Event starting in …"): name → {@link #ON}, or the start time when a "starting
+     * in 3m 54s" is in the line's text, else {@link #WAITING}. Wynntils' read keeps the entry's
+     * region but not its countdown, so the time usually comes from the schedule.
      */
     static Map<String, Long> fromBook(List<Wyn.ContentLine> lines, long now) {
         Map<String, Long> out = new HashMap<>();
@@ -139,7 +149,11 @@ public final class WorldEvents {
             if (!"AVAILABLE".equals(l.status()) && !"STARTED".equals(l.status())) {
                 continue;
             }
-            long start = 0;
+            if ("STARTED".equals(l.status())) {
+                out.put(key(l.name()), ON);
+                continue;
+            }
+            long start = WAITING;
             Matcher m = STARTS_IN.matcher(l.description());
             if (m.find() && (m.group(1) != null || m.group(2) != null || m.group(3) != null)) {
                 long s = num(m.group(1)) * 3600 + num(m.group(2)) * 60 + num(m.group(3));

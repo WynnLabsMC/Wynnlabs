@@ -3345,6 +3345,7 @@
   "wynnlabs.setting_desc.worldEvents": "While Wynntils' main map is open, shows the world events that are on or about to start as blue areas with the time to their start. Their places come from a public world event list, asked at most once an hour, and every few minutes the content book is read in the background to see which events are on in your world",
   "wynnlabs.settings.example.worldEvents": "On: Tainted Shoreline shows as a blue circle at Pirate Bay with 3:54 above it",
   "wynnlabs.worldevent.active": "Active",
+  "wynnlabs.worldevent.soon": "Soon",
   "wynnlabs.guildmap.search": "Search territories or guilds",
   "wynnlabs.guildmap.live": "Live from the game",
   "wynnlabs.guildmap.updating": "Updating from Wynncraft…",

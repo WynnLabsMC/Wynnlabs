@@ -39,7 +39,8 @@ public final class WorldEventPaint {
     /** The time (and on hover the name) centred above {@code top}. */
     public static void labels(GuiGraphics g, WorldEvents.Shown s, float x, float top, boolean hovered, long now) {
         Font font = Minecraft.getInstance().font;
-        String time = s.active() ? Component.translatable("wynnlabs.worldevent.active").getString() : clock(s.start() - now);
+        String time = s.active() ? Component.translatable("wynnlabs.worldevent.active").getString()
+                : s.start() <= 0 ? Component.translatable("wynnlabs.worldevent.soon").getString() : clock(s.start() - now);
         String text = hovered ? s.event().name() + "  " + time : time;
         int w = font.width(text);
         int lx = Math.round(x) - w / 2;
