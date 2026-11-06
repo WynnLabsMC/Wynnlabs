@@ -129,12 +129,16 @@ public final class BoxKey {
         if (v.isGear()) {
             return v.data() != null && Shopping.tradable(v.data());
         }
+        // a market price (by the market's name, "Corkian Amplifier T3") says it is sold there
+        if (io.github.anilken.wynnlabs.market.Prices.of(io.github.anilken.wynnlabs.market.Prices.key(v, v.name())) != null) {
+            return true;
+        }
         Entry e = ItemIndex.get().byName(v.name());
         if (e != null) {
             return e.tradable();
         }
-        // not in the item list (wards, runes, amplifiers…): a market price says it is sold there
-        return v.kind() != ItemView.Kind.OTHER || io.github.anilken.wynnlabs.market.Prices.of(v.name()) != null;
+        // not in the item list (wards, runes, amplifiers…) and no price yet
+        return v.kind() != ItemView.Kind.OTHER;
     }
 
     /** A press while a screen is open; true when it opened the window (the screen then never sees it). */
