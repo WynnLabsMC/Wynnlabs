@@ -438,28 +438,26 @@ public final class WynntilsItems {
             ability = part(() -> ((StyledText) Wyn.call(item, ABILITY_NODE_NAME)).getStringWithoutFormatting());
         } else if (item instanceof ActivityItem) {
             kind = ItemView.Kind.ACTIVITY;
-        } else if (plain && name == null && unknownIngredient(stack)) {
-            // an ingredient newer than Wynntils' item data: the game's own banner says what it is
-            kind = ItemView.Kind.INGREDIENT;
-            String shown = ItemJson.clean(stack.getHoverName().getString());
-            name = shown.isBlank() ? null : shown;
+        } else if (plain && name == null && stack != null && !stack.isEmpty()) {
+            // an ingredient newer than Wynntils' item data: its lore reads like one ("Can be used in recipes for")
+            var lore = stack.get(net.minecraft.core.component.DataComponents.LORE);
+            boolean ingredient = false;
+            if (lore != null) {
+                for (var l : lore.lines()) {
+                    if (ItemJson.clean(l.getString()).contains("Can be used in recipes for")) {
+                        ingredient = true;
+                        break;
+                    }
+                }
+            }
+            if (ingredient) {
+                kind = ItemView.Kind.INGREDIENT;
+                String shown = ItemJson.clean(stack.getHoverName().getString());
+                name = shown.isBlank() ? null : shown;
+            }
         }
         return new ItemView(kind, type, plain, name, level, profs, data, rolled, crafted, box, quality, powder,
                 potion, key, sp, crystal, ability);
-    }
-
-    /** True when the item's lore reads like an ingredient's ("Can be used in recipes for"). */
-    private static boolean unknownIngredient(ItemStack stack) {
-        var lore = stack == null || stack.isEmpty() ? null : stack.get(net.minecraft.core.component.DataComponents.LORE);
-        if (lore == null) {
-            return false;
-        }
-        for (var l : lore.lines()) {
-            if (ItemJson.clean(l.getString()).contains("Can be used in recipes for")) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static ItemView.Rolled rolled(GearInfo info, GearInstance gi) {
