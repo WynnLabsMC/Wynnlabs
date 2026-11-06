@@ -169,6 +169,32 @@ public final class ContentReads {
     }
 
     /**
+     * The content book's world events, read by Wynntils' hidden content book read: name, status,
+     * and as description the entry's region line before its text (the read keeps no countdown).
+     * The one read that runs on its own: every few minutes while the main map is open, behind
+     * the world events setting (approved for this feature only).
+     */
+    public static boolean scanWorldEvents(java.util.function.Consumer<List<ContentLine>> done) {
+        return guard(Feature.QUESTS, () -> {
+            Models.Activity.scanContentBook(ActivityType.WORLD_EVENT, (list, progress) -> {
+                try {
+                    List<ContentLine> out = new ArrayList<>();
+                    for (com.wynntils.models.activities.type.ActivityInfo a : list) {
+                        String info = a.specialInfo().orElse("");
+                        String d = a.description().map(t -> t.getStringWithoutFormatting()).orElse("");
+                        out.add(new ContentLine(a.name(), a.status() == null ? "UNKNOWN" : a.status().name(), 0,
+                                info.isEmpty() ? d : info + "\n" + d));
+                    }
+                    done.accept(out);
+                } catch (Throwable t) {
+                    System.out.println("[WynnLabs] world events in the content book unreadable: " + t);
+                }
+            });
+            return true;
+        }, false);
+    }
+
+    /**
      * What Wynntils itself keeps of one kind for this character (caves and the three discovery
      * kinds; empty for the rest and until Wynntils read them).
      */

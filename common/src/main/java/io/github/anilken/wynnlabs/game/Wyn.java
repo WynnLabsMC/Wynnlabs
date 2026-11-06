@@ -330,6 +330,10 @@ public final class Wyn {
         return ContentReads.scanContent(kind, done);
     }
 
+    public static boolean scanWorldEvents(java.util.function.Consumer<List<ContentLine>> done) {
+        return ContentReads.scanWorldEvents(done);
+    }
+
     public static List<ContentLine> knownContent(String kind) {
         return ContentReads.knownContent(kind);
     }
@@ -512,6 +516,16 @@ public final class Wyn {
 
     public static void caveMapSync() {
         WorldReads.caveMapSync();
+    }
+
+    /** True while Wynntils' main map is the open screen. */
+    public static boolean mainMapOpen() {
+        return WorldReads.mainMapOpen();
+    }
+
+    /** World events on Wynntils' main map: reads and asks what is due, then hands the map the events to draw. */
+    public static void worldEventSync() {
+        WorldReads.worldEventSync();
     }
 
     /** The waypoint list: its pins, and adding or removing one by position. */
