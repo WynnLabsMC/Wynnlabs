@@ -369,6 +369,15 @@ public final class WynntilsItems {
         String type = item.getClass().getSimpleName();
         boolean plain = item.getClass() == WynnItem.class;
         String name = item instanceof NamedItemProperty n ? part(n::getName) : null;
+        if (name == null && item instanceof com.wynntils.models.items.items.game.AbilityShardItem shard) {
+            // sold on the Trade Market, but Wynntils gives it no plain name
+            name = part(() -> shard.getName().getStringWithoutFormatting().strip());
+        }
+        if (name == null && item instanceof PotionItem && stack != null) {
+            // potions sell on the Trade Market too: their name as the game shows it ("Potion of Wisdom")
+            String shown = ItemJson.clean(stack.getHoverName().getString());
+            name = shown.isBlank() ? null : shown;
+        }
         Integer level = item instanceof LeveledItemProperty l ? part(l::getLevel) : null;
         List<String> profs = item instanceof ProfessionItemProperty pp
                 ? part(() -> pp.getProfessionTypes().stream().map(Enum::name).toList()) : null;

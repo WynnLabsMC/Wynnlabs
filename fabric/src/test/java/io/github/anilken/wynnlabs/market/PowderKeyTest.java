@@ -14,4 +14,11 @@ class PowderKeyTest {
                 null, null, null, new ItemView.Powder("FIRE", 5), null, null, null, null, null);
         assertEquals("Fire Powder T5", Prices.key(fire, null));
     }
+
+    @Test
+    void amplifierByTier() {
+        ItemView amp = new ItemView(ItemView.Kind.OTHER, "AmplifierItem", false, "Corkian Amplifier II", null, null, null, null,
+                null, null, null, null, null, null, null, null, null);
+        assertEquals("Corkian Amplifier T2", Prices.key(amp, null));
+    }
 }
