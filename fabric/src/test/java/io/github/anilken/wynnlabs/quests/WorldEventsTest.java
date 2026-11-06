@@ -86,6 +86,19 @@ class WorldEventsTest {
     }
 
     @Test
+    void chatNamesWithTheMatchTheList() {
+        assertEquals(WorldEvents.key("Slimy Schism"), WorldEvents.key("The Slimy Schism"));
+        assertEquals(244, WorldEvents.seconds(null, "4", "4"));
+    }
+
+    @Test
+    void aCountdownLabelBelongsToTheNearestEvent() {
+        List<WorldEvents.Event> all = WorldEvents.parse(JSON);
+        assertEquals("Tainted Shoreline", WorldEvents.nearest(all, 610, -2290).name());
+        assertEquals(null, WorldEvents.nearest(all, 0, 0));
+    }
+
+    @Test
     void aBookEventWithNoTimeIsOnNow() {
         Map<String, Long> book = WorldEvents.fromBook(List.of(new Wyn.ContentLine("Mole Meet-Up", "STARTED", 0, "")), 1000L);
         List<WorldEvents.Shown> shown = WorldEvents.shown(WorldEvents.parse(JSON), book, 1000L);

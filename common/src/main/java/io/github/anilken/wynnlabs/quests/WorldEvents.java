@@ -79,6 +79,7 @@ public final class WorldEvents {
             loaded = true;
             loadCache();                            // the places, so a start heard in chat finds its event
         }
+        readLabels(now);
         if (!mapOpen) {
             return;
         }
@@ -119,14 +120,91 @@ public final class WorldEvents {
     /** Start times heard in chat ("… World Event starts in 3m 59s!"): name key → start. */
     private static volatile Map<String, Long> heard;
 
-    /** A start time Wynntils heard in chat for this event, in this world. */
+    /**
+     * A start time Wynntils heard for this event. Wynntils rounds it up to the next whole minute,
+     * so a time we read ourselves within that minute ({@link #exact}) is kept.
+     */
     public static void heard(String name, long start) {
+        Map<String, Long> h = heardMap();
+        Long had = h.get(key(name));
+        if (had == null || Math.abs(had - start) >= 65_000L) {
+            h.put(key(name), start);
+        }
+    }
+
+    /** A start time read from the game's own countdown, to the second. */
+    public static void exact(String name, long start) {
+        heardMap().put(key(name), start);
+    }
+
+    private static Map<String, Long> heardMap() {
         Map<String, Long> h = heard;
         if (h == null) {
             h = new java.util.concurrent.ConcurrentHashMap<>();
             heard = h;
         }
-        h.put(key(name), start);
+        return h;
+    }
+
+    private static final Pattern CHAT = Pattern.compile(
+            "([A-Z][A-Za-z'\\- ]*?) World Event starts in(?: (\\d+)h)?(?: (\\d+)m)?(?: (\\d+)s)?!");
+    private static final Pattern LABEL = Pattern.compile("^Starts in(?: (\\d+)h)?(?: (\\d+)m)?(?: (\\d+)s)?$");
+
+    /** "The Slimy Schism World Event starts in 3m 59s! (345 blocks away)": its start, to the second. */
+    public static void onChat(net.minecraft.network.chat.Component message, boolean overlay) {
+        if (overlay || !Settings.on(SETTING)) {
+            return;
+        }
+        try {
+            Matcher m = CHAT.matcher(io.github.anilken.wynnlabs.game.ItemJson.clean(message.getString()));
+            if (m.find()) {
+                exact(m.group(1), System.currentTimeMillis() + seconds(m.group(2), m.group(3), m.group(4)) * 1000);
+            }
+        } catch (Throwable t) {
+            System.out.println("[WynnLabs] world event chat unreadable: " + t);
+        }
+    }
+
+    /** The countdown over a world event near the player ("Starts in 4m 4s"), given to the nearest event. */
+    static void readLabels(long now) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (mc.level == null || mc.player == null || events.isEmpty()) {
+            return;
+        }
+        for (net.minecraft.world.entity.Entity e : mc.level.entitiesForRendering()) {
+            if (!(e instanceof net.minecraft.world.entity.Display.TextDisplay t)) {
+                continue;
+            }
+            String text = io.github.anilken.wynnlabs.game.ItemJson.clean(t.getText().getString());
+            for (String line : text.split("\n")) {
+                Matcher m = LABEL.matcher(line.strip());
+                if (!m.matches()) {
+                    continue;
+                }
+                Event near = nearest(events, e.getX(), e.getZ());
+                if (near != null) {
+                    exact(near.name(), now + seconds(m.group(1), m.group(2), m.group(3)) * 1000);
+                }
+            }
+        }
+    }
+
+    /** The event whose centre is nearest (x, z), within its radius and 48 blocks more. */
+    static Event nearest(List<Event> all, double x, double z) {
+        Event best = null;
+        double gap = Double.MAX_VALUE;
+        for (Event ev : all) {
+            double d = Math.hypot(ev.x() - x, ev.z() - z);
+            if (d <= ev.radius() + 48 && d < gap) {
+                gap = d;
+                best = ev;
+            }
+        }
+        return best;
+    }
+
+    static long seconds(String h, String m, String s) {
+        return num(h) * 3600 + num(m) * 60 + num(s);
     }
 
     static List<Shown> shown(List<Event> all, Map<String, Long> fromBook, long now) {
@@ -202,8 +280,10 @@ public final class WorldEvents {
         return s == null ? 0 : Long.parseLong(s);
     }
 
+    /** A name as a key: lower case, without a leading "The" (chat says "The Slimy Schism"). */
     static String key(String name) {
-        return name == null ? "" : name.strip().toLowerCase(Locale.ROOT);
+        String k = name == null ? "" : name.strip().toLowerCase(Locale.ROOT);
+        return k.startsWith("the ") ? k.substring(4) : k;
     }
 
     /** The world event list: each event's first place; events with no place are left out. */

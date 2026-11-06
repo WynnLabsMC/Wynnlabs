@@ -63,6 +63,7 @@ public final class Startup {
             Module.of("MenuWatcher").tick(MenuWatcher::onTick),
             Module.of("Profile").tick(Profile::onTick),
             Module.of("Crowd").tick(io.github.anilken.wynnlabs.ui.CrowdMode::onTick),
+            Module.of("WorldEvents").chat(io.github.anilken.wynnlabs.quests.WorldEvents::onChat),
             Module.of("Setup").tick(Setup::onTick),
             Module.of("Wyn").tick(Wyn::onTick),
             Module.of("Prices").tick(Prices::onTick),
