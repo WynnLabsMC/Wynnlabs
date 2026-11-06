@@ -67,11 +67,15 @@ public final class WorldEvents {
     private static volatile long bookAt;
     private static volatile long askedBookAt;
     private static volatile boolean loaded;
+    /** The world the heard start times belong to; null until the first world is known. */
+    private static volatile String heardWorld;
+    private static volatile boolean startsDirty;
+    private static volatile long startsSavedAt;
     private static ExecutorService worker;
     private static HttpClient http;
 
     /** Once a second: asks what is due while the main map is open and the setting is on. */
-    public static void tick(boolean mapOpen, long now) {
+    public static void tick(boolean mapOpen, String world, long now) {
         if (!Settings.on(SETTING)) {
             return;
         }
@@ -79,7 +83,21 @@ public final class WorldEvents {
             loaded = true;
             loadCache();                            // the places, so a start heard in chat finds its event
         }
+        if (world != null && !world.isBlank() && !world.equals(heardWorld)) {
+            // another world (or the first one since the game started): its own timers
+            boolean first = heardWorld == null;
+            heardWorld = world;
+            heardMap().clear();
+            book = Map.of();
+            bookAt = 0;
+            if (first) {
+                loadStarts(world, now);             // the times read before the game was closed
+            }
+        }
         readLabels(now);
+        if (startsDirty && now - startsSavedAt > 10_000L) {
+            saveStarts(now);
+        }
         if (!mapOpen) {
             return;
         }
@@ -95,6 +113,12 @@ public final class WorldEvents {
             askedBookAt = now;
             Wyn.scanWorldEvents(lines -> {
                 long at = System.currentTimeMillis();
+                if (lines.isEmpty()) {
+                    // a read cut short (the player opened a menu meanwhile) returns nothing: the
+                    // last list stays rather than every event leaving the map
+                    bookAt = at;
+                    return;
+                }
                 book = fromBook(lines, at);
                 bookAt = at;
             });
@@ -129,12 +153,16 @@ public final class WorldEvents {
         Long had = h.get(key(name));
         if (had == null || Math.abs(had - start) >= 65_000L) {
             h.put(key(name), start);
+            startsDirty = true;
         }
     }
 
     /** A start time read from the game's own countdown, to the second. */
     public static void exact(String name, long start) {
-        heardMap().put(key(name), start);
+        Long had = heardMap().put(key(name), start);
+        if (had == null || Math.abs(had - start) > 2_000L) {
+            startsDirty = true;
+        }
     }
 
     /** The start kept for this event (null: none), for tests. */
@@ -366,6 +394,56 @@ public final class WorldEvents {
 
     private static Path cache() {
         return Dirs.config().resolve("world-events.json");
+    }
+
+    private static Path startsFile() {
+        return Dirs.config().resolve("world-event-starts.json");
+    }
+
+    /** The start times kept for this world, still to come or under {@link #RUNS} past. */
+    private static void loadStarts(String world, long now) {
+        try {
+            Path p = startsFile();
+            if (!Files.exists(p)) {
+                return;
+            }
+            JsonObject o = JsonParser.parseString(Files.readString(p, StandardCharsets.UTF_8)).getAsJsonObject();
+            if (!o.has("world") || !world.equals(o.get("world").getAsString()) || !o.has("starts")) {
+                return;
+            }
+            for (var e : o.getAsJsonObject("starts").entrySet()) {
+                long at = e.getValue().getAsLong();
+                if (now - at <= RUNS) {
+                    heardMap().putIfAbsent(e.getKey(), at);
+                }
+            }
+        } catch (Throwable t) {
+            System.out.println("[WynnLabs] world event starts unreadable: " + t);
+        }
+    }
+
+    private static void saveStarts(long now) {
+        startsDirty = false;
+        startsSavedAt = now;
+        String world = heardWorld;
+        if (world == null) {
+            return;
+        }
+        JsonObject starts = new JsonObject();
+        heardMap().forEach((k, v) -> {
+            if (now - v <= RUNS) {
+                starts.addProperty(k, v);
+            }
+        });
+        JsonObject o = new JsonObject();
+        o.addProperty("world", world);
+        o.add("starts", starts);
+        try {
+            Files.createDirectories(startsFile().getParent());
+            Files.writeString(startsFile(), o.toString(), StandardCharsets.UTF_8);
+        } catch (Throwable t) {
+            System.out.println("[WynnLabs] world event starts not saved: " + t);
+        }
     }
 
     private static void loadCache() {
