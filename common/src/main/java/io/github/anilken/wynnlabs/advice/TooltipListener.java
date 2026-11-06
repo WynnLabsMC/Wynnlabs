@@ -339,8 +339,18 @@ public final class TooltipListener {
         int colour = 0xFF000000 | ("shopping-cart".equals(where) ? 0xFFC23A : e.verdict().rgb());
         int tw = font.width(word);
         Component c = styled(word);
+        // an unidentified piece also shows what it sells for unidentified, bottom-right
+        Component price = null;
+        if (view.get().isGear() && view.get().data() != null) {
+            Prices.Price pr = GameState.current().price(view.get().data().name());
+            Double unid = pr == null ? null : pr.unidAvg80() != null ? pr.unidAvg80()
+                    : pr.unidLowest() == null ? null : (double) pr.unidLowest();
+            if (unid != null && unid > 0) {
+                price = styled(Prices.slot(unid));
+            }
+        }
         return new BadgeFacts(until, rules, advice, c, font.width(c), tw * 2f / 3f <= 18 ? 2f / 3f : 16f / tw, colour, where,
-                null, 0, false);
+                price, price == null ? 0 : font.width(price), false);
     }
 
     private static Component styled(String text) {
@@ -362,7 +372,9 @@ public final class TooltipListener {
             } else {
                 outlined(g, font, f.price(), f.priceWidth(), x + 17, y + 16, 0.42f, 0xFF55FF55, true);
             }
-            return;
+            if (f.word() == null) {
+                return;                         // a price alone (identified gear, an ingredient)
+            }
         }
         if (f.word() == null) {
             return;
@@ -839,13 +851,17 @@ public final class TooltipListener {
      * Trade Market price right under the item name, and for a box "(15 EB)" after each item in
      * the possibilities list Wynntils draws. Returns whether it changed anything.
      */
+    /** The hidden mark on our MARKET line, so a tooltip built twice gets one. */
+    private static final String PRICE_MARK = "wynnlabs:price";
+
     private static boolean withPrices(net.minecraft.world.item.ItemStack stack, List<Component> out) {
         if (stack.isEmpty() || out.isEmpty()) {
             return false;
         }
         for (Component c : out) {
-            if (c.getString().contains(PRICE_TAG) || c.getString().startsWith("")) {
-                return false;                       // done already
+            // done already: our own MARKET line carries a hidden mark (the game's banners start with the same glyph)
+            if (c.getString().contains(PRICE_TAG) || PRICE_MARK.equals(c.getStyle().getInsertion())) {
+                return false;
             }
         }
         var parsed = WynntilsItems.view(stack);
@@ -908,7 +924,8 @@ public final class TooltipListener {
                     String word = words[k].startsWith("wynnlabs.") ? fallback[k] : words[k];
                     tags[k] = banner(word, boxes[k]);
                 }
-                net.minecraft.network.chat.MutableComponent line = Component.empty().append(tags[0])
+                net.minecraft.network.chat.MutableComponent line = Component.empty()
+                        .withStyle(st -> st.withInsertion(PRICE_MARK)).append(tags[0])
                         .append(Component.literal(" " + bare + (tags[1] != null ? " " : ""))
                                 .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.GOLD)
                                         .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)));
