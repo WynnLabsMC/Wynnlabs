@@ -106,7 +106,9 @@ public final class WorldEvents {
             return List.of();
         }
         Map<String, Long> h = heard;
-        return shown(events, bookAt > 0 && now - bookAt < BOOK_TRUSTED ? book : null, h == null ? Map.of() : h, now);
+        // only the events still to start: one that has started leaves the map
+        return shown(events, bookAt > 0 && now - bookAt < BOOK_TRUSTED ? book : null, h == null ? Map.of() : h, now)
+                .stream().filter(s -> !s.active()).toList();
     }
 
     /** Every known event (for the bridge to ask Wynntils which ones it heard about in chat). */
