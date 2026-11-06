@@ -88,7 +88,7 @@ class WorldEventsTest {
     @Test
     void theBookEntrysCountdownGivesTheStart() {
         long now = 7_000_000L;
-        WorldEvents.fromLore("Mole Meet-Up", List.of("Pirate Bay Foreshore", "Event starting in 3m 54s", "text"), now);
+        WorldEvents.fromLore("§7Mole Meet-Up [World Event]", List.of("Pirate Bay Foreshore", "Event starting in 3m 54s", "text"), now);
         assertEquals(now + 234_000L, WorldEvents.heardFor("Mole Meet-Up"));
     }
 

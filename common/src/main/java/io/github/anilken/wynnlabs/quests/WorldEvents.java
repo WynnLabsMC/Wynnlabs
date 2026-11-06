@@ -93,7 +93,9 @@ public final class WorldEvents {
         }
         if (now - askedBookAt > BOOK_EVERY) {
             askedBookAt = now;
+            System.out.println("[WynnLabs] world events: reading the content book");
             Wyn.scanWorldEvents(lines -> {
+                System.out.println("[WynnLabs] world events: book read, " + lines.size() + " entries");
                 long at = System.currentTimeMillis();
                 book = fromBook(lines, at);
                 bookAt = at;
@@ -165,7 +167,8 @@ public final class WorldEvents {
 
     /** One content book entry seen during the read: its "Event starting in 3m 54s", to the second. */
     public static void fromLore(String name, List<String> lore, long now) {
-        String n = io.github.anilken.wynnlabs.game.ItemJson.clean(name).strip();
+        // the book names it "Glacial Training [World Event]"
+        String n = io.github.anilken.wynnlabs.game.ItemJson.clean(name).replaceAll("\\s*\\[[^\\]]*\\]\\s*$", "").strip();
         if (n.isEmpty()) {
             return;
         }
