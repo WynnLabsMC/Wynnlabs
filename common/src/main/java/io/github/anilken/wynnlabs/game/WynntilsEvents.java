@@ -234,9 +234,7 @@ public final class WynntilsEvents {
          */
         @SubscribeEvent(priority = EventPriority.HIGHEST)
         public void onBookPage(com.wynntils.mc.event.ContainerSetContentEvent.Pre e) {
-            if (!io.github.anilken.wynnlabs.quests.WorldEvents.reading()) {
-                return;
-            }
+            // the book's world events, read by us or opened by the player: their countdowns
             try {
                 for (net.minecraft.world.item.ItemStack s : e.getItems()) {
                     bookEntry(s);
@@ -248,9 +246,7 @@ public final class WynntilsEvents {
 
         @SubscribeEvent(priority = EventPriority.HIGHEST)
         public void onBookSlot(com.wynntils.mc.event.ContainerSetSlotEvent.Pre e) {
-            if (!io.github.anilken.wynnlabs.quests.WorldEvents.reading()) {
-                return;
-            }
+            // the book's world events, read by us or opened by the player: their countdowns
             try {
                 bookEntry(e.getItemStack());
             } catch (Throwable t) {
@@ -263,11 +259,15 @@ public final class WynntilsEvents {
             if (lore == null) {
                 return;
             }
+            String name = s.getHoverName().getString();
+            if (!name.contains("World Event]") && !io.github.anilken.wynnlabs.quests.WorldEvents.reading()) {
+                return;                             // not a world event entry
+            }
             List<String> lines = new java.util.ArrayList<>();
             for (var l : lore.lines()) {
                 lines.add(l.getString());
             }
-            io.github.anilken.wynnlabs.quests.WorldEvents.fromLore(s.getHoverName().getString(), lines,
+            io.github.anilken.wynnlabs.quests.WorldEvents.fromLore(name, lines,
                     System.currentTimeMillis());
         }
 

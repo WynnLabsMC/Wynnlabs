@@ -369,7 +369,13 @@ public final class WorldReads {
         run(Feature.WAYPOINTS, () -> {
             long now = System.currentTimeMillis();
             boolean open = net.minecraft.client.Minecraft.getInstance().screen instanceof com.wynntils.screens.maps.MainMapScreen;
-            io.github.anilken.wynnlabs.quests.WorldEvents.tick(open, now);
+            String world = null;
+            try {
+                world = Models.WorldState.getCurrentWorldName();
+            } catch (RuntimeException e) {
+                // no world name: the times stay as they are
+            }
+            io.github.anilken.wynnlabs.quests.WorldEvents.tick(open, world, now);
             // a "… World Event starts in 3m 59s!" in chat gives Wynntils the exact start in this world;
             // Wynntils forgets it once the event starts, so the start is kept on our side, map open or not
             for (var e : io.github.anilken.wynnlabs.quests.WorldEvents.all()) {

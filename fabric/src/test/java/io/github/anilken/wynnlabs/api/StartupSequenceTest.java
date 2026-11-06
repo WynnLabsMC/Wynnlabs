@@ -44,6 +44,7 @@ class StartupSequenceTest {
             chat -
             chat -
             chat -
+            chat -
             command av
             command wynnlabs-update
             command wynnlabs-prices

@@ -207,7 +207,15 @@ public final class History {
                 continue;
             }
             Integer count = intOf(o, "total_count");
-            byDate.put(date, new Day(date, positive(intOf(o, "p50_price")), positive(intOf(o, "lowest_price")),
+            // some items (ingredients) come without a median: their middle-80 % average, else the average
+            Integer p50 = positive(intOf(o, "p50_price"));
+            if (p50 == null) {
+                p50 = positive(intOf(o, "average_mid_80_percent_price"));
+            }
+            if (p50 == null) {
+                p50 = positive(intOf(o, "average_price"));
+            }
+            byDate.put(date, new Day(date, p50, positive(intOf(o, "lowest_price")),
                     positive(intOf(o, "highest_price")), count == null ? 0 : Math.max(0, count)));
         }
         return new Series(List.copyOf(byDate.values()), System.currentTimeMillis());
@@ -385,8 +393,12 @@ public final class History {
                                     count == null ? 0 : count));
                         }
                     }
+                    Series kept = new Series(List.copyOf(days), at);
+                    if (!days.isEmpty() && !kept.drawable()) {
+                        continue;                   // saved before the averages were read: asked again
+                    }
                     Entry e = new Entry();
-                    e.series = new Series(List.copyOf(days), at);
+                    e.series = kept;
                     ITEMS.put(it.getKey(), e);
                 }
             } catch (Exception e) {

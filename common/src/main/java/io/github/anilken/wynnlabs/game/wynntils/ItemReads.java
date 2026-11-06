@@ -132,6 +132,20 @@ public final class ItemReads {
         if (kind == null || kind.marketSell() || !kind.type().startsWith("TradeMarket")) {
             return 0;
         }
+        // only a listing (its lore has a "Price" line): Wynntils warns in the log on every other item
+        var lore = stack == null || stack.isEmpty() ? null : stack.get(net.minecraft.core.component.DataComponents.LORE);
+        boolean priced = false;
+        if (lore != null) {
+            for (var l : lore.lines()) {
+                if (io.github.anilken.wynnlabs.game.ItemJson.clean(l.getString()).strip().equals("Price")) {
+                    priced = true;
+                    break;
+                }
+            }
+        }
+        if (!priced) {
+            return 0;
+        }
         return guard(Feature.CONTAINERS, () -> Math.max(0, Models.TradeMarket.calculateItemPriceInfo(stack).price()), 0);
     }
 

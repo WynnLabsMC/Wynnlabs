@@ -438,6 +438,23 @@ public final class WynntilsItems {
             ability = part(() -> ((StyledText) Wyn.call(item, ABILITY_NODE_NAME)).getStringWithoutFormatting());
         } else if (item instanceof ActivityItem) {
             kind = ItemView.Kind.ACTIVITY;
+        } else if (plain && name == null && stack != null && !stack.isEmpty()) {
+            // an ingredient newer than Wynntils' item data: its lore reads like one ("Can be used in recipes for")
+            var lore = stack.get(net.minecraft.core.component.DataComponents.LORE);
+            boolean ingredient = false;
+            if (lore != null) {
+                for (var l : lore.lines()) {
+                    if (ItemJson.clean(l.getString()).contains("Can be used in recipes for")) {
+                        ingredient = true;
+                        break;
+                    }
+                }
+            }
+            if (ingredient) {
+                kind = ItemView.Kind.INGREDIENT;
+                String shown = ItemJson.clean(stack.getHoverName().getString());
+                name = shown.isBlank() ? null : shown;
+            }
         }
         return new ItemView(kind, type, plain, name, level, profs, data, rolled, crafted, box, quality, powder,
                 potion, key, sp, crystal, ability);
