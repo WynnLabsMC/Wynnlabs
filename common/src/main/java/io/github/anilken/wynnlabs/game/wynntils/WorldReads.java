@@ -452,9 +452,11 @@ public final class WorldReads {
             try {
                 int r = io.github.anilken.wynnlabs.ui.WorldEventPaint.area(g, shown, x, z, hovered, zoomRenderScale);
                 com.wynntils.utils.render.Texture icon = com.wynntils.utils.render.Texture.WORLD_EVENT_ICON;
-                float s = Math.max(0.6f, Math.min(1f, scale));
-                float w = icon.width() * s;
-                float h = icon.height() * s;
+                // the icon follows the zoom: at most its own size, never wider than the area, at least 6 px
+                float side = Math.max(6f, Math.min(Math.max(icon.width(), icon.height()) * Math.min(1f, scale), r * 1.2f));
+                float k = side / Math.max(icon.width(), icon.height());
+                float w = icon.width() * k;
+                float h = icon.height() * k;
                 com.wynntils.utils.render.RenderUtils.drawScalingTexturedRect(g, icon,
                         com.wynntils.utils.colors.CustomColor.fromARGBInt(0xFFFFFFFF), x - w / 2, z - h / 2, w, h);
                 io.github.anilken.wynnlabs.ui.WorldEventPaint.labels(g, shown, x, z - Math.max(r, h / 2), hovered,
