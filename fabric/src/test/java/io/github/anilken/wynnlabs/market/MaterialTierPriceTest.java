@@ -37,6 +37,9 @@ class MaterialTierPriceTest {
         assertEquals(3, t[1]);
         assertNull(Prices.tiered("Cinnabar Gem"));
         assertNull(Prices.tiered("Teleport Scroll [3/3]"));
+        Object[] a = Prices.tiered("Corkian Amplifier T4");
+        assertEquals("Corkian Amplifier", a[0]);
+        assertEquals(4, a[1]);
     }
 
     @Test
