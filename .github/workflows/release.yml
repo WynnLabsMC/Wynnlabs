@@ -186,6 +186,8 @@ jobs:
   publish:
     name: Publish ${{ matrix.loader }}
     needs: [version, release]
+    # paused while the repository variable STORE_PUBLISH is 'off': the GitHub release still goes out
+    if: vars.STORE_PUBLISH != 'off'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
