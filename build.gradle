@@ -545,7 +545,9 @@ tasks.register('checkWynntilsImports') {
         // in common only; the loader modules may not name Wynntils at all
         def allowed = ['common/src/main/java/io/github/anilken/wynnlabs/game/Wyn.java',
                        'common/src/main/java/io/github/anilken/wynnlabs/game/WynntilsItems.java',
-                       'common/src/main/java/io/github/anilken/wynnlabs/game/WynntilsEvents.java'] as Set
+                       'common/src/main/java/io/github/anilken/wynnlabs/game/WynntilsEvents.java',
+                       // targets a Wynntils class by name only and hands the call to Wyn
+                       'common/src/main/java/io/github/anilken/wynnlabs/mixin/ChestIconScaleMixin.java'] as Set
         def allowedDir = 'common/src/main/java/io/github/anilken/wynnlabs/game/wynntils/'
         def hits = []
         def files = 0

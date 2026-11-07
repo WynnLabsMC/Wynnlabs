@@ -25,6 +25,7 @@
     "CrowdParticleMixin",
     "PriceBoxMixin",
     "GuildMapSwapMixin",
+    "ChestIconScaleMixin",
     "RawInputMixin",
     "RawScrollMixin"
   ],
