@@ -48,6 +48,8 @@ public final class GuildApi {
 
     private static final Map<String, Info> INFO = new ConcurrentHashMap<>();
     private static final Map<String, Long> ASKED = new ConcurrentHashMap<>();
+    /** Guilds the last ask failed for: "unknown" (the API has no such guild) or "error". */
+    private static final Map<String, String> FAILED = new ConcurrentHashMap<>();
     private static final Set<String> QUEUED = ConcurrentHashMap.newKeySet();
     private static final ExecutorService WORKER = Workers.singleLow("guild-api");
     private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -58,12 +60,17 @@ public final class GuildApi {
 
     /** The picked guild: what is known, asked again when a minute old. */
     public static Info picked(String prefix) {
-        return get(prefix, PICKED_EVERY);
+        return get(prefix, PICKED_EVERY, true);
     }
 
     /** True while this guild is being asked for. */
     public static boolean asking(String prefix) {
         return prefix != null && QUEUED.contains(prefix);
+    }
+
+    /** Why the last ask for this guild got nothing ("unknown", "error"), or null. */
+    public static String failed(String prefix) {
+        return prefix == null ? null : FAILED.get(prefix);
     }
 
     /** When the newest answer of any guild came (0: none yet), for the list's "updated" line. */
@@ -77,10 +84,10 @@ public final class GuildApi {
 
     /** A guild in the list: what is known, asked again when five minutes old. */
     public static Info listed(String prefix) {
-        return get(prefix, LIST_EVERY);
+        return get(prefix, LIST_EVERY, false);
     }
 
-    private static Info get(String prefix, long every) {
+    private static Info get(String prefix, long every, boolean picked) {
         if (prefix == null || prefix.isBlank()) {
             return null;
         }
@@ -94,16 +101,18 @@ public final class GuildApi {
             ASKED.put(prefix, now);
             WORKER.execute(() -> {
                 try {
-                    if (!slot()) {
+                    if (!slot(picked)) {
                         ASKED.remove(prefix);           // over this minute's share: asked again later
                         return;
                     }
                     Info got = fetch(prefix);
                     if (got != null) {
                         INFO.put(prefix, got);
+                        FAILED.remove(prefix);
                     }
                 } catch (Throwable e) {
                     // offline, a changed answer or anything worse: what we had stays, the game goes on
+                    FAILED.put(prefix, "error");
                 } finally {
                     QUEUED.remove(prefix);
                 }
@@ -112,11 +121,23 @@ public final class GuildApi {
         return have;
     }
 
-    /** True when one more ask fits in the last minute's share (and counts it). */
-    private static synchronized boolean slot() {
+    /** Asks a minute kept for the guild you picked, so the list's online counts never keep it waiting. */
+    private static final int KEPT_FOR_PICKED = 6;
+
+    /** True when one more ask fits in the last minute's share (and counts it); the list leaves a few for the picked guild. */
+    private static synchronized boolean slot(boolean picked) {
         long now = System.currentTimeMillis();
         if (now - SENT[sentAt] < 60_000L) {
             return false;
+        }
+        if (!picked) {
+            int free = 0;
+            for (long t : SENT) {
+                free += now - t >= 60_000L ? 1 : 0;
+            }
+            if (free <= KEPT_FOR_PICKED) {
+                return false;
+            }
         }
         SENT[sentAt] = now;
         sentAt = (sentAt + 1) % SENT.length;
@@ -137,7 +158,12 @@ public final class GuildApi {
         if (header(r, "ratelimit-remaining", 50) < KEEP_FREE) {
             quietUntil = System.currentTimeMillis() + 1000L * header(r, "ratelimit-reset", 60);
         }
+        if (r.statusCode() == 404) {
+            FAILED.put(prefix, "unknown");
+            return null;
+        }
         if (r.statusCode() != 200) {
+            FAILED.put(prefix, "error");
             return null;
         }
         return parse(JsonParser.parseString(r.body()).getAsJsonObject(), System.currentTimeMillis());
