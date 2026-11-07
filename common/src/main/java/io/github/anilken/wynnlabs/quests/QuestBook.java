@@ -33,6 +33,8 @@ public final class QuestBook {
             Integer x, Integer y, Integer z, Integer bookDistance, long seen, String type, String difficulty) {}
 
     private static final Map<String, Entry> ENTRIES = new ConcurrentHashMap<>();
+    /** A quest you have not done → the quests that need it first, as the book's requirements say. */
+    private static final Map<String, List<String>> NEEDED_FOR = new ConcurrentHashMap<>();
     private static final Pattern COORDS = Pattern.compile("\\[\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*,\\s*(-?\\d+)\\s*]");
     private static String loadedFor = null;
     private static int tick;
@@ -43,6 +45,12 @@ public final class QuestBook {
     public static Entry get(String name) {
         load();
         return previewHidden || name == null ? null : ENTRIES.get(name);
+    }
+
+    /** The quests that need {@code name} done first (empty when none, or the book was not read this session). */
+    public static List<String> neededFor(String name) {
+        List<String> by = name == null ? null : NEEDED_FOR.get(name);
+        return by == null ? List.of() : List.copyOf(by);
     }
 
     public static List<Entry> all() {
@@ -149,6 +157,12 @@ public final class QuestBook {
             }
             for (Quest.Need n : r.quests()) {
                 met &= n.met() == null || n.met();
+                if (n.quest() != null && Boolean.FALSE.equals(n.met())) {
+                    List<String> by = NEEDED_FOR.computeIfAbsent(n.quest(), k -> new java.util.concurrent.CopyOnWriteArrayList<>());
+                    if (!by.contains(q.name())) {
+                        by.add(q.name());
+                    }
+                }
             }
         }
         long xp = 0;
