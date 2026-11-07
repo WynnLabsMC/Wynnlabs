@@ -636,6 +636,9 @@ public final class Prices {
     /** "Cinnabar Gem T3": a material's name with its quality tier, as Wynnventory keeps them. */
     private static final java.util.regex.Pattern TIERED = java.util.regex.Pattern.compile("^(.+) T([0-3])$");
 
+    /** "Corkian Amplifier T4": an amplifier's tier goes past a material's three, asked the same way. */
+    private static final java.util.regex.Pattern AMPLIFIER = java.util.regex.Pattern.compile("^(Corkian Amplifier) T([0-9])$");
+
     /**
      * The price key of an item: a material carries its quality tier ("Cinnabar Gem T3"), since
      * its three tiers sell at very different prices under one name; anything else its name.
@@ -670,6 +673,9 @@ public final class Prices {
             return null;
         }
         java.util.regex.Matcher m = TIERED.matcher(key);
+        if (!m.matches()) {
+            m = AMPLIFIER.matcher(key);
+        }
         return m.matches() ? new Object[] {m.group(1), Integer.parseInt(m.group(2))} : null;
     }
 
