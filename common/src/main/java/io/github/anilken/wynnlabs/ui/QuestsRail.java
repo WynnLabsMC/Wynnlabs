@@ -64,9 +64,7 @@ final class QuestsRail extends MenuPaint {
         }
         ContentType t = tab.questType;
         return QuestsCache.kept("rows|" + t + "|" + tab.questFilter + "|" + tab.query() + "|" + QuestsData.tracked() + "|" + QuestBook.changedAt(), 500,
-                () -> t.book() ? tab.types.rows(t, tab.query())
-                        : t == ContentType.RECOMMENDED && tab.questFilter.equals("RECOMMENDED") && tab.query().isEmpty()
-                        ? QuestsTypes.mix(rowsNow()) : rowsNow());
+                () -> t.book() ? tab.types.rows(t, tab.query()) : rowsNow());
     }
 
     /** Whether a quest of the book belongs to the shown kind (Quest: no minis; Mini-Quest: only minis). */

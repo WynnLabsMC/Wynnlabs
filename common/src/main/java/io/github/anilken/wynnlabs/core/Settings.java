@@ -276,7 +276,7 @@ public final class Settings {
     static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "priceApi",
             "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "rideRefresh",
             "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint", "chestBeams", "gearCompactTooltip",
-            "crowdMode", "marketFit", "glowUpgrade", "glowShop", "sellGlow", "glowQuest", "cannotWear");
+            "crowdMode", "marketFit", "glowUpgrade", "glowShop", "sellGlow", "glowQuest", "cannotWear", "miniQuests");
 
     public static boolean on(String key) {
         load();

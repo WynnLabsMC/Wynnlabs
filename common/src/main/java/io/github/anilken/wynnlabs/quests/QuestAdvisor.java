@@ -69,6 +69,7 @@ public final class QuestAdvisor {
         } catch (Throwable ignored) {
         }
         int level = GameState.current().level();
+        boolean inOrder = filter.equals("RECOMMENDED") && inOrder(QuestBook.all(), level);
         List<QuestBook.Entry> candidates = new ArrayList<>();
         long maxRate = 1;
         for (QuestBook.Entry q : QuestBook.all()) {
@@ -80,7 +81,7 @@ public final class QuestAdvisor {
                 case "ABOVE" -> !"COMPLETED".equals(q.status()) && !mini && q.level() > level && q.level() <= level + 5;
                 case "MINI" -> mini && (started || "AVAILABLE".equals(q.status()) && q.level() <= level);
                 default -> (started || "AVAILABLE".equals(q.status()) && q.met() && q.level() <= level)
-                        && (!mini || started || Settings.on("miniQuests"));
+                        && (!mini || Settings.on("miniQuests"));
             };
             if (!keep) {
                 continue;
@@ -91,6 +92,7 @@ public final class QuestAdvisor {
         List<Suggestion> out = new ArrayList<>();
         for (QuestBook.Entry q : candidates) {
             List<String> reasons = new ArrayList<>();
+            boolean started = "STARTED".equals(q.status());
             // 0..1: XP for the time it takes, on a log scale, so one huge reward (Tower of Ascension)
             // does not drown everything else; safety below weighs as much as the XP
             double score = Math.log1p(q.xp() / hours(q)) / Math.log1p(maxRate);
@@ -138,6 +140,21 @@ public final class QuestAdvisor {
             if (filter.equals("ITEM") && items == null || filter.equals("SHORT") && !"SHORT".equals(q.length())) {
                 continue;
             }
+            if (inOrder) {
+                // every quest is open to your level: the list is a to-do list, not an XP race
+                reasons.clear();
+                if (started) {
+                    reasons.add(L.t("wynnlabs.questadv.reason_started"));
+                }
+                reasons.add(L.t("wynnlabs.questadv.reason_in_order", q.level()));
+                List<String> needs = QuestBook.neededFor(q.name());
+                if (!needs.isEmpty()) {
+                    reasons.add(L.t("wynnlabs.questadv.reason_needed_for", String.join(", ", needs)));
+                }
+                if (dist >= 0 && dist <= NEARBY) {
+                    reasons.add(L.t("wynnlabs.questadv.reason_nearby"));
+                }
+            }
             out.add(new Suggestion(q, score, dist, reasons));
         }
         switch (filter) {
@@ -145,10 +162,37 @@ public final class QuestAdvisor {
             case "XP" -> out.sort(Comparator.comparingLong((Suggestion s) -> s.quest().xp()).reversed());
             case "ABOVE" -> out.sort(Comparator.comparingInt(s -> s.quest().level()));
             case "DONE" -> out.sort(Comparator.comparing(s -> s.quest().name()));
-            default -> out.sort(Comparator.comparingDouble(Suggestion::score).reversed());
+            default -> out.sort(inOrder ? IN_ORDER : Comparator.comparingDouble(Suggestion::score).reversed());
         }
         return out;
     }
+
+    /** How close (blocks) a quest counts as "nearby" in the in-order list. */
+    static final int NEARBY = 500;
+
+    /**
+     * Whether the recommended list runs in order: no quest left in the book is above your level
+     * (mini-quests aside), so every one of them is open and the player is finishing the book.
+     */
+    static boolean inOrder(List<QuestBook.Entry> book, int level) {
+        boolean any = false;
+        for (QuestBook.Entry q : book) {
+            if ("COMPLETED".equals(q.status()) || "MINI_QUEST".equals(q.type())) {
+                continue;
+            }
+            if (q.level() > level) {
+                return false;
+            }
+            any = true;
+        }
+        return any;
+    }
+
+    /** Started first, then by level (lowest first), then the nearest; quests with no known place last among equals. */
+    static final Comparator<Suggestion> IN_ORDER = Comparator
+            .comparing((Suggestion s) -> !s.started())
+            .thenComparingInt(s -> s.quest().level())
+            .thenComparingInt(s -> s.distance() < 0 ? Integer.MAX_VALUE : s.distance());
 
     /** Minutes a quest takes, by its length, plus the walk there (about 5 blocks a second). */
     public static int minutes(Suggestion s) {
