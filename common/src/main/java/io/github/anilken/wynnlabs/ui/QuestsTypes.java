@@ -79,44 +79,6 @@ final class QuestsTypes extends MenuPaint {
         return out;
     }
 
-    /** Recommended: the advisor's quests with the places for your level among them (two quests, a place). */
-    static List<QuestsRail.Row> mix(List<QuestsRail.Row> quests) {
-        List<Content.Line> near = near();
-        List<QuestsRail.Row> out = new ArrayList<>();
-        int p = 0;
-        int n = 0;
-        for (QuestsRail.Row r : quests) {
-            if (r.head() != null && p < near.size()) {
-                while (p < near.size()) {
-                    Content.Line l = near.get(p++);
-                    out.add(new QuestsRail.Row(l.name(), null, null, l));
-                }
-            }
-            out.add(r);
-            if (r.head() == null && ++n % 2 == 0 && p < near.size()) {
-                Content.Line l = near.get(p++);
-                out.add(new QuestsRail.Row(l.name(), null, null, l));
-            }
-        }
-        while (p < near.size()) {
-            Content.Line l = near.get(p++);
-            out.add(new QuestsRail.Row(l.name(), null, null, l));
-        }
-        return out;
-    }
-
-    /** The places the advisor adds for your level: caves, dungeons and boss altars near you. */
-    static List<Content.Line> near() {
-        return QuestsCache.kept("near", 2000, () -> {
-            List<Content.Line> places = new ArrayList<>();
-            for (ContentType t : List.of(ContentType.CAVE, ContentType.DUNGEON, ContentType.BOSS_ALTAR)) {
-                places.addAll(lines(t));
-            }
-            double[] at = here();
-            return Content.near(places, Wyn.level(), at[0], at[1], 6);
-        });
-    }
-
     private static double[] here() {
         var p = Minecraft.getInstance().player;
         return p == null ? new double[] {0, 0} : new double[] {p.getX(), p.getZ()};
@@ -131,7 +93,7 @@ final class QuestsTypes extends MenuPaint {
         return QuestsCache.kept("count|" + type + "|" + tab.questFilter, 2000, () -> {
             Map<String, List<QuestAdvisor.Suggestion>> lists = tab.lists();
             return switch (type) {
-                case RECOMMENDED -> lists.getOrDefault("RECOMMENDED", List.of()).size() + near().size();
+                case RECOMMENDED -> lists.getOrDefault("RECOMMENDED", List.of()).size();
                 case QUEST -> (int) lists.getOrDefault("RECOMMENDED", List.of()).stream()
                         .filter(s -> !"MINI_QUEST".equals(s.quest().type())).count();
                 case MINI_QUEST -> lists.getOrDefault("MINI", List.of()).size();

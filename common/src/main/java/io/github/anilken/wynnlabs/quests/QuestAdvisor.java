@@ -81,7 +81,7 @@ public final class QuestAdvisor {
                 case "ABOVE" -> !"COMPLETED".equals(q.status()) && !mini && q.level() > level && q.level() <= level + 5;
                 case "MINI" -> mini && (started || "AVAILABLE".equals(q.status()) && q.level() <= level);
                 default -> (started || "AVAILABLE".equals(q.status()) && q.met() && q.level() <= level)
-                        && (!mini || started || Settings.on("miniQuests"));
+                        && (!mini || Settings.on("miniQuests"));
             };
             if (!keep) {
                 continue;
