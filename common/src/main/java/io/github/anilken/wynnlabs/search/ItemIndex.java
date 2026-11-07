@@ -358,7 +358,15 @@ public final class ItemIndex {
 
     /** The item of this name (any case), or null. */
     public Entry byName(String name) {
-        return name == null ? null : byName.get(name.toLowerCase(Locale.ROOT));
+        if (name == null) {
+            return null;
+        }
+        Entry e = byName.get(name.toLowerCase(Locale.ROOT));
+        if (e == null && name.matches(".+ T[0-9]")) {
+            // a market key with its tier ("Cinnabar Gem T3", "Corkian Amplifier T4"): the item itself
+            e = byName.get(name.substring(0, name.length() - 3).toLowerCase(Locale.ROOT));
+        }
+        return e;
     }
 
     /** The entry of this {@link Entry#key} (any case; an item's key is its name), or null. */

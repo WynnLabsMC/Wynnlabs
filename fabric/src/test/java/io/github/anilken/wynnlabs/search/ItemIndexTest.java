@@ -83,6 +83,8 @@ class ItemIndexTest {
         // a single [x, y, z, r] list
         assertEquals(1, idx.byName("7-Yottabyte Storage Component").origins().get(0).areas().size());
         assertEquals(List.of("mining"), idx.byName("Copper Ingot").professions());
+        // a market key with its tier finds the material itself
+        assertEquals("Copper Ingot", idx.byName("Copper Ingot T3").name());
         Entry bear = idx.byName("Bear Body");
         assertEquals("Bear", bear.set());
         assertEquals(List.of("Bear Body", "Bear Mask", "Bear Head"), idx.setPieces(bear));

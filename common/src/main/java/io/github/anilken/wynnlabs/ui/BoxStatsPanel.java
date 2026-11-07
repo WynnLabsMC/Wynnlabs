@@ -50,10 +50,22 @@ final class BoxStatsPanel {
         var lore = stack == null ? null : stack.get(net.minecraft.core.component.DataComponents.LORE);
         if (lore != null) {
             List<String> lines = new ArrayList<>();
+            boolean price = false;
             for (Component c : lore.lines()) {
-                String line = io.github.anilken.wynnlabs.game.ItemJson.clean(c.getString());
-                if (line.startsWith("Price") || line.startsWith("Fiyat") || line.contains("Click")) {
-                    break;
+                String line = io.github.anilken.wynnlabs.game.ItemJson.clean(c.getString()).strip();
+                // the market's price block (on the Trade Market it comes before the description)
+                // runs to the next empty line; it and "Click to …" are skipped, not the end
+                String head = line.replaceFirst("^[^\\p{L}]+", "");
+                if (head.startsWith("Price") || head.startsWith("Fiyat")) {
+                    price = true;
+                    continue;
+                }
+                if (price) {
+                    price = !line.isEmpty();
+                    continue;
+                }
+                if (line.contains("Click")) {
+                    continue;
                 }
                 line = line.replaceAll("\\[[^\\]\\p{L}\\p{N}]*\\]", "").strip();   // a tier bar ("[■■■■■□□]") says nothing as text
                 if (line.codePoints().filter(Character::isLetter).count() >= 2) {
