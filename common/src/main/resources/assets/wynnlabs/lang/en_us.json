@@ -3340,6 +3340,8 @@
   "wynnlabs.guildmap.wars": "Wars",
   "wynnlabs.guildmap.created": "Created",
   "wynnlabs.guildmap.loading": "Asking Wynncraft…",
+  "wynnlabs.guildmap.unknown": "Wynncraft doesn't know this guild",
+  "wynnlabs.guildmap.no_answer": "Wynncraft didn't answer; trying again in 2 minutes",
   "wynnlabs.guildmap.online_members": "ONLINE MEMBERS",
   "wynnlabs.setting.guildApi": "Guild map: members from Wynncraft",
   "wynnlabs.setting_desc.guildApi": "While the guild map is open, asks Wynncraft's API about the guilds in its panel: level, members, wars and who is online on which world. A guild at most once in two minutes, and it waits whenever the API is nearly out of asks",
