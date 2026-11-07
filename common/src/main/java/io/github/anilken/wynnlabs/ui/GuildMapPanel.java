@@ -349,6 +349,8 @@ public final class GuildMapPanel {
         // when the guild's numbers were asked
         if (Settings.on("guildApi")) {
             footer = GuildApi.asking(picked.prefix()) ? L.t("wynnlabs.guildmap.updating")
+                    : api == null && "unknown".equals(GuildApi.failed(picked.prefix())) ? L.t("wynnlabs.guildmap.unknown")
+                    : api == null && GuildApi.failed(picked.prefix()) != null ? L.t("wynnlabs.guildmap.no_answer")
                     : api == null ? L.t("wynnlabs.guildmap.loading")
                     : L.t("wynnlabs.guildmap.updated", GuildMapLook.ago(now - api.at()));
         }

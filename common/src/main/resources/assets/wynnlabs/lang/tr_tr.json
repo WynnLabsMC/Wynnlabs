@@ -3337,6 +3337,8 @@
   "wynnlabs.guildmap.wars": "Savaşlar",
   "wynnlabs.guildmap.created": "Kuruluş",
   "wynnlabs.guildmap.loading": "Wynncraft'a soruluyor…",
+  "wynnlabs.guildmap.unknown": "Wynncraft bu guild'i tanımıyor",
+  "wynnlabs.guildmap.no_answer": "Wynncraft cevap vermedi; 2 dakika sonra tekrar sorulacak",
   "wynnlabs.guildmap.online_members": "ÇEVRİMİÇİ ÜYELER",
   "wynnlabs.setting.guildApi": "Guild haritası: üyeler Wynncraft'tan",
   "wynnlabs.setting_desc.guildApi": "Guild haritası açıkken paneldeki guild'leri Wynncraft'ın API'sine sorar: seviye, üyeler, savaşlar ve kim hangi dünyada çevrimiçi. Bir guild en fazla iki dakikada bir; API'nin istek hakkı azalınca bekler",
