@@ -497,6 +497,33 @@ public final class WorldReads {
         }
     }
 
+    // ---- smaller loot chest and cave icons on Wynntils' map ----
+
+    /** How big a loot chest or cave icon is next to the other icons while "smallMapIcons" is on. */
+    private static final float CHEST_SCALE = 0.6f;
+
+    /**
+     * The scale Wynntils' map and minimap draw an icon at ({@code IconPoi.renderAt}, hit box
+     * included): the loot chests Wynntils marks by itself and the caves shrink, every other icon
+     * keeps its size.
+     * Rendering only.
+     */
+    public static float chestIconScale(Object poi, float scale) {
+        if (!io.github.anilken.wynnlabs.core.Settings.on("smallMapIcons")) {
+            return scale;
+        }
+        if (poi instanceof com.wynntils.services.map.pois.CombatPoi cave) {
+            return cave.getKind() == com.wynntils.services.map.type.CombatKind.CAVES ? scale * CHEST_SCALE : scale;
+        }
+        if (!(poi instanceof com.wynntils.services.map.pois.CustomPoi c)) {
+            return scale;
+        }
+        com.wynntils.utils.render.Texture t = c.getIcon();
+        boolean chest = t == com.wynntils.utils.render.Texture.CHEST_T1 || t == com.wynntils.utils.render.Texture.CHEST_T2
+                || t == com.wynntils.utils.render.Texture.CHEST_T3 || t == com.wynntils.utils.render.Texture.CHEST_T4;
+        return chest ? scale * CHEST_SCALE : scale;
+    }
+
     // ---- finished caves red and dim on Wynntils' map ----
 
     /**
@@ -601,6 +628,7 @@ public final class WorldReads {
                     float scale, float zoom, float zoomLevel, boolean flag) {
                 // Wynntils sets the icon's alpha from the zoom on every frame, so the fade is drawn
                 // here: its own alpha (the private getIconAlpha) times FADE
+                scale = chestIconScale(this, scale);    // drawn here, not by the scaled IconPoi.renderAt
                 float s = hovered ? scale * 1.05f : scale;
                 com.wynntils.utils.render.Texture icon = getIcon();
                 float w = icon.width() * s;

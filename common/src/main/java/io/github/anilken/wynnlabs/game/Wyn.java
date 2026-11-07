@@ -514,6 +514,11 @@ public final class Wyn {
         return WorldReads.hoveredGuideItem(screen);
     }
 
+    /** The scale Wynntils' map draws one of its icons at: smaller for loot chests and caves. */
+    public static float chestIconScale(Object poi, float scale) {
+        return WorldReads.chestIconScale(poi, scale);
+    }
+
     public static void caveMapSync() {
         WorldReads.caveMapSync();
     }
