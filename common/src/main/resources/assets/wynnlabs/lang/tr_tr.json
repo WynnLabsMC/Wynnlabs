@@ -1567,7 +1567,7 @@
   "wynnlabs.plan.tool_market": "Trade Market",
   "wynnlabs.plan.tool_market_go": "Market",
   "wynnlabs.plan.tool_best": "Seviyene göre en iyisi · %s Lv %s'te",
-  "wynnlabs.plan.spots": "En yakın toplama noktaları",
+  "wynnlabs.plan.spots": "En iyi toplama noktaları",
   "wynnlabs.plan.spot_nodes": "%s node",
   "wynnlabs.plan.gather_xp_none": "Bir kez topla, planlayıcı toplama başına XP'ni öğrensin",
   "wynnlabs.plan.gather_xp_only": "Son toplama %s XP · Sonraki level XP'si bilinmiyor",
