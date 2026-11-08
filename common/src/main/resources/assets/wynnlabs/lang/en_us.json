@@ -1561,7 +1561,7 @@
   "wynnlabs.craft.view_suggest": "Suggestions",
   "wynnlabs.plan.tool_head": "Your tool",
   "wynnlabs.plan.tool_line": "Speed %s · Durability %s / %s",
-  "wynnlabs.plan.tool_usable": "Best you can use",
+  "wynnlabs.plan.tool_usable": "You can gather with this",
   "wynnlabs.plan.tool_speed": "Speed %s",
   "wynnlabs.plan.tool_merchant": "Tool Merchant",
   "wynnlabs.plan.tool_market": "Trade Market",
