@@ -296,8 +296,8 @@ final class CraftRoadSteps {
     }
 
     /**
-     * The tool rows of a gathering profession: the best one in the bag (or that there is none),
-     * then the better one the level allows (where it is sold: the Tool Merchant sells only tiers
+     * The tool rows of a gathering profession: the best one in the bag, then the best one the
+     * level allows when it is better (where it is sold: the Tool Merchant sells only tiers
      * 1 and 2, the rest come from the Trade Market), or that the bag's is the best yet.
      */
     int toolRows(GuiGraphics g, String profession, int level, int x, int y, int w, int rowH, int mx, int my) {
@@ -310,14 +310,14 @@ final class CraftRoadSteps {
             cy = toolRow(g, held.icon(), held.name() + " · Lv " + held.level(), Theme.INK,
                     L.t("wynnlabs.plan.tool_line", held.speed(), Math.max(0, held.durability()), held.maxDurability()),
                     worn ? Theme.BAD : Theme.INK_3, null, null, null, x, cy, w, rowH, mx, my);
-        } else {
-            cy = toolRow(g, null, L.t("wynnlabs.plan.tool_none", toolWord(profession)), Theme.INK_2,
-                    null, Theme.INK_3, null, null, null, x, cy, w, rowH, mx, my);
         }
         if (open != null && (held == null || open.tier() > held.tier())) {
-            String speed = L.t("wynnlabs.plan.tool_speed", open.speed()) + (held != null ? " (+" + (open.speed() - held.speed()) + ")" : "");
-            String title = L.t("wynnlabs.plan.tool_better", open.name(), open.level());
-            cy += Theme.SP_3;
+            String speed = L.t("wynnlabs.plan.tool_usable") + " · " + L.t("wynnlabs.plan.tool_speed", open.speed())
+                    + (held != null ? " (+" + (open.speed() - held.speed()) + ")" : "");
+            String title = open.name() + " · Lv " + open.level();
+            if (held != null) {
+                cy += Theme.SP_3;
+            }
             if (open.tier() <= 2) {
                 Area m = panel.data.service("merchant:tool");
                 String where = L.t("wynnlabs.plan.tool_merchant");
@@ -372,16 +372,6 @@ final class CraftRoadSteps {
                 io.github.anilken.wynnlabs.model.Tier.NORMAL, t.level(), null, 0, true);
         var mc = net.minecraft.client.Minecraft.getInstance();
         mc.setScreen(new BoxScreen(new BoxScreen.Single(item, null, false), t.icon(), mc.screen));
-    }
-
-    /** The tool's word for a gathering profession, as the game names it. */
-    private static String toolWord(String profession) {
-        return switch (profession.toLowerCase(Locale.ROOT)) {
-            case "woodcutting" -> "axe";
-            case "farming" -> "scythe";
-            case "fishing" -> "rod";
-            default -> "pickaxe";
-        };
     }
 
     private static String dirName(String d) {
