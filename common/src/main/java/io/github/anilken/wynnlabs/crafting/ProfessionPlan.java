@@ -212,13 +212,13 @@ public final class ProfessionPlan {
                 AROUND.clear();                 // the item index was read again: old lists go
             }
             int[] around = AROUND.computeIfAbsent(r.nodes(), nodes -> {
-                int[] out = new int[nodes.size()];
-                for (int i = 0; i < out.length; i++) {
+                int[] counts = new int[nodes.size()];
+                for (int i = 0; i < counts.length; i++) {
                     Area c = nodes.get(i);
                     double[] at = {c.x(), c.z()};
-                    out[i] = (int) nodes.stream().filter(a -> Compass.distance(a, at) <= SPOT_RADIUS).count();
+                    counts[i] = (int) nodes.stream().filter(a -> Compass.distance(a, at) <= SPOT_RADIUS).count();
                 }
-                return out;
+                return counts;
             });
             int most = 0;
             for (int n : around) {
