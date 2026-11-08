@@ -84,6 +84,8 @@ final class CraftRoadData {
         return sources.get(material);
     }
 
+    private final Map<String, ProfessionPlan.Spot> spots = new HashMap<>();
+
     /** The nearest node of a material's resource and its distance, or null. */
     ProfessionPlan.Spot nearest(String material) {
         LevelRoad.Source s = source(material);
@@ -108,35 +110,6 @@ final class CraftRoadData {
         }
         spots.put(key, found);
         return found;
-    }
-
-    private final Map<String, ProfessionPlan.Spot> spots = new HashMap<>();
-    private String nearestKey = "";
-    private List<ProfessionPlan.Spot> nearestList = List.of();
-    private List<ProfessionPlan.Spot> closeList = List.of();
-
-    /**
-     * A gathering profession's spots its level allows, each at its nearest dense spot: the best
-     * (highest level first, they give the most XP) or the nearest, at most three; worked out
-     * again when the player has moved a few blocks.
-     */
-    List<ProfessionPlan.Spot> spots(String profession, int level, boolean nearest) {
-        refreshSpots(profession, level);
-        return nearest ? closeList : nearestList;
-    }
-
-    private void refreshSpots(String profession, int level) {
-        double[] pos = position();
-        String key = profession + "|" + level + "|" + System.identityHashCode(ItemIndex.get())
-                + (pos == null ? "|-" : "|" + Math.round(pos[0] / 8) + "," + Math.round(pos[1] / 8));
-        if (!key.equals(nearestKey)) {
-            nearestKey = key;
-            List<ProfessionPlan.Spot> all = ProfessionPlan.spots(resources(), profession, level, pos, 999);
-            nearestList = all.subList(0, Math.min(3, all.size()));
-            List<ProfessionPlan.Spot> close = new ArrayList<>(all);
-            close.sort(java.util.Comparator.comparingDouble(s -> Double.isNaN(s.distance()) ? Double.MAX_VALUE : s.distance()));
-            closeList = List.copyOf(close.subList(0, Math.min(3, close.size())));
-        }
     }
 
     /** The nearest place of a service ("trade-market"), or null. */
@@ -231,126 +204,5 @@ final class CraftRoadData {
             n += tab.stock.material(material, t);
         }
         return n;
-    }
-
-    private List<io.github.anilken.wynnlabs.model.GatherTool> allTools = List.of();
-    private List<io.github.anilken.wynnlabs.model.GatherTool> heldTools = List.of();
-    private long heldAt;
-
-    /** The best tool of a gathering profession in the bag (highest tier), or null; read once a second. */
-    io.github.anilken.wynnlabs.model.GatherTool heldTool(String profession) {
-        long now = System.currentTimeMillis();
-        if (now - heldAt > 1000) {
-            heldAt = now;
-            try {
-                heldTools = Wyn.heldTools();
-            } catch (Throwable t) {
-                heldTools = List.of();
-            }
-        }
-        io.github.anilken.wynnlabs.model.GatherTool best = null;
-        for (var t : heldTools) {
-            if (t.profession().equalsIgnoreCase(profession) && (best == null || t.tier() > best.tier())) {
-                best = t;
-            }
-        }
-        return best;
-    }
-
-    /**
-     * A gathering profession's tool by level: the best the level allows ({@code open}), else the
-     * first one past it; null when there is none.
-     */
-    io.github.anilken.wynnlabs.model.GatherTool tool(String profession, int level, boolean open) {
-        if (allTools.isEmpty()) {
-            try {
-                allTools = Wyn.gatherTools();
-            } catch (Throwable t) {
-                allTools = List.of();
-            }
-        }
-        io.github.anilken.wynnlabs.model.GatherTool pick = null;
-        for (var t : allTools) {
-            if (!t.profession().equalsIgnoreCase(profession) || (t.level() <= level) != open) {
-                continue;
-            }
-            if (pick == null || (open ? t.tier() > pick.tier() : t.tier() < pick.tier())) {
-                pick = t;
-            }
-        }
-        return pick;
-    }
-
-    /** Crafts whose items are worn (the bonus stays) and those whose items are used up. */
-    static final List<String> KIT_GEAR = List.of("armouring", "tailoring", "jeweling");
-    static final List<String> KIT_USE = List.of("alchemism", "cooking", "scribing");
-    /** The ingredients' gathering stats: more XP, faster. */
-    static final String KIT_XP = "gatherXpBonus";
-    static final String KIT_SPEED = "gatherSpeed";
-
-    private String kitKey = "";
-    private List<List<Entry>> kitLists = List.of();
-
-    /**
-     * The gathering kit for a combat level: the ingredients it can use that give gathering XP or
-     * speed, in four lists (worn XP, worn speed, used-up XP, used-up speed), the best two of
-     * each by the stat's top roll, the cheaper first on a tie.
-     */
-    List<List<Entry>> kit(int level) {
-        ItemIndex index = ItemIndex.get();
-        String key = level + "|" + System.identityHashCode(index);
-        if (key.equals(kitKey)) {
-            return kitLists;
-        }
-        List<List<Entry>> out = new ArrayList<>();
-        for (List<String> crafts : List.of(KIT_GEAR, KIT_USE)) {
-            for (String stat : List.of(KIT_XP, KIT_SPEED)) {
-                List<Entry> pick = new ArrayList<>();
-                for (Entry e : index.all()) {
-                    if (e.kind() != Kind.INGREDIENT || e.level() > level || statMax(e, stat) <= 0
-                            || e.professions().stream().noneMatch(crafts::contains)) {
-                        continue;
-                    }
-                    pick.add(e);
-                }
-                pick.sort(java.util.Comparator.comparingInt((Entry e) -> -statMax(e, stat))
-                        .thenComparingDouble(e -> {
-                            Prices.Price pr = Prices.of(e.name());
-                            Double v = pr == null ? null : pr.typical();
-                            return v == null ? Double.MAX_VALUE : v;
-                        }));
-                out.add(List.copyOf(pick.subList(0, Math.min(2, pick.size()))));
-            }
-        }
-        kitKey = key;
-        kitLists = List.copyOf(out);
-        return kitLists;
-    }
-
-    /** The charm that gives the most gathering XP, or null. */
-    Entry kitCharm() {
-        Entry best = null;
-        for (Entry e : ItemIndex.get().all()) {
-            if (e.kind() == Kind.CHARM && statMax(e, "gatheringExperience") > 0
-                    && (best == null || statMax(e, "gatheringExperience") > statMax(best, "gatheringExperience"))) {
-                best = e;
-            }
-        }
-        return best;
-    }
-
-    /** An entry's stat as {min, max}, or null when it has none. */
-    static int[] stat(Entry e, String key) {
-        for (Entry.Stat st : e.stats()) {
-            if (st.key().equals(key)) {
-                return new int[] {Math.min(st.min(), st.max()), Math.max(st.min(), st.max())};
-            }
-        }
-        return null;
-    }
-
-    private static int statMax(Entry e, String key) {
-        int[] r = stat(e, key);
-        return r == null ? 0 : r[1];
     }
 }
