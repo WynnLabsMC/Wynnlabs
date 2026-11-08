@@ -186,7 +186,7 @@ public final class NodeText {
                     price = (n.endsWith(".0") ? n.substring(0, n.length() - 2) : n) + (v < 4096 ? "EB" : "LE");
                 }
             }
-            c.append(Component.literal("  T" + t + " ").withStyle(ChatFormatting.GRAY));
+            c.append(Component.literal("  "));   // the T1 price, no tier label
             c.append(Component.literal(price).withStyle(ChatFormatting.GOLD));
         }
         return c;
