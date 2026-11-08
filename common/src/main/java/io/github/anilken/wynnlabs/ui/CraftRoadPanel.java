@@ -426,6 +426,7 @@ final class CraftRoadPanel extends CraftPanel {
         cy = bombs(g, x, cy, w, mx, my);
         cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.tool_head"), null, x, cy, w);
         cy = steps.toolRows(g, profession, level, x, cy, w, Type.BODY.lineHeight + Type.META.lineHeight, mx, my) + Theme.SP_4;
+        cy = steps.kitRows(g, x, cy, w, Type.BODY.lineHeight + Type.META.lineHeight, mx, my) + Theme.SP_4;
         // two lists: the best spots (highest level first) and the nearest ones
         int rowH = Type.BODY.lineHeight + Type.META.lineHeight;
         for (boolean nearest : new boolean[] {false, true}) {

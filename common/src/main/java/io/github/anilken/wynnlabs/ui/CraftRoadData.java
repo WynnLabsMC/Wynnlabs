@@ -280,4 +280,77 @@ final class CraftRoadData {
         }
         return pick;
     }
+
+    /** Crafts whose items are worn (the bonus stays) and those whose items are used up. */
+    static final List<String> KIT_GEAR = List.of("armouring", "tailoring", "jeweling");
+    static final List<String> KIT_USE = List.of("alchemism", "cooking", "scribing");
+    /** The ingredients' gathering stats: more XP, faster. */
+    static final String KIT_XP = "gatherXpBonus";
+    static final String KIT_SPEED = "gatherSpeed";
+
+    private String kitKey = "";
+    private List<List<Entry>> kitLists = List.of();
+
+    /**
+     * The gathering kit for a combat level: the ingredients it can use that give gathering XP or
+     * speed, in four lists (worn XP, worn speed, used-up XP, used-up speed), the best two of
+     * each by the stat's top roll, the cheaper first on a tie.
+     */
+    List<List<Entry>> kit(int level) {
+        ItemIndex index = ItemIndex.get();
+        String key = level + "|" + System.identityHashCode(index);
+        if (key.equals(kitKey)) {
+            return kitLists;
+        }
+        List<List<Entry>> out = new ArrayList<>();
+        for (List<String> crafts : List.of(KIT_GEAR, KIT_USE)) {
+            for (String stat : List.of(KIT_XP, KIT_SPEED)) {
+                List<Entry> pick = new ArrayList<>();
+                for (Entry e : index.all()) {
+                    if (e.kind() != Kind.INGREDIENT || e.level() > level || statMax(e, stat) <= 0
+                            || e.professions().stream().noneMatch(crafts::contains)) {
+                        continue;
+                    }
+                    pick.add(e);
+                }
+                pick.sort(java.util.Comparator.comparingInt((Entry e) -> -statMax(e, stat))
+                        .thenComparingDouble(e -> {
+                            Prices.Price pr = Prices.of(e.name());
+                            Double v = pr == null ? null : pr.typical();
+                            return v == null ? Double.MAX_VALUE : v;
+                        }));
+                out.add(List.copyOf(pick.subList(0, Math.min(2, pick.size()))));
+            }
+        }
+        kitKey = key;
+        kitLists = List.copyOf(out);
+        return kitLists;
+    }
+
+    /** The charm that gives the most gathering XP, or null. */
+    Entry kitCharm() {
+        Entry best = null;
+        for (Entry e : ItemIndex.get().all()) {
+            if (e.kind() == Kind.CHARM && statMax(e, "gatheringExperience") > 0
+                    && (best == null || statMax(e, "gatheringExperience") > statMax(best, "gatheringExperience"))) {
+                best = e;
+            }
+        }
+        return best;
+    }
+
+    /** An entry's stat as {min, max}, or null when it has none. */
+    static int[] stat(Entry e, String key) {
+        for (Entry.Stat st : e.stats()) {
+            if (st.key().equals(key)) {
+                return new int[] {Math.min(st.min(), st.max()), Math.max(st.min(), st.max())};
+            }
+        }
+        return null;
+    }
+
+    private static int statMax(Entry e, String key) {
+        int[] r = stat(e, key);
+        return r == null ? 0 : r[1];
+    }
 }

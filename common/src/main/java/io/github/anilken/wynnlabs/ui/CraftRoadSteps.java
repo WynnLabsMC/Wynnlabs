@@ -366,6 +366,105 @@ final class CraftRoadSteps {
         return y + rowH;
     }
 
+    /**
+     * The gathering kit: ingredients that give gathering XP or speed, for crafts that are worn
+     * (armour and accessories: the bonus stays) and for those that are used up (potions, food,
+     * scrolls: drink or eat before gathering), the best two of each; then the charm to aim for.
+     */
+    int kitRows(GuiGraphics g, int x, int y, int w, int rowH, int mx, int my) {
+        int combat = io.github.anilken.wynnlabs.game.GameState.current().level();
+        List<List<io.github.anilken.wynnlabs.search.Entry>> kit = panel.data.kit(combat);
+        int cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.kit_head"), null, x, y, w);
+        boolean any = false;
+        for (int group = 0; group < 2; group++) {
+            List<io.github.anilken.wynnlabs.search.Entry> rows = new java.util.ArrayList<>();
+            for (int k = group * 2; k < group * 2 + 2 && k < kit.size(); k++) {
+                for (var e : kit.get(k)) {
+                    if (!rows.contains(e)) {
+                        rows.add(e);
+                    }
+                }
+            }
+            if (rows.isEmpty()) {
+                continue;
+            }
+            any = true;
+            Type.META.draw(g, tab.font, L.t(group == 0 ? "wynnlabs.plan.kit_gear" : "wynnlabs.plan.kit_use"), x, cy, Theme.INK_2);
+            cy += Type.META.lineHeight + Theme.SP_2;
+            for (var e : rows) {
+                cy = kitRow(g, e, group == 0 ? CraftRoadData.KIT_GEAR : CraftRoadData.KIT_USE, x, cy, w, rowH, mx, my) + Theme.SP_3;
+            }
+        }
+        if (!any) {
+            Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, L.t("wynnlabs.plan.kit_none"), w), x, cy, Theme.INK_3);
+            cy += Type.MUTED.lineHeight;
+        }
+        var charm = panel.data.kitCharm();
+        int[] cx = charm == null ? null : CraftRoadData.stat(charm, "gatheringExperience");
+        if (cx != null) {
+            String line = L.t(charm.level() > combat ? "wynnlabs.plan.kit_charm_later" : "wynnlabs.plan.kit_charm",
+                    charm.name(), charm.level(), range(cx));
+            Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, line, w), x, cy, Theme.INK_3);
+            cy += Type.MUTED.lineHeight;
+        }
+        return cy;
+    }
+
+    /** One kit ingredient: its picture and name, then its gathering stats in colour, its crafts and price. */
+    private int kitRow(GuiGraphics g, io.github.anilken.wynnlabs.search.Entry e, List<String> crafts, int x, int y, int w,
+                       int rowH, int mx, int my) {
+        int size = Math.min(rowH, 20);
+        CraftIcons.slot(g, x, y + (rowH - size) / 2, size, CraftIcons.of(e.name()));
+        int tx = x + size + Theme.SP_3;
+        String go = L.t("wynnlabs.plan.tool_market_go");
+        int bw = Ui.iconButtonLabelWidth(tab.font, go);
+        int bx = x + w - bw;
+        int by = y + (rowH - Ui.BUTTON_H) / 2;
+        Ui.iconButtonLabel(g, tab.font, "tag", go, bx, by, bw, mx, my);
+        String name = e.name();
+        int lv = e.level();
+        tab.acts.add(new Act(bx, by, bw, Ui.BUTTON_H, () -> {
+            var item = new io.github.anilken.wynnlabs.search.BoxMarket.Item(name, io.github.anilken.wynnlabs.model.Slot.UNKNOWN,
+                    io.github.anilken.wynnlabs.model.Tier.NORMAL, lv, null, 0, true);
+            var mc = net.minecraft.client.Minecraft.getInstance();
+            mc.setScreen(new BoxScreen(new BoxScreen.Single(item, null, false), CraftIcons.of(name), mc.screen));
+        }, null, null));
+        int right = bx - Theme.SP_4;
+        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, name + " · Lv " + lv, right - tx), tx, y, Theme.INK);
+        // the stats in colour (a gain green, a loss red), then the crafts and the price in grey
+        int sx = tx;
+        int sy = y + Type.LABEL.lineHeight;
+        for (String[] st : new String[][] {{CraftRoadData.KIT_XP, "wynnlabs.plan.kit_xp"}, {CraftRoadData.KIT_SPEED, "wynnlabs.plan.kit_speed"}}) {
+            int[] r = CraftRoadData.stat(e, st[0]);
+            if (r == null || sx >= right) {
+                continue;
+            }
+            String part = (sx > tx ? " " : "") + L.t(st[1], range(r));
+            String fit = Type.META.fit(tab.font, part, right - sx);
+            Type.META.draw(g, tab.font, fit, sx, sy, r[1] > 0 ? Theme.GOOD : Theme.BAD);
+            sx += Type.META.width(tab.font, fit);
+        }
+        List<String> used = new java.util.ArrayList<>();
+        for (String c : e.professions()) {
+            if (crafts.contains(c)) {
+                used.add(Professions.name(c));
+            }
+        }
+        Prices.Price p = Prices.of(name);
+        Double v = p == null ? null : p.typical();
+        String rest = " · " + String.join(", ", used) + (v == null ? "" : " · ~" + Prices.fmt(v));
+        if (sx < right) {
+            Type.META.draw(g, tab.font, Type.META.fit(tab.font, rest, right - sx), sx, sy, Theme.INK_3);
+        }
+        return y + rowH;
+    }
+
+    /** A stat's range with its sign: "+5-6%", "-4%". */
+    private static String range(int[] r) {
+        String sign = r[1] > 0 ? "+" : "";
+        return r[0] == r[1] ? sign + r[0] + "%" : sign + r[0] + "-" + r[1] + "%";
+    }
+
     /** The Trade Market window of a tool (its listings and price). */
     private static void openMarket(io.github.anilken.wynnlabs.model.GatherTool t) {
         var item = new io.github.anilken.wynnlabs.search.BoxMarket.Item(t.name(), io.github.anilken.wynnlabs.model.Slot.UNKNOWN,
