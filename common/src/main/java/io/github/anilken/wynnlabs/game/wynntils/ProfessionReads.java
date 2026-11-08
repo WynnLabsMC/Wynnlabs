@@ -152,6 +152,39 @@ public final class ProfessionReads {
         }, List.of());
     }
 
+    /**
+     * The gathering nodes the client sees, from their labels: the resource, where, and what each
+     * mouse button gathers (the label's "Left-Click for Ingot" lines).
+     */
+    public static List<io.github.anilken.wynnlabs.model.GatherNode> gatherNodes() {
+        return guard(Feature.PROFESSIONS, () -> {
+            List<io.github.anilken.wynnlabs.model.GatherNode> out = new ArrayList<>();
+            java.util.regex.Pattern click = java.util.regex.Pattern.compile("(Left|Right)-Click for (.+)$");
+            for (var n : Models.Profession.getNodesSet()) {
+                var loc = n.getLocation();
+                if (loc == null || n.getSourceMaterial() == null) {
+                    continue;
+                }
+                String text = n.getEntity() instanceof net.minecraft.world.entity.Display.TextDisplay td && td.getText() != null
+                        ? td.getText().getString() : "";
+                String left = null;
+                String right = null;
+                for (String line : text.split("\n")) {
+                    java.util.regex.Matcher m = click.matcher(line.replaceAll("\u00a7.", "").strip());
+                    if (m.find()) {
+                        if (m.group(1).equals("Left")) {
+                            left = m.group(2).strip();
+                        } else {
+                            right = m.group(2).strip();
+                        }
+                    }
+                }
+                out.add(new io.github.anilken.wynnlabs.model.GatherNode(n.getSourceMaterial().name(), loc.x(), loc.y(), loc.z(), left, right));
+            }
+            return out;
+        }, List.of());
+    }
+
     /** Every gathering tool the game has (Wynntils' tool list). */
     public static List<io.github.anilken.wynnlabs.model.GatherTool> gatherTools() {
         return guard(Feature.PROFESSIONS, () -> Models.Profession.getAllGatheringToolInfos()

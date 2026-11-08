@@ -417,6 +417,10 @@ public final class Wyn {
         return ProfessionReads.professionBombs();
     }
 
+    public static List<io.github.anilken.wynnlabs.model.GatherNode> gatherNodes() {
+        return ProfessionReads.gatherNodes();
+    }
+
     public static List<io.github.anilken.wynnlabs.model.GatherTool> gatherTools() {
         return ProfessionReads.gatherTools();
     }

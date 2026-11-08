@@ -129,6 +129,8 @@ public final class Startup {
                     .disconnect(io.github.anilken.wynnlabs.ui.DropTracker::reset),
             // the labels over mount powerups while riding
             Module.of("PowerupLabels").world(io.github.anilken.wynnlabs.ui.PowerupLabels::renderWorld, true),
+            // what a gathering node gives on each click, with its picture and price
+            Module.of("NodePrices").world(io.github.anilken.wynnlabs.ui.NodePrices::renderWorld, true),
             // the Endgame tab: raid and lootrun history, the reward pool seen, the aspect list
             Module.of("RaidLog").tick(RaidLog::onTick).disconnect(RaidLog::disconnected),
             Module.of("RaidPool").tick(RaidPool::onTick),
