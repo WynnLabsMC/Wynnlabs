@@ -175,8 +175,12 @@ public final class NodeText {
         for (int t = 1; t <= 1; t++) {   // T1 only: three tiers made the line too long
             Prices.Price p = Prices.of(item + " T" + t);
             Double v = p == null ? null : p.typical();
-            String price = "?";
-            if (v != null) {
+            String price = null;
+            if (v == null) {
+                // never looked at: asked of the market once (at most every ten minutes, and only
+                // with live prices on); until then the line shows no price
+                Prices.refreshSoon(item + " T" + t);
+            } else {
                 // its largest unit, one decimal at most: "53E", "17EB", "1.2LE"
                 if (v < 64) {
                     price = Math.round(v) + "E";
@@ -186,8 +190,10 @@ public final class NodeText {
                     price = (n.endsWith(".0") ? n.substring(0, n.length() - 2) : n) + (v < 4096 ? "EB" : "LE");
                 }
             }
-            c.append(Component.literal("  "));   // the T1 price, no tier label
-            c.append(Component.literal(price).withStyle(ChatFormatting.GOLD));
+            if (price != null) {
+                c.append(Component.literal("  "));   // the T1 price, no tier label
+                c.append(Component.literal(price).withStyle(ChatFormatting.GOLD));
+            }
         }
         return c;
     }
