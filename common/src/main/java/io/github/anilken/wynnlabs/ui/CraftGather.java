@@ -200,10 +200,11 @@ final class CraftGather {
             any = true;
             Type.META.draw(g, tab.font, Type.META.fit(tab.font, L.t(group == 0 ? "wynnlabs.plan.kit_gear" : "wynnlabs.plan.kit_use"), w),
                     x, cy, Theme.INK_2);
-            cy += Type.META.lineHeight + Theme.SP_2;
+            cy += Type.META.lineHeight + Theme.SP_1;
             for (Entry e : rows) {
-                cy = kitRow(g, e, group == 0 ? CraftGatherData.KIT_GEAR : CraftGatherData.KIT_USE, x, cy, w, rowH, mx, my) + Theme.SP_3;
+                cy = kitRow(g, e, group == 0 ? CraftGatherData.KIT_GEAR : CraftGatherData.KIT_USE, x, cy, w, Ui.CHIP_H + 2, mx, my) + Theme.SP_1;
             }
+            cy += Theme.SP_2;
         }
         if (!any) {
             Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, L.t("wynnlabs.plan.kit_none"), w), x, cy, Theme.INK_3);
@@ -220,45 +221,67 @@ final class CraftGather {
         return cy;
     }
 
-    /** One kit ingredient: its picture and name, then its gathering stats in colour, its crafts and price. */
+    /**
+     * One kit ingredient on one line: its picture and name, its gathering stats in colour (the
+     * gains first, a loss after), its price on the right and a small market button; its level
+     * and crafts show on hover.
+     */
     private int kitRow(GuiGraphics g, Entry e, List<String> crafts, int x, int y, int w, int rowH, int mx, int my) {
-        int size = Math.min(rowH, 20);
         String name = e.name();
         ItemStack icon = CraftIcons.of(name);
+        int size = 14;
         CraftIcons.slot(g, x, y + (rowH - size) / 2, size, icon);
         int tx = x + size + Theme.SP_3;
-        String go = L.t("wynnlabs.plan.tool_market_go");
-        int bw = Ui.iconButtonLabelWidth(tab.font, go);
-        int bx = x + w - bw;
-        int by = y + (rowH - Ui.BUTTON_H) / 2;
-        Ui.iconButtonLabel(g, tab.font, "tag", go, bx, by, bw, mx, my);
+        int bx = x + w - (Ui.CHIP_H + 2);
+        int by = y + (rowH - Ui.CHIP_H) / 2;
+        Ui.iconButton(g, "tag", bx, by, false, mx, my);
         int lv = e.level();
-        tab.acts.add(new Act(bx, by, bw, Ui.BUTTON_H, () -> openMarket(name, lv, icon), null, null));
-        int right = bx - Theme.SP_4;
-        Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, name + " · Lv " + lv, right - tx), tx, y, Theme.INK);
-        // the stats in colour (a gain green, a loss red), then the crafts and the price in grey
-        int sx = tx;
-        int sy = y + Type.LABEL.lineHeight;
-        for (String[] st : new String[][] {{CraftGatherData.KIT_XP, "wynnlabs.plan.kit_xp"}, {CraftGatherData.KIT_SPEED, "wynnlabs.plan.kit_speed"}}) {
-            int[] r = CraftGatherData.stat(e, st[0]);
-            if (r == null || sx >= right) {
-                continue;
-            }
-            String fit = Type.META.fit(tab.font, (sx > tx ? " " : "") + L.t(st[1], range(r)), right - sx);
-            Type.META.draw(g, tab.font, fit, sx, sy, r[1] > 0 ? Theme.GOOD : Theme.BAD);
-            sx += Type.META.width(tab.font, fit);
+        tab.acts.add(new Act(bx, by, Ui.CHIP_H + 2, Ui.CHIP_H, () -> openMarket(name, lv, icon), null,
+                List.of(net.minecraft.network.chat.Component.literal(L.t("wynnlabs.plan.tool_market_go")))));
+        int right = bx - Theme.SP_3;
+        Double v = price(name);
+        int ty = y + (rowH - Type.LABEL.lineHeight) / 2;
+        int my2 = y + (rowH - Type.META.lineHeight) / 2;
+        if (v != null) {
+            String pr = Prices.fmt(v);
+            Type.META.drawRight(g, tab.font, pr, right, my2, Theme.INK_3);
+            right -= Type.META.width(tab.font, pr) + Theme.SP_4;
         }
+        // the stats: gains, then losses
+        List<String> parts = new ArrayList<>();
+        List<Integer> inks = new ArrayList<>();
+        for (boolean gains : new boolean[] {true, false}) {
+            for (String[] st : new String[][] {{CraftGatherData.KIT_XP, "wynnlabs.plan.kit_xp"}, {CraftGatherData.KIT_SPEED, "wynnlabs.plan.kit_speed"}}) {
+                int[] r = CraftGatherData.stat(e, st[0]);
+                if (r != null && (r[1] > 0) == gains) {
+                    parts.add(L.t(st[1], range(r)));
+                    inks.add(gains ? Theme.GOOD : Theme.BAD);
+                }
+            }
+        }
+        int statsW = 0;
+        for (String p : parts) {
+            statsW += Type.META.width(tab.font, " " + p);
+        }
+        int nameW = Math.max(0, Math.min(Type.LABEL.width(tab.font, name), right - tx - statsW));
+        String fit = Type.LABEL.fit(tab.font, name, nameW);
+        Type.LABEL.draw(g, tab.font, fit, tx, ty, Theme.INK);
+        int sx = tx + Type.LABEL.width(tab.font, fit);
+        for (int k = 0; k < parts.size() && sx < right; k++) {
+            String f = Type.META.fit(tab.font, " " + parts.get(k), right - sx);
+            Type.META.draw(g, tab.font, f, sx, my2, inks.get(k));
+            sx += Type.META.width(tab.font, f);
+        }
+        // the level and the crafts on hover
         List<String> used = new ArrayList<>();
         for (String c : e.professions()) {
             if (crafts.contains(c)) {
                 used.add(Professions.name(c));
             }
         }
-        Double v = price(name);
-        String rest = " · " + String.join(", ", used) + (v == null ? "" : " · ~" + Prices.fmt(v));
-        if (sx < right) {
-            Type.META.draw(g, tab.font, Type.META.fit(tab.font, rest, right - sx), sx, sy, Theme.INK_3);
-        }
+        tab.acts.add(new Act(x, y, right - x, rowH, null, null, List.of(
+                net.minecraft.network.chat.Component.literal(name),
+                net.minecraft.network.chat.Component.literal("Lv " + lv + " · " + String.join(", ", used)))));
         return y + rowH;
     }
 
