@@ -151,4 +151,40 @@ public final class ProfessionReads {
             return out;
         }, List.of());
     }
+
+    /** Every gathering tool the game has (Wynntils' tool list). */
+    public static List<io.github.anilken.wynnlabs.model.GatherTool> gatherTools() {
+        return guard(Feature.PROFESSIONS, () -> Models.Profession.getAllGatheringToolInfos()
+                .map(i -> tool(i, -1, -1, null)).toList(), List.of());
+    }
+
+    /** The gathering tools in the player's bag, with what is left of them. */
+    public static List<io.github.anilken.wynnlabs.model.GatherTool> heldTools() {
+        return guard(Feature.PROFESSIONS, () -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            List<io.github.anilken.wynnlabs.model.GatherTool> out = new ArrayList<>();
+            if (player == null) {
+                return out;
+            }
+            var inv = player.getInventory();
+            for (int i = 0; i < inv.getContainerSize(); i++) {
+                net.minecraft.world.item.ItemStack s = inv.getItem(i);
+                if (s.isEmpty()) {
+                    continue;
+                }
+                Models.Item.asWynnItem(s, com.wynntils.models.items.items.game.GatheringToolItem.class).ifPresent(t ->
+                        out.add(tool(t.getToolInfo(), t.getDurability().current(), t.getDurability().max(), s.copy())));
+            }
+            return out;
+        }, List.of());
+    }
+
+    private static io.github.anilken.wynnlabs.model.GatherTool tool(com.wynntils.models.profession.type.GatheringToolInfo i,
+            int durability, int max, net.minecraft.world.item.ItemStack icon) {
+        net.minecraft.world.item.ItemStack stack = icon != null ? icon
+                : i.material() == null ? net.minecraft.world.item.ItemStack.EMPTY : i.material().itemStack();
+        String prof = i.professionType() == null ? "" : i.professionType().name().toLowerCase(java.util.Locale.ROOT);
+        return new io.github.anilken.wynnlabs.model.GatherTool(i.name(), prof, i.tier(), i.level(), i.gatheringSpeed(),
+                durability, max < 0 ? i.durability() : max, stack);
+    }
 }

@@ -424,6 +424,8 @@ final class CraftRoadPanel extends CraftPanel {
         Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, line, w), x, cy, Theme.INK_2);
         cy += Type.MUTED.lineHeight + Theme.SP_4;
         cy = bombs(g, x, cy, w, mx, my);
+        cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.tool_head"), null, x, cy, w);
+        cy = steps.toolRows(g, profession, level, x, cy, w, Type.BODY.lineHeight + Type.META.lineHeight, mx, my) + Theme.SP_4;
         cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.spots"), null, x, cy, w);
         List<ProfessionPlan.Spot> spots = data.nearestSpots(profession, level);
         if (spots.isEmpty()) {
