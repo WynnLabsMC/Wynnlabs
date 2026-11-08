@@ -190,9 +190,10 @@ public final class ProfessionPlan {
 
     /**
      * The gathering spots for a profession ("mining") at a level: each resource of that
-     * profession the level allows, at its nearest node, highest level first (it gives the most
-     * XP), then the nearest; at most {@code limit}. Without a position the nodes keep the data's
-     * order and the distance is NaN.
+     * profession the level allows, at its nearest dense spot (4 nodes or more within reach; the
+     * densest it has when none is that dense), highest level first (it gives the most XP), then
+     * the nearest; at most {@code limit}. Without a position the nodes keep the data's order and
+     * the distance is NaN.
      */
     public static List<Spot> spots(List<Resource> resources, String profession, int level, double[] pos, int limit) {
         String prof = profession.toLowerCase(Locale.ROOT);
@@ -201,17 +202,32 @@ public final class ProfessionPlan {
             if (!prof.equals(r.profession()) || r.level() > level || r.nodes().isEmpty()) {
                 continue;
             }
-            Area best = r.nodes().get(0);
-            double bestD = Compass.distance(best, pos);
-            for (Area a : r.nodes()) {
+            // a lone node is no place to gather: the nodes around each one, then the nearest
+            // node with enough of them
+            int[] around = new int[r.nodes().size()];
+            int most = 0;
+            for (int i = 0; i < around.length; i++) {
+                Area c = r.nodes().get(i);
+                double[] at = {c.x(), c.z()};
+                around[i] = (int) r.nodes().stream().filter(a -> Compass.distance(a, at) <= SPOT_RADIUS).count();
+                most = Math.max(most, around[i]);
+            }
+            int enough = Math.min(most, 4);
+            Area best = null;
+            double bestD = Double.NaN;
+            int here = 0;
+            for (int i = 0; i < around.length; i++) {
+                if (around[i] < enough) {
+                    continue;
+                }
+                Area a = r.nodes().get(i);
                 double d = Compass.distance(a, pos);
-                if (d < bestD) {
+                if (best == null || d < bestD) {
                     best = a;
                     bestD = d;
+                    here = around[i];
                 }
             }
-            double[] at = {best.x(), best.z()};
-            int here = (int) r.nodes().stream().filter(a -> Compass.distance(a, at) <= SPOT_RADIUS).count();
             out.add(new Spot(r, best, bestD, here));
         }
         out.sort(Comparator.comparingInt((Spot s) -> -s.resource().level())
