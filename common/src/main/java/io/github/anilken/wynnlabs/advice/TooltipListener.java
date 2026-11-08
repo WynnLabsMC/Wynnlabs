@@ -856,6 +856,42 @@ public final class TooltipListener {
      * Trade Market price right under the item name, and for a box "(15 EB)" after each item in
      * the possibilities list Wynntils draws. Returns whether it changed anything.
      */
+    /**
+     * A material's market depth on its price line: a red "ONLY 9" box when only a few sit at the
+     * lowest price before a wall of dearer ones, and, while Shift is held, up to three lines of how
+     * many are listed at each price. The listings are asked for only when the price hints at a
+     * wall (the median at least twice the lowest) or Shift is held, at most once per few minutes.
+     */
+    private static List<Component> depth(net.minecraft.network.chat.MutableComponent line, String name, Prices.Price known) {
+        boolean shift = Minecraft.getInstance().hasShiftDown();
+        boolean hint = known != null && known.lowest() != null && known.median() != null && known.median() >= known.lowest() * 2.0;
+        if (!shift && !hint) {
+            return List.of();
+        }
+        io.github.anilken.wynnlabs.search.BoxMarket.Held held = io.github.anilken.wynnlabs.market.Listings.held(name);
+        if (held == null || held.listings().isEmpty()) {
+            io.github.anilken.wynnlabs.market.Listings.request(List.of(name));
+            return List.of();
+        }
+        List<io.github.anilken.wynnlabs.market.Depth.Step> steps = io.github.anilken.wynnlabs.market.Depth.ladder(held.listings());
+        int few = io.github.anilken.wynnlabs.market.Depth.fewCheap(steps);
+        net.minecraft.network.chat.Style plain = net.minecraft.network.chat.Style.EMPTY
+                .withFont(net.minecraft.network.chat.FontDescription.DEFAULT);
+        if (few > 0) {
+            line.append(Component.literal(" ").setStyle(plain)).append(banner(L.t("wynnlabs.tooltip.only_banner"), 0xFF5555))
+                    .append(banner(String.valueOf(few), 0xFF5555));
+        }
+        List<Component> out = new ArrayList<>();
+        if (shift) {
+            for (int i = 0; i < Math.min(3, steps.size()); i++) {
+                var st = steps.get(i);
+                out.add(Component.literal("  " + st.amount() + " × ").setStyle(plain.withColor(net.minecraft.ChatFormatting.GRAY))
+                        .append(Component.literal(Prices.fmt(st.price())).setStyle(plain.withColor(net.minecraft.ChatFormatting.GOLD))));
+            }
+        }
+        return out;
+    }
+
     /** The hidden mark on our MARKET line, so a tooltip built twice gets one. */
     private static final String PRICE_MARK = "wynnlabs:price";
 
@@ -937,7 +973,15 @@ public final class TooltipListener {
                     tags[k] = banner(word, boxes[k]);
                 }
                 net.minecraft.network.chat.MutableComponent line = Component.empty()
-                        .withStyle(st -> st.withInsertion(PRICE_MARK)).append(tags[0])
+                        .withStyle(st -> st.withInsertion(PRICE_MARK)).append(tags[0]);
+                java.util.regex.Matcher tierOf = java.util.regex.Pattern.compile(" (T[0-9])$").matcher(name);
+                if (ingredient && !name.equals(shown) && tierOf.find()) {
+                    // a material's price is its tier's ("Silver Ingot T3"): the tier in a box after MARKET
+                    line.append(Component.literal(" ").setStyle(net.minecraft.network.chat.Style.EMPTY
+                            .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)))
+                            .append(banner(tierOf.group(1), 0xAAAAAA));
+                }
+                line
                         .append(Component.literal(" " + bare + (stackOf > 1 || tags[1] != null ? " " : ""))
                                 .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.GOLD)
                                         .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)));
@@ -951,6 +995,7 @@ public final class TooltipListener {
                 if (tags[1] != null) {
                     line.append(tags[1]);
                 }
+                List<Component> ladder = ingredient ? depth(line, name, known) : List.of();
                 if (blank >= 0) {
                     out.set(blank, line);
                     out.add(blank + 1, Component.empty());  // the stats keep their gap under it
@@ -965,6 +1010,10 @@ public final class TooltipListener {
                 } else {
                     // no header line found (a powder's plain tooltip): right under the name
                     out.add(1, line);
+                }
+                int under = out.indexOf(line) + 1;
+                if (under > 0) {
+                    out.addAll(under, ladder);
                 }
             } else {
                 out.add(Math.min(1, out.size()), price);

@@ -35,6 +35,7 @@ final class CraftRoadPanel extends CraftPanel {
 
     final CraftRoadData data;
     private final CraftRoadSteps steps;
+    private final CraftGather gather;
     /** The picked profession ("WEAPONSMITHING"), null until first drawn. */
     String profession;
     String note;
@@ -43,6 +44,7 @@ final class CraftRoadPanel extends CraftPanel {
         super(tab);
         data = new CraftRoadData(tab);
         steps = new CraftRoadSteps(tab, this);
+        gather = new CraftGather(tab, this);
     }
 
     LevelRoad.Source sourceOf(String material) {
@@ -424,22 +426,7 @@ final class CraftRoadPanel extends CraftPanel {
         Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, line, w), x, cy, Theme.INK_2);
         cy += Type.MUTED.lineHeight + Theme.SP_4;
         cy = bombs(g, x, cy, w, mx, my);
-        cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.tool_head"), null, x, cy, w);
-        cy = steps.toolRows(g, profession, level, x, cy, w, Type.BODY.lineHeight + Type.META.lineHeight, mx, my) + Theme.SP_4;
-        // two lists: the best spots (highest level first) and the nearest ones
-        int rowH = Type.BODY.lineHeight + Type.META.lineHeight;
-        for (boolean nearest : new boolean[] {false, true}) {
-            cy = tab.recipePanel.head(g, L.t(nearest ? "wynnlabs.plan.spots_near" : "wynnlabs.plan.spots"), null, x, cy, w);
-            List<ProfessionPlan.Spot> spots = data.spots(profession, level, nearest);
-            if (spots.isEmpty()) {
-                Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, L.t("wynnlabs.plan.no_spots"), w), x, cy, Theme.INK_3);
-                return cy + Type.MUTED.lineHeight - y;
-            }
-            for (ProfessionPlan.Spot s : spots) {
-                cy = steps.spotRow(g, s, profession, x, cy, w, rowH, mx, my) + Theme.SP_3;
-            }
-            cy += Theme.SP_3;
-        }
+        cy = gather.draw(g, profession, level, x, cy, w, mx, my);
         return cy - y;
     }
 }
