@@ -48,14 +48,18 @@ final class CraftGather {
         boolean two = w >= COL_MIN * 2 + Theme.SP_7;
         int cw = two ? (w - Theme.SP_7) / 2 : w;
         int rx = two ? x + cw + Theme.SP_7 : x;
-        // tool and kit
-        int left = tools(g, profession, level, x, y, cw, rowH, mx, my);
-        int right = kit(g, rx, two ? y : left + Theme.SP_5, cw, rowH, mx, my);
-        int cy = (two ? Math.max(left, right) : right) + Theme.SP_5;
-        // the best spots and the nearest ones
-        left = spots(g, profession, level, false, x, cy, cw, rowH, !two, mx, my);
-        right = spots(g, profession, level, true, rx, two ? cy : left + Theme.SP_5, cw, rowH, !two, mx, my);
-        return two ? Math.max(left, right) : right;
+        // each column runs on its own, so a short one leaves no gap: the tool, then the best
+        // spots on the left; the kit, then the nearest spots on the right
+        int left = tools(g, profession, level, x, y, cw, rowH, mx, my) + Theme.SP_5;
+        if (two) {
+            left = spots(g, profession, level, false, x, left, cw, rowH, false, mx, my);
+            int right = kit(g, rx, y, cw, rowH, mx, my) + Theme.SP_5;
+            right = spots(g, profession, level, true, rx, right, cw, rowH, false, mx, my);
+            return Math.max(left, right);
+        }
+        int cy = kit(g, x, left, w, rowH, mx, my) + Theme.SP_5;
+        cy = spots(g, profession, level, false, x, cy, w, rowH, true, mx, my) + Theme.SP_5;
+        return spots(g, profession, level, true, x, cy, w, rowH, true, mx, my);
     }
 
     // ---- spots ----
@@ -179,15 +183,17 @@ final class CraftGather {
         List<List<Entry>> kit = data.kit(combat);
         int cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.kit_head"), null, x, y, w);
         boolean any = false;
+        List<Entry> shown = new ArrayList<>();
         for (int group = 0; group < 2; group++) {
             List<Entry> rows = new ArrayList<>();
             for (int k = group * 2; k < group * 2 + 2 && k < kit.size(); k++) {
                 for (Entry e : kit.get(k)) {
-                    if (!rows.contains(e)) {
+                    if (!rows.contains(e) && !shown.contains(e)) {   // one worn and used up shows once
                         rows.add(e);
                     }
                 }
             }
+            shown.addAll(rows);
             if (rows.isEmpty()) {
                 continue;
             }
@@ -268,10 +274,12 @@ final class CraftGather {
         return v;
     }
 
-    /** A stat's range with its sign: "+5-6%", "-4%". */
+    /** A stat's range with its sign: "+5-6%", "-4%", "-4 to -5%" (the smaller loss first). */
     private static String range(int[] r) {
-        String sign = r[1] > 0 ? "+" : "";
-        return r[0] == r[1] ? sign + r[0] + "%" : sign + r[0] + "-" + r[1] + "%";
+        if (r[1] <= 0) {
+            return r[0] == r[1] ? r[0] + "%" : r[1] + " to " + r[0] + "%";
+        }
+        return r[0] == r[1] ? "+" + r[0] + "%" : "+" + r[0] + "-" + r[1] + "%";
     }
 
     /** The Trade Market window of an item (its listings and price). */
