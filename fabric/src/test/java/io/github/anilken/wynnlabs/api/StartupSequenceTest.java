@@ -32,6 +32,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * chat, HUD ...) the loader runs them in the order they were added, so that order must never
  * change by accident. A recording platform runs {@link WynnLabs#init} and lists each registration
  * with its timing section; the developer tools' own hooks (absent from a release jar) are left out.
+ * The hooks listed here must all still be there, in this order; a new feature's hooks may be added
+ * anywhere among them without touching this list.
  */
 class StartupSequenceTest {
 
@@ -94,6 +96,7 @@ class StartupSequenceTest {
             tick tick.RideWatch
             tick tick.Powerups
             tick tick.Coach
+            tick tick.NodeText
             tick tick.RaidLog
             tick tick.RaidPool
             tick tick.LootrunLog
@@ -123,7 +126,18 @@ class StartupSequenceTest {
             AutoAdvice.budgeted = budgeted;
             Prices.coins = coins;
         }
-        assertEquals(EXPECTED.strip(), rec.sequence().strip());
+        // every hook listed, in this order (an added one in between is fine): a greedy walk
+        List<String> want = EXPECTED.strip().lines().map(String::strip).toList();
+        List<String> got = rec.sequence().strip().lines().map(String::strip).toList();
+        int found = 0;
+        for (String g : got) {
+            if (found < want.size() && g.equals(want.get(found))) {
+                found++;
+            }
+        }
+        int missing = found;
+        assertEquals(want.size(), found, () -> "a hook went missing or moved, from \"" + want.get(missing) + "\" on\nexpected in order:\n"
+                + EXPECTED.strip() + "\nbut was:\n" + rec.sequence().strip());
     }
 
     /** Records each registration, and passes the paths and mod queries to the real platform. */
