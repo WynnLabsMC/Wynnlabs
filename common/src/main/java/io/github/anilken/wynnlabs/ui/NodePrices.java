@@ -2,7 +2,6 @@ package io.github.anilken.wynnlabs.ui;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.core.Settings;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.market.Prices;
@@ -30,9 +29,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Over each gathering node near the player (setting nodePrices): what a left and a right click
- * gather, each with its item's picture and its Trade Market price (the range of its three
- * tiers), facing the camera and seen through walls like the node's outline. Only draws: the
+ * Over each gathering node near the player (setting nodePrices), on one line: the left click's
+ * item and the right click's, each as its picture and its Trade Market price (the range of its
+ * three tiers), facing the camera and seen through walls like the node's outline. Only draws: the
  * nodes come from the game's own labels.
  */
 public final class NodePrices {
@@ -46,6 +45,8 @@ public final class NodePrices {
     /** The picture's size in font pixels, and the gap after it. */
     private static final int ICON = 9;
     private static final int GAP = 2;
+    /** Between the left click's item and the right click's. */
+    private static final int SPACE = 8;
 
     private static List<GatherNode> nodes = List.of();
     private static long nodesAt;
@@ -99,34 +100,47 @@ public final class NodePrices {
         for (double[] a : near) {
             GatherNode n = which.get((int) a[4]);
             float k = PowerupLabels.scale(a[3], 100, 0.9f);
-            int line = 0;
-            for (String[] side : new String[][] {{"wynnlabs.nodes.left", n.left()}, {"wynnlabs.nodes.right", n.right()}}) {
-                if (side[1] == null) {
-                    continue;
+            // the left click's item on the left, the right click's on the right, as the mouse
+            List<TextureAtlasSprite> sprites = new ArrayList<>();
+            List<String> texts = new ArrayList<>();
+            for (String word : new String[] {n.left(), n.right()}) {
+                if (word != null) {
+                    String item = n.resource() + " " + word;
+                    String price = price(item);
+                    sprites.add(sprite(mc, item));
+                    texts.add(price == null ? "?" : price);
                 }
-                String item = n.resource() + " " + side[1];
-                String price = price(item);
-                String text = L.t(side[0]) + " " + item + (price == null ? "" : "  " + price);
-                drawLine(pose, buffers, font, camera, a[0], a[1], a[2], k, line++, sprite(mc, item), text);
             }
+            drawLine(pose, buffers, font, camera, a[0], a[1], a[2], k, sprites, texts);
         }
         if (buffers instanceof MultiBufferSource.BufferSource source) {
             source.endBatch();
         }
     }
 
-    /** One line: the picture, then the text on its backing; line 0 on top. Seen through blocks. */
+    /** One line of pictures, each followed by its price on a backing, centred. Seen through blocks. */
     private static void drawLine(PoseStack pose, MultiBufferSource buffers, Font font, Camera camera, double x, double y, double z,
-                                 float k, int line, TextureAtlasSprite sprite, String text) {
-        int tw = font.width(text);
-        int total = (sprite == null ? 0 : ICON + GAP) + tw;
+                                 float k, List<TextureAtlasSprite> sprites, List<String> texts) {
+        int total = 0;
+        for (int i = 0; i < texts.size(); i++) {
+            total += (i > 0 ? SPACE : 0) + (sprites.get(i) == null ? 0 : ICON + GAP) + font.width(texts.get(i));
+        }
         float x0 = -total / 2f;
-        float ly = line * (ICON + 2);
         pose.pushPose();
         pose.translate(x, y, z);
         pose.mulPose(camera.rotation());
         pose.scale(k, -k, k);
         Matrix4f m = pose.last().pose();
+        for (int i = 0; i < texts.size(); i++) {
+            x0 += i > 0 ? SPACE : 0;
+            x0 = segment(m, buffers, font, x0, sprites.get(i), texts.get(i));
+        }
+        pose.popPose();
+    }
+
+    /** One picture and its price from {@code x0}; returns where the next one starts. */
+    private static float segment(Matrix4f m, MultiBufferSource buffers, Font font, float x0, TextureAtlasSprite sprite, String text) {
+        float ly = 0;
         if (sprite != null) {
             VertexConsumer vc = buffers.getBuffer(RenderTypes.textSeeThrough(sprite.atlasLocation()));
             float top = ly - 1;
@@ -138,10 +152,10 @@ public final class NodePrices {
             x0 += ICON + GAP;
         }
         font.drawInBatch(text, x0, ly, 0xFFFFFFFF, false, m, buffers, Font.DisplayMode.SEE_THROUGH, BACKING, LightTexture.FULL_BRIGHT);
-        pose.popPose();
+        return x0 + font.width(text);
     }
 
-    /** The item's Trade Market price over its three tiers ("12EB – 1LE 4EB"), or null when none is known. */
+    /** The item's Trade Market price over its three tiers ("12EB-1LE 4EB"), or null when none is known. */
     private static String price(String item) {
         if (PRICES.containsKey(item)) {
             return PRICES.get(item);
@@ -158,7 +172,7 @@ public final class NodePrices {
             high = high == null ? v : Math.max(high, v);
         }
         String out = low == null ? null
-                : Prices.fmt(low).equals(Prices.fmt(high)) ? Prices.fmt(low) : Prices.fmt(low) + " – " + Prices.fmt(high);
+                : Prices.fmt(low).equals(Prices.fmt(high)) ? Prices.fmt(low) : Prices.fmt(low) + "-" + Prices.fmt(high);
         PRICES.put(item, out);
         return out;
     }
