@@ -937,7 +937,15 @@ public final class TooltipListener {
                     tags[k] = banner(word, boxes[k]);
                 }
                 net.minecraft.network.chat.MutableComponent line = Component.empty()
-                        .withStyle(st -> st.withInsertion(PRICE_MARK)).append(tags[0])
+                        .withStyle(st -> st.withInsertion(PRICE_MARK)).append(tags[0]);
+                java.util.regex.Matcher tierOf = java.util.regex.Pattern.compile(" (T[0-9])$").matcher(name);
+                if (ingredient && !name.equals(shown) && tierOf.find()) {
+                    // a material's price is its tier's ("Silver Ingot T3"): the tier in a box after MARKET
+                    line.append(Component.literal(" ").setStyle(net.minecraft.network.chat.Style.EMPTY
+                            .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)))
+                            .append(banner(tierOf.group(1), 0xAAAAAA));
+                }
+                line
                         .append(Component.literal(" " + bare + (stackOf > 1 || tags[1] != null ? " " : ""))
                                 .setStyle(net.minecraft.network.chat.Style.EMPTY.withColor(net.minecraft.ChatFormatting.GOLD)
                                         .withFont(net.minecraft.network.chat.FontDescription.DEFAULT)));
