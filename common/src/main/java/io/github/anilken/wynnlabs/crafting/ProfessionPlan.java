@@ -40,6 +40,9 @@ public final class ProfessionPlan {
 
     /** How far from a spot's node (blocks) other nodes still count as the same spot. */
     private static final int SPOT_RADIUS = 64;
+    /** A resource's node list → how many of its nodes lie around each one (by identity: the lists are kept). */
+    private static final java.util.Map<List<Area>, int[]> AROUND =
+            java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
 
     /**
      * A resource's nearest node to the player, how far it is (NaN when the position is unknown)
@@ -204,13 +207,22 @@ public final class ProfessionPlan {
             }
             // a lone node is no place to gather: the nodes around each one, then the nearest
             // node with enough of them
-            int[] around = new int[r.nodes().size()];
+            // (the counts never change: worked out once per node list, not on every move)
+            if (AROUND.size() > 500) {
+                AROUND.clear();                 // the item index was read again: old lists go
+            }
+            int[] around = AROUND.computeIfAbsent(r.nodes(), nodes -> {
+                int[] out = new int[nodes.size()];
+                for (int i = 0; i < out.length; i++) {
+                    Area c = nodes.get(i);
+                    double[] at = {c.x(), c.z()};
+                    out[i] = (int) nodes.stream().filter(a -> Compass.distance(a, at) <= SPOT_RADIUS).count();
+                }
+                return out;
+            });
             int most = 0;
-            for (int i = 0; i < around.length; i++) {
-                Area c = r.nodes().get(i);
-                double[] at = {c.x(), c.z()};
-                around[i] = (int) r.nodes().stream().filter(a -> Compass.distance(a, at) <= SPOT_RADIUS).count();
-                most = Math.max(most, around[i]);
+            for (int n : around) {
+                most = Math.max(most, n);
             }
             int enough = Math.min(most, 4);
             Area best = null;
