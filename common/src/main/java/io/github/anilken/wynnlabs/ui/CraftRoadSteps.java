@@ -328,6 +328,9 @@ final class CraftRoadSteps {
             } else {
                 Prices.Price p = Prices.of(open.name());
                 Double typical = p == null ? null : p.typical();
+                if (typical == null) {
+                    Prices.refreshSoon(open.name());   // not known yet: asked of the market once
+                }
                 String market = L.t("wynnlabs.plan.tool_market") + (typical == null ? "" : " ~" + Prices.fmt(typical));
                 io.github.anilken.wynnlabs.model.GatherTool t = open;
                 cy = toolRow(g, open.icon(), title, Theme.GOOD, speed + " · " + market, Theme.INK_3,
@@ -452,6 +455,9 @@ final class CraftRoadSteps {
         }
         Prices.Price p = Prices.of(name);
         Double v = p == null ? null : p.typical();
+        if (v == null) {
+            Prices.refreshSoon(name);           // not known yet: asked of the market once
+        }
         String rest = " · " + String.join(", ", used) + (v == null ? "" : " · ~" + Prices.fmt(v));
         if (sx < right) {
             Type.META.draw(g, tab.font, Type.META.fit(tab.font, rest, right - sx), sx, sy, Theme.INK_3);
