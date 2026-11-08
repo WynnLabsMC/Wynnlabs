@@ -168,6 +168,15 @@ public final class ProfessionReads {
         }, List.of());
     }
 
+    /** Whether the player holds a gathering tool in the main hand. */
+    public static boolean holdingGatherTool() {
+        return guard(Feature.PROFESSIONS, () -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            return player != null && Models.Item.asWynnItem(player.getMainHandItem(),
+                    com.wynntils.models.items.items.game.GatheringToolItem.class).isPresent();
+        }, false);
+    }
+
     /** Every gathering tool the game has (Wynntils' tool list). */
     public static List<io.github.anilken.wynnlabs.model.GatherTool> gatherTools() {
         return guard(Feature.PROFESSIONS, () -> Models.Profession.getAllGatheringToolInfos()

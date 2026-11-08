@@ -33,7 +33,8 @@ import java.util.regex.Pattern;
  * "Left-Click for Ingot" and "Right-Click for Gem" lines become the item's picture, its name and
  * its Trade Market price per tier ("T1 53E T2 2EB T3 17EB") in the mod's colours; the mouse
  * glyph and the lines above stay. The client's copy of the label is changed and nothing is sent;
- * the original comes back when the setting is turned off.
+ * shown only with a gathering tool in hand, and the original comes back without one or when the
+ * setting is turned off.
  */
 public final class NodeText {
 
@@ -51,10 +52,13 @@ public final class NodeText {
         if (++ticks % 10 != 0 || mc.level == null) {
             return;
         }
-        boolean on = Settings.on("nodePrices");
+        // only with a gathering tool in hand, as the nodes' outline shows
+        boolean on = Settings.on("nodePrices") && Wyn.holdingGatherTool();
         if (!on || ticks % 600 == 0) {
-            // turned off: the game's own text back; every half minute: rebuilt with fresh prices
-            restore(mc);
+            // off or no tool: the game's own text back; every half minute: rebuilt with fresh prices
+            if (!OURS.isEmpty()) {
+                restore(mc);
+            }
             if (!on) {
                 return;
             }
@@ -158,10 +162,17 @@ public final class NodeText {
         MutableComponent c = Component.empty();
         TextureAtlasSprite sprite = sprite(mc, item);
         if (sprite != null) {
-            c.append(Component.object(new AtlasSprite(sprite.atlasLocation(), sprite.contents().name()))).append(" ");
+            // the atlas by its id ("minecraft:items"), not its texture ("textures/atlas/items.png")
+            net.minecraft.resources.Identifier atlas = sprite.atlasLocation();
+            String path = atlas.getPath();
+            if (path.startsWith("textures/atlas/") && path.endsWith(".png")) {
+                atlas = net.minecraft.resources.Identifier.fromNamespaceAndPath(atlas.getNamespace(),
+                        path.substring("textures/atlas/".length(), path.length() - 4));
+            }
+            c.append(Component.object(new AtlasSprite(atlas, sprite.contents().name()))).append(" ");
         }
         c.append(Component.literal(word).withStyle(ChatFormatting.WHITE));
-        for (int t = 1; t <= 3; t++) {
+        for (int t = 1; t <= 1; t++) {   // T1 only: three tiers made the line too long
             Prices.Price p = Prices.of(item + " T" + t);
             Double v = p == null ? null : p.typical();
             String price = "?";
