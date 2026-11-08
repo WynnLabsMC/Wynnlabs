@@ -48,18 +48,16 @@ final class CraftGather {
         boolean two = w >= COL_MIN * 2 + Theme.SP_7;
         int cw = two ? (w - Theme.SP_7) / 2 : w;
         int rx = two ? x + cw + Theme.SP_7 : x;
-        // each column runs on its own, so a short one leaves no gap: the tool, then the best
-        // spots on the left; the kit, then the nearest spots on the right
-        int left = tools(g, profession, level, x, y, cw, rowH, mx, my) + Theme.SP_5;
+        // the spots first, side by side; then the tool and the kit, each column on its own
         if (two) {
-            left = spots(g, profession, level, false, x, left, cw, rowH, false, mx, my);
-            int right = kit(g, rx, y, cw, rowH, mx, my) + Theme.SP_5;
-            right = spots(g, profession, level, true, rx, right, cw, rowH, false, mx, my);
-            return Math.max(left, right);
+            int top = Math.max(spots(g, profession, level, false, x, y, cw, rowH, false, mx, my),
+                    spots(g, profession, level, true, rx, y, cw, rowH, false, mx, my)) + Theme.SP_5;
+            return Math.max(tools(g, profession, level, x, top, cw, rowH, mx, my), kit(g, rx, top, cw, rowH, mx, my));
         }
-        int cy = kit(g, x, left, w, rowH, mx, my) + Theme.SP_5;
-        cy = spots(g, profession, level, false, x, cy, w, rowH, true, mx, my) + Theme.SP_5;
-        return spots(g, profession, level, true, x, cy, w, rowH, true, mx, my);
+        int cy = spots(g, profession, level, false, x, y, w, rowH, true, mx, my) + Theme.SP_5;
+        cy = spots(g, profession, level, true, x, cy, w, rowH, true, mx, my) + Theme.SP_5;
+        cy = tools(g, profession, level, x, cy, w, rowH, mx, my) + Theme.SP_5;
+        return kit(g, x, cy, w, rowH, mx, my);
     }
 
     // ---- spots ----
