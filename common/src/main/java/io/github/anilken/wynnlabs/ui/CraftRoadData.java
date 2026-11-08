@@ -113,21 +113,30 @@ final class CraftRoadData {
     private final Map<String, ProfessionPlan.Spot> spots = new HashMap<>();
     private String nearestKey = "";
     private List<ProfessionPlan.Spot> nearestList = List.of();
+    private List<ProfessionPlan.Spot> closeList = List.of();
 
     /**
-     * A gathering profession's spots its level allows, highest level first, each at its nearest
-     * dense spot, at most five; worked out again when the player has moved a few blocks.
+     * A gathering profession's spots its level allows, each at its nearest dense spot: the best
+     * (highest level first, they give the most XP) or the nearest, at most three; worked out
+     * again when the player has moved a few blocks.
      */
-    List<ProfessionPlan.Spot> nearestSpots(String profession, int level) {
+    List<ProfessionPlan.Spot> spots(String profession, int level, boolean nearest) {
+        refreshSpots(profession, level);
+        return nearest ? closeList : nearestList;
+    }
+
+    private void refreshSpots(String profession, int level) {
         double[] pos = position();
         String key = profession + "|" + level + "|" + System.identityHashCode(ItemIndex.get())
                 + (pos == null ? "|-" : "|" + Math.round(pos[0] / 8) + "," + Math.round(pos[1] / 8));
         if (!key.equals(nearestKey)) {
             nearestKey = key;
-            // highest level first: those give the most XP per gather
-            nearestList = ProfessionPlan.spots(resources(), profession, level, pos, 5);
+            List<ProfessionPlan.Spot> all = ProfessionPlan.spots(resources(), profession, level, pos, 999);
+            nearestList = all.subList(0, Math.min(3, all.size()));
+            List<ProfessionPlan.Spot> close = new ArrayList<>(all);
+            close.sort(java.util.Comparator.comparingDouble(s -> Double.isNaN(s.distance()) ? Double.MAX_VALUE : s.distance()));
+            closeList = List.copyOf(close.subList(0, Math.min(3, close.size())));
         }
-        return nearestList;
     }
 
     /** The nearest place of a service ("trade-market"), or null. */

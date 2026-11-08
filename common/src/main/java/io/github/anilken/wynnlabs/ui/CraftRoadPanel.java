@@ -426,15 +426,19 @@ final class CraftRoadPanel extends CraftPanel {
         cy = bombs(g, x, cy, w, mx, my);
         cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.tool_head"), null, x, cy, w);
         cy = steps.toolRows(g, profession, level, x, cy, w, Type.BODY.lineHeight + Type.META.lineHeight, mx, my) + Theme.SP_4;
-        cy = tab.recipePanel.head(g, L.t("wynnlabs.plan.spots"), null, x, cy, w);
-        List<ProfessionPlan.Spot> spots = data.nearestSpots(profession, level);
-        if (spots.isEmpty()) {
-            Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, L.t("wynnlabs.plan.no_spots"), w), x, cy, Theme.INK_3);
-            return cy + Type.MUTED.lineHeight - y;
-        }
+        // two lists: the best spots (highest level first) and the nearest ones
         int rowH = Type.BODY.lineHeight + Type.META.lineHeight;
-        for (ProfessionPlan.Spot s : spots) {
-            cy = steps.spotRow(g, s, profession, x, cy, w, rowH, mx, my) + Theme.SP_3;
+        for (boolean nearest : new boolean[] {false, true}) {
+            cy = tab.recipePanel.head(g, L.t(nearest ? "wynnlabs.plan.spots_near" : "wynnlabs.plan.spots"), null, x, cy, w);
+            List<ProfessionPlan.Spot> spots = data.spots(profession, level, nearest);
+            if (spots.isEmpty()) {
+                Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, L.t("wynnlabs.plan.no_spots"), w), x, cy, Theme.INK_3);
+                return cy + Type.MUTED.lineHeight - y;
+            }
+            for (ProfessionPlan.Spot s : spots) {
+                cy = steps.spotRow(g, s, profession, x, cy, w, rowH, mx, my) + Theme.SP_3;
+            }
+            cy += Theme.SP_3;
         }
         return cy - y;
     }

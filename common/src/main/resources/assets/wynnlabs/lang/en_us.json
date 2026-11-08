@@ -1568,6 +1568,7 @@
   "wynnlabs.plan.tool_market_go": "Market",
   "wynnlabs.plan.tool_best": "Best for your level · %s at Lv %s",
   "wynnlabs.plan.spots": "Best gathering spots",
+  "wynnlabs.plan.spots_near": "Nearest gathering spots",
   "wynnlabs.plan.spot_nodes": "%s node|%s nodes",
   "wynnlabs.plan.gather_xp_none": "Gather once so the planner learns your XP per gather",
   "wynnlabs.plan.gather_xp_only": "Last gather %s XP · XP to next level unknown",
