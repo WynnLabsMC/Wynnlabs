@@ -417,6 +417,22 @@ public final class Wyn {
         return ProfessionReads.professionBombs();
     }
 
+    public static List<io.github.anilken.wynnlabs.model.GatherNode> gatherNodes() {
+        return ProfessionReads.gatherNodes();
+    }
+
+    public static boolean holdingGatherTool() {
+        return ProfessionReads.holdingGatherTool();
+    }
+
+    public static List<io.github.anilken.wynnlabs.model.GatherTool> gatherTools() {
+        return ProfessionReads.gatherTools();
+    }
+
+    public static List<io.github.anilken.wynnlabs.model.GatherTool> heldTools() {
+        return ProfessionReads.heldTools();
+    }
+
     // ---- raids, lootruns, aspects and tomes: EndgameReads ----
 
     public static RaidDry raidDry() {

@@ -120,6 +120,18 @@ class ProfessionPlanTest {
     }
 
     @Test
+    void aSpotIsTheNearestDenseOneNotALoneNode() {
+        List<Area> nodes = new java.util.ArrayList<>(List.of(Area.point(10, 60, 0)));   // a lone node close by
+        for (int i = 0; i < 5; i++) {
+            nodes.add(Area.point(800 + i * 10, 60, 0));                                  // five together further off
+        }
+        List<ProfessionPlan.Resource> res = List.of(new ProfessionPlan.Resource("Iron", "mining", 40, nodes, List.of("Iron Ingot")));
+        ProfessionPlan.Spot s = ProfessionPlan.spots(res, "mining", 45, new double[] {0, 0}, 5).get(0);
+        assertEquals(800, s.node().x());
+        assertEquals(5, s.nodes());
+    }
+
+    @Test
     void lastGainIsKeptPerProfession() {
         ProfessionXp.clear();
         assertEquals(0, ProfessionXp.last("mining"));

@@ -295,6 +295,85 @@ final class CraftRoadSteps {
         return y + rowH;
     }
 
+    /**
+     * The tool rows of a gathering profession: the best one in the bag, then the best one the
+     * level allows when it is better (where it is sold: the Tool Merchant sells only tiers
+     * 1 and 2, the rest come from the Trade Market), or that the bag's is the best yet.
+     */
+    int toolRows(GuiGraphics g, String profession, int level, int x, int y, int w, int rowH, int mx, int my) {
+        io.github.anilken.wynnlabs.model.GatherTool held = panel.data.heldTool(profession);
+        io.github.anilken.wynnlabs.model.GatherTool open = panel.data.tool(profession, level, true);
+        io.github.anilken.wynnlabs.model.GatherTool later = panel.data.tool(profession, level, false);
+        int cy = y;
+        if (held != null) {
+            boolean worn = held.durability() >= 0 && held.maxDurability() > 0 && held.durability() * 100 < held.maxDurability() * 15;
+            cy = toolRow(g, held.icon(), held.name() + " · Lv " + held.level(), Theme.INK,
+                    L.t("wynnlabs.plan.tool_line", held.speed(), Math.max(0, held.durability()), held.maxDurability()),
+                    worn ? Theme.BAD : Theme.INK_3, null, null, null, x, cy, w, rowH, mx, my);
+        }
+        if (open != null && (held == null || open.tier() > held.tier())) {
+            String speed = L.t("wynnlabs.plan.tool_usable") + " · " + L.t("wynnlabs.plan.tool_speed", open.speed())
+                    + (held != null ? " (+" + (open.speed() - held.speed()) + ")" : "");
+            String title = open.name() + " · Lv " + open.level();
+            if (held != null) {
+                cy += Theme.SP_3;
+            }
+            if (open.tier() <= 2) {
+                Area m = panel.data.service("merchant:tool");
+                String where = L.t("wynnlabs.plan.tool_merchant");
+                String d = m == null ? "" : " · " + RoadmapScreen.dist((int) Math.round(Compass.distance(m, CraftRoadData.position())))
+                        + dirName(Compass.direction(m, CraftRoadData.position()));
+                cy = toolRow(g, open.icon(), title, Theme.GOOD, speed + " · " + where + d, Theme.INK_3,
+                        "compass", L.t("wynnlabs.road.go_compass"), () -> pinArea(m, where), x, cy, w, rowH, mx, my);
+            } else {
+                Prices.Price p = Prices.of(open.name());
+                Double typical = p == null ? null : p.typical();
+                String market = L.t("wynnlabs.plan.tool_market") + (typical == null ? "" : " ~" + Prices.fmt(typical));
+                io.github.anilken.wynnlabs.model.GatherTool t = open;
+                cy = toolRow(g, open.icon(), title, Theme.GOOD, speed + " · " + market, Theme.INK_3,
+                        "tag", L.t("wynnlabs.plan.tool_market_go"), () -> openMarket(t), x, cy, w, rowH, mx, my);
+            }
+        } else if (held != null && later != null) {
+            cy += Theme.SP_2;
+            String line = L.t("wynnlabs.plan.tool_best", later.name(), later.level());
+            Type.MUTED.draw(g, tab.font, Type.MUTED.fit(tab.font, line, w), x, cy, Theme.INK_3);
+            cy += Type.MUTED.lineHeight;
+        }
+        return cy;
+    }
+
+    /** One tool row: the item, a title and a line under it, and a button on the right when given. */
+    private int toolRow(GuiGraphics g, net.minecraft.world.item.ItemStack icon, String title, int titleColor, String sub, int subColor,
+            String buttonIcon, String button, Runnable action, int x, int y, int w, int rowH, int mx, int my) {
+        int size = Math.min(rowH, 20);
+        CraftIcons.slot(g, x, y + (rowH - size) / 2, size, icon);
+        int tx = x + size + Theme.SP_3;
+        int right = x + w;
+        if (button != null) {
+            int bw = Ui.iconButtonLabelWidth(tab.font, button);
+            int bx = x + w - bw;
+            int by = y + (rowH - Ui.BUTTON_H) / 2;
+            Ui.iconButtonLabel(g, tab.font, buttonIcon, button, bx, by, bw, mx, my);
+            tab.acts.add(new Act(bx, by, bw, Ui.BUTTON_H, action, null, null));
+            right = bx - Theme.SP_4;
+        }
+        if (sub == null) {
+            Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, title, right - tx), tx, y + (rowH - Type.LABEL.lineHeight) / 2, titleColor);
+        } else {
+            Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, title, right - tx), tx, y, titleColor);
+            Type.META.draw(g, tab.font, Type.META.fit(tab.font, sub, right - tx), tx, y + Type.LABEL.lineHeight, subColor);
+        }
+        return y + rowH;
+    }
+
+    /** The Trade Market window of a tool (its listings and price). */
+    private static void openMarket(io.github.anilken.wynnlabs.model.GatherTool t) {
+        var item = new io.github.anilken.wynnlabs.search.BoxMarket.Item(t.name(), io.github.anilken.wynnlabs.model.Slot.UNKNOWN,
+                io.github.anilken.wynnlabs.model.Tier.NORMAL, t.level(), null, 0, true);
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        mc.setScreen(new BoxScreen(new BoxScreen.Single(item, null, false), t.icon(), mc.screen));
+    }
+
     private static String dirName(String d) {
         return d == null ? "" : " " + SearchCardRows.dirName(d);
     }

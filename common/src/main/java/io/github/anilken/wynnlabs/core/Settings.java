@@ -31,7 +31,7 @@ public final class Settings {
             "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "healerAdvice", "deathCoach", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
             "feederHighlight", "miniQuests", "questGuides", "caveMapDone", "localApi", "apiWrite", "debug", "webFont", "menuResume",
-            "crowdMode", "guideLine", "marketFit", "guildMap", "guildApi", "cannotWear", "worldEvents", "smallMapIcons"}) {
+            "crowdMode", "guideLine", "marketFit", "guildMap", "guildApi", "cannotWear", "worldEvents", "smallMapIcons", "nodePrices"}) {
             LABELS.put(k, "wynnlabs.setting." + k);
             DESC.put(k, "wynnlabs.setting_desc." + k);
         }

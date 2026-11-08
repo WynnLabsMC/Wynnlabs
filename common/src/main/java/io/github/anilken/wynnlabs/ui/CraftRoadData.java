@@ -113,23 +113,30 @@ final class CraftRoadData {
     private final Map<String, ProfessionPlan.Spot> spots = new HashMap<>();
     private String nearestKey = "";
     private List<ProfessionPlan.Spot> nearestList = List.of();
+    private List<ProfessionPlan.Spot> closeList = List.of();
 
     /**
-     * A gathering profession's spots its level allows, nearest first (ties by level, higher first),
-     * at most six; worked out again when the player has moved a few blocks.
+     * A gathering profession's spots its level allows, each at its nearest dense spot: the best
+     * (highest level first, they give the most XP) or the nearest, at most three; worked out
+     * again when the player has moved a few blocks.
      */
-    List<ProfessionPlan.Spot> nearestSpots(String profession, int level) {
+    List<ProfessionPlan.Spot> spots(String profession, int level, boolean nearest) {
+        refreshSpots(profession, level);
+        return nearest ? closeList : nearestList;
+    }
+
+    private void refreshSpots(String profession, int level) {
         double[] pos = position();
         String key = profession + "|" + level + "|" + System.identityHashCode(ItemIndex.get())
                 + (pos == null ? "|-" : "|" + Math.round(pos[0] / 8) + "," + Math.round(pos[1] / 8));
         if (!key.equals(nearestKey)) {
             nearestKey = key;
-            List<ProfessionPlan.Spot> all = new ArrayList<>(ProfessionPlan.spots(resources(), profession, level, pos, 999));
-            all.sort(java.util.Comparator.<ProfessionPlan.Spot>comparingDouble(s -> Double.isNaN(s.distance()) ? Double.MAX_VALUE : s.distance())
-                    .thenComparing(s -> -s.resource().level()));
-            nearestList = List.copyOf(all.subList(0, Math.min(6, all.size())));
+            List<ProfessionPlan.Spot> all = ProfessionPlan.spots(resources(), profession, level, pos, 999);
+            nearestList = all.subList(0, Math.min(3, all.size()));
+            List<ProfessionPlan.Spot> close = new ArrayList<>(all);
+            close.sort(java.util.Comparator.comparingDouble(s -> Double.isNaN(s.distance()) ? Double.MAX_VALUE : s.distance()));
+            closeList = List.copyOf(close.subList(0, Math.min(3, close.size())));
         }
-        return nearestList;
     }
 
     /** The nearest place of a service ("trade-market"), or null. */
@@ -224,5 +231,53 @@ final class CraftRoadData {
             n += tab.stock.material(material, t);
         }
         return n;
+    }
+
+    private List<io.github.anilken.wynnlabs.model.GatherTool> allTools = List.of();
+    private List<io.github.anilken.wynnlabs.model.GatherTool> heldTools = List.of();
+    private long heldAt;
+
+    /** The best tool of a gathering profession in the bag (highest tier), or null; read once a second. */
+    io.github.anilken.wynnlabs.model.GatherTool heldTool(String profession) {
+        long now = System.currentTimeMillis();
+        if (now - heldAt > 1000) {
+            heldAt = now;
+            try {
+                heldTools = Wyn.heldTools();
+            } catch (Throwable t) {
+                heldTools = List.of();
+            }
+        }
+        io.github.anilken.wynnlabs.model.GatherTool best = null;
+        for (var t : heldTools) {
+            if (t.profession().equalsIgnoreCase(profession) && (best == null || t.tier() > best.tier())) {
+                best = t;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * A gathering profession's tool by level: the best the level allows ({@code open}), else the
+     * first one past it; null when there is none.
+     */
+    io.github.anilken.wynnlabs.model.GatherTool tool(String profession, int level, boolean open) {
+        if (allTools.isEmpty()) {
+            try {
+                allTools = Wyn.gatherTools();
+            } catch (Throwable t) {
+                allTools = List.of();
+            }
+        }
+        io.github.anilken.wynnlabs.model.GatherTool pick = null;
+        for (var t : allTools) {
+            if (!t.profession().equalsIgnoreCase(profession) || (t.level() <= level) != open) {
+                continue;
+            }
+            if (pick == null || (open ? t.tier() > pick.tier() : t.tier() < pick.tier())) {
+                pick = t;
+            }
+        }
+        return pick;
     }
 }

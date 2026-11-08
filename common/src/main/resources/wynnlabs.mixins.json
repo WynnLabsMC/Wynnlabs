@@ -18,6 +18,7 @@
     "RideUseMixin",
     "PowerupDisplayAccessor",
     "PowerupModelAccessor",
+    "TextDisplayAccessor",
     "PowerupLayerAccessor",
     "PowerupSpriteAccessor",
     "CrowdEntityMixin",

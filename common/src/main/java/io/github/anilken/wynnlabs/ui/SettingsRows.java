@@ -104,6 +104,7 @@ final class SettingsRows {
                 p.child("switch", "guildApi", "guildMap");
                 p.row("switch", "worldEvents");
                 p.row("switch", "smallMapIcons");
+                p.row("switch", "nodePrices");
                 p.row("multi", "warnings");
                 p.row("multi", "chat");
             }
