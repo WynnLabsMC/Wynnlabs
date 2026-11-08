@@ -130,6 +130,7 @@
   "wynnlabs.caution.attack_slow": "Slow Attack Speed",
   "wynnlabs.caution.stat_percent": "%s %s%%%s",
   "wynnlabs.caution.line": "Dikkat: %s",
+  "wynnlabs.tooltip.only_banner": "SADECE",
   "wynnlabs.tooltip.past_banner": "ESKI",
   "wynnlabs.tooltip.advice_banner": "ÖNERİ",
   "wynnlabs.tooltip.for_you": "%s · %s",

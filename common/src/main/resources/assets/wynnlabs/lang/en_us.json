@@ -130,6 +130,7 @@
   "wynnlabs.caution.attack_slow": "Slow Attack Speed",
   "wynnlabs.caution.stat_percent": "%s %s%s%%",
   "wynnlabs.caution.line": "Caution: %s",
+  "wynnlabs.tooltip.only_banner": "ONLY",
   "wynnlabs.tooltip.past_banner": "PAST",
   "wynnlabs.tooltip.advice_banner": "ADVICE",
   "wynnlabs.tooltip.for_you": "%s · %s",
