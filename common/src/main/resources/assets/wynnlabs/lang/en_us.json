@@ -2834,6 +2834,7 @@
   "wynnlabs.road.bomb_xp": "Prof XP bomb · ×2",
   "wynnlabs.road.bomb_xp_tip": "This world: 2× XP from gathering and crafting; the craft counts below use it",
   "wynnlabs.road.cost_unknown": "Cost: some prices unknown",
+  "wynnlabs.road.each_craft": "Each craft: %s, no ingredients needed",
   "wynnlabs.road.craft_note": "Progress updates on level-up",
   "wynnlabs.road.crafts": "~%s craft|~%s crafts",
   "wynnlabs.road.crafts_short": "~%s craft|~%s crafts",
