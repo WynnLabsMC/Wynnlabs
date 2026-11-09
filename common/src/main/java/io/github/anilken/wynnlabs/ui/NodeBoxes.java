@@ -29,6 +29,10 @@ public final class NodeBoxes {
 
     /** How far (blocks) the map data's nodes get a faint box. */
     static final int REACH = 100;
+    /** How close (blocks across) a map node and a shown one must be to count as the same node. */
+    private static final int MATCH = 4;
+    /** The last measured height shift, kept for when no node is seen both ways. */
+    private static int lastShift;
     /** At most this many faint boxes, the nearest first. */
     private static final int MAX_FAR = 300;
     private static final int GOLD = 0xFFE071;
@@ -81,7 +85,7 @@ public final class NodeBoxes {
                     default -> 0;
                 };
                 BlockPos at = new BlockPos(n.x(), n.y() - down, n.z());
-                live.add(new int[] {at.getX(), at.getZ()});
+                live.add(new int[] {at.getX(), at.getZ(), at.getY()});
                 liveAt.add(at);
             }
             // the map's nodes further off: faint, the nearest first
@@ -96,9 +100,13 @@ public final class NodeBoxes {
                 }
             }
             far.sort(java.util.Comparator.comparingDouble(a -> (a.x() - px) * (a.x() - px) + (a.z() - pz) * (a.z() - pz)));
+            // the map data's heights sit off from where the game shows the nodes (a fishing node a block
+            // under the water): the shift is measured on the nodes seen both ways and put on the rest
+            int shift = shift(held, live);
+            lastShift = shift;
             List<BlockPos> farAt = new ArrayList<>();
             for (int i = 0; i < far.size() && i < MAX_FAR; i++) {
-                farAt.add(new BlockPos(far.get(i).x(), far.get(i).y(), far.get(i).z()));
+                farAt.add(new BlockPos(far.get(i).x(), far.get(i).y() + shift, far.get(i).z()));
             }
             LIVE.clear();
             LIVE.addAll(liveAt);
@@ -181,12 +189,31 @@ public final class NodeBoxes {
 
     /** Whether a map node is where the game already shows one (its box would double). */
     private static boolean near(List<int[]> live, Area a) {
+        return match(live, a) != null;
+    }
+
+    /** The node the game shows for a map node (within {@link #MATCH} blocks across), or null. */
+    private static int[] match(List<int[]> live, Area a) {
         for (int[] l : live) {
-            if (Math.abs(l[0] - a.x()) <= 2 && Math.abs(l[1] - a.z()) <= 2) {
-                return true;
+            if (Math.abs(l[0] - a.x()) <= MATCH && Math.abs(l[1] - a.z()) <= MATCH) {
+                return l;
             }
         }
-        return false;
+        return null;
+    }
+
+    /** How far a map node shown by the game sits below its box, most often; 0 when none is seen both ways. */
+    private static int shift(List<String> held, List<int[]> live) {
+        Map<Integer, Integer> votes = new HashMap<>();
+        for (String prof : held) {
+            for (Area a : FAR.getOrDefault(prof, List.of())) {
+                int[] l = match(live, a);
+                if (l != null && Math.abs(l[2] - a.y()) <= 8) {
+                    votes.merge(l[2] - a.y(), 1, Integer::sum);
+                }
+            }
+        }
+        return votes.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(lastShift);
     }
 
     /** The resources' professions and the map data's nodes per profession, once per item index. */
