@@ -535,7 +535,7 @@ final class BoxMadePanel {
             boolean noLink = "nolink".equals(doneWhat) && System.currentTimeMillis() - doneAt < 2000;
             String[] labels = {L.t("wynnlabs.box.made.open_recipe"),
                     L.t(justSaved ? "wynnlabs.box.made.saved_done" : "wynnlabs.box.made.save_recipe"),
-                    L.t(justCopied ? "wynnlabs.craft.wb_link_copied" : noLink ? "wynnlabs.craft.wb_link_none" : "wynnlabs.box.made.wb_link")};
+                    L.t(justCopied ? "wynnlabs.box.made.copied" : noLink ? "wynnlabs.box.made.no_link" : "wynnlabs.box.made.wb_link")};
             String[] tips = {"wynnlabs.box.made.open_tip", "wynnlabs.box.made.save_tip", "wynnlabs.box.made.wb_tip"};
             Runnable[] acts = {() -> openRecipe(pick), () -> saveRecipe(pick), () -> copyLink(pick)};
             int bx = x;
