@@ -155,9 +155,9 @@ final class BoxMadePanel {
     private static final java.util.regex.Pattern TIER_KEY = java.util.regex.Pattern.compile("^(.+) T([1-3])$");
 
     /**
-     * A price for something with no listing now: a material tier from its other tiers (tier 2
-     * halfway between 1 and 3 on a log scale, tier 1 or 3 one step past the other two), else the
-     * material's price over all tiers; anything else its last median. Null when nothing is known.
+     * A price for something with no listing now: a material tier from the tier next to it (a tier
+     * up about half as much again), else the material's price over all tiers; anything else its
+     * last median. Null when nothing is known.
      */
     static Long estimate(String name) {
         java.util.regex.Matcher m = TIER_KEY.matcher(name);
@@ -167,14 +167,19 @@ final class BoxMadePanel {
             Double t1 = typical(base + " T1");
             Double t2 = typical(base + " T2");
             Double t3 = typical(base + " T3");
-            if (t == 2 && t1 != null && t3 != null) {
-                return Math.round(Math.sqrt(t1 * t3));
+            // from the tier next to it: a tier up costs about half as much again; a dear tier
+            // further away (few listings, wild prices) would lift the estimate too far
+            if (t == 2 && t1 != null) {
+                return Math.round(t1 * 1.5);
             }
-            if (t == 1 && t2 != null && t3 != null && t3 > 0) {
-                return Math.round(t2 * t2 / t3);
+            if (t == 3 && t2 != null) {
+                return Math.round(t2 * 1.5);
             }
-            if (t == 3 && t1 != null && t2 != null && t1 > 0) {
-                return Math.round(t2 * t2 / t1);
+            if (t == 1 && t2 != null) {
+                return Math.round(t2 / 1.5);
+            }
+            if (t == 3 && t1 != null) {
+                return Math.round(t1 * 2.25);
             }
             Double all = typical(base);
             if (all != null) {
@@ -470,8 +475,16 @@ final class BoxMadePanel {
                 if (hover && icon != null) {
                     g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);
                 }
-                ly += ROW + Theme.SP_2;
+                ly += ROW;
+                String from = sourceOf(e.getKey());
+                if (from != null) {
+                    Type.META.draw(g, s.font(), Type.META.fit(s.font(), from, lw - 12 - Theme.SP_2), lx + 12 + Theme.SP_2, ly, Theme.INK_3);
+                    ly += Type.META.lineHeight;
+                }
+                ly += Theme.SP_2;
             }
+            long ingSum = sum;
+            boolean ingUnknown = unknown;
             // the materials at their tiers
             ly += Theme.SP_2;
             Type.META.draw(g, s.font(), L.t("wynnlabs.box.made.cell_materials"), lx, ly, Theme.INK_3);
@@ -497,7 +510,13 @@ final class BoxMadePanel {
             String totalText = sum == 0 && unknown ? "?" : Prices.fmt(sum) + (unknown ? " +?" : "");
             Type.LABEL.draw(g, s.font(), L.t("wynnlabs.box.made.cell_total"), lx, ly, Theme.INK);
             Type.LABEL.drawRight(g, s.font(), totalText, lx + lw, ly, Theme.PRICE);
-            ly += Type.LABEL.lineHeight;
+            ly += Type.LABEL.lineHeight + Theme.SP_1;
+            // the materials are gathered by most crafters: what is left to buy then
+            String gathered = ingSum == 0 && ingUnknown ? "?" : Prices.fmt(ingSum) + (ingUnknown ? " +?" : "");
+            Type.META.draw(g, s.font(), Type.META.fit(s.font(), L.t("wynnlabs.box.made.gathered"), lw - Type.META.width(s.font(), gathered) - Theme.SP_3),
+                    lx, ly, Theme.INK_3);
+            Type.META.drawRight(g, s.font(), gathered, lx + lw, ly, Theme.PRICE);
+            ly += Type.META.lineHeight;
             cy = Math.max(cy + gh, ly) + Theme.SP_4;
             // the actions: open the layout in Recipe, save it to the saved recipes, copy its WynnBuilder link
             HowMade.Found pick = f;
@@ -543,7 +562,40 @@ final class BoxMadePanel {
         int list = 2 * (Type.META.lineHeight + Theme.SP_1) + (int) (kinds + 2) * (ROW + Theme.SP_2) + Theme.SP_2
                 + 1 + Theme.SP_2 + Type.LABEL.lineHeight;
         int grid = GRID_PAD * 2 + 3 * CELL + 2 * Theme.SP_1;
+        long sourced = f.slots().stream().filter(i -> i != null && !i.empty()).map(Ingredient::name).distinct()
+                .filter(n -> sourceOf(n) != null).count();
+        list += (int) sourced * Type.META.lineHeight + Theme.SP_1 + Type.META.lineHeight;
         return Math.max(grid, list) + Theme.SP_4 + Ui.BUTTON_H + buttonExtra;
+    }
+
+    private final Map<String, String> sources = new java.util.HashMap<>();
+
+    /**
+     * Where an ingredient is found besides the market ("Drops from Spiders, Lv 40-60", "From
+     * Nest of the Grootslangs"), read once per name; null when the item list knows none.
+     */
+    private String sourceOf(String name) {
+        if (sources.containsKey(name)) {
+            return sources.get(name);
+        }
+        String text = null;
+        try {
+            io.github.anilken.wynnlabs.search.Entry e = io.github.anilken.wynnlabs.search.ItemIndex.get().byName(name);
+            if (e != null) {
+                for (io.github.anilken.wynnlabs.search.Source src : io.github.anilken.wynnlabs.search.Sources.of(e,
+                        io.github.anilken.wynnlabs.search.ItemIndex.get().places(), io.github.anilken.wynnlabs.search.Sources.Owned.NONE,
+                        null, SearchTab.position())) {
+                    if (src.type() != io.github.anilken.wynnlabs.search.Source.Type.MARKET) {
+                        text = io.github.anilken.wynnlabs.search.SourceText.row(src, null);
+                        break;
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            text = null;                        // no item list yet: no source line
+        }
+        sources.put(name, text);
+        return text;
     }
 
     /** How far the action buttons wrapped below their first line, from the last frame. */

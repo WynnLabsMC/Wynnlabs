@@ -2710,6 +2710,7 @@
   "wynnlabs.box.made.save_tip": "Keep this layout in your saved recipes, under the item's name",
   "wynnlabs.box.made.wb_link": "WynnBuilder link",
   "wynnlabs.box.made.wb_tip": "Copy this layout as a WynnBuilder crafter link",
+  "wynnlabs.box.made.gathered": "If you gather the materials",
   "wynnlabs.box.made.open_recipe": "Open in Recipe ›",
   "wynnlabs.box.made.open_tip": "Loads this layout into the Crafting tab's Recipe view",
   "wynnlabs.box.made.others_title": "Other layouts that fit",
