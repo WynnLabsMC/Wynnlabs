@@ -215,14 +215,11 @@ final class BoxStatsPanel {
             lowerName = null;
             lowerOwned = false;
             try {
-                String prof = null;
+                // the same kind of tool ("Pickaxe") one tier below
+                java.util.regex.Matcher km = java.util.regex.Pattern.compile(" (Pickaxe|Axe|Scythe|Rod) T[0-9]+$").matcher(name);
+                String kind = km.find() ? " " + km.group(1) + " " : null;
                 for (var t : io.github.anilken.wynnlabs.game.Wyn.gatherTools()) {
-                    if (t.name().equals(name)) {
-                        prof = t.profession();
-                    }
-                }
-                for (var t : io.github.anilken.wynnlabs.game.Wyn.gatherTools()) {
-                    if (prof != null && t.profession().equalsIgnoreCase(prof) && t.tier() == tier - 1) {
+                    if (kind != null && t.tier() == tier - 1 && (t.name() + " ").contains(kind)) {
                         lowerName = t.name();
                         lowerIcon = t.icon();
                     }
@@ -263,7 +260,7 @@ final class BoxStatsPanel {
     /** A way's card height: its title line, a line per part, and the fragments chip when it needs fragments. */
     private static int wayHeight(io.github.anilken.wynnlabs.crafting.ToolWays.Way way) {
         int lines = way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET ? 0 : way.parts().size();
-        lines += way.emeralds() > 0 && way.kind() != io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MERCHANT ? 1 : 0;
+        lines += way.at() != null || way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET ? 1 : 0;
         int body = Math.max(WAY_BADGE, Type.LABEL.lineHeight + (lines > 0 ? Theme.SP_1 + lines * PART_H : 0)
                 + (way.fragments() > 0 ? Theme.SP_2 + CHIP_H + 2 : 0));
         return WAY_PAD * 2 + body;
@@ -306,19 +303,23 @@ final class BoxStatsPanel {
             case MARKET -> L.t("wynnlabs.box.ways_market");
             case MERCHANT -> L.t("wynnlabs.box.ways_merchant");
             case UPGRADE -> L.t("wynnlabs.box.ways_upgrade", tier - 1);
-            case DUNGEON -> L.t("wynnlabs.box.ways_dungeon", way.at());
+            case DUNGEON -> L.t("wynnlabs.box.ways_dungeon_short");
         };
-        String tag = best ? L.t("wynnlabs.box.ways_best") : null;
-        int tagW = tag == null ? 0 : Type.META.width(font, tag) + Theme.SP_2 * 3;
-        String fit = Type.LABEL.fit(font, title, right - tx - tagW);
-        Type.LABEL.draw(g, font, fit, tx, by + 1, best ? Theme.GOOD : Theme.INK);
-        if (tag != null) {
-            int gx = tx + Type.LABEL.width(font, fit) + Theme.SP_2;
-            Kit.box(g, gx, by, tagW - Theme.SP_2, CHIP_H + 2, 0xFFD6E5C0, Theme.GOOD);
-            Type.META.draw(g, font, tag, gx + Theme.SP_2, by + 2, Theme.GOOD);
-        }
+        Type.LABEL.draw(g, font, Type.LABEL.fit(font, title, right - tx), tx, by + 1, best ? Theme.GOOD : Theme.INK);
         int cy = by + Type.LABEL.lineHeight + Theme.SP_1;
         int end = x + w - WAY_PAD;
+        // under the title: the dungeon it is at, or the market's "Cheapest"
+        String sub = way.at() != null ? way.at()
+                : way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET
+                ? (best ? L.t("wynnlabs.box.ways_best") : L.t("wynnlabs.box.ways_market_sub")) : null;
+        if (sub != null) {
+            if (way.at() != null) {
+                Art.icon(g, "map-pin", tx + 2, cy + 2, 8, Theme.INK_3);
+            }
+            Type.META.draw(g, font, Type.META.fit(font, sub, end - tx - (way.at() != null ? 15 : 0)), tx + (way.at() != null ? 15 : 0),
+                    cy + 2, best ? Theme.GOOD : Theme.INK_3);
+            cy += PART_H;
+        }
         // what it takes, each with its picture
         if (way.kind() != io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET) {
             for (var part : way.parts()) {
@@ -339,14 +340,9 @@ final class BoxStatsPanel {
                 cy += PART_H;
             }
         }
-        if (way.emeralds() > 0 && way.kind() != io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MERCHANT) {
-            Art.icon(g, "coin", tx + 2, cy + 2, 8, Theme.PRICE);
-            Type.META.draw(g, font, io.github.anilken.wynnlabs.market.Prices.fmt(way.emeralds()), tx + 15, cy + 2, Theme.PRICE);
-            cy += PART_H;
-        }
         if (way.fragments() > 0) {
             // the fragments it needs, on a purple chip: they drop from dungeon runs
-            String chip = L.n("wynnlabs.box.ways_fragments", way.fragments()) + " · " + L.t("wynnlabs.box.ways_runs");
+            String chip = L.t("wynnlabs.box.ways_runs");
             int cw = Math.min(end - tx, Type.META.width(font, chip) + Theme.SP_3 * 2);
             cy += Theme.SP_2;
             Kit.box(g, tx, cy, cw, CHIP_H + 2, 0xFFE3DAF0, Theme.ACCENT);
