@@ -51,6 +51,8 @@ public final class BoxScreen extends Screen {
     final ItemView.Box box;
     /** The one item; null for a box. */
     final Single single;
+    /** A crafted item's "how it was made" (its own mode: no listings); null otherwise. */
+    final BoxMadePanel made;
     final net.minecraft.world.item.ItemStack singleIcon;
     private final Screen parent;
     /** "RELIK:LEGENDARY:70-80" or "item:Name": what a refresh is for. */
@@ -98,6 +100,7 @@ public final class BoxScreen extends Screen {
         super(Component.translatable("wynnlabs.box.title"));
         this.box = box;
         this.single = null;
+        this.made = null;
         this.singleIcon = null;
         this.parent = parent;
         this.boxKey = box.slot().name() + ":" + box.tier().name() + ":" + box.low() + "-" + box.high();
@@ -123,6 +126,7 @@ public final class BoxScreen extends Screen {
         super(Component.translatable("wynnlabs.box.title"));
         this.box = null;
         this.single = one;
+        this.made = null;
         this.singleIcon = icon;
         this.parent = parent;
         this.boxKey = "item:" + one.item().name();
@@ -138,6 +142,18 @@ public final class BoxScreen extends Screen {
             filter = BoxMarket.Filter.UNID;
         }
         Listings.request(List.of(one.item().name()));
+    }
+
+    /** The window for a crafted item: how it was most likely made, searched on the crafting thread. */
+    BoxScreen(io.github.anilken.wynnlabs.crafting.HowMade.Target target, net.minecraft.world.item.ItemStack icon, Screen parent) {
+        super(Component.translatable("wynnlabs.box.title"));
+        this.box = null;
+        this.single = null;
+        this.singleIcon = icon;
+        this.parent = parent;
+        this.boxKey = "made:" + target.name();
+        this.items = List.of();
+        this.made = new BoxMadePanel(this, target);
     }
 
     @Override
@@ -238,12 +254,18 @@ public final class BoxScreen extends Screen {
         // the server closed the container behind (or opened another): nothing to go back to
         if (parent instanceof AbstractContainerScreen<?> c && minecraft != null
                 && (minecraft.player == null || minecraft.player.containerMenu != c.getMenu())) {
+            if (made != null) {
+                made.closed();
+            }
             minecraft.setScreen(null);
         }
     }
 
     @Override
     public void onClose() {
+        if (made != null) {
+            made.closed();                       // a search still running stops
+        }
         if (minecraft != null) {
             minecraft.setScreen(parent);        // back to the container, still open; nothing is sent
         }
@@ -264,7 +286,9 @@ public final class BoxScreen extends Screen {
     private void draw(GuiGraphics g, int mx, int my, float pt) {
         long t0 = System.nanoTime();
         super.render(g, mx, my, pt);
-        rebuild();
+        if (made == null) {
+            rebuild();
+        }
         hits.clear();
         tip = null;
         int ww = Math.min(width - 16, Math.max(340, Math.min(520, width * 4 / 5)));
@@ -284,12 +308,16 @@ public final class BoxScreen extends Screen {
         int y = wy + Theme.SP_7;                       // clear of the parchment's rim and corner ornaments
         int w = ww - 2 * Theme.SP_6;
         int bottom = wy + wh - Theme.SP_6;
-        y = bar.title(g, x, y, w, pmx, pmy);
-        if (box != null && items.isEmpty()) {
-            UiEmpty.draw(g, font, x, y, w, bottom - y, compact, "box", L.t("wynnlabs.box.unread_title"),
-                    List.of(L.t("wynnlabs.box.unread_step1"), L.t("wynnlabs.box.unread_step2")), null, null, pmx, pmy);
+        if (made != null) {
+            made.draw(g, x, y, w, bottom, pmx, pmy);
         } else {
-            y = page(g, x, y, w, bottom, pmx, pmy);
+            y = bar.title(g, x, y, w, pmx, pmy);
+            if (box != null && items.isEmpty()) {
+                UiEmpty.draw(g, font, x, y, w, bottom - y, compact, "box", L.t("wynnlabs.box.unread_title"),
+                        List.of(L.t("wynnlabs.box.unread_step1"), L.t("wynnlabs.box.unread_step2")), null, null, pmx, pmy);
+            } else {
+                y = page(g, x, y, w, bottom, pmx, pmy);
+            }
         }
         int[] cr = KitFrame.closeAt(width, wx, wy, ww);
         boolean closeHover = !popup && mx >= cr[0] && mx < cr[0] + cr[2] && my >= cr[1] && my < cr[1] + cr[3];
@@ -426,7 +454,7 @@ public final class BoxScreen extends Screen {
             bar.menuClick(ex, ey);
             return true;
         }
-        if (left.mouseClicked(ex, ey) || right.mouseClicked(ex, ey)) {
+        if (made != null ? made.mouseClicked(ex, ey) : left.mouseClicked(ex, ey) || right.mouseClicked(ex, ey)) {
             return true;
         }
         for (Hit h : List.copyOf(hits)) {
@@ -445,7 +473,7 @@ public final class BoxScreen extends Screen {
         if (bar.menuOpen()) {
             return bar.menuDrag(e.y());
         }
-        if (left.mouseDragged(e.y()) || right.mouseDragged(e.y())) {
+        if (made != null ? made.mouseDragged(e.y()) : left.mouseDragged(e.y()) || right.mouseDragged(e.y())) {
             return true;
         }
         return super.mouseDragged(e, dx * f, dy * f);
@@ -454,6 +482,9 @@ public final class BoxScreen extends Screen {
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
         bar.menuRelease();
+        if (made != null) {
+            made.mouseReleased();
+        }
         left.mouseReleased();
         right.mouseReleased();
         return super.mouseReleased(MenuScale.event(event));
@@ -467,7 +498,9 @@ public final class BoxScreen extends Screen {
             bar.menuWheel(v);
             return true;
         }
-        if (!left.mouseScrolled(x, y, v)) {
+        if (made != null) {
+            made.mouseScrolled(x, y, v);
+        } else if (!left.mouseScrolled(x, y, v)) {
             right.mouseScrolled(x, y, v);
         }
         return true;
@@ -483,6 +516,9 @@ public final class BoxScreen extends Screen {
             }
             bar.menuKey(k);
             return true;
+        }
+        if (made != null) {
+            return super.keyPressed(event);
         }
         if ((k == org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER || k == org.lwjgl.glfw.GLFW.GLFW_KEY_SPACE) && right.toggle()) {
             return true;

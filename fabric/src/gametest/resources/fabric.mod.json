@@ -10,6 +10,7 @@
       "io.github.anilken.wynnlabs.ui.JMenuPreview",
       "io.github.anilken.wynnlabs.ui.LayoutMatrix",
       "io.github.anilken.wynnlabs.ui.BoxPreview",
+      "io.github.anilken.wynnlabs.ui.BoxMadePreview",
       "io.github.anilken.wynnlabs.ui.AboutPreview",
       "io.github.anilken.wynnlabs.ui.GuidePreview"
     ]

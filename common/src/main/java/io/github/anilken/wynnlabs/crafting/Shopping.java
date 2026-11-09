@@ -30,9 +30,13 @@ public final class Shopping {
 
     private Shopping() {}
 
-    /** A material's price key at a tier: "Mahseer Meat T1", as Wynnventory lists materials. */
+    /**
+     * A material's price key at a tier: "Mahseer Meat T1", as the market lists materials. Recipes
+     * say "Redwood Planks"; the market keeps one plank ("Redwood Plank T2").
+     */
     public static String materialKey(String shown, int tier) {
-        return shown + " T" + tier;
+        String name = shown.endsWith(" Planks") ? shown.substring(0, shown.length() - 1) : shown;
+        return name + " T" + tier;
     }
 
     public static Needs of(CraftData.Recipe recipe, int tier1, int tier2, List<Ingredient> slots, WhatCanICraft.Stock stock,
