@@ -605,7 +605,11 @@ final class BoxMadePanel {
                         io.github.anilken.wynnlabs.search.ItemIndex.get().places(), io.github.anilken.wynnlabs.search.Sources.Owned.NONE,
                         null, SearchTab.position())) {
                     if (src.type() != io.github.anilken.wynnlabs.search.Source.Type.MARKET) {
-                        text = io.github.anilken.wynnlabs.search.SourceText.row(src, null);
+                        String row = io.github.anilken.wynnlabs.search.SourceText.row(src, null);
+                        if (row != null && row.contains("Dummy")) {
+                            continue;                   // a training dummy is no place to get it
+                        }
+                        text = row;
                         break;
                     }
                 }
@@ -662,11 +666,16 @@ final class BoxMadePanel {
         }
         CraftIcons.slot(g, x, y + (ROW - 12) / 2, 12, icon);
         String priceText = price == null ? "?" : (est ? "\u2248" : "") + Prices.fmt(price);
-        int pw = Type.META.width(s.font(), priceText);
-        Type.META.drawRight(g, s.font(), priceText, x + w, Type.META.yIn(y, ROW), price == null ? Theme.INK_3 : Theme.PRICE);
         String times = "×" + amount;
         String tail = (stars == null ? "" : " " + stars);
-        int room = w - 12 - Theme.SP_2 - pw - Theme.SP_3 - Type.META.width(s.font(), " " + times) - Type.BODY.width(s.font(), tail);
+        int fixed = 12 + Theme.SP_2 + Theme.SP_3 + Type.META.width(s.font(), " " + times) + Type.BODY.width(s.font(), tail);
+        if (price != null && Type.BODY.width(s.font(), name) > w - fixed - Type.META.width(s.font(), priceText)) {
+            // a long name keeps its words: the price in one coin ("3.3LE") instead of two
+            priceText = (est ? "\u2248" : "") + Prices.slot(price);
+        }
+        int pw = Type.META.width(s.font(), priceText);
+        Type.META.drawRight(g, s.font(), priceText, x + w, Type.META.yIn(y, ROW), price == null ? Theme.INK_3 : Theme.PRICE);
+        int room = w - fixed - pw;
         String fit = Type.BODY.fit(s.font(), name, Math.max(0, room));
         int tx = x + 12 + Theme.SP_2;
         Type.BODY.draw(g, s.font(), fit, tx, Type.BODY.yIn(y, ROW), Theme.INK);
