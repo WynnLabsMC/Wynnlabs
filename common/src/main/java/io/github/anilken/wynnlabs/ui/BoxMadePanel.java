@@ -339,6 +339,15 @@ final class BoxMadePanel {
                 Type.BODY.draw(g, s.font(), fitted, tx, Type.BODY.yIn(cy, 12), Theme.INK);
                 int lx = tx + Type.BODY.width(s.font(), fitted);
                 Type.BODY.draw(g, s.font(), CraftFormat.stars(tier), lx + Theme.SP_2, Type.BODY.yIn(cy, 12), Theme.GOLD_EDGE);
+                if (BoxChips.in(mx, my, x, cy, inner, 12) && my >= top && my < top + listH) {
+                    // the material at its tier: its price each and for the amount
+                    Long each = price(Shopping.materialKey(mat.shown(), tier));
+                    List<net.minecraft.network.chat.Component> tip = new java.util.ArrayList<>();
+                    tip.add(net.minecraft.network.chat.Component.literal(mat.shown() + " " + CraftFormat.stars(tier)).withStyle(ChatFormatting.WHITE));
+                    tip.add(L.c("wynnlabs.box.made.material_tip", each == null ? "?" : Prices.fmt(each),
+                            each == null ? "?" : Prices.fmt(each * mat.amount()), mat.amount()).withStyle(ChatFormatting.GOLD));
+                    s.tip(tip);
+                }
                 cy += 12 + Theme.SP_2;
             }
             cy += Theme.SP_3;
@@ -445,6 +454,27 @@ final class BoxMadePanel {
                 Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), names(o), x + inner - pw - Theme.SP_3 - lx), lx, cy,
                         on ? Theme.INK : Theme.INK_2);
                 Type.BODY.drawRight(g, s.font(), price, x + inner, cy, Theme.PRICE);
+                if (hover) {
+                    // the whole layout, and what "+?" leaves out: the parts with no market price yet
+                    List<net.minecraft.network.chat.Component> tip = new java.util.ArrayList<>();
+                    tip.add(net.minecraft.network.chat.Component.literal(names(o)).withStyle(ChatFormatting.WHITE));
+                    java.util.Set<String> missing = new java.util.LinkedHashSet<>();
+                    for (Ingredient ing : o.slots()) {
+                        if (ing != null && !ing.empty() && price(ing.name()) == null) {
+                            missing.add(ing.name());
+                        }
+                    }
+                    for (int m = 0; m < o.recipe().materials().size() && m < 2; m++) {
+                        String key = Shopping.materialKey(o.recipe().materials().get(m).shown(), m == 0 ? o.tier1() : o.tier2());
+                        if (price(key) == null) {
+                            missing.add(key);
+                        }
+                    }
+                    if (!missing.isEmpty()) {
+                        tip.add(L.c("wynnlabs.box.made.no_price", String.join(", ", missing)).withStyle(ChatFormatting.GRAY));
+                    }
+                    s.tip(tip);
+                }
                 int hy = Math.max(cy - Theme.SP_1, top);
                 int hb = Math.min(cy + PITCH - Theme.SP_1, top + listH);
                 if (hb > hy) {
