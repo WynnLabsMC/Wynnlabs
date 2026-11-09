@@ -550,6 +550,14 @@ final class CraftTools extends CraftPanel {
         double[] pos = CraftRoadData.position();
         double bd = Double.MAX_VALUE;
         try {
+            // the shipped list of Item Upgraders (the item index has none), then any the index knows
+            for (Area a : io.github.anilken.wynnlabs.crafting.Upgraders.all()) {
+                double d = Compass.distance(a, pos);
+                if (upgrader == null || d < bd) {
+                    upgrader = a;
+                    bd = d;
+                }
+            }
             for (Entry e : ItemIndex.get().entries()) {
                 if (e.kind() != io.github.anilken.wynnlabs.search.Kind.SERVICE) {
                     continue;
