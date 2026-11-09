@@ -421,6 +421,11 @@ public final class Wyn {
         return ProfessionReads.gatherNodes();
     }
 
+    /** The professions of the gathering tool in the main hand ("mining"), empty when none is held. */
+    public static List<String> heldToolProfessions() {
+        return ProfessionReads.heldToolProfessions();
+    }
+
     public static boolean holdingGatherTool() {
         return ProfessionReads.holdingGatherTool();
     }

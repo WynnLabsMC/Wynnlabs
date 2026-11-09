@@ -168,6 +168,19 @@ public final class ProfessionReads {
         }, List.of());
     }
 
+    /** The professions of the gathering tool in the main hand ("mining"), empty when none is held. */
+    public static List<String> heldToolProfessions() {
+        return guard(Feature.PROFESSIONS, () -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null) {
+                return List.<String>of();
+            }
+            return Models.Item.asWynnItem(player.getMainHandItem(), com.wynntils.models.items.items.game.GatheringToolItem.class)
+                    .map(t -> t.getProfessionTypes().stream().map(p -> p.name().toLowerCase(java.util.Locale.ROOT)).toList())
+                    .orElse(List.of());
+        }, List.of());
+    }
+
     /** Whether the player holds a gathering tool in the main hand. */
     public static boolean holdingGatherTool() {
         return guard(Feature.PROFESSIONS, () -> {

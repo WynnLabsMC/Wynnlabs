@@ -132,6 +132,9 @@ public final class Startup {
             // a gathering node's label: what each click gives, with its picture and price per tier
             Module.of("NodeText").tick(io.github.anilken.wynnlabs.ui.NodeText::onTick)
                     .disconnect(io.github.anilken.wynnlabs.ui.NodeText::reset),
+            // boxes around gathering nodes (rainbow if picked), further than the game shows them
+            Module.of("NodeBoxes").tick(io.github.anilken.wynnlabs.ui.NodeBoxes::onTick)
+                    .disconnect(io.github.anilken.wynnlabs.ui.NodeBoxes::reset),
             // the Endgame tab: raid and lootrun history, the reward pool seen, the aspect list
             Module.of("RaidLog").tick(RaidLog::onTick).disconnect(RaidLog::disconnected),
             Module.of("RaidPool").tick(RaidPool::onTick),

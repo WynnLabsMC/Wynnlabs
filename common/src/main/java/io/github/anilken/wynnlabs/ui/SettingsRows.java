@@ -105,6 +105,7 @@ final class SettingsRows {
                 p.row("switch", "worldEvents");
                 p.row("switch", "smallMapIcons");
                 p.row("switch", "nodePrices");
+                p.row("choice", "nodeBoxes");
                 p.row("multi", "warnings");
                 p.row("multi", "chat");
             }
