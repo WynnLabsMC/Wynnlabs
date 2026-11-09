@@ -88,15 +88,30 @@ public final class NodeBoxes {
                 live.add(new int[] {at.getX(), at.getZ(), at.getY()});
                 liveAt.add(at);
             }
-            // the map's nodes further off: faint, the nearest first
+            // the map's nodes further off: faint, the nearest first. A node whose label the game
+            // showed this session and no longer does, though it is near enough for its label to
+            // load, has just been gathered: like the game's own boxes, it gets none until it is back
+            double loaded = 0;
+            for (int[] l : live) {
+                loaded = Math.max(loaded, Math.hypot(l[0] - px, l[1] - pz));
+            }
             List<Area> far = new ArrayList<>();
             for (String prof : held) {
                 for (Area a : FAR.getOrDefault(prof, List.of())) {
                     double dx = a.x() - px;
                     double dz = a.z() - pz;
-                    if (dx * dx + dz * dz <= (double) REACH * REACH && Math.abs(a.y() - py) < 48 && !near(live, a)) {
-                        far.add(a);
+                    if (dx * dx + dz * dz > (double) REACH * REACH || Math.abs(a.y() - py) >= 48) {
+                        continue;
                     }
+                    long key = key(a);
+                    if (near(live, a)) {
+                        SEEN.add(key);
+                        continue;
+                    }
+                    if (SEEN.contains(key) && Math.sqrt(dx * dx + dz * dz) <= loaded + MATCH) {
+                        continue;                       // gathered: back when its label is
+                    }
+                    far.add(a);
                 }
             }
             far.sort(java.util.Comparator.comparingDouble(a -> (a.x() - px) * (a.x() - px) + (a.z() - pz) * (a.z() - pz)));
@@ -120,6 +135,7 @@ public final class NodeBoxes {
 
     public static void reset() {
         readFor = null;
+        SEEN.clear();
         LIVE.clear();
         FAR_NOW.clear();
     }
@@ -190,6 +206,13 @@ public final class NodeBoxes {
     /** Whether a map node is where the game already shows one (its box would double). */
     private static boolean near(List<int[]> live, Area a) {
         return match(live, a) != null;
+    }
+
+    /** Map nodes whose label the game showed this session, by position. */
+    private static final java.util.Set<Long> SEEN = new java.util.HashSet<>();
+
+    private static long key(Area a) {
+        return ((long) a.x() & 0x3FFFFFF) << 38 | ((long) a.z() & 0x3FFFFFF) << 12 | (a.y() & 0xFFF);
     }
 
     /** The node the game shows for a map node (within {@link #MATCH} blocks across), or null. */
