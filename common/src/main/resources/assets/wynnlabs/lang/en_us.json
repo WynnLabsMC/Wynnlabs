@@ -2700,7 +2700,6 @@
   "wynnlabs.box.made.empty": "Empty",
   "wynnlabs.box.made.material_tip": "%s each · %s for %s",
   "wynnlabs.box.made.no_price": "No market price yet: %s",
-  "wynnlabs.box.made.material_line": "%s× %s",
   "wynnlabs.box.made.open_recipe": "Open in Recipe ›",
   "wynnlabs.box.made.open_tip": "Loads this layout into the Crafting tab's Recipe view",
   "wynnlabs.box.made.others_title": "Other layouts that fit",

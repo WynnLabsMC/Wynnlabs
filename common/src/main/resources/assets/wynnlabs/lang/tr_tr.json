@@ -2700,7 +2700,6 @@
   "wynnlabs.box.made.empty": "Boş",
   "wynnlabs.box.made.material_tip": "Tanesi %1$s · %3$s tanesi %2$s",
   "wynnlabs.box.made.no_price": "Henüz market fiyatı yok: %s",
-  "wynnlabs.box.made.material_line": "%s× %s",
   "wynnlabs.box.made.open_recipe": "Tarif'te aç ›",
   "wynnlabs.box.made.open_tip": "Bu dizilimi Craft sekmesindeki Tarif görünümüne yükler",
   "wynnlabs.box.made.others_title": "Tutan diğer dizilimler",
