@@ -53,6 +53,7 @@ public final class NodeBoxes {
         if (mode == 0 || mc.level == null || mc.player == null) {
             LIVE.clear();
             FAR_NOW.clear();
+            LABEL_AT.clear();
             return;
         }
         List<String> held;
@@ -64,6 +65,7 @@ public final class NodeBoxes {
         if (held.isEmpty()) {
             LIVE.clear();
             FAR_NOW.clear();
+            LABEL_AT.clear();
             return;
         }
         read();
@@ -120,9 +122,26 @@ public final class NodeBoxes {
             int shift = shift(held, live);
             lastShift = shift;
             List<BlockPos> farAt = new ArrayList<>();
+            List<BlockPos> labelAt = new ArrayList<>();
+            List<String> labels = new ArrayList<>();
             for (int i = 0; i < far.size() && i < MAX_FAR; i++) {
-                farAt.add(new BlockPos(far.get(i).x(), far.get(i).y() + shift, far.get(i).z()));
+                BlockPos at = new BlockPos(far.get(i).x(), far.get(i).y() + shift, far.get(i).z());
+                farAt.add(at);
+                // one name for each little group of nodes, so the field does not fill with text
+                String name = NAME.get(key(far.get(i)));
+                boolean named = false;
+                for (BlockPos l : labelAt) {
+                    named |= Math.abs(l.getX() - at.getX()) <= LABEL_GAP && Math.abs(l.getZ() - at.getZ()) <= LABEL_GAP;
+                }
+                if (name != null && !named) {
+                    labelAt.add(at);
+                    labels.add(name);
+                }
             }
+            LABEL_AT.clear();
+            LABEL_AT.addAll(labelAt);
+            LABELS.clear();
+            LABELS.addAll(labels);
             LIVE.clear();
             LIVE.addAll(liveAt);
             FAR_NOW.clear();
@@ -184,6 +203,11 @@ public final class NodeBoxes {
             for (BlockPos at : FAR_NOW) {
                 box(at, colour(mode, at, now, 0x60));
             }
+            for (int i = 0; i < LABEL_AT.size() && i < LABELS.size(); i++) {
+                BlockPos at = LABEL_AT.get(i);
+                Gizmos.billboardText(LABELS.get(i), net.minecraft.world.phys.Vec3.atLowerCornerWithOffset(at, 0.5, 1.4, 0.5),
+                        net.minecraft.gizmos.TextGizmo.Style.forColorAndCentered(colour(mode, at, now, 0xD0))).setAlwaysOnTop();
+            }
         } catch (IllegalStateException e) {
             // no collector at this point of the frame: nothing drawn
         }
@@ -207,6 +231,14 @@ public final class NodeBoxes {
     private static boolean near(List<int[]> live, Area a) {
         return match(live, a) != null;
     }
+
+    /** The faint boxes' names, one for each little group, and where they go. Read on the render thread. */
+    private static final List<BlockPos> LABEL_AT = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static final List<String> LABELS = new java.util.concurrent.CopyOnWriteArrayList<>();
+    /** How close (blocks across) faint boxes share one name. */
+    private static final int LABEL_GAP = 8;
+    /** A map node's resource name ("Salmon"), by position. */
+    private static final Map<Long, String> NAME = new HashMap<>();
 
     /** Map nodes whose label the game showed this session, by position. */
     private static final java.util.Set<Long> SEEN = new java.util.HashSet<>();
@@ -248,13 +280,18 @@ public final class NodeBoxes {
         readFor = index;
         FAR.clear();
         PROFESSION.clear();
+        NAME.clear();
         for (Entry e : index.all()) {
             if (e.kind() != Kind.RESOURCE || e.type() == null) {
                 continue;
             }
             String prof = e.type().toLowerCase(Locale.ROOT);
             PROFESSION.put(e.name().toUpperCase(Locale.ROOT), prof);
-            FAR.computeIfAbsent(prof, k -> new ArrayList<>()).addAll(index.places().nodes(e.name()));
+            List<Area> nodes = index.places().nodes(e.name());
+            FAR.computeIfAbsent(prof, k -> new ArrayList<>()).addAll(nodes);
+            for (Area a : nodes) {
+                NAME.put(key(a), e.name());
+            }
         }
     }
 }
