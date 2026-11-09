@@ -593,6 +593,61 @@ public final class WynntilsItems {
                 powders(c.getPowders()), c.getPowderSlots(), capped(c.getDurability()));
     }
 
+    /**
+     * A crafted piece or consumable as the "how was it made" search reads it: its craft type
+     * ("scroll", "helmet"), level, identifications, and charges and duration (consumables) or
+     * durability, health and skill requirements (gear). Null for anything else, and for a type
+     * the crafting recipes do not have.
+     */
+    public static io.github.anilken.wynnlabs.crafting.HowMade.Target craftedTarget(ItemStack stack) {
+        Optional<WynnItem> p = Wyn.item(stack);
+        if (p.isEmpty()) {
+            return null;
+        }
+        WynnItem item = p.get();
+        if (item instanceof CraftedGearItem c) {
+            return part(() -> {
+                String type = c.getGearType() == null ? null : c.getGearType().name().toLowerCase(java.util.Locale.ROOT);
+                if (!io.github.anilken.wynnlabs.crafting.Types.ALL.contains(type)) {
+                    return null;
+                }
+                int[] req = new int[5];
+                if (c.getRequirements() != null) {
+                    for (Pair<Skill, Integer> s : c.getRequirements().skills()) {
+                        req[s.a().ordinal()] = s.b();
+                    }
+                }
+                CappedValue d = c.getDurability();
+                return new io.github.anilken.wynnlabs.crafting.HowMade.Target(c.getName(), type, c.getLevel(),
+                        madeStats(c.getIdentifications()), -1, -1, d == null ? -1 : d.max(), c.getHealth(), req);
+            });
+        }
+        if (item instanceof com.wynntils.models.items.items.game.CraftedConsumableItem c) {
+            return part(() -> {
+                String type = c.getConsumableType() == null ? null
+                        : c.getConsumableType().name().toLowerCase(java.util.Locale.ROOT);
+                if (!io.github.anilken.wynnlabs.crafting.Types.CONSUMABLES.contains(type)) {
+                    return null;
+                }
+                CappedValue uses = c.getUses();
+                return new io.github.anilken.wynnlabs.crafting.HowMade.Target(c.getName(), type, c.getLevel(),
+                        madeStats(c.getIdentifications()), uses == null ? -1 : uses.max(), c.getDuration(), -1, -1, null);
+            });
+        }
+        return null;
+    }
+
+    /** Identifications by the stat keys the ingredients use (Wynntils' API names), with their shown name and unit. */
+    private static List<io.github.anilken.wynnlabs.crafting.HowMade.Stat> madeStats(List<StatActualValue> ids) {
+        List<io.github.anilken.wynnlabs.crafting.HowMade.Stat> out = new ArrayList<>();
+        for (StatActualValue v : ids) {
+            StatType t = v.statType();
+            out.add(new io.github.anilken.wynnlabs.crafting.HowMade.Stat(t.getApiName(), t.getDisplayName(),
+                    t.getUnit().getDisplayName(), v.value()));
+        }
+        return List.copyOf(out);
+    }
+
     // CraftedGearItem.getDps(): 4.2.9 on, read from the tooltip. Before, worked out from the
     // piece's damage ranges and attack speed, as the game does.
     private static final String CRAFTED_DPS = "getDps";

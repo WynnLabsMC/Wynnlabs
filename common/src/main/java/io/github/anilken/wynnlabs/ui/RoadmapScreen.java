@@ -133,6 +133,14 @@ public final class RoadmapScreen extends Screen {
         return s;
     }
 
+    /** The menu on the Crafting tab (a recipe loaded into it first); Esc goes back to {@code parent}. */
+    static RoadmapScreen craft(Screen parent) {
+        RoadmapScreen s = new RoadmapScreen();
+        s.tab = TAB_CRAFT;
+        s.parent = parent;
+        return s;
+    }
+
     /** The menu opened straight on tab {@code t} (previews and tests: nothing else is drawn first). */
     static RoadmapScreen on(int t) {
         RoadmapScreen s = new RoadmapScreen(false);
