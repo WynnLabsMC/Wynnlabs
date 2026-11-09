@@ -101,6 +101,11 @@ final class BoxStatsPanel {
                 }
                 return;
             }
+            io.github.anilken.wynnlabs.market.Runes.Rune rune = io.github.anilken.wynnlabs.market.Runes.of(name);
+            if (rune != null) {
+                runeInfo(s, g, rune, x, y, w, bottom);   // the raids it opens, the keys it makes, where to get it
+                return;
+            }
             if (ward(name)) {
                 wardInfo(s, g, name, x, y, w, bottom);   // what wards are for, where it drops, the set's price
                 return;
@@ -198,6 +203,120 @@ final class BoxStatsPanel {
             cy += Type.BODY.lineHeight + Theme.SP_1;
         }
         source(s, g, e, x, cy, w, bottom);
+    }
+
+    // ---- runes ----
+
+    /**
+     * A raid rune's page: the raids it opens (a row opens that raid's pool in the Endgame tab), the
+     * corrupted keys it makes at the Key Forge with what each costs and sells for, where to get it,
+     * and its powder exchange.
+     */
+    private static void runeInfo(BoxScreen s, GuiGraphics g, io.github.anilken.wynnlabs.market.Runes.Rune rune, int x, int y, int w,
+                                 int bottom) {
+        var font = s.font();
+        int mx = s.mouseX;
+        int my = s.mouseY;
+        int cy = y;
+        int rowH = Math.max(16, Type.BODY.lineHeight) + 2;
+        if (!rune.raids().isEmpty()) {
+            cy = head(s, g, L.t("wynnlabs.box.rune.opens"), null, x, cy, w);
+            for (io.github.anilken.wynnlabs.market.Runes.Raid r : rune.raids()) {
+                if (cy + rowH > bottom) {
+                    return;
+                }
+                boolean hover = mx >= x && mx < x + w && my >= cy && my < cy + rowH;
+                if (hover) {
+                    Art.box(g, x - Theme.SP_1, cy, w + Theme.SP_1 * 2, rowH, 3, Theme.CARD_HOVER, 0);
+                }
+                Kit.box(g, x, cy + (rowH - 14) / 2, 14, 14, Theme.PLAQUE, 0);
+                Art.icon(g, "skull", x + 3, cy + (rowH - 14) / 2 + 3, 8, Theme.INK_2);
+                String go = L.t("wynnlabs.box.rune.pool") + " ›";
+                String lv = "Lv " + r.level();
+                int gw = Type.META.width(font, go);
+                int lw = Type.META.width(font, lv);
+                Type.META.drawRight(g, font, go, x + w, Type.META.yIn(cy, rowH), hover ? Theme.LINK : Theme.INK_3);
+                Type.META.drawRight(g, font, lv, x + w - gw - Theme.SP_4, Type.META.yIn(cy, rowH), Theme.INK_3);
+                Type.BODY.draw(g, font, Type.BODY.fit(font, r.raid(), w - 14 - Theme.SP_3 - gw - lw - Theme.SP_4 * 2), x + 14 + Theme.SP_3,
+                        Type.BODY.yIn(cy, rowH), Theme.INK);
+                String raid = r.raid();
+                s.hit(x, cy, w, rowH, () -> {
+                    EndgameTab.INSTANCE.showPool(true, raid);
+                    net.minecraft.client.Minecraft.getInstance().setScreen(RoadmapScreen.endgame(s));
+                });
+                cy += rowH + Theme.SP_1;
+            }
+            cy += Theme.SP_4;
+        }
+        if (!rune.keys().isEmpty()) {
+            if (cy + Type.LABEL.lineHeight > bottom) {
+                return;
+            }
+            cy = head(s, g, L.t("wynnlabs.box.rune.keys"), null, x, cy, w);
+            int cardH = Type.BODY.lineHeight + Type.META.lineHeight + Theme.SP_3 * 2;
+            for (io.github.anilken.wynnlabs.market.Runes.KeyTrade t : rune.keys()) {
+                if (cy + cardH > bottom) {
+                    return;
+                }
+                var m = io.github.anilken.wynnlabs.market.Runes.margin(rune, t, BoxStatsPanel::typical);
+                Double profit = m.profit();
+                Kit.box(g, x, cy, w, cardH, Theme.CARD, profit == null ? Theme.LINE : profit >= 0 ? Theme.GOOD : Theme.BAD);
+                int ix = x + Theme.SP_3;
+                int iw = w - Theme.SP_3 * 2;
+                String sells = m.sells() == null ? "?" : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(m.sells());
+                int sw = Type.META.width(font, sells);
+                Type.META.drawRight(g, font, sells, ix + iw, cy + Theme.SP_3 + 1, Theme.PRICE);
+                String key = t.key().replace("Corrupted ", "").replace(" Key", "");
+                Type.BODY.draw(g, font, Type.BODY.fit(font, L.t("wynnlabs.box.rune.key_name", key), iw - sw - Theme.SP_3), ix, cy + Theme.SP_3,
+                        Theme.INK);
+                String cost = L.t("wynnlabs.box.rune.key_cost", t.runes(),
+                        m.cost() == null ? "?" : io.github.anilken.wynnlabs.market.Prices.fmt(m.cost()));
+                String verdict = profit == null ? "" : L.t(profit >= 0 ? "wynnlabs.box.rune.profit" : "wynnlabs.box.rune.loss",
+                        io.github.anilken.wynnlabs.market.Prices.fmt(Math.abs(profit)));
+                int vw = verdict.isEmpty() ? 0 : Type.META.width(font, verdict);
+                int ly = cy + Theme.SP_3 + Type.BODY.lineHeight;
+                Type.META.draw(g, font, Type.META.fit(font, cost, iw - vw - Theme.SP_3), ix, ly, Theme.INK_3);
+                if (!verdict.isEmpty()) {
+                    Type.META.drawRight(g, font, verdict, ix + iw, ly, profit >= 0 ? Theme.GOOD : Theme.BAD);
+                }
+                cy += cardH + Theme.SP_2;
+            }
+            cy += Theme.SP_3;
+        }
+        // where to get it, and what else it does
+        List<String> lines = new ArrayList<>();
+        lines.add(L.t("wynnlabs.box.rune.events", rune.eventLow(), rune.eventHigh()));
+        if (rune.lootrun()) {
+            lines.add(L.t(rune.name().startsWith("Ek") ? "wynnlabs.box.rune.lootrun_fruma" : "wynnlabs.box.rune.lootrun"));
+        }
+        if (rune.powderTier() > 0) {
+            lines.add(L.t("wynnlabs.box.rune.powder", rune.powderTier(), rune.name()));
+        }
+        if (!"Tol Rune".equals(rune.name()) && !"Ek Rune".equals(rune.name())) {
+            lines.add(L.t("wynnlabs.box.rune.altar"));
+        }
+        if (cy + Type.LABEL.lineHeight + Type.META.lineHeight > bottom) {
+            return;
+        }
+        cy = head(s, g, L.t("wynnlabs.box.rune.get"), null, x, cy, w);
+        for (String line : lines) {
+            if (cy + Type.META.lineHeight > bottom) {
+                return;
+            }
+            Type.META.draw(g, font, "•", x, cy, Theme.INK_3);
+            cy = Type.META.drawWrapped(g, font, line, x + Theme.SP_4, cy, w - Theme.SP_4, Math.max(1, (bottom - cy) / Type.META.lineHeight),
+                    Theme.INK_2) + Theme.SP_1;
+        }
+    }
+
+    /** A market price by name, or null; an unknown one is asked for once. */
+    private static Double typical(String name) {
+        io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(name);
+        Double v = p == null ? null : p.typical();
+        if (v == null) {
+            io.github.anilken.wynnlabs.market.Prices.refreshSoon(name);
+        }
+        return v;
     }
 
     // ---- wards ----

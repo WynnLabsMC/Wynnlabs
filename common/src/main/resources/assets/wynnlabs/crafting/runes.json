@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "source": "https://wynncraft.wiki.gg/wiki/Runes",
+  "fetched": "2026-11-09",
+  "note": "The raid runes: the raids each opens (one rune is used per entry), the corrupted keys each makes at the Key Forge Merchant (a broken key and some runes), the world event levels that give it, and its powder exchange tier.",
+  "runes": [
+    {"name": "Az Rune", "element": "Water", "events": [50, 79], "lootrun": false,
+     "raids": [{"raid": "Nest of the Grootslangs", "level": 54}],
+     "keys": [], "powderTier": 0},
+    {"name": "Nii Rune", "element": "Fire", "events": [70, 89], "lootrun": true,
+     "raids": [],
+     "keys": [{"broken": "Broken Decrepit Sewers Key", "runes": 2, "key": "Corrupted Decrepit Sewers Key"},
+              {"broken": "Broken Infested Pit Key", "runes": 3, "key": "Corrupted Infested Pit Key"},
+              {"broken": "Broken Corrupted Lost Sanctuary Key", "runes": 4, "key": "Corrupted Lost Sanctuary Key"}],
+     "powderTier": 4},
+    {"name": "Uth Rune", "element": "Air", "events": [80, 99], "lootrun": true,
+     "raids": [{"raid": "Orphion's Nexus of Light", "level": 79}],
+     "keys": [{"broken": "Broken Underworld Crypt Key", "runes": 2, "key": "Corrupted Underworld Crypt Key"},
+              {"broken": "Broken Sand-Swept Tomb Key", "runes": 3, "key": "Corrupted Sand-Swept Tomb Key"},
+              {"broken": "Broken Ice Barrows Key", "runes": 4, "key": "Corrupted Ice Barrows Key"}],
+     "powderTier": 5},
+    {"name": "Tol Rune", "element": "Earth", "events": [90, 120], "lootrun": true,
+     "raids": [{"raid": "The Canyon Colossus", "level": 95}, {"raid": "The Nameless Anomaly", "level": 103}],
+     "keys": [{"broken": "Broken Undergrowth Ruins Key", "runes": 2, "key": "Corrupted Undergrowth Ruins Key"},
+              {"broken": "Broken Galleon's Graveyard Key", "runes": 3, "key": "Corrupted Galleon's Graveyard Key"}],
+     "powderTier": 6},
+    {"name": "Ek Rune", "element": "Thunder", "events": [105, 120], "lootrun": true,
+     "raids": [{"raid": "The Wartorn Palace", "level": 119}],
+     "keys": [], "powderTier": 7}
+  ]
+}
