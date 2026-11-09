@@ -761,6 +761,12 @@ public final class RoadmapScreen extends Screen {
         if (archPicker.keyPressed(event.key())) {
             return true;
         }
+        // opened from another window (the market window's Search link, a pool link): one Esc goes
+        // straight back there, past the item card or drawer it opened on
+        if (parent != null && event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+            onClose();
+            return true;
+        }
         // the Endgame page's drawer: Esc closes it, not the menu
         if (tab == TAB_ENDGAME && event.key() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE && EndgameTab.INSTANCE.closeDrawer()) {
             return true;
