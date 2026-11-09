@@ -470,26 +470,26 @@ final class BoxMadePanel {
                 sum += each == null ? 0 : each * e.getValue();
                 ItemStack icon = CraftIcons.of(e.getKey());
                 String from = sourceOf(e.getKey());
-                int rowH = ROW + (from != null ? Type.META.lineHeight : 0);
-                // the whole row (name, price, where it drops) opens the item in Search
+                int rowH = ROW;
+                // one line each; where it drops shows on hover, and a click opens the item in Search
                 boolean hover = BoxChips.in(mx, my, lx, ly, lw, rowH) && my >= top && my < top + listH;
                 if (hover) {
                     Art.box(g, lx - Theme.SP_1, ly - 1, lw + Theme.SP_1 * 2, rowH + 2, 3, Theme.CARD_HOVER, 0);
                 }
                 listRow(g, icon, e.getKey(), e.getValue(), each == null ? null : each * e.getValue(), estimated.contains(e.getKey()), null,
                         lx, ly, lw, false);
-                if (from != null) {
-                    String link = from + " \u203A";
-                    Type.META.draw(g, s.font(), Type.META.fit(s.font(), link, lw - 12 - Theme.SP_2), lx + 12 + Theme.SP_2, ly + ROW,
-                            hover ? Theme.LINK : Theme.INK_3);
-                }
                 if (hover && icon != null && BoxChips.in(mx, my, lx, ly, 12 + Theme.SP_2, ROW)) {
                     g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);
                 } else if (hover) {
-                    s.tip(List.of(L.c("wynnlabs.box.made.search_tip").withStyle(ChatFormatting.GRAY)));
+                    List<net.minecraft.network.chat.Component> tip = new ArrayList<>();
+                    if (from != null) {
+                        tip.add(net.minecraft.network.chat.Component.literal(from).withStyle(ChatFormatting.WHITE));
+                    }
+                    tip.add(L.c("wynnlabs.box.made.search_tip").withStyle(ChatFormatting.GRAY));
+                    s.tip(tip);
                 }
                 searchHit(e.getKey(), lx, ly, lw, rowH, top, listH);
-                ly += rowH + Theme.SP_2;
+                ly += rowH + Theme.SP_1;
             }
             long ingSum = sum;
             boolean ingUnknown = unknown;
@@ -568,12 +568,10 @@ final class BoxMadePanel {
             return Type.BODY.lineHeight;
         }
         long kinds = f.slots().stream().filter(i -> i != null && !i.empty()).map(Ingredient::name).distinct().count();
-        int list = 2 * (Type.META.lineHeight + Theme.SP_1) + (int) (kinds + 2) * (ROW + Theme.SP_2) + Theme.SP_2
+        int list = 2 * (Type.META.lineHeight + Theme.SP_1) + (int) kinds * (ROW + Theme.SP_1) + 2 * (ROW + Theme.SP_2) + Theme.SP_2
                 + 1 + Theme.SP_2 + Type.LABEL.lineHeight;
         int grid = GRID_PAD * 2 + 3 * CELL + 2 * Theme.SP_1;
-        long sourced = f.slots().stream().filter(i -> i != null && !i.empty()).map(Ingredient::name).distinct()
-                .filter(n -> sourceOf(n) != null).count();
-        list += (int) sourced * Type.META.lineHeight + Theme.SP_1 + Type.META.lineHeight;   // the source lines, the second total
+        list += Theme.SP_1 + Type.META.lineHeight;      // the second total
         return Math.max(grid, list) + Theme.SP_4 + Ui.BUTTON_H + buttonExtra;
     }
 
