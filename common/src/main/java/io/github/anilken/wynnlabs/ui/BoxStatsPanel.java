@@ -538,7 +538,7 @@ final class BoxStatsPanel {
     /** A way's card height: its title line, a line per part, and the fragments chip when it needs fragments. */
     private static int wayHeight(io.github.anilken.wynnlabs.crafting.ToolWays.Way way) {
         int lines = way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET ? 0 : way.parts().size();
-        lines += way.at() != null || way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET ? 1 : 0;
+        lines += 1;                                     // the place line (or the market's)
         int body = Math.max(WAY_BADGE, Type.LABEL.lineHeight + (lines > 0 ? Theme.SP_1 + lines * PART_H : 0)
                 + (way.fragments() > 0 ? Theme.SP_2 + CHIP_H + 2 : 0));
         return WAY_PAD * 2 + body;
@@ -586,18 +586,40 @@ final class BoxStatsPanel {
         Type.LABEL.draw(g, font, Type.LABEL.fit(font, title, right - tx), tx, by + 1, best ? Theme.GOOD : Theme.INK);
         int cy = by + Type.LABEL.lineHeight + Theme.SP_1;
         int end = x + w - WAY_PAD;
-        // under the title: the dungeon it is at, or the market's "Cheapest"
-        String sub = way.at() != null ? way.at()
-                : way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET
-                ? (best ? L.t("wynnlabs.box.ways_best") : L.t("wynnlabs.box.ways_market_sub")) : null;
-        if (sub != null) {
-            if (way.at() != null) {
-                Art.icon(g, "map-pin", tx + 2, cy + 2, 8, Theme.INK_3);
+        // under the title: where to go (the dungeon, the Item Upgrader, the Tool Merchant) with a
+        // compass to it, or the market's "Cheapest"
+        boolean market = way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET;
+        String sub = market ? (best ? L.t("wynnlabs.box.ways_best") : L.t("wynnlabs.box.ways_market_sub"))
+                : way.at() != null ? way.at()
+                : L.t(way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.UPGRADE ? "wynnlabs.box.ways_upgrader" : "wynnlabs.box.ways_merchant");
+        io.github.anilken.wynnlabs.search.Area place = market ? null : wayPlace(way);
+        int subEnd = end;
+        if (place != null) {
+            // the compass to the place, at the line's end
+            int bw = Ui.CHIP_H + 2;
+            int bxx = end - bw;
+            int byy = cy + (PART_H - Ui.CHIP_H) / 2;
+            Ui.iconButton(g, "compass", bxx, byy, false, s.mouseX, s.mouseY);
+            String label = sub;
+            s.hit(bxx, byy, bw, Ui.CHIP_H, () -> io.github.anilken.wynnlabs.quests.Waypoints.go(place.x(), place.y(), place.z(), label));
+            if (s.mouseX >= bxx && s.mouseX < bxx + bw && s.mouseY >= byy && s.mouseY < byy + Ui.CHIP_H) {
+                s.tip(List.of(Component.literal(L.t("wynnlabs.box.ways_compass", label))));
             }
-            Type.META.draw(g, font, Type.META.fit(font, sub, end - tx - (way.at() != null ? 15 : 0)), tx + (way.at() != null ? 15 : 0),
-                    cy + 2, best ? Theme.GOOD : Theme.INK_3);
-            cy += PART_H;
+            double d = io.github.anilken.wynnlabs.search.Compass.distance(place, SearchTab.position());
+            if (!Double.isNaN(d)) {
+                String dist = RoadmapScreen.dist((int) Math.round(d));
+                Type.META.drawRight(g, font, dist, bxx - Theme.SP_2, cy + 2, Theme.INK_3);
+                subEnd = bxx - Theme.SP_2 - Type.META.width(font, dist) - Theme.SP_2;
+            } else {
+                subEnd = bxx - Theme.SP_2;
+            }
         }
+        if (!market) {
+            Art.icon(g, "map-pin", tx + 2, cy + 2, 8, Theme.INK_3);
+        }
+        Type.META.draw(g, font, Type.META.fit(font, sub, subEnd - tx - (market ? 0 : 15)), tx + (market ? 0 : 15),
+                cy + 2, best ? Theme.GOOD : Theme.INK_3);
+        cy += PART_H;
         // what it takes, each with its picture
         if (way.kind() != io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET) {
             for (var part : way.parts()) {
@@ -607,13 +629,18 @@ final class BoxStatsPanel {
                 } else {
                     Art.icon(g, part.fragment() ? "diamond" : "package", tx + 2, cy + 2, 8, part.fragment() ? Theme.ACCENT : Theme.INK_3);
                 }
-                String each = part.fragment() ? "" : part.owned() ? L.t("wynnlabs.box.ways_yours")
+                int[] have = owned(part.name());
+                String each = have[0] + have[1] > 0
+                        ? L.t(have[1] == 0 ? "wynnlabs.box.ways_have_bag" : have[0] == 0 ? "wynnlabs.box.ways_have_bank" : "wynnlabs.box.ways_have_both",
+                                have[0] + have[1])
+                        : part.fragment() ? "" : part.owned() ? L.t("wynnlabs.box.ways_yours")
                         : part.each() == null ? L.t("wynnlabs.box.ways_no_price")
                         : io.github.anilken.wynnlabs.market.Prices.fmt(part.each() * part.count());
+                boolean got = have[0] + have[1] >= part.count() || part.owned();
                 int ew = each.isEmpty() ? 0 : Type.META.width(font, each) + Theme.SP_3;
                 Type.META.draw(g, font, Type.META.fit(font, part.count() + "× " + part.name(), end - (tx + 15) - ew), tx + 15, cy + 2, Theme.INK_2);
                 if (!each.isEmpty()) {
-                    Type.META.drawRight(g, font, each, end, cy + 2, part.owned() ? Theme.GOOD : Theme.INK_3);
+                    Type.META.drawRight(g, font, each, end, cy + 2, got ? Theme.GOOD : have[0] + have[1] > 0 ? Theme.WARN : Theme.INK_3);
                 }
                 cy += PART_H;
             }
@@ -627,6 +654,76 @@ final class BoxStatsPanel {
             Type.META.draw(g, font, Type.META.fit(font, chip, cw - Theme.SP_3 * 2), tx + Theme.SP_3, cy + 2, Theme.ACCENT);
         }
         return y + h;
+    }
+
+    /** Where a way is done: its dungeon, the nearest Item Upgrader or Tool Merchant; null when the item list knows none. */
+    private static io.github.anilken.wynnlabs.search.Area wayPlace(io.github.anilken.wynnlabs.crafting.ToolWays.Way way) {
+        double[] pos = SearchTab.position();
+        io.github.anilken.wynnlabs.search.Area best = null;
+        double bd = Double.MAX_VALUE;
+        for (Entry e : ItemIndex.get().entries()) {
+            boolean match = switch (way.kind()) {
+                case DUNGEON -> e.kind() == Kind.CONTENT && e.name().equalsIgnoreCase(way.at());
+                case UPGRADE -> e.kind() == Kind.SERVICE && e.name().toLowerCase(java.util.Locale.ROOT).contains("upgrader");
+                case MERCHANT -> e.kind() == Kind.SERVICE && "merchant:tool".equals(e.type());
+                default -> false;
+            };
+            if (!match) {
+                continue;
+            }
+            for (io.github.anilken.wynnlabs.search.Area a : e.places()) {
+                double d = io.github.anilken.wynnlabs.search.Compass.distance(a, pos);
+                if (best == null || d < bd) {
+                    best = a;
+                    bd = d;
+                }
+            }
+        }
+        return best;
+    }
+
+    private static String ownedFor;
+    private static int[] ownedCount = {0, 0};
+    private static long ownedAt;
+
+    /**
+     * {in the bag, in the bank} of an item by name: the bag now, the bank as its pages were last
+     * opened (the account bank and this character's), read again every two seconds.
+     */
+    static int[] owned(String name) {
+        long now = System.currentTimeMillis();
+        if (name.equals(ownedFor) && now - ownedAt < 2000) {
+            return ownedCount;
+        }
+        int bag = 0;
+        int bank = 0;
+        try {
+            for (net.minecraft.world.item.ItemStack st : io.github.anilken.wynnlabs.game.GameState.current().inventory()) {
+                if (st != null && !st.isEmpty() && name.equalsIgnoreCase(plainName(st))) {
+                    bag += st.getCount();
+                }
+            }
+            for (String key : io.github.anilken.wynnlabs.market.Vault.pageKeys()) {
+                if (!key.startsWith("acct:") && !key.startsWith("char:" + io.github.anilken.wynnlabs.core.Profile.id() + ":")) {
+                    continue;
+                }
+                for (io.github.anilken.wynnlabs.market.Vault.Stored st : io.github.anilken.wynnlabs.market.Vault.page(key)) {
+                    if (name.equalsIgnoreCase(st.name())) {
+                        bank += Math.max(1, st.count());
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            // no game state yet: nothing owned
+        }
+        ownedFor = name;
+        ownedAt = now;
+        ownedCount = new int[] {bag, bank};
+        return ownedCount;
+    }
+
+    private static String plainName(net.minecraft.world.item.ItemStack st) {
+        return io.github.anilken.wynnlabs.game.ItemJson.clean(st.getHoverName().getString()).replaceAll("[^\\p{L}\\p{N}' -]", "").strip();
     }
 
     /** A section's LABEL title, a META note on the right, a hairline; returns the first line's y. */
