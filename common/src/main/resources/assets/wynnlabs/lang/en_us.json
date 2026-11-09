@@ -2742,6 +2742,7 @@
   "wynnlabs.box.made.wb_link": "WynnBuilder",
   "wynnlabs.box.made.wb_tip": "Copy this layout as a WynnBuilder crafter link",
   "wynnlabs.box.made.gathered": "If you gather the materials",
+  "wynnlabs.box.made.same_set": "The same ingredients fit in %s orders or material tiers",
   "wynnlabs.box.made.search_tip": "Click to find it in Search: where it drops and where to buy it",
   "wynnlabs.box.made.copied": "Copied",
   "wynnlabs.box.made.no_link": "No link",
