@@ -9,12 +9,15 @@ import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 import io.github.anilken.wynnlabs.search.Area;
+import io.github.anilken.wynnlabs.search.Compass;
 import io.github.anilken.wynnlabs.ui.CraftingTab.Act;
 import net.minecraft.client.gui.GuiGraphics;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import static io.github.anilken.wynnlabs.ui.CraftFormat.thousands;
@@ -30,10 +33,19 @@ final class CraftRoadSteps {
 
     private static final int NEXT = 3;
     private static final int ICON = 16;
+    /** A gather step's spots: shown at first, and with "Show more spots". */
+    private static final int SPOTS_FEW = 4;
+    private static final int SPOTS_MORE = 10;
+    /** A spot row: its compass button with a hairline's air above and below (room for the picked outline). */
+    private static final int SPOT_H = Ui.BUTTON_H + 2 * Theme.SP_1;
 
     private final CraftingTab tab;
     private final CraftRoadPanel panel;
     private final Set<Integer> openBands = new HashSet<>();
+    // made when first asked (no initialisers: safe to hot swap): the materials whose spot list is
+    // opened, and the spot the compass was last set to from each material's list
+    private Set<String> openSpots;
+    private Map<String, Area> picked;
 
     CraftRoadSteps(CraftingTab tab, CraftRoadPanel panel) {
         this.tab = tab;
@@ -100,6 +112,10 @@ final class CraftRoadSteps {
     private int step(GuiGraphics g, LevelRoad.Step s, int num, boolean now, int x, int y, int w, int level, int mx, int my) {
         int rowH = Type.LABEL.lineHeight + Type.META.lineHeight;
         int extra = now ? Theme.SP_3 + Ui.BUTTON_H : 0;
+        List<CraftRoadData.SpotRow> spotRows = now ? spotRows(s) : List.of();
+        if (!spotRows.isEmpty()) {
+            extra += Theme.SP_3 + spotsHeight(s, spotRows);
+        }
         if (now) {
             Kit.softCard(g, x - Theme.SP_3, y - Theme.SP_3, w + 2 * Theme.SP_3, rowH + extra + 2 * Theme.SP_3);
         }
@@ -166,6 +182,9 @@ final class CraftRoadSteps {
         }
         if (now) {
             current(g, s, tx, ly + Type.META.lineHeight + Theme.SP_3, x + w - tx, mx, my);
+        }
+        if (!spotRows.isEmpty()) {
+            spots(g, s, spotRows, tx, ly + Type.META.lineHeight + Theme.SP_3 + Ui.BUTTON_H + Theme.SP_3, x + w - tx, mx, my);
         }
         return y + rowH + extra;
     }
@@ -252,6 +271,11 @@ final class CraftRoadSteps {
             go = L.t("wynnlabs.road.go_compass");
             String m = s.material();
             pin = () -> {
+                Area chosen = picked == null ? null : picked.get(m);
+                if (chosen != null) {
+                    pinArea(chosen, panel.data.source(m).resource());
+                    return;
+                }
                 ProfessionPlan.Spot sp = panel.data.nearest(m);
                 pinArea(sp == null ? null : sp.node(), sp == null ? m : sp.resource().name());
             };
@@ -266,6 +290,109 @@ final class CraftRoadSteps {
         int bx = x + barW + Theme.SP_4;
         Ui.iconButtonLabel(g, tab.font, "compass", go, bx, y, bw, mx, my);
         tab.acts.add(new Act(bx, y, bw, Ui.BUTTON_H, pin, null, null));
+    }
+
+    /** The spots listed under a gather step still to do: a few, or more once opened; empty for any other step. */
+    private List<CraftRoadData.SpotRow> spotRows(LevelRoad.Step s) {
+        if (s.kind() != LevelRoad.Kind.GATHER || s.done() || s.material() == null) {
+            return List.of();
+        }
+        boolean open = openSpots != null && openSpots.contains(s.material());
+        return panel.data.spotRows(s.material(), open ? SPOTS_MORE : SPOTS_FEW);
+    }
+
+    /** Whether a material has more spots than the first few (the list can be opened). */
+    private boolean moreSpots(String material) {
+        return panel.data.spotRows(material, SPOTS_MORE).size() > panel.data.spotRows(material, SPOTS_FEW).size();
+    }
+
+    private int spotsHeight(LevelRoad.Step s, List<CraftRoadData.SpotRow> rows) {
+        int h = Type.META.lineHeight + Theme.SP_2 + rows.size() * SPOT_H + (rows.size() - 1) * Theme.SP_2;
+        return moreSpots(s.material()) ? h + Theme.SP_2 + Type.META.lineHeight : h;
+    }
+
+    /**
+     * The spots of a gather step, near and small to far and big: each one's nodes, the town it is
+     * near, how far and which way, and a compass that also makes it the step's picked spot (outlined).
+     * Then the line that shows more of them, or fewer again.
+     */
+    private void spots(GuiGraphics g, LevelRoad.Step s, List<CraftRoadData.SpotRow> rows, int x, int y, int w, int mx, int my) {
+        String m = s.material();
+        Type.META.draw(g, tab.font, L.t("wynnlabs.road.spots"), x, y, Theme.INK_2);
+        int cy = y + Type.META.lineHeight + Theme.SP_2;
+        Area chosen = picked == null ? null : picked.get(m);
+        if (chosen == null) {
+            ProfessionPlan.Spot near = panel.data.nearest(m);
+            chosen = near == null ? null : ProfessionPlan.fieldNode(panel.data.fields(m), near.node());
+        }
+        double[] pos = CraftRoadData.position();
+        String go = L.t("wynnlabs.road.go_compass");
+        int bw = Ui.iconButtonLabelWidth(tab.font, go);
+        for (int i = 0; i < rows.size(); i++) {
+            if (i > 0) {
+                cy += Theme.SP_2;
+            }
+            ProfessionPlan.Spot sp = rows.get(i).spot();
+            Area a = sp.node();
+            boolean on = a.equals(chosen);
+            if (on) {
+                Kit.outline(g, x - Theme.SP_2, cy, w + 2 * Theme.SP_2, SPOT_H, Theme.GOOD);
+            }
+            Art.icon(g, "map-pin", x, cy + (SPOT_H - 8) / 2, 8, on ? Theme.GOOD : Theme.INK_3);
+            int bx = x + w - bw;
+            int by = cy + Theme.SP_1;
+            Ui.iconButtonLabel(g, tab.font, "compass", go, bx, by, bw, mx, my);
+            String label = sp.resource().name();
+            tab.acts.add(new Act(bx, by, bw, Ui.BUTTON_H, () -> {
+                if (picked == null) {
+                    picked = new HashMap<>();
+                }
+                picked.put(m, a);
+                pinArea(a, label);
+            }, null, null));
+            // how far and which way, right before the button
+            int left = bx - Theme.SP_4;
+            if (!Double.isNaN(sp.distance())) {
+                String dir = Compass.direction(a, pos);
+                String d = RoadmapScreen.dist((int) Math.round(sp.distance())) + (dir == null ? "" : " " + SearchCardRows.dirName(dir));
+                Type.META.drawRight(g, tab.font, d, left, Type.META.yIn(cy, SPOT_H), Theme.INK_2);
+                left -= Type.META.width(tab.font, d) + Theme.SP_4;
+            }
+            // the nodes, the town, then the picked tag
+            int tx = x + 8 + Theme.SP_2;
+            String tag = on ? L.t("wynnlabs.road.spot_picked") : null;
+            int tagW = tag == null ? 0 : Type.META.width(tab.font, tag) + 2 * Theme.SP_2 + Theme.SP_2;
+            String nodes = L.n("wynnlabs.plan.spot_nodes", sp.nodes());
+            int room = left - tagW - tx;
+            Type.LABEL.draw(g, tab.font, Type.LABEL.fit(tab.font, nodes, room), tx, Type.LABEL.yIn(cy, SPOT_H), Theme.INK);
+            int ax = tx + Math.min(Type.LABEL.width(tab.font, nodes), room);
+            String town = rows.get(i).town();
+            if (town != null) {
+                String near = Type.META.fit(tab.font, " · " + L.t("wynnlabs.death.area_near", town), left - tagW - ax);
+                Type.META.draw(g, tab.font, near, ax, Type.META.yIn(cy, SPOT_H), Theme.INK_3);
+                ax += Type.META.width(tab.font, near);
+            }
+            if (tag != null) {
+                Ui.seal(g, tab.font, tag, ax + Theme.SP_2, cy + (SPOT_H - Ui.SEAL_H) / 2, Theme.GOOD);
+            }
+            cy += SPOT_H;
+        }
+        if (moreSpots(m)) {
+            cy += Theme.SP_2;
+            boolean open = openSpots != null && openSpots.contains(m);
+            String more = L.t(open ? "wynnlabs.road.spots_fewer" : "wynnlabs.road.spots_more");
+            int lw = Type.META.width(tab.font, more);
+            boolean hover = mx >= x && mx < x + lw && my >= cy && my < cy + Type.META.lineHeight;
+            Type.META.draw(g, tab.font, more, x, cy, hover ? Theme.INK : Theme.LINK);
+            tab.acts.add(new Act(x, cy, lw, Type.META.lineHeight, () -> {
+                if (openSpots == null) {
+                    openSpots = new HashSet<>();
+                }
+                if (!openSpots.remove(m)) {
+                    openSpots.add(m);
+                }
+            }, null, null));
+        }
     }
 
     private void pinArea(Area a, String label) {

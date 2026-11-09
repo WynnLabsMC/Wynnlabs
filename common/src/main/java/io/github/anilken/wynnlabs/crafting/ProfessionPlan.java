@@ -253,4 +253,148 @@ public final class ProfessionPlan {
                 .thenComparing(s -> s.resource().name()));
         return out.size() > limit ? List.copyOf(out.subList(0, limit)) : List.copyOf(out);
     }
+
+    /** A field of a resource's nodes: the node it is gathered around, how many nodes it has, and all of them. */
+    public record Field(Area node, int nodes, List<Area> members) {}
+
+    /**
+     * A resource's nodes grouped into fields, biggest first. The node with the most nodes around
+     * it starts a field and takes every free node within {@link #SPOT_RADIUS}; then the next free
+     * one with the most, and so on, so two fields' nodes are always more than that apart. A field's
+     * fringe that touches a bigger field close by is the same field and joins it. Position-free:
+     * worked out once per node list.
+     */
+    public static List<Field> fields(List<Area> nodes) {
+        int n = nodes.size();
+        int[] around = new int[n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (near(nodes.get(i), nodes.get(j), SPOT_RADIUS)) {
+                    around[i]++;
+                }
+            }
+        }
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            order.add(i);
+        }
+        order.sort(Comparator.comparingInt((Integer i) -> -around[i]).thenComparingInt(i -> i));
+        List<Integer> centres = new ArrayList<>();
+        List<List<Area>> members = new ArrayList<>();
+        boolean[] taken = new boolean[n];
+        for (int i : order) {
+            if (taken[i]) {
+                continue;
+            }
+            List<Area> m = new ArrayList<>();
+            for (int j = 0; j < n; j++) {
+                if (!taken[j] && near(nodes.get(i), nodes.get(j), SPOT_RADIUS)) {
+                    taken[j] = true;
+                    m.add(nodes.get(j));
+                }
+            }
+            centres.add(i);
+            members.add(m);
+        }
+        // a fringe left over beside a bigger field (its centre within two reaches, a node of each
+        // within one) is that field's edge, not a spot of its own
+        int k = centres.size();
+        int[] into = new int[k];
+        java.util.Arrays.fill(into, -1);
+        for (int b = 1; b < k; b++) {
+            for (int a = 0; a < b; a++) {
+                if (into[a] >= 0 || members.get(a).size() < members.get(b).size()
+                        || !near(nodes.get(centres.get(a)), nodes.get(centres.get(b)), 2 * SPOT_RADIUS)
+                        || !touch(members.get(a), members.get(b))) {
+                    continue;
+                }
+                into[b] = a;
+                members.get(a).addAll(members.get(b));
+                break;
+            }
+        }
+        List<Field> out = new ArrayList<>();
+        for (int f = 0; f < k; f++) {
+            if (into[f] < 0) {
+                out.add(new Field(nodes.get(centres.get(f)), members.get(f).size(), List.copyOf(members.get(f))));
+            }
+        }
+        out.sort(Comparator.comparingInt((Field f) -> -f.nodes()));
+        return List.copyOf(out);
+    }
+
+    /** The node a field is gathered around, of the field that holds {@code node}; null when none does. */
+    public static Area fieldNode(List<Field> fields, Area node) {
+        for (Field f : fields) {
+            if (f.members().contains(node)) {
+                return f.node();
+            }
+        }
+        return null;
+    }
+
+    /** A resource's spots seen from the player: {@link #spotsFor(Resource, List, double[], int)} over its {@link #fields}. */
+    public static List<Spot> spotsFor(Resource r, double[] pos, int limit) {
+        return spotsFor(r, fields(r.nodes()), pos, limit);
+    }
+
+    /**
+     * The spots to list for a resource, one per field, nearest first: a spot farther than one
+     * already listed and no bigger is left out, so each next one is farther but bigger; when that
+     * leaves fewer than {@code limit}, the nearest of the others fill in. At most {@code limit}.
+     * Without a position the biggest come first and the distance is NaN.
+     */
+    public static List<Spot> spotsFor(Resource r, List<Field> fields, double[] pos, int limit) {
+        // a lone node or a small patch is no place to gather while a real field exists: those
+        // under 4 nodes go when the biggest has 4 or more
+        int biggest = 0;
+        for (Field f : fields) {
+            biggest = Math.max(biggest, f.nodes());
+        }
+        int least = Math.min(biggest, 4);
+        List<Spot> all = new ArrayList<>();
+        for (Field f : fields) {
+            if (f.nodes() >= least) {
+                all.add(new Spot(r, f.node(), Compass.distance(f.node(), pos), f.nodes()));
+            }
+        }
+        if (pos == null) {
+            all.sort(Comparator.comparingInt((Spot s) -> -s.nodes()));
+            return all.size() > limit ? List.copyOf(all.subList(0, limit)) : List.copyOf(all);
+        }
+        all.sort(Comparator.comparingDouble(Spot::distance).thenComparingInt(s -> -s.nodes()));
+        List<Spot> out = new ArrayList<>();
+        int most = 0;
+        for (Spot s : all) {
+            if (out.size() < limit && s.nodes() > most) {
+                out.add(s);
+                most = s.nodes();
+            }
+        }
+        for (Spot s : all) {
+            if (out.size() >= limit) {
+                break;
+            }
+            if (!out.contains(s)) {
+                out.add(s);
+            }
+        }
+        out.sort(Comparator.comparingDouble(Spot::distance).thenComparingInt(s -> -s.nodes()));
+        return List.copyOf(out);
+    }
+
+    private static boolean near(Area a, Area b, double reach) {
+        return Math.hypot(a.x() - b.x(), a.z() - b.z()) <= reach;
+    }
+
+    private static boolean touch(List<Area> a, List<Area> b) {
+        for (Area p : a) {
+            for (Area q : b) {
+                if (near(p, q, SPOT_RADIUS)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
