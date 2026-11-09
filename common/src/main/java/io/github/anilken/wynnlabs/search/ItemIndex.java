@@ -356,6 +356,11 @@ public final class ItemIndex {
         return all;
     }
 
+    /** The town or city nearest a point within reach, among {@code places} (the index's {@link Kind#PLACE} entries); null when none is. */
+    public static String nearestTown(int x, int z, List<Entry> places) {
+        return WorldThings.nearestTown(x, z, places);
+    }
+
     /** The item of this name (any case), or null. */
     public Entry byName(String name) {
         if (name == null) {

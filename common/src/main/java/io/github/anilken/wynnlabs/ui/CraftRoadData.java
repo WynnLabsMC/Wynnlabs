@@ -112,6 +112,75 @@ final class CraftRoadData {
         return found;
     }
 
+    /** A row of a gather step's spot list: the spot and the town it lies near (null when none is). */
+    record SpotRow(ProfessionPlan.Spot spot, String town) {}
+
+    // made when first asked (no initialisers: safe to hot swap)
+    private ItemIndex fieldsOf;
+    private Map<String, List<ProfessionPlan.Field>> fields;
+    private List<Entry> towns;
+    private Map<String, List<SpotRow>> spotRows;
+
+    /** The fields of a material's resource, biggest first (worked out once per index); empty when it has none. */
+    List<ProfessionPlan.Field> fields(String material) {
+        LevelRoad.Source s = source(material);
+        if (s == null) {
+            return List.of();
+        }
+        ItemIndex index = ItemIndex.get();
+        if (fields == null || fieldsOf != index) {
+            fieldsOf = index;
+            fields = new HashMap<>();
+            spotRows = new HashMap<>();
+            towns = index.all().stream().filter(e -> e.kind() == Kind.PLACE).toList();
+        }
+        List<ProfessionPlan.Field> f = fields.get(s.resource());
+        if (f == null) {
+            ProfessionPlan.Resource r = resource(s);
+            f = r == null ? List.of() : ProfessionPlan.fields(r.nodes());
+            fields.put(s.resource(), f);
+        }
+        return f;
+    }
+
+    /** The index's resource a source names, or null. */
+    private ProfessionPlan.Resource resource(LevelRoad.Source s) {
+        for (ProfessionPlan.Resource r : resources()) {
+            if (r.name().equals(s.resource()) && r.profession().equals(s.profession())) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * A material's spots to gather at, near and small to far and big ({@link ProfessionPlan#spotsFor}),
+     * at most {@code limit}, each with the town it lies near; worked out again only when the player
+     * has moved a little or the index is new.
+     */
+    List<SpotRow> spotRows(String material, int limit) {
+        List<ProfessionPlan.Field> f = fields(material);
+        if (f.isEmpty()) {
+            return List.of();
+        }
+        double[] pos = position();
+        String key = material + "|" + limit + (pos == null ? "|-" : "|" + Math.round(pos[0] / 16) + "," + Math.round(pos[1] / 16));
+        List<SpotRow> rows = spotRows.get(key);
+        if (rows == null) {
+            if (spotRows.size() > 64) {
+                spotRows.clear();
+            }
+            ProfessionPlan.Resource r = resource(source(material));
+            List<SpotRow> out = new ArrayList<>();
+            for (ProfessionPlan.Spot sp : ProfessionPlan.spotsFor(r, f, pos, limit)) {
+                out.add(new SpotRow(sp, ItemIndex.nearestTown(sp.node().x(), sp.node().z(), towns)));
+            }
+            rows = List.copyOf(out);
+            spotRows.put(key, rows);
+        }
+        return rows;
+    }
+
     /** The nearest place of a service ("trade-market"), or null. */
     Area service(String type) {
         double[] pos = position();
