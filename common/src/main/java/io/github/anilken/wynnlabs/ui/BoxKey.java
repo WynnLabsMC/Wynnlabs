@@ -33,7 +33,8 @@ import java.util.function.Predicate;
  * The "Box contents" key (default T, rebindable in Controls): in any container screen or the
  * inventory, over an unidentified gear box it opens the box contents window ({@link BoxScreen})
  * over that screen; over any other item the Trade Market sells it opens the same window for that
- * one item. Anywhere else, and over an untradable item, the press goes on as without the mod (no
+ * one item; over a crafted item (gear or a potion, food or scroll) it opens it on how that item was
+ * most likely made. Anywhere else, and over an untradable item, the press goes on as without the mod (no
  * screen: chat opens; a text box: the letter is typed). It only reads the hovered stack.
  */
 public final class BoxKey {
@@ -153,6 +154,14 @@ public final class BoxKey {
             return false;
         }
         Slot slot = ((ContainerHoverAccessor) screen).wynnlabs$hoveredSlot();
+        if (slot != null && slot.hasItem() && !(screen.getFocused() instanceof EditBox)) {
+            // a crafted item has no listings by name: the window finds how it was made instead
+            io.github.anilken.wynnlabs.crafting.HowMade.Target made = WynntilsItems.craftedTarget(slot.getItem());
+            if (made != null) {
+                Minecraft.getInstance().setScreen(new BoxScreen(made, slot.getItem().copy(), screen));
+                return true;
+            }
+        }
         Optional<ItemView> view = slot == null || !slot.hasItem() ? Optional.empty() : WynntilsItems.view(slot.getItem());
         Pick p = opensFor(where, screen.getFocused() instanceof EditBox, view, BoxKey::tradable);
         if (p == null) {
