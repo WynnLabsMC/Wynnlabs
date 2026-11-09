@@ -19,19 +19,24 @@ import java.util.regex.Pattern;
 /**
  * The ways to get a gathering tool besides crafting (tools are not crafted): the Trade Market, the
  * Tool Merchant (tiers 1 and 2), upgrading the tier below at an Item Upgrader with dungeon
- * fragments, and a Dungeon Merchant (fragments and emeralds). Each way's cost comes from the
- * prices handed in; a tool of the tier below that the player has costs nothing to upgrade. The
+ * fragments, and a Dungeon Merchant (fragments and emeralds). Fragments drop from finishing a
+ * dungeon and cannot be traded, so they are counted, never priced; the rest of a way's cost comes
+ * from the prices handed in, and a tool of the tier below that the player has costs nothing. The
  * tiers are shipped in {@code assets/wynnlabs/crafting/tool-ways.json}. Plain data in, plain data out.
  */
 public final class ToolWays {
 
     public enum Kind { MARKET, MERCHANT, UPGRADE, DUNGEON }
 
-    /** One thing a way takes: {@code count} of {@code name}, each {@code each} emeralds (null: no price; 0: yours). */
-    public record Part(String name, int count, Double each, boolean owned) {}
+    /** One thing a way takes: {@code count} of {@code name}, each {@code each} emeralds (null: no price or a fragment; 0: yours). */
+    public record Part(String name, int count, Double each, boolean owned, boolean fragment) {}
 
-    /** A way: its kind, where (a dungeon, null otherwise), what it takes, plain emeralds on top, and the total (null when a part has no price). */
-    public record Way(Kind kind, String at, List<Part> parts, long emeralds, Double total) {}
+    /**
+     * A way: its kind, where (a dungeon, null otherwise), what it takes, plain emeralds on top, the
+     * emeralds it costs besides its fragments (null when a part has no price) and how many
+     * fragments it takes.
+     */
+    public record Way(Kind kind, String at, List<Part> parts, long emeralds, Double total, int fragments) {}
 
     record Upgrade(String fragment, int count) {}
 
@@ -58,29 +63,34 @@ public final class ToolWays {
     public static List<Way> ways(String name, int tier, String lower, boolean ownLower, Function<String, Double> price) {
         List<Way> out = new ArrayList<>();
         Double market = price.apply(name);
-        out.add(new Way(Kind.MARKET, null, List.of(new Part(name, 1, market, false)), 0, market));
+        out.add(new Way(Kind.MARKET, null, List.of(new Part(name, 1, market, false, false)), 0, market, 0));
         Tier t = tiers().get(tier);
         if (t != null) {
             if (t.merchant() > 0) {
-                out.add(new Way(Kind.MERCHANT, null, List.of(), t.merchant(), (double) t.merchant()));
+                out.add(new Way(Kind.MERCHANT, null, List.of(), t.merchant(), (double) t.merchant(), 0));
             }
             if (t.upgrade() != null && lower != null) {
-                List<Part> parts = List.of(new Part(lower, 1, ownLower ? 0.0 : price.apply(lower), ownLower),
-                        new Part(t.upgrade().fragment(), t.upgrade().count(), price.apply(t.upgrade().fragment()), false));
-                out.add(new Way(Kind.UPGRADE, null, parts, 0, total(parts, 0)));
+                List<Part> parts = List.of(new Part(lower, 1, ownLower ? Double.valueOf(0) : price.apply(lower), ownLower, false),
+                        new Part(t.upgrade().fragment(), t.upgrade().count(), null, false, true));
+                out.add(new Way(Kind.UPGRADE, null, parts, 0, total(parts, 0), t.upgrade().count()));
             }
             for (Dungeon d : t.dungeons()) {
-                List<Part> parts = List.of(new Part(d.fragment(), d.count(), price.apply(d.fragment()), false));
-                out.add(new Way(Kind.DUNGEON, d.at(), parts, d.emeralds(), total(parts, d.emeralds())));
+                List<Part> parts = List.of(new Part(d.fragment(), d.count(), null, false, true));
+                out.add(new Way(Kind.DUNGEON, d.at(), parts, d.emeralds(), total(parts, d.emeralds()), d.count()));
             }
         }
-        out.sort(Comparator.comparing((Way w) -> w.total() == null ? Double.MAX_VALUE : w.total()));
+        // the ways bought with emeralds alone first (cheapest first), then those that need dungeon runs
+        out.sort(Comparator.comparing((Way w) -> w.fragments() > 0)
+                .thenComparing(w -> w.total() == null ? Double.MAX_VALUE : w.total()));
         return out;
     }
 
     private static Double total(List<Part> parts, long emeralds) {
         double sum = emeralds;
         for (Part p : parts) {
+            if (p.fragment()) {
+                continue;
+            }
             if (p.each() == null) {
                 return null;
             }
