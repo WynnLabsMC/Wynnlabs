@@ -93,10 +93,12 @@ public final class NodeBoxes {
             // the map's nodes further off: faint, the nearest first. A node whose label the game
             // showed this session and no longer does, though it is near enough for its label to
             // load, has just been gathered: like the game's own boxes, it gets none until it is back
-            double loaded = 0;
+            // how far the game loads node labels: the farthest seen this session (gathering the
+            // farthest node must not shrink it, or that node would get a faint box back)
             for (int[] l : live) {
-                loaded = Math.max(loaded, Math.hypot(l[0] - px, l[1] - pz));
+                loadedMax = Math.min(96, Math.max(loadedMax, Math.hypot(l[0] - px, l[1] - pz)));
             }
+            double loaded = loadedMax;
             List<Area> far = new ArrayList<>();
             for (String prof : held) {
                 for (Area a : FAR.getOrDefault(prof, List.of())) {
@@ -239,6 +241,9 @@ public final class NodeBoxes {
     private static final int LABEL_GAP = 8;
     /** A map node's resource name ("Salmon"), by position. */
     private static final Map<Long, String> NAME = new HashMap<>();
+
+    /** The farthest a node label has been seen from the player this session (blocks, at most 96). */
+    private static double loadedMax;
 
     /** Map nodes whose label the game showed this session, by position. */
     private static final java.util.Set<Long> SEEN = new java.util.HashSet<>();
