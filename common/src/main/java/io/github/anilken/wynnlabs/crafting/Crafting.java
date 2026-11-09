@@ -140,7 +140,7 @@ public final class Crafting {
      * (nothing is asked for); null when there is none.
      */
     public static Long materialPrice(String shown) {
-        CraftSearch.Price p = price(shown + " T1");
+        CraftSearch.Price p = price(Shopping.materialKey(shown, 1));
         return p == null ? null : p.emeralds();
     }
 

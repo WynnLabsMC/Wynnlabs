@@ -40,6 +40,9 @@ class MaterialTierPriceTest {
         Object[] a = Prices.tiered("Corkian Amplifier T4");
         assertEquals("Corkian Amplifier", a[0]);
         assertEquals(4, a[1]);
+        Object[] p = Prices.tiered("Thunder Powder T6");
+        assertEquals("Thunder Powder", p[0]);
+        assertEquals(6, p[1]);
     }
 
     @Test
