@@ -47,6 +47,9 @@ final class BoxMadePanel {
 
     private static final int PITCH = Type.BODY.lineHeight + Theme.SP_2;
     private static final int CELL = 16;
+    /** The grid's inner padding, and a list row's height. */
+    private static final int GRID_PAD = 4;
+    private static final int ROW = 14;
 
     private final BoxScreen s;
     final HowMade.Target target;
@@ -309,48 +312,78 @@ final class BoxMadePanel {
         if (f == null) {
             Type.BODY.draw(g, s.font(), Ui.busy(L.t("wynnlabs.box.made.searching")), x, cy, Theme.INK_3);
         } else {
-            // the 2×3 grid: slot n at row n / 2, column n % 2
-            int cw = (inner - Theme.SP_2) / 2;
+            // the 2×3 grid of pictures on the left (where each one sits matters), the list beside it
+            int gw = GRID_PAD * 2 + 2 * CELL + Theme.SP_1;
+            int gh = GRID_PAD * 2 + 3 * CELL + 2 * Theme.SP_1;
+            Kit.box(g, x, cy, gw, gh, Theme.WELL, Theme.LINE);
             for (int i = 0; i < Craft.SLOTS; i++) {
                 Ingredient ing = i < f.slots().size() ? f.slots().get(i) : Ingredient.NONE;
-                int gx = x + (i % 2) * (cw + Theme.SP_2);
-                int gy = cy + (i / 2) * (CELL + Theme.SP_2);
                 boolean empty = ing == null || ing.empty();
+                int gx = x + GRID_PAD + (i % 2) * (CELL + Theme.SP_1);
+                int gy = cy + GRID_PAD + (i / 2) * (CELL + Theme.SP_1);
                 ItemStack icon = empty ? null : CraftIcons.of(ing.name());
                 CraftIcons.slot(g, gx, gy, CELL, icon);
-                String label = empty ? L.t("wynnlabs.box.made.empty") : ing.name();
-                int tx = gx + CELL + Theme.SP_2;
-                Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), label, cw - CELL - Theme.SP_2), tx,
-                        Type.BODY.yIn(gy, CELL), empty ? Theme.INK_3 : Theme.INK);
-                if (!empty && icon != null && BoxChips.in(mx, my, gx, gy, cw, CELL) && my >= top && my < top + listH) {
+                if (!empty && icon != null && BoxChips.in(mx, my, gx, gy, CELL, CELL) && my >= top && my < top + listH) {
                     g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);   // the game's font: its coin glyphs
                 }
             }
-            cy += 3 * (CELL + Theme.SP_2) + Theme.SP_3;
-            Type.META.draw(g, s.font(), L.t("wynnlabs.box.made.cell_materials"), x, cy, Theme.INK_3);
-            cy += Type.META.lineHeight + Theme.SP_1;
+            int lx = x + gw + Theme.SP_4;
+            int lw = x + inner - lx;
+            int ly = cy;
+            // the ingredients, the same ones together
+            Map<String, Integer> count = new LinkedHashMap<>();
+            for (Ingredient i : f.slots()) {
+                if (i != null && !i.empty()) {
+                    count.merge(i.name(), 1, Integer::sum);
+                }
+            }
+            Type.META.draw(g, s.font(), L.t("wynnlabs.box.made.cell_ingredients"), lx, ly, Theme.INK_3);
+            ly += Type.META.lineHeight + Theme.SP_1;
+            long sum = 0;
+            boolean unknown = false;
+            for (Map.Entry<String, Integer> e : count.entrySet()) {
+                Long each = price(e.getKey());
+                unknown |= each == null;
+                sum += each == null ? 0 : each * e.getValue();
+                ItemStack icon = CraftIcons.of(e.getKey());
+                boolean hover = BoxChips.in(mx, my, lx, ly, lw, ROW) && my >= top && my < top + listH;
+                listRow(g, icon, e.getKey(), e.getValue(), each == null ? null : each * e.getValue(), null, lx, ly, lw, hover);
+                if (hover && icon != null) {
+                    g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);
+                }
+                ly += ROW + Theme.SP_2;
+            }
+            // the materials at their tiers
+            ly += Theme.SP_2;
+            Type.META.draw(g, s.font(), L.t("wynnlabs.box.made.cell_materials"), lx, ly, Theme.INK_3);
+            ly += Type.META.lineHeight + Theme.SP_1;
             for (int m = 0; m < 2 && m < f.recipe().materials().size(); m++) {
                 CraftData.Material mat = f.recipe().materials().get(m);
                 int tier = m == 0 ? f.tier1() : f.tier2();
-                CraftIcons.slot(g, x, cy, 12, CraftIcons.of(mat.shown()));
-                String line = L.t("wynnlabs.box.made.material_line", mat.amount(), mat.shown());
-                int tx = x + 12 + Theme.SP_2;
-                String fitted = Type.BODY.fit(s.font(), line, inner - 12 - Theme.SP_2 - 24);
-                Type.BODY.draw(g, s.font(), fitted, tx, Type.BODY.yIn(cy, 12), Theme.INK);
-                int lx = tx + Type.BODY.width(s.font(), fitted);
-                Type.BODY.draw(g, s.font(), CraftFormat.stars(tier), lx + Theme.SP_2, Type.BODY.yIn(cy, 12), Theme.GOLD_EDGE);
-                if (BoxChips.in(mx, my, x, cy, inner, 12) && my >= top && my < top + listH) {
+                Long each = price(Shopping.materialKey(mat.shown(), tier));
+                unknown |= each == null;
+                sum += each == null ? 0 : each * mat.amount();
+                boolean hover = BoxChips.in(mx, my, lx, ly, lw, ROW) && my >= top && my < top + listH;
+                listRow(g, CraftIcons.of(mat.shown()), mat.shown(), mat.amount(), each == null ? null : each * mat.amount(),
+                        CraftFormat.stars(tier), lx, ly, lw, hover);
+                if (hover) {
                     // the material at its tier: its price each and for the amount
-                    Long each = price(Shopping.materialKey(mat.shown(), tier));
                     List<net.minecraft.network.chat.Component> tip = new java.util.ArrayList<>();
                     tip.add(net.minecraft.network.chat.Component.literal(mat.shown() + " " + CraftFormat.stars(tier)).withStyle(ChatFormatting.WHITE));
                     tip.add(L.c("wynnlabs.box.made.material_tip", each == null ? "?" : Prices.fmt(each),
                             each == null ? "?" : Prices.fmt(each * mat.amount()), mat.amount()).withStyle(ChatFormatting.GOLD));
                     s.tip(tip);
                 }
-                cy += 12 + Theme.SP_2;
+                ly += ROW + Theme.SP_2;
             }
-            cy += Theme.SP_3;
+            // the total under a hairline
+            Kit.hair(g, lx, ly, lw, 1, Theme.LINE);
+            ly += 1 + Theme.SP_2;
+            String totalText = sum == 0 && unknown ? "?" : Prices.fmt(sum) + (unknown ? " +?" : "");
+            Type.LABEL.draw(g, s.font(), L.t("wynnlabs.box.made.cell_total"), lx, ly, Theme.INK);
+            Type.LABEL.drawRight(g, s.font(), totalText, lx + lw, ly, Theme.PRICE);
+            ly += Type.LABEL.lineHeight;
+            cy = Math.max(cy + gh, ly) + Theme.SP_4;
             String open = L.t("wynnlabs.box.made.open_recipe");
             int bw = Ui.buttonWidth(s.font(), open);
             boolean hover = Ui.button(g, s.font(), open, x, cy, bw, mx, my) && my >= top && my < top + listH;
@@ -373,8 +406,38 @@ final class BoxMadePanel {
         if (f == null) {
             return Type.BODY.lineHeight;
         }
-        return 3 * (CELL + Theme.SP_2) + Theme.SP_3 + Type.META.lineHeight + Theme.SP_1 + 2 * (12 + Theme.SP_2)
-                + Theme.SP_3 + Ui.BUTTON_H;
+        long kinds = f.slots().stream().filter(i -> i != null && !i.empty()).map(Ingredient::name).distinct().count();
+        int list = 2 * (Type.META.lineHeight + Theme.SP_1) + (int) (kinds + 2) * (ROW + Theme.SP_2) + Theme.SP_2
+                + 1 + Theme.SP_2 + Type.LABEL.lineHeight;
+        int grid = GRID_PAD * 2 + 3 * CELL + 2 * Theme.SP_1;
+        return Math.max(grid, list) + Theme.SP_4 + Ui.BUTTON_H;
+    }
+
+    /**
+     * One row of the list beside the grid: the picture, the name (and a material's stars), "×5"
+     * and the price for the amount on the right ("?" when unknown); lit while hovered.
+     */
+    private void listRow(GuiGraphics g, ItemStack icon, String name, int amount, Long price, String stars, int x, int y, int w,
+                         boolean hover) {
+        if (hover) {
+            Art.box(g, x - Theme.SP_1, y - 1, w + Theme.SP_1 * 2, ROW + 2, 3, Theme.CARD_HOVER, 0);
+        }
+        CraftIcons.slot(g, x, y + (ROW - 12) / 2, 12, icon);
+        String priceText = price == null ? "?" : Prices.fmt(price);
+        int pw = Type.META.width(s.font(), priceText);
+        Type.META.drawRight(g, s.font(), priceText, x + w, Type.META.yIn(y, ROW), price == null ? Theme.INK_3 : Theme.PRICE);
+        String times = "×" + amount;
+        String tail = (stars == null ? "" : " " + stars);
+        int room = w - 12 - Theme.SP_2 - pw - Theme.SP_3 - Type.META.width(s.font(), " " + times) - Type.BODY.width(s.font(), tail);
+        String fit = Type.BODY.fit(s.font(), name, Math.max(0, room));
+        int tx = x + 12 + Theme.SP_2;
+        Type.BODY.draw(g, s.font(), fit, tx, Type.BODY.yIn(y, ROW), Theme.INK);
+        tx += Type.BODY.width(s.font(), fit);
+        if (!tail.isEmpty()) {
+            Type.BODY.draw(g, s.font(), tail, tx, Type.BODY.yIn(y, ROW), Theme.GOLD_EDGE);
+            tx += Type.BODY.width(s.font(), tail);
+        }
+        Type.META.draw(g, s.font(), " " + times, tx, Type.META.yIn(y, ROW), Theme.INK_3);
     }
 
     /** The layout on the Crafting tab's Recipe view; Esc there comes back here. */
