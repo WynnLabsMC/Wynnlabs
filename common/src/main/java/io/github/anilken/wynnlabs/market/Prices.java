@@ -671,8 +671,9 @@ public final class Prices {
         }
         java.util.regex.Matcher m = TIERED.matcher(key);
         if (!m.matches()) {
-            // "Corkian Amplifier T4": an amplifier's tier goes past a material's three, asked the same way
-            m = java.util.regex.Pattern.compile("^(Corkian Amplifier) T([0-9])$").matcher(key);
+            // "Corkian Amplifier T4", "Thunder Powder T6": their tiers go past a material's three,
+            // asked the same way (the plain name and the tier)
+            m = java.util.regex.Pattern.compile("^(Corkian Amplifier|(?:Earth|Thunder|Water|Fire|Air) Powder) T([0-9])$").matcher(key);
         }
         return m.matches() ? new Object[] {m.group(1), Integer.parseInt(m.group(2))} : null;
     }
