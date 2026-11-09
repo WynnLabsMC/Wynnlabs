@@ -631,7 +631,7 @@ public final class WynntilsItems {
                 }
                 CappedValue uses = c.getUses();
                 return new io.github.anilken.wynnlabs.crafting.HowMade.Target(c.getName(), type, c.getLevel(),
-                        madeStats(c.getIdentifications()), uses == null ? -1 : uses.max(), c.getDuration(), -1, -1, null);
+                        madeStats(c.getIdentifications()), uses == null ? -1 : uses.max(), c.getDuration() > 0 ? c.getDuration() : -1, -1, -1, null);   // 0: not read
             });
         }
         return null;
