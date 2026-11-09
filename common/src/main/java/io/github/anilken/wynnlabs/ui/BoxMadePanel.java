@@ -499,18 +499,36 @@ final class BoxMadePanel {
             Type.LABEL.drawRight(g, s.font(), totalText, lx + lw, ly, Theme.PRICE);
             ly += Type.LABEL.lineHeight;
             cy = Math.max(cy + gh, ly) + Theme.SP_4;
-            String open = L.t("wynnlabs.box.made.open_recipe");
-            int bw = Ui.buttonWidth(s.font(), open);
-            boolean hover = Ui.button(g, s.font(), open, x, cy, bw, mx, my) && my >= top && my < top + listH;
-            if (hover) {
-                s.tip(List.of(L.c("wynnlabs.box.made.open_tip").withStyle(ChatFormatting.GRAY)));
+            // the actions: open the layout in Recipe, save it to the saved recipes, copy its WynnBuilder link
+            HowMade.Found pick = f;
+            int buttonsTop = cy;
+            boolean justSaved = "save".equals(doneWhat) && System.currentTimeMillis() - doneAt < 2000;
+            boolean justCopied = "link".equals(doneWhat) && System.currentTimeMillis() - doneAt < 2000;
+            boolean noLink = "nolink".equals(doneWhat) && System.currentTimeMillis() - doneAt < 2000;
+            String[] labels = {L.t("wynnlabs.box.made.open_recipe"),
+                    L.t(justSaved ? "wynnlabs.box.made.saved_done" : "wynnlabs.box.made.save_recipe"),
+                    L.t(justCopied ? "wynnlabs.craft.wb_link_copied" : noLink ? "wynnlabs.craft.wb_link_none" : "wynnlabs.box.made.wb_link")};
+            String[] tips = {"wynnlabs.box.made.open_tip", "wynnlabs.box.made.save_tip", "wynnlabs.box.made.wb_tip"};
+            Runnable[] acts = {() -> openRecipe(pick), () -> saveRecipe(pick), () -> copyLink(pick)};
+            int bx = x;
+            for (int k = 0; k < labels.length; k++) {
+                int bw = Ui.buttonWidth(s.font(), labels[k]);
+                if (bx > x && bx + bw > x + inner) {
+                    bx = x;                         // no room left on this line: the next one
+                    cy += Ui.BUTTON_H + Theme.SP_2;
+                }
+                boolean hover = Ui.button(g, s.font(), labels[k], bx, cy, bw, mx, my) && my >= top && my < top + listH;
+                if (hover) {
+                    s.tip(List.of(L.c(tips[k]).withStyle(ChatFormatting.GRAY)));
+                }
+                int by = Math.max(cy, top);
+                int bb = Math.min(cy + Ui.BUTTON_H, top + listH);
+                if (bb > by) {
+                    s.hit(bx, by, bw, bb - by, acts[k]);
+                }
+                bx += bw + Theme.SP_2;
             }
-            int by = Math.max(cy, top);
-            int bb = Math.min(cy + Ui.BUTTON_H, top + listH);
-            if (bb > by) {
-                HowMade.Found pick = f;
-                s.hit(x, by, bw, bb - by, () -> openRecipe(pick));
-            }
+            buttonExtra = cy - buttonsTop;      // the lines the buttons wrapped onto
         }
         g.disableScissor();
         leftBar.place(x + w - ScrollBar.W, top, listH, listH, total, leftScroll);
@@ -525,7 +543,41 @@ final class BoxMadePanel {
         int list = 2 * (Type.META.lineHeight + Theme.SP_1) + (int) (kinds + 2) * (ROW + Theme.SP_2) + Theme.SP_2
                 + 1 + Theme.SP_2 + Type.LABEL.lineHeight;
         int grid = GRID_PAD * 2 + 3 * CELL + 2 * Theme.SP_1;
-        return Math.max(grid, list) + Theme.SP_4 + Ui.BUTTON_H;
+        return Math.max(grid, list) + Theme.SP_4 + Ui.BUTTON_H + buttonExtra;
+    }
+
+    /** How far the action buttons wrapped below their first line, from the last frame. */
+    private int buttonExtra;
+    /** The last action done ("save", "link") and when, for its button's short confirmation. */
+    private String doneWhat;
+    private long doneAt;
+
+    private RecipeCode.Recipe recipeOf(HowMade.Found f) {
+        return new RecipeCode.Recipe(f.recipe().type(), f.recipe().minLevel(), f.tier1(), f.tier2(), Craft.Speed.NORMAL, f.names());
+    }
+
+    /** Saves the layout to the saved recipes under the item's name ("Scroll of Dusk", "Scroll of Dusk 2" ...). */
+    private void saveRecipe(HowMade.Found f) {
+        RecipeCode.Recipe r = recipeOf(f);
+        io.github.anilken.wynnlabs.crafting.SavedRecipes saved = io.github.anilken.wynnlabs.crafting.Crafting.saved();
+        String name = saved.free(target.name() == null || target.name().isBlank() ? CraftFormat.typeName(r.type()) : target.name());
+        saved.save(new io.github.anilken.wynnlabs.crafting.SavedRecipes.Saved(name, r.type(), r.minLevel(), r.tier1(), r.tier2(),
+                r.speed().name(), java.util.Collections.unmodifiableList(new ArrayList<>(r.slots())), null, System.currentTimeMillis()), false);
+        io.github.anilken.wynnlabs.crafting.Crafting.persist();
+        doneWhat = "save";
+        doneAt = System.currentTimeMillis();
+    }
+
+    /** Copies the layout's WynnBuilder crafter link. */
+    private void copyLink(HowMade.Found f) {
+        String link = io.github.anilken.wynnlabs.crafting.WynnBuilderCode.link(recipeOf(f));
+        if (link != null) {
+            net.minecraft.client.Minecraft.getInstance().keyboardHandler.setClipboard(link);
+            doneWhat = "link";
+        } else {
+            doneWhat = "nolink";                // WynnBuilder does not know an ingredient in it
+        }
+        doneAt = System.currentTimeMillis();
     }
 
     /**
