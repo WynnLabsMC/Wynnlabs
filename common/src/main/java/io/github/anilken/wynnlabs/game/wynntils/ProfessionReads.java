@@ -168,6 +168,40 @@ public final class ProfessionReads {
         }, List.of());
     }
 
+    /**
+     * Wynntils' own gathering node boxes: whether they are on, and, when {@code set} is given,
+     * turned on or off in its settings (saved there, as its settings screen would). Null when
+     * the feature is not there.
+     */
+    public static Boolean nodeHighlight(Boolean set) {
+        return guard(Feature.PROFESSIONS, () -> {
+            var f = com.wynntils.core.components.Managers.Feature.getFeatureInstance(
+                    com.wynntils.features.utilities.HighlightGatheringNodesFeature.class);
+            if (f == null) {
+                return (Boolean) null;
+            }
+            boolean was = f.isEnabled();
+            if (set != null && was != set) {
+                f.setUserEnabled(set);
+                com.wynntils.core.components.Managers.Config.saveConfig();
+            }
+            return was;
+        }, null);
+    }
+
+    /** The professions of the gathering tool in the main hand ("mining"), empty when none is held. */
+    public static List<String> heldToolProfessions() {
+        return guard(Feature.PROFESSIONS, () -> {
+            var player = net.minecraft.client.Minecraft.getInstance().player;
+            if (player == null) {
+                return List.<String>of();
+            }
+            return Models.Item.asWynnItem(player.getMainHandItem(), com.wynntils.models.items.items.game.GatheringToolItem.class)
+                    .map(t -> t.getProfessionTypes().stream().map(p -> p.name().toLowerCase(java.util.Locale.ROOT)).toList())
+                    .orElse(List.of());
+        }, List.of());
+    }
+
     /** Whether the player holds a gathering tool in the main hand. */
     public static boolean holdingGatherTool() {
         return guard(Feature.PROFESSIONS, () -> {

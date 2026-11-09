@@ -50,6 +50,7 @@ public final class Settings {
         CHOICES.put("slotBadges", 1);
         CHOICES.put("treeHelp", 2);
         CHOICES.put("updates", 1);
+        CHOICES.put("nodeBoxes", 2);
         CHOICES.keySet().forEach(k -> DESC.put(k, "wynnlabs.setting_desc." + k));
     }
 
