@@ -227,6 +227,87 @@ final class CraftShots {
         ctx.runOnClient(mc -> tab.drawers.close());
     }
 
+    /**
+     * The Tools page alone (-PpreviewOnly=crafttools): every kind's T1..T13 as stand-in vanilla
+     * tools, an Iron Pickaxe T6 and a Bronze Axe T4 in the bag, Mining 72 / Woodcutting 41 /
+     * Fishing 12 / Farming unknown: the Pickaxe ladder with its next tier and how to get it, a box
+     * hovered, a locked tier picked, the Rod's (no tool yet).
+     */
+    static void toolShots(ClientGameTestContext ctx, Consumer<String> shot) throws Exception {
+        CraftingTab tab = CraftingTab.INSTANCE;
+        ctx.runOnClient(mc -> {
+            CraftingTab.previewIngredients = CraftPreview.ingredients();
+            CraftPreview.levels();
+            Map<String, Integer> lv = new LinkedHashMap<>(CraftingTab.previewLevels);
+            lv.put("mining", 72);
+            lv.put("woodcutting", 41);
+            lv.put("fishing", 12);
+            CraftingTab.previewLevels = lv;
+            String[] mats = {"Stone", "Copper", "Granite", "Gold", "Sandstone", "Iron", "Silver", "Cobalt", "Kanderstone", "Diamond",
+                "Molten", "Voidstone", "Dernic"};
+            Object[][] kinds = {{"mining", "Pickaxe", net.minecraft.world.item.Items.IRON_PICKAXE},
+                {"woodcutting", "Axe", net.minecraft.world.item.Items.IRON_AXE},
+                {"fishing", "Rod", net.minecraft.world.item.Items.FISHING_ROD},
+                {"farming", "Scythe", net.minecraft.world.item.Items.IRON_HOE}};
+            List<io.github.anilken.wynnlabs.model.GatherTool> all = new java.util.ArrayList<>();
+            for (Object[] k : kinds) {
+                for (int t = 1; t <= 13; t++) {
+                    all.add(new io.github.anilken.wynnlabs.model.GatherTool(mats[t - 1] + " " + k[1] + " T" + t, (String) k[0], t,
+                            t == 1 ? 1 : (t - 1) * 10, 1 + t, -1, 100 + 50 * t,
+                            new net.minecraft.world.item.ItemStack((net.minecraft.world.item.Item) k[2])));
+                }
+            }
+            CraftTools.previewTools = all;
+            CraftTools.previewHeld = List.of(
+                    new io.github.anilken.wynnlabs.model.GatherTool("Iron Pickaxe T6", "mining", 6, 50, 7, 210, 400,
+                            new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_PICKAXE)),
+                    new io.github.anilken.wynnlabs.model.GatherTool("Gold Axe T4", "woodcutting", 4, 30, 5, 250, 300,
+                            new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.IRON_AXE)));
+            tab.toolsPanel.kind = null;
+            tab.toolsPanel.picked = 0;
+            tab.view = CraftingTab.VIEW_TOOLS;
+            tab.scroll = 0;
+            ((RoadmapScreen) mc.screen).openTab(RoadmapScreen.TAB_CRAFT);
+        });
+        ctx.getInput().setCursorPos(2, 2);
+        ctx.waitTicks(45);                          // the page reads the tools every two seconds
+        shot.accept("craft-tools");
+        // the mouse on the T7 box: its tooltip
+        double scale = ctx.computeOnClient(mc -> (double) MenuScale.effective());
+        int[] at = ctx.computeOnClient(mc -> {
+            int k = 0;
+            for (CraftingTab.Act a : tab.acts) {
+                if (a.left() != null && a.right() != null && k++ == 6) {
+                    return new int[] {a.x() + a.w() / 2, a.y() + a.h() / 2};
+                }
+            }
+            return null;
+        });
+        if (at != null) {
+            ctx.getInput().setCursorPos(at[0] * scale, at[1] * scale);
+            ctx.waitTicks(4);
+            shot.accept("craft-tools-hover");
+            ctx.getInput().setCursorPos(2, 2);
+        }
+        ctx.runOnClient(mc -> tab.toolsPanel.picked = 10);
+        ctx.waitTicks(4);
+        shot.accept("craft-tools-locked");
+        ctx.runOnClient(mc -> tab.scroll = 100000);
+        ctx.waitTicks(4);
+        shot.accept("craft-tools-end");
+        ctx.runOnClient(mc -> {
+            tab.scroll = 0;
+            tab.toolsPanel.pickKind(io.github.anilken.wynnlabs.crafting.ToolLadder.Kind.ROD);
+        });
+        ctx.waitTicks(4);
+        shot.accept("craft-tools-rod");
+        ctx.runOnClient(mc -> {
+            CraftTools.previewTools = null;
+            CraftTools.previewHeld = null;
+            tab.view = CraftingTab.VIEW_RECIPE;
+        });
+    }
+
     /** Clicks the {@code n}th card (0-based) of the last frame, as the player would. */
     private static void click(ClientGameTestContext ctx, CraftingTab tab, int n, int h) {
         double scale = ctx.computeOnClient(mc -> (double) MenuScale.effective());

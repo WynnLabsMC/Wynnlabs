@@ -669,6 +669,9 @@ public final class Prices {
         if (key == null) {
             return null;
         }
+        if (key.matches(".+ (Pickaxe|Axe|Scythe|Rod) T[0-9]+")) {
+            return null;                        // a gathering tool's tier is part of its name ("Copper Pickaxe T3")
+        }
         java.util.regex.Matcher m = TIERED.matcher(key);
         if (!m.matches()) {
             // "Corkian Amplifier T4", "Thunder Powder T6": their tiers go past a material's three,

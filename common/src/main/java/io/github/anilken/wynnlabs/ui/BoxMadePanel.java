@@ -749,8 +749,27 @@ final class BoxMadePanel {
         int listH = y + h - top;
         int inner = w - ScrollBar.W - Theme.SP_2;
         List<HowMade.Row> rows = f == null ? List.of() : f.rows();
-        int others = a == null ? 0 : a.layouts().size();
-        int total = rows.size() * PITCH + (others > 1 ? Theme.SP_3 + Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3 + others * PITCH : 0);
+        // the other layouts, one per set of ingredients: the same ones in another order or with
+        // other material tiers make the same item, so only the cheapest of them is listed
+        List<Integer> uniq = new ArrayList<>();
+        Map<String, Integer> variants = new LinkedHashMap<>();
+        Map<String, Integer> firstOf = new LinkedHashMap<>();
+        if (a != null) {
+            for (int i = 0; i < a.layouts().size(); i++) {
+                String key = setKey(a.layouts().get(i));
+                if (variants.merge(key, 1, Integer::sum) == 1) {
+                    firstOf.put(key, i);
+                    uniq.add(i);
+                }
+            }
+        }
+        int others = uniq.size();
+        // many values matching fold into one line (the misses always show), so the other layouts
+        // stay in view; a click on the line unfolds them
+        long matching = rows.stream().filter(HowMade.Row::ok).count();
+        boolean fold = !rowsOpen && matching > 3 && rows.size() > 5;
+        int shownRows = fold ? (int) (rows.size() - matching) + 1 : rows.size();
+        int total = shownRows * PITCH + (others > 1 ? Theme.SP_3 + Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3 + others * PITCH : 0);
         rightScroll = Math.max(0, Math.min(ScrollBar.max(listH, total), rightScroll));
         g.enableScissor(x - Theme.SP_1, top, x + w, top + listH);
         int cy = top - rightScroll;
@@ -763,7 +782,22 @@ final class BoxMadePanel {
         }
         rangeW = Math.min(rangeW, inner / 3);
         int valueX = x + 8 + Theme.SP_2 + Math.max(60, (inner - 8 - Theme.SP_2 - rangeW) * 3 / 5);
+        if (fold) {
+            int hy = cy;
+            Art.icon(g, "check", x, Type.BODY.onCaps(cy, 8), 8, Theme.GOOD);
+            String line = L.t("wynnlabs.box.made.rows_folded", matching, rows.size());
+            boolean hov = BoxChips.in(mx, my, x, cy, inner, PITCH) && my >= top && my < top + listH;
+            Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), line + " ›", inner - 8 - Theme.SP_2), x + 8 + Theme.SP_2, cy,
+                    hov ? Theme.LINK : Theme.INK_2);
+            if (hy + PITCH > top && hy < top + listH) {
+                s.hit(x, Math.max(hy, top), inner, Math.min(hy + PITCH, top + listH) - Math.max(hy, top), () -> rowsOpen = true);
+            }
+            cy += PITCH;
+        }
         for (HowMade.Row r : rows) {
+            if (fold && r.ok()) {
+                continue;
+            }
             int ink = r.ok() ? Theme.GOOD : Theme.BAD;
             Art.icon(g, r.ok() ? "check" : "x", x, Type.BODY.onCaps(cy, 8), 8, ink);
             int lx = x + 8 + Theme.SP_2;
@@ -782,9 +816,11 @@ final class BoxMadePanel {
             cy += Type.LABEL.lineHeight + Theme.SP_1;
             Kit.hair(g, x, cy, inner, 1, Theme.LINE);
             cy += 1 + Theme.SP_3;
-            for (int i = 0; i < others; i++) {
+            String pickedKey = setKey(a.layouts().get(Math.max(0, Math.min(picked, a.layouts().size() - 1))));
+            for (int u = 0; u < others; u++) {
+                int i = uniq.get(u);
                 HowMade.Found o = a.layouts().get(i);
-                boolean on = i == Math.min(picked, others - 1);
+                boolean on = setKey(o).equals(pickedKey);
                 boolean hover = BoxChips.in(mx, my, x - Theme.SP_1, cy - Theme.SP_1, inner + Theme.SP_1, PITCH)
                         && my >= top && my < top + listH;
                 if (on) {
@@ -805,6 +841,10 @@ final class BoxMadePanel {
                     // the whole layout, and what "+?" leaves out: the parts with no market price yet
                     List<net.minecraft.network.chat.Component> tip = new java.util.ArrayList<>();
                     tip.add(net.minecraft.network.chat.Component.literal(names(o)).withStyle(ChatFormatting.WHITE));
+                    int same = variants.getOrDefault(setKey(o), 1);
+                    if (same > 1) {
+                        tip.add(L.c("wynnlabs.box.made.same_set", same).withStyle(ChatFormatting.GRAY));
+                    }
                     java.util.Set<String> missing = new java.util.LinkedHashSet<>();
                     for (Ingredient ing : o.slots()) {
                         if (ing != null && !ing.empty() && price(ing.name()) == null) {
@@ -834,6 +874,22 @@ final class BoxMadePanel {
         g.disableScissor();
         rightBar.place(x + w - ScrollBar.W, top, listH, listH, total, rightScroll);
         rightBar.draw(g, mx, my);
+    }
+
+    /** Whether the matching values are unfolded (a click on their folded line). */
+    private boolean rowsOpen;
+
+    /** A layout's set of ingredients, whatever their order: "Bright Petal*3|Unicorn Horn*2". */
+    private static String setKey(HowMade.Found f) {
+        java.util.TreeMap<String, Integer> count = new java.util.TreeMap<>();
+        for (Ingredient i : f.slots()) {
+            if (i != null && !i.empty()) {
+                count.merge(i.name(), 1, Integer::sum);
+            }
+        }
+        StringBuilder b = new StringBuilder();
+        count.forEach((n, c) -> b.append(n).append('*').append(c).append('|'));
+        return b.toString();
     }
 
     /** "2× Essence Of Dusk, Fairy Dust", or "Empty" for none. */

@@ -1,0 +1,148 @@
+{
+ "format": 1,
+ "source": "https://wynncraft.wiki.gg/wiki/Item_Upgrader",
+ "fetched": "2026-11-09",
+ "note": "Item Upgrader NPCs by town: x and z from the wiki (no height given; the compass needs only x and z).",
+ "upgraders": [
+  {
+   "place": "Alekin Village",
+   "x": -162,
+   "z": -1615
+  },
+  {
+   "place": "Detlas",
+   "x": 493,
+   "z": -1621
+  },
+  {
+   "place": "Nemract",
+   "x": 185,
+   "z": -2173
+  },
+  {
+   "place": "Tempo Town",
+   "x": -309,
+   "z": -1149
+  },
+  {
+   "place": "Almuj",
+   "x": 948,
+   "z": -1925
+  },
+  {
+   "place": "Nesaak",
+   "x": 127,
+   "z": -774
+  },
+  {
+   "place": "Troms",
+   "x": -835,
+   "z": -942
+  },
+  {
+   "place": "Selchar",
+   "x": 134,
+   "z": -3188
+  },
+  {
+   "place": "Pirate Town",
+   "x": -654,
+   "z": -3070
+  },
+  {
+   "place": "Corkus City",
+   "x": -1599,
+   "z": -2871
+  },
+  {
+   "place": "Legendary Island",
+   "x": -1157,
+   "z": -2382
+  },
+  {
+   "place": "Llevigar",
+   "x": -1847,
+   "z": -4560
+  },
+  {
+   "place": "Olux",
+   "x": -1759,
+   "z": -5507
+  },
+  {
+   "place": "Gelibord",
+   "x": -1000,
+   "z": -5311
+  },
+  {
+   "place": "Cinfras",
+   "x": -463,
+   "z": -4957
+  },
+  {
+   "place": "Aldorei Town",
+   "x": -264,
+   "z": -4432
+  },
+  {
+   "place": "Thanos",
+   "x": 208,
+   "z": -5226
+  },
+  {
+   "place": "Thesead",
+   "x": 782,
+   "z": -5069
+  },
+  {
+   "place": "Rodoroc",
+   "x": 1066,
+   "z": -5154
+  },
+  {
+   "place": "Kandon-Beda",
+   "x": 752,
+   "z": -4448
+  },
+  {
+   "place": "Ahmsord",
+   "x": 968,
+   "z": -4541
+  },
+  {
+   "place": "Lutho",
+   "x": 966,
+   "z": -717
+  },
+  {
+   "place": "Fort Torann",
+   "x": -1895,
+   "z": -1640
+  },
+  {
+   "place": "Espren",
+   "x": -2130,
+   "z": -990
+  },
+  {
+   "place": "Timasca",
+   "x": -1790,
+   "z": -520
+  },
+  {
+   "place": "Aldwell",
+   "x": -1260,
+   "z": -740
+  },
+  {
+   "place": "Hyloch",
+   "x": -1290,
+   "z": -1275
+  },
+  {
+   "place": "Aelumia Citadel",
+   "x": -1480,
+   "z": -855
+  }
+ ]
+}
