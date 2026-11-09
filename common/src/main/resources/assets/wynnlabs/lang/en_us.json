@@ -2708,6 +2708,7 @@
   "wynnlabs.box.made.made_title": "How it's made",
   "wynnlabs.box.made.match_title": "Does it match?",
   "wynnlabs.box.made.empty": "Empty",
+  "wynnlabs.box.made.estimate": "No listings at this tier: estimated from the others",
   "wynnlabs.box.made.no_listings": "No listings now",
   "wynnlabs.box.made.no_price": "No market price yet: %s",
   "wynnlabs.box.made.open_recipe": "Open in Recipe ›",

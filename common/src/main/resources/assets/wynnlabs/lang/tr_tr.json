@@ -2708,6 +2708,7 @@
   "wynnlabs.box.made.made_title": "Nasıl yapılmış",
   "wynnlabs.box.made.match_title": "Tutuyor mu?",
   "wynnlabs.box.made.empty": "Boş",
+  "wynnlabs.box.made.estimate": "Bu tier'da ilan yok: diğerlerinden tahmin",
   "wynnlabs.box.made.no_listings": "Şu an ilan yok",
   "wynnlabs.box.made.no_price": "Henüz market fiyatı yok: %s",
   "wynnlabs.box.made.open_recipe": "Tarif'te aç ›",
