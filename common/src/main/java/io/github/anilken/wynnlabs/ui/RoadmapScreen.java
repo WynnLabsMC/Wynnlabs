@@ -191,6 +191,10 @@ public final class RoadmapScreen extends Screen {
         // the damage and the deaths are the tree page's drawers now: the page, its drawers closed
         int stored = MenuResume.page(s.tab());
         tab = MenuResume.tab(stored, t -> t == TAB_CRAFT || t == TAB_ENDGAME || page(t) != null);
+        // the Crafting tab's view (Recipe, Suggestions, Level up, Tools) as it was
+        if (s.craftView() >= CraftingTab.VIEW_RECIPE && s.craftView() <= CraftingTab.VIEW_TOOLS) {
+            CraftingTab.INSTANCE.view = s.craftView();
+        }
         if (s.questType() != null) {
             questsTab.questType = io.github.anilken.wynnlabs.quests.ContentType.of(s.questType());
         }
@@ -214,7 +218,7 @@ public final class RoadmapScreen extends Screen {
         }
         return new MenuResume.State(tab, questsTab.questType.name(), questsTab.questSelected,
                 questsTab.pickedType == null ? null : questsTab.pickedType.name(), questsTab.questDetailTab, settings.settingsCat,
-                search.box == null ? null : search.box.getValue(), tracked);
+                search.box == null ? null : search.box.getValue(), tracked, CraftingTab.INSTANCE.view);
     }
 
     /** The screen's font, for the tabs (it changes with the webFont setting). */

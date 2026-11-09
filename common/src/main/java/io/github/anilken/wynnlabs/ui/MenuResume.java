@@ -22,9 +22,15 @@ final class MenuResume {
 
     /** The menu as it was: {@code tab} -1 for none; the strings null when not set. */
     record State(int tab, String questType, String questSelected, String pickedType, int questView, int settingsCat,
-                 String search, String tracked) {
+                 String search, String tracked, int craftView) {
 
-        static final State NONE = new State(-1, null, null, null, 0, 0, null, null);
+        static final State NONE = new State(-1, null, null, null, 0, 0, null, null, 0);
+
+        /** Without the Crafting tab's view (Recipe). */
+        State(int tab, String questType, String questSelected, String pickedType, int questView, int settingsCat,
+              String search, String tracked) {
+            this(tab, questType, questSelected, pickedType, questView, settingsCat, search, tracked, 0);
+        }
     }
 
     private static State last = State.NONE;
@@ -87,7 +93,8 @@ final class MenuResume {
         JsonObject o = JsonParser.parseString(text).getAsJsonObject();
         return new State(o.has("tab") ? o.get("tab").getAsInt() : -1, str(o, "questType"), str(o, "questSelected"),
                 str(o, "pickedType"), o.has("questView") ? o.get("questView").getAsInt() : 0,
-                o.has("settingsCat") ? o.get("settingsCat").getAsInt() : 0, str(o, "search"), str(o, "tracked"));
+                o.has("settingsCat") ? o.get("settingsCat").getAsInt() : 0, str(o, "search"), str(o, "tracked"),
+                o.has("craftView") ? o.get("craftView").getAsInt() : 0);
     }
 
     static String json(State s) {
@@ -100,6 +107,7 @@ final class MenuResume {
         o.addProperty("settingsCat", s.settingsCat());
         put(o, "search", s.search());
         put(o, "tracked", s.tracked());
+        o.addProperty("craftView", s.craftView());
         return o.toString();
     }
 
