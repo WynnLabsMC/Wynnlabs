@@ -96,7 +96,18 @@ final class BoxMadePanel {
                 usable.add(i);
             }
         }
-        Map<String, CraftSearch.Price> known = Crafting.prices(usable, recipe);
+        Map<String, CraftSearch.Price> known = new java.util.HashMap<>(Crafting.prices(usable, recipe));
+        // a material tier with no listings gets its estimate, so the tiers that fit equally are
+        // told apart by what they cost (the cheapest is kept) rather than by which have listings
+        for (CraftData.Material m : recipe.materials()) {
+            for (int t = 1; t <= 3; t++) {
+                String key = Shopping.materialKey(m.shown(), t);
+                Long e = known.containsKey(key) ? null : estimate(key);
+                if (e != null) {
+                    known.put(key, new CraftSearch.Price(e, true));
+                }
+            }
+        }
         Function<String, Long> price = n -> {
             CraftSearch.Price p = known.get(n);
             return p == null ? null : p.emeralds();
