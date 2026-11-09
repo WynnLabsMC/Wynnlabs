@@ -146,7 +146,7 @@ final class BoxMadePanel {
         }
         prices = Crafting.prices(shownIngs.values(), recipe);
         HowMade.Found best = a.best();
-        if (best != null && done) {
+        if (best != null) {                // asked as soon as a layout is shown, not when the search ends
             List<String> ask = new ArrayList<>();
             for (Ingredient i : best.slots()) {
                 if (i != null && !i.empty() && !prices.containsKey(i.name()) && asked.add(i.name())) {
