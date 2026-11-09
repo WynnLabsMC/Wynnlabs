@@ -469,19 +469,27 @@ final class BoxMadePanel {
                 unknown |= each == null;
                 sum += each == null ? 0 : each * e.getValue();
                 ItemStack icon = CraftIcons.of(e.getKey());
-                boolean hover = BoxChips.in(mx, my, lx, ly, lw, ROW) && my >= top && my < top + listH;
-                listRow(g, icon, e.getKey(), e.getValue(), each == null ? null : each * e.getValue(), estimated.contains(e.getKey()), null,
-                        lx, ly, lw, hover);
-                if (hover && icon != null) {
-                    g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);
-                }
-                ly += ROW;
                 String from = sourceOf(e.getKey());
-                if (from != null) {
-                    Type.META.draw(g, s.font(), Type.META.fit(s.font(), from, lw - 12 - Theme.SP_2), lx + 12 + Theme.SP_2, ly, Theme.INK_3);
-                    ly += Type.META.lineHeight;
+                int rowH = ROW + (from != null ? Type.META.lineHeight : 0);
+                // the whole row (name, price, where it drops) opens the item in Search
+                boolean hover = BoxChips.in(mx, my, lx, ly, lw, rowH) && my >= top && my < top + listH;
+                if (hover) {
+                    Art.box(g, lx - Theme.SP_1, ly - 1, lw + Theme.SP_1 * 2, rowH + 2, 3, Theme.CARD_HOVER, 0);
                 }
-                ly += Theme.SP_2;
+                listRow(g, icon, e.getKey(), e.getValue(), each == null ? null : each * e.getValue(), estimated.contains(e.getKey()), null,
+                        lx, ly, lw, false);
+                if (from != null) {
+                    String link = from + " \u203A";
+                    Type.META.draw(g, s.font(), Type.META.fit(s.font(), link, lw - 12 - Theme.SP_2), lx + 12 + Theme.SP_2, ly + ROW,
+                            hover ? Theme.LINK : Theme.INK_3);
+                }
+                if (hover && icon != null && BoxChips.in(mx, my, lx, ly, 12 + Theme.SP_2, ROW)) {
+                    g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);
+                } else if (hover) {
+                    s.tip(List.of(L.c("wynnlabs.box.made.search_tip").withStyle(ChatFormatting.GRAY)));
+                }
+                searchHit(e.getKey(), lx, ly, lw, rowH, top, listH);
+                ly += rowH + Theme.SP_2;
             }
             long ingSum = sum;
             boolean ingUnknown = unknown;
@@ -502,6 +510,7 @@ final class BoxMadePanel {
                 if (hover) {
                     materialTip(g, mat, tier, each, estimated.contains(Shopping.materialKey(mat.shown(), tier)), mx, my);
                 }
+                searchHit(mat.shown(), lx, ly, lw, ROW, top, listH);   // a material in Search: where to gather it
                 ly += ROW + Theme.SP_2;
             }
             // the total under a hairline
@@ -564,8 +573,18 @@ final class BoxMadePanel {
         int grid = GRID_PAD * 2 + 3 * CELL + 2 * Theme.SP_1;
         long sourced = f.slots().stream().filter(i -> i != null && !i.empty()).map(Ingredient::name).distinct()
                 .filter(n -> sourceOf(n) != null).count();
-        list += (int) sourced * Type.META.lineHeight + Theme.SP_1 + Type.META.lineHeight;
+        list += (int) sourced * Type.META.lineHeight + Theme.SP_1 + Type.META.lineHeight;   // the source lines, the second total
         return Math.max(grid, list) + Theme.SP_4 + Ui.BUTTON_H + buttonExtra;
+    }
+
+    /** A click on a row opens its item in Search (Esc there comes back here); clipped to the pane. */
+    private void searchHit(String name, int x, int y, int w, int h, int top, int listH) {
+        int hy = Math.max(y - 1, top);
+        int hb = Math.min(y + h + 1, top + listH);
+        if (hb > hy) {
+            s.hit(x - Theme.SP_1, hy, w + Theme.SP_1 * 2, hb - hy,
+                    () -> net.minecraft.client.Minecraft.getInstance().setScreen(RoadmapScreen.search(name, s)));
+        }
     }
 
     private final Map<String, String> sources = new java.util.HashMap<>();
