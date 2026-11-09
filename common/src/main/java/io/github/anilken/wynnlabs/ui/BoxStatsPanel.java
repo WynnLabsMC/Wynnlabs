@@ -268,8 +268,12 @@ final class BoxStatsPanel {
             Kit.box(g, tx, ty, tw, th, me ? Theme.CARD_HOVER : Theme.CARD, me ? Theme.INK_2 : Theme.LINE);
             net.minecraft.world.item.ItemStack pic = WARD_ICONS.get(ward);
             int ix = tx + (tw - 16) / 2;
+            io.github.anilken.wynnlabs.model.PoolItem pooled = pic == null ? io.github.anilken.wynnlabs.endgame.WynnventoryPools.item(ward) : null;
             if (pic != null) {
                 g.renderItem(pic, ix, ty + 2);
+            } else if (pooled != null) {
+                // not seen yet: its picture as the Endgame pools draw it
+                io.github.anilken.wynnlabs.endgame.ItemIcons.draw(g, pooled, null, ix, ty + 2, 16, false);
             } else {
                 // not seen yet this session: its colour instead of its picture
                 g.fill(ix + 3, ty + 5, ix + 13, ty + 15, WARD_INK[i]);

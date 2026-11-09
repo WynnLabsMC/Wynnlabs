@@ -226,6 +226,20 @@ public final class WynnventoryPools {
         return out;
     }
 
+    /** An item as this week's pools list it (its icon reference included), or null when no pool has it. */
+    public static PoolItem item(String name) {
+        for (WeeklyPool p : java.util.List.of(raids(), loot())) {
+            for (PoolRegion r : p.regions()) {
+                for (PoolItem i : r.items()) {
+                    if (name.equalsIgnoreCase(i.name())) {
+                        return i;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     /** Why the pools are, or are not, in use. */
     public static Status status() {
         if (previewing) {
