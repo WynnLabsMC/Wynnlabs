@@ -94,7 +94,7 @@ final class BoxItemsPanel {
         ItemStack icon = icon(r.item());
         g.renderItem(icon, x + 1, sy + 1);
         if (BoxChips.in(mx, my, x, sy, SLOT, SLOT)) {
-            g.setTooltipForNextFrame(s.font(), icon, mx, my);
+            g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);   // the game's font: its coin glyphs
         }
         int nx = x + SLOT + Theme.SP_3;
         int right = x + w - priceW - Theme.SP_3;

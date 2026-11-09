@@ -323,7 +323,7 @@ final class BoxMadePanel {
                 Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), label, cw - CELL - Theme.SP_2), tx,
                         Type.BODY.yIn(gy, CELL), empty ? Theme.INK_3 : Theme.INK);
                 if (!empty && icon != null && BoxChips.in(mx, my, gx, gy, cw, CELL) && my >= top && my < top + listH) {
-                    g.setTooltipForNextFrame(s.font(), icon, mx, my);
+                    g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);   // the game's font: its coin glyphs
                 }
             }
             cy += 3 * (CELL + Theme.SP_2) + Theme.SP_3;
