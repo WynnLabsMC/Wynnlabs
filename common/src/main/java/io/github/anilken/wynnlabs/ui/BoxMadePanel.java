@@ -367,12 +367,7 @@ final class BoxMadePanel {
                 listRow(g, CraftIcons.of(mat.shown()), mat.shown(), mat.amount(), each == null ? null : each * mat.amount(),
                         CraftFormat.stars(tier), lx, ly, lw, hover);
                 if (hover) {
-                    // the material at its tier: its price each and for the amount
-                    List<net.minecraft.network.chat.Component> tip = new java.util.ArrayList<>();
-                    tip.add(net.minecraft.network.chat.Component.literal(mat.shown() + " " + CraftFormat.stars(tier)).withStyle(ChatFormatting.WHITE));
-                    tip.add(L.c("wynnlabs.box.made.material_tip", each == null ? "?" : Prices.fmt(each),
-                            each == null ? "?" : Prices.fmt(each * mat.amount()), mat.amount()).withStyle(ChatFormatting.GOLD));
-                    s.tip(tip);
+                    materialTip(g, mat, tier, each, mx, my);
                 }
                 ly += ROW + Theme.SP_2;
             }
@@ -438,6 +433,42 @@ final class BoxMadePanel {
             tx += Type.BODY.width(s.font(), tail);
         }
         Type.META.draw(g, s.font(), " " + times, tx, Type.META.yIn(y, ROW), Theme.INK_3);
+    }
+
+    /**
+     * A material's tooltip as the game draws an item's: its name and stars, then the market's
+     * gold box with its price at that tier and, for the amount, the grey "X5" box with the total;
+     * "No listings now" when the market has none at that tier.
+     */
+    private void materialTip(GuiGraphics g, CraftData.Material mat, int tier, Long each, int mx, int my) {
+        net.minecraft.network.chat.Style plain = net.minecraft.network.chat.Style.EMPTY
+                .withFont(net.minecraft.network.chat.FontDescription.DEFAULT);
+        List<net.minecraft.network.chat.Component> lines = new java.util.ArrayList<>();
+        lines.add(net.minecraft.network.chat.Component.literal(mat.shown()).withStyle(ChatFormatting.WHITE)
+                .append(net.minecraft.network.chat.Component.literal(" " + "\u2605".repeat(tier)).withStyle(ChatFormatting.YELLOW)));
+        lines.add(net.minecraft.network.chat.Component.empty());
+        String word = L.t("wynnlabs.tooltip.market_banner");
+        net.minecraft.network.chat.MutableComponent price = net.minecraft.network.chat.Component.empty()
+                .append(io.github.anilken.wynnlabs.advice.TooltipListener.banner(word, 0xFFAA00));
+        if (each == null) {
+            price.append(net.minecraft.network.chat.Component.literal(" " + L.t("wynnlabs.box.made.no_listings"))
+                    .setStyle(plain.withColor(ChatFormatting.GRAY)));
+        } else {
+            price.append(net.minecraft.network.chat.Component.literal(" ~" + Prices.glyphs(Prices.fmt(each)))
+                    .setStyle(plain.withColor(ChatFormatting.GOLD)));
+        }
+        lines.add(price);
+        if (each != null && mat.amount() > 1) {
+            lines.add(net.minecraft.network.chat.Component.empty()
+                    .append(io.github.anilken.wynnlabs.advice.TooltipListener.banner("X" + mat.amount(), 0xAAAAAA))
+                    .append(net.minecraft.network.chat.Component.literal(" \u2248 " + Prices.glyphs(Prices.fmt(each * mat.amount())))
+                            .setStyle(plain.withColor(ChatFormatting.GOLD))));
+        }
+        ItemStack st = CraftIcons.of(mat.shown());
+        // the game's font, for the banner boxes and the coin glyphs; the item's own frame when it has one
+        g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, lines,
+                st == null ? java.util.Optional.empty() : st.getTooltipImage(), mx, my,
+                st == null ? null : st.get(net.minecraft.core.component.DataComponents.TOOLTIP_STYLE));
     }
 
     /** The layout on the Crafting tab's Recipe view; Esc there comes back here. */
