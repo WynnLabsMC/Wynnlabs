@@ -3508,6 +3508,8 @@
   "wynnlabs.tools.top": "En iyisi zaten sende",
   "wynnlabs.tools.next": "Sıradaki: %s · %s",
   "wynnlabs.tools.now": "Hemen kullanılabilir",
+  "wynnlabs.tools.upgrade_now": "Yükseltebilirsin",
+  "wynnlabs.tools.frags_left": "%s frag kaldı",
   "wynnlabs.tools.next_short": "Sıradaki",
   "wynnlabs.tools.card_tip": "Yükseltmelerini görmek için tıkla",
   "wynnlabs.tools.frags": "%s frag|%s frag",

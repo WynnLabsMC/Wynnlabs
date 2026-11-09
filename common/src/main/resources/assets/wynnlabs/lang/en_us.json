@@ -3508,6 +3508,8 @@
   "wynnlabs.tools.top": "You already have the best one",
   "wynnlabs.tools.next": "Next: %s · %s",
   "wynnlabs.tools.now": "Usable now",
+  "wynnlabs.tools.upgrade_now": "Upgrade now",
+  "wynnlabs.tools.frags_left": "%s frag to go|%s frags to go",
   "wynnlabs.tools.next_short": "Next",
   "wynnlabs.tools.card_tip": "Click to see its upgrades",
   "wynnlabs.tools.frags": "%s frag|%s frags",
