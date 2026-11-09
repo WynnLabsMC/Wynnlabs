@@ -926,6 +926,10 @@ public final class HowMade {
         }
 
         private boolean betterPair(int a, int b) {
+            // among tier pairs that fit as well: one the market prices over one it has no listing for
+            if (pairPriced[a] != pairPriced[b]) {
+                return pairPriced[a];
+            }
             if (pairPriced[a] && pairPriced[b] && pairPrice[a] != pairPrice[b]) {
                 return pairPrice[a] < pairPrice[b];
             }
