@@ -61,6 +61,7 @@ public final class CraftingTab {
     static final int VIEW_RECIPE = 0;
     static final int VIEW_SUGGEST = 1;
     static final int VIEW_ROAD = 2;
+    static final int VIEW_TOOLS = 3;
 
     // ---- the recipe ----
     String type;
@@ -90,7 +91,7 @@ public final class CraftingTab {
     final ScrollBar pageBar = new ScrollBar();
     int scroll;
     int scrollMax;
-    /** Tarif (0), Öneriler (1) or Meslek (2). */
+    /** Tarif (0), Öneriler (1), Meslek (2) or Aletler (3). */
     int view;
     /** Suggestions as single pieces (0) or whole sets (1). */
     int suggestMode;
@@ -132,6 +133,7 @@ public final class CraftingTab {
     final CraftSetsPanel setsPanel = new CraftSetsPanel(this);
     final CraftSavedPanel savedPanel = new CraftSavedPanel(this);
     final CraftRoadPanel roadPanel = new CraftRoadPanel(this);
+    final CraftTools toolsPanel = new CraftTools(this);
     final CraftDrawers drawers = new CraftDrawers(this);
     final CraftDropdowns dropdowns = new CraftDropdowns(this);
 
@@ -348,6 +350,7 @@ public final class CraftingTab {
             int top = y - scroll;
             int cw = w - ScrollBar.W - Theme.SP_2;      // room for the scroll bar
             int used = view == VIEW_ROAD ? roadPanel.draw(g, x, top, cw, y, y + h, pmx, pmy)
+                    : view == VIEW_TOOLS ? toolsPanel.draw(g, x, top, cw, pmx, pmy)
                     : CraftTarifPage.draw(this, g, x, top, cw, pmx, pmy);
             g.disableScissor();
             clip = null;

@@ -66,10 +66,10 @@ final class CraftHeaderPanel extends CraftPanel {
         Type.META.draw(g, tab.font, prof, r - pw, Type.META.yIn(by, Ui.CHIP_H), Theme.INK_3);
     }
 
-    /** The three pages as the shared tab bar; returns its height. */
+    /** The four pages as the shared tab bar; returns its height. */
     int viewTabs(GuiGraphics g, int x, int y, int w, int mx, int my) {
         String[][] tabs = {{"hammer", L.t("wynnlabs.craft.view_recipe")}, {"star", L.t("wynnlabs.craft.view_suggest")},
-            {"trending-up", L.t("wynnlabs.craft.view_road")}};
+            {"trending-up", L.t("wynnlabs.craft.view_road")}, {"pick", L.t("wynnlabs.craft.view_tools")}};
         List<Ui.Tab> list = new ArrayList<>();
         for (String[] t : tabs) {
             list.add(new Ui.Tab(t[0], t[1]));
