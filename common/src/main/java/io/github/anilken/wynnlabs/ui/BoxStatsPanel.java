@@ -80,6 +80,11 @@ final class BoxStatsPanel {
     }
 
     static void draw(BoxScreen s, GuiGraphics g, String name, int x, int y, int w, int h) {
+        int toolTier = io.github.anilken.wynnlabs.crafting.ToolWays.tier(name);
+        if (toolTier > 0) {
+            toolWays(s, g, name, toolTier, x, y, w, y + h);   // a gathering tool is not crafted: the ways to get it
+            return;
+        }
         Entry e = ItemIndex.get().byName(name);
         BoxChips.use(name);
         int bottom = y + h;
@@ -171,6 +176,91 @@ final class BoxStatsPanel {
             cy += Type.BODY.lineHeight + Theme.SP_1;
         }
         source(s, g, e, x, cy, w, bottom);
+    }
+
+    private static String lowerFor;
+    private static String lowerName;
+    private static boolean lowerOwned;
+    private static long lowerAt;
+
+    /**
+     * A gathering tool's ways to get it, cheapest first: the Trade Market, the Tool Merchant,
+     * upgrading the tier below (free of its price when it is in the bag) and a Dungeon Merchant,
+     * each with its cost at the market's prices.
+     */
+    private static void toolWays(BoxScreen s, GuiGraphics g, String name, int tier, int x, int y, int w, int bottom) {
+        long now = System.currentTimeMillis();
+        if (!name.equals(lowerFor) || now - lowerAt > 2000) {
+            lowerFor = name;
+            lowerAt = now;
+            lowerName = null;
+            lowerOwned = false;
+            try {
+                String prof = null;
+                for (var t : io.github.anilken.wynnlabs.game.Wyn.gatherTools()) {
+                    if (t.name().equals(name)) {
+                        prof = t.profession();
+                    }
+                }
+                for (var t : io.github.anilken.wynnlabs.game.Wyn.gatherTools()) {
+                    if (prof != null && t.profession().equalsIgnoreCase(prof) && t.tier() == tier - 1) {
+                        lowerName = t.name();
+                    }
+                }
+                for (var t : io.github.anilken.wynnlabs.game.Wyn.heldTools()) {
+                    lowerOwned |= t.name().equals(lowerName);
+                }
+            } catch (Throwable ignored) {
+                // no tool data: the upgrade is left out
+            }
+        }
+        var ways = io.github.anilken.wynnlabs.crafting.ToolWays.ways(name, tier, lowerName, lowerOwned, n -> {
+            io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(n);
+            Double v = p == null ? null : p.typical();
+            if (v == null) {
+                io.github.anilken.wynnlabs.market.Prices.refreshSoon(n);
+            }
+            return v;
+        });
+        int cy = head(s, g, L.t("wynnlabs.box.ways"), null, x, y, w);
+        boolean first = true;
+        for (var way : ways) {
+            if (cy + Type.BODY.lineHeight + Type.META.lineHeight > bottom) {
+                return;
+            }
+            String title = switch (way.kind()) {
+                case MARKET -> L.t("wynnlabs.box.ways_market");
+                case MERCHANT -> L.t("wynnlabs.box.ways_merchant");
+                case UPGRADE -> L.t("wynnlabs.box.ways_upgrade", tier - 1);
+                case DUNGEON -> L.t("wynnlabs.box.ways_dungeon", way.at());
+            };
+            boolean best = first && way.total() != null && ways.size() > 1;
+            first = false;
+            String cost = way.total() == null ? L.t("wynnlabs.box.ways_no_price")
+                    : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(way.total());
+            int ink = best ? Theme.GOOD : Theme.INK;
+            Type.BODY.drawRight(g, s.font(), cost, x + w, cy, way.total() == null ? Theme.INK_3 : ink);
+            String t = best ? title + " · " + L.t("wynnlabs.box.ways_best") : title;
+            Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), t, w - Type.BODY.width(s.font(), cost) - Theme.SP_3), x, cy, ink);
+            cy += Type.BODY.lineHeight;
+            List<String> parts = new ArrayList<>();
+            for (var part : way.parts()) {
+                if (way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET) {
+                    continue;
+                }
+                String each = part.owned() ? L.t("wynnlabs.box.ways_yours")
+                        : part.each() == null ? L.t("wynnlabs.box.ways_no_price") : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(part.each() * part.count());
+                parts.add(part.count() + "× " + part.name() + " (" + each + ")");
+            }
+            if (way.emeralds() > 0 && way.kind() != io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MERCHANT) {
+                parts.add(io.github.anilken.wynnlabs.market.Prices.fmt(way.emeralds()));
+            }
+            if (!parts.isEmpty()) {
+                Type.META.draw(g, s.font(), Type.META.fit(s.font(), String.join(" + ", parts), w), x, cy, Theme.INK_3);
+                cy += Type.META.lineHeight;
+            }
+            cy += Theme.SP_3;
+        }
     }
 
     /** A section's LABEL title, a META note on the right, a hairline; returns the first line's y. */
