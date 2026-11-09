@@ -2834,6 +2834,7 @@
   "wynnlabs.road.bomb_xp": "Prof XP bombası · ×2",
   "wynnlabs.road.bomb_xp_tip": "Bu dünyada: gathering ve craft'tan 2× XP; aşağıdaki craft sayıları bunu sayar",
   "wynnlabs.road.cost_unknown": "Maliyet: bazı fiyatlar bilinmiyor",
+  "wynnlabs.road.each_craft": "Her craft: %s, ingredient gerekmez",
   "wynnlabs.road.craft_note": "Level atlayınca güncellenir",
   "wynnlabs.road.crafts": "~%s craft",
   "wynnlabs.road.crafts_short": "~%s craft",

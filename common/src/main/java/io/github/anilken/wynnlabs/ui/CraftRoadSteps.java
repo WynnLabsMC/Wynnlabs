@@ -198,7 +198,16 @@ final class CraftRoadSteps {
     /** Where the step is done: the resource and its distance, the Trade Market and its price, or the station. */
     private String where(LevelRoad.Step s, LevelRoad.Kind kind) {
         if (kind == LevelRoad.Kind.CRAFT) {
-            return L.t("wynnlabs.road.at_station", Professions.name(panel.profession));
+            String at = L.t("wynnlabs.road.at_station", Professions.name(panel.profession));
+            if (s.recipe() == null || s.recipe().materials().isEmpty()) {
+                return at;
+            }
+            // what goes into each craft: the recipe's materials (no ingredients are needed for XP)
+            List<String> mats = new java.util.ArrayList<>();
+            for (io.github.anilken.wynnlabs.crafting.CraftData.Material m : s.recipe().materials()) {
+                mats.add(m.amount() + "× " + m.shown());
+            }
+            return at + " · " + L.t("wynnlabs.road.each_craft", String.join(" + ", mats));
         }
         if (kind == LevelRoad.Kind.BUY) {
             long missing = s.need() < 0 ? -1 : Math.max(0, s.need() - s.have());
