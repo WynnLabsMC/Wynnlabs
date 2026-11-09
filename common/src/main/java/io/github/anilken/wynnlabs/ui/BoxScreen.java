@@ -278,6 +278,8 @@ public final class BoxScreen extends Screen {
         boolean popup = bar.menuOpen();
         int pmx = popup ? -1 : mx;
         int pmy = popup ? -1 : my;
+        mouseX = pmx;                                  // for the panels drawn without the mouse
+        mouseY = pmy;
         int x = wx + Theme.SP_6;
         int y = wy + Theme.SP_7;                       // clear of the parchment's rim and corner ornaments
         int w = ww - 2 * Theme.SP_6;
@@ -399,6 +401,10 @@ public final class BoxScreen extends Screen {
     static String money(Double v) {
         return v == null ? "?" : Prices.fmt(v);
     }
+
+    /** The mouse on the page this frame (-1 under an open menu). */
+    int mouseX = -1;
+    int mouseY = -1;
 
     Font font() {
         return font;

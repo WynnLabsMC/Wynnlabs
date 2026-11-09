@@ -210,6 +210,22 @@ public final class WynnventoryPools {
         return closed == null ? LOOT.data : WeeklyPool.NONE;
     }
 
+    /** The regions of this week's pools that hold an item, raids first; empty when there are none or no pools. */
+    public static java.util.List<PoolRegion> holding(String item) {
+        java.util.List<PoolRegion> out = new java.util.ArrayList<>();
+        for (WeeklyPool p : java.util.List.of(raids(), loot())) {
+            for (PoolRegion r : p.regions()) {
+                for (PoolItem i : r.items()) {
+                    if (item.equalsIgnoreCase(i.name())) {
+                        out.add(r);
+                        break;
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
     /** Why the pools are, or are not, in use. */
     public static Status status() {
         if (previewing) {

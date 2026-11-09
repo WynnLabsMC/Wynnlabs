@@ -96,6 +96,10 @@ final class BoxStatsPanel {
                 }
                 return;
             }
+            if (ward(name)) {
+                wardInfo(s, g, name, x, y, w, bottom);   // what wards are for, where it drops, the set's price
+                return;
+            }
             String text = about(name, s.singleIcon);
             if (text != null) {
                 // not in the item list (a ward, a rune…): what the item itself says
@@ -171,6 +175,115 @@ final class BoxStatsPanel {
             cy += Type.BODY.lineHeight + Theme.SP_1;
         }
         source(s, g, e, x, cy, w, bottom);
+    }
+
+    // ---- wards ----
+
+    /** The seven wards: raid ones first, then lootrun ones, each with its colour. */
+    private static final String[] WARDS = {"Yellow", "Red", "Blue", "Purple", "Green", "Orange", "Pink"};
+    private static final int[] WARD_INK = {0xFFC9A227, 0xFFB8322A, 0xFF2F6FBF, 0xFF6A4BB0, 0xFF4E8A2A, 0xFFC8661E, 0xFFC0507E};
+
+    /** Whether a name is one of the seven wards ("Blue Ward"). */
+    static boolean ward(String name) {
+        if (name == null || !name.endsWith(" Ward")) {
+            return false;
+        }
+        String colour = name.substring(0, name.length() - 5);
+        for (String w : WARDS) {
+            if (w.equals(colour)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A ward's page: what wards are for (ascending a Mythic), where this one drops in this week's
+     * pools (a row opens that pool in the Endgame tab), and the seven wards' market prices with
+     * their total.
+     */
+    private static void wardInfo(BoxScreen s, GuiGraphics g, String name, int x, int y, int w, int bottom) {
+        var font = s.font();
+        int cy = head(s, g, L.t("wynnlabs.box.ward.use_title"), null, x, y, w);
+        cy = Type.BODY.drawWrapped(g, font, L.t("wynnlabs.box.ward.use"), x, cy, w, Math.max(1, (bottom - cy) / Type.BODY.lineHeight), Theme.INK_2);
+        cy += Theme.SP_5;
+        if (cy + Type.LABEL.lineHeight > bottom) {
+            return;
+        }
+        // where it drops this week
+        cy = head(s, g, L.t("wynnlabs.box.ward.drops_title"), null, x, cy, w);
+        List<io.github.anilken.wynnlabs.model.PoolRegion> where = io.github.anilken.wynnlabs.endgame.WynnventoryPools.holding(name);
+        if (where.isEmpty()) {
+            Type.MUTED.draw(g, font, Type.MUTED.fit(font, L.t("wynnlabs.box.ward.drops_none"), w), x, cy, Theme.INK_3);
+            cy += Type.MUTED.lineHeight;
+        }
+        int rowH = Math.max(16, Type.BODY.lineHeight) + 2;
+        for (io.github.anilken.wynnlabs.model.PoolRegion r : where) {
+            if (cy + rowH > bottom) {
+                return;
+            }
+            boolean raid = "RAID".equalsIgnoreCase(r.type());
+            int mx = s.mouseX;
+            int my = s.mouseY;
+            boolean hover = mx >= x && mx < x + w && my >= cy && my < cy + rowH;
+            if (hover) {
+                Art.box(g, x - Theme.SP_1, cy, w + Theme.SP_1 * 2, rowH, 3, Theme.CARD_HOVER, 0);
+            }
+            Kit.box(g, x, cy + (rowH - 14) / 2, 14, 14, Theme.PLAQUE, 0);
+            Art.icon(g, raid ? "skull" : "route", x + 3, cy + (rowH - 14) / 2 + 3, 8, Theme.INK_2);
+            String go = L.t(raid ? "wynnlabs.box.ward.raid" : "wynnlabs.box.ward.lootrun") + " ›";
+            int gw = Type.META.width(font, go);
+            Type.META.drawRight(g, font, go, x + w, Type.META.yIn(cy, rowH), hover ? Theme.LINK : Theme.INK_3);
+            Type.BODY.draw(g, font, Type.BODY.fit(font, r.name(), w - 14 - Theme.SP_3 - gw - Theme.SP_3), x + 14 + Theme.SP_3,
+                    Type.BODY.yIn(cy, rowH), Theme.INK);
+            String region = r.name();
+            s.hit(x, cy, w, rowH, () -> {
+                EndgameTab.INSTANCE.showPool(raid, region);
+                net.minecraft.client.Minecraft.getInstance().setScreen(RoadmapScreen.endgame(s));
+            });
+            cy += rowH + Theme.SP_1;
+        }
+        cy += Theme.SP_5;
+        if (cy + Type.LABEL.lineHeight > bottom) {
+            return;
+        }
+        // the full set at market prices
+        cy = head(s, g, L.t("wynnlabs.box.ward.set_title"), null, x, cy, w);
+        long total = 0;
+        boolean unknown = false;
+        int cx = x;
+        int chipH = Type.META.lineHeight + 4;
+        for (int i = 0; i < WARDS.length; i++) {
+            String ward = WARDS[i] + " Ward";
+            io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(ward);
+            Double v = p == null ? null : p.typical();
+            if (v == null) {
+                unknown = true;
+                io.github.anilken.wynnlabs.market.Prices.refreshSoon(ward);
+            } else {
+                total += Math.round(v);
+            }
+            String text = WARDS[i] + " " + (v == null ? "?" : io.github.anilken.wynnlabs.market.Prices.fmt(v));
+            int cw = 6 + Theme.SP_2 + Type.META.width(font, text) + Theme.SP_3 * 2;
+            if (cx > x && cx + cw > x + w) {
+                cx = x;
+                cy += chipH + Theme.SP_2;
+            }
+            if (cy + chipH > bottom) {
+                return;
+            }
+            boolean me = ward.equals(name);
+            Kit.box(g, cx, cy, cw, chipH, Theme.CARD, me ? Theme.INK_2 : Theme.LINE);
+            g.fill(cx + Theme.SP_3, cy + chipH / 2 - 3, cx + Theme.SP_3 + 6, cy + chipH / 2 + 3, WARD_INK[i]);
+            Type.META.draw(g, font, text, cx + Theme.SP_3 + 6 + Theme.SP_2, cy + 2, me ? Theme.INK : Theme.INK_2);
+            cx += cw + Theme.SP_2;
+        }
+        cy += chipH + Theme.SP_3;
+        if (cy + Type.LABEL.lineHeight <= bottom) {
+            String sum = total == 0 && unknown ? "?" : io.github.anilken.wynnlabs.market.Prices.fmt(total) + (unknown ? " +?" : "");
+            Type.LABEL.draw(g, font, L.t("wynnlabs.box.ward.set_total"), x, cy, Theme.INK);
+            Type.LABEL.drawRight(g, font, sum, x + w, cy, Theme.PRICE);
+        }
     }
 
     /** A section's LABEL title, a META note on the right, a hairline; returns the first line's y. */
