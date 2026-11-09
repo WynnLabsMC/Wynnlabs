@@ -129,7 +129,54 @@ final class BoxMadePanel {
     /** A price by name or material key from what was read, null when unknown. */
     private Long price(String name) {
         CraftSearch.Price p = prices.get(name);
-        return p == null ? null : p.emeralds();
+        if (p != null) {
+            return p.emeralds();
+        }
+        Long e = estimate(name);
+        if (e != null) {
+            estimated.add(name);
+        }
+        return e;
+    }
+
+    /** Names whose price above is an estimate, shown with "≈". */
+    private final java.util.Set<String> estimated = new java.util.HashSet<>();
+    private static final java.util.regex.Pattern TIER_KEY = java.util.regex.Pattern.compile("^(.+) T([1-3])$");
+
+    /**
+     * A price for something with no listing now: a material tier from its other tiers (tier 2
+     * halfway between 1 and 3 on a log scale, tier 1 or 3 one step past the other two), else the
+     * material's price over all tiers; anything else its last median. Null when nothing is known.
+     */
+    static Long estimate(String name) {
+        java.util.regex.Matcher m = TIER_KEY.matcher(name);
+        if (m.matches()) {
+            String base = m.group(1);
+            int t = Integer.parseInt(m.group(2));
+            Double t1 = typical(base + " T1");
+            Double t2 = typical(base + " T2");
+            Double t3 = typical(base + " T3");
+            if (t == 2 && t1 != null && t3 != null) {
+                return Math.round(Math.sqrt(t1 * t3));
+            }
+            if (t == 1 && t2 != null && t3 != null && t3 > 0) {
+                return Math.round(t2 * t2 / t3);
+            }
+            if (t == 3 && t1 != null && t2 != null && t1 > 0) {
+                return Math.round(t2 * t2 / t1);
+            }
+            Double all = typical(base);
+            if (all != null) {
+                return Math.round(all);
+            }
+        }
+        Prices.Price p = Prices.of(name);
+        return p != null && p.median() != null ? Math.round(p.median()) : null;
+    }
+
+    private static Double typical(String name) {
+        Prices.Price p = Prices.of(name);
+        return p == null ? null : p.typical();
     }
 
     /** The prices of what is shown, read again when the market's change; unknown ones asked for once. */
@@ -347,7 +394,8 @@ final class BoxMadePanel {
                 sum += each == null ? 0 : each * e.getValue();
                 ItemStack icon = CraftIcons.of(e.getKey());
                 boolean hover = BoxChips.in(mx, my, lx, ly, lw, ROW) && my >= top && my < top + listH;
-                listRow(g, icon, e.getKey(), e.getValue(), each == null ? null : each * e.getValue(), null, lx, ly, lw, hover);
+                listRow(g, icon, e.getKey(), e.getValue(), each == null ? null : each * e.getValue(), estimated.contains(e.getKey()), null,
+                        lx, ly, lw, hover);
                 if (hover && icon != null) {
                     g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, icon, mx, my);
                 }
@@ -365,9 +413,10 @@ final class BoxMadePanel {
                 sum += each == null ? 0 : each * mat.amount();
                 boolean hover = BoxChips.in(mx, my, lx, ly, lw, ROW) && my >= top && my < top + listH;
                 listRow(g, CraftIcons.of(mat.shown()), mat.shown(), mat.amount(), each == null ? null : each * mat.amount(),
+                        estimated.contains(Shopping.materialKey(mat.shown(), tier)),
                         CraftFormat.stars(tier), lx, ly, lw, hover);
                 if (hover) {
-                    materialTip(g, mat, tier, each, mx, my);
+                    materialTip(g, mat, tier, each, estimated.contains(Shopping.materialKey(mat.shown(), tier)), mx, my);
                 }
                 ly += ROW + Theme.SP_2;
             }
@@ -412,13 +461,13 @@ final class BoxMadePanel {
      * One row of the list beside the grid: the picture, the name (and a material's stars), "×5"
      * and the price for the amount on the right ("?" when unknown); lit while hovered.
      */
-    private void listRow(GuiGraphics g, ItemStack icon, String name, int amount, Long price, String stars, int x, int y, int w,
+    private void listRow(GuiGraphics g, ItemStack icon, String name, int amount, Long price, boolean est, String stars, int x, int y, int w,
                          boolean hover) {
         if (hover) {
             Art.box(g, x - Theme.SP_1, y - 1, w + Theme.SP_1 * 2, ROW + 2, 3, Theme.CARD_HOVER, 0);
         }
         CraftIcons.slot(g, x, y + (ROW - 12) / 2, 12, icon);
-        String priceText = price == null ? "?" : Prices.fmt(price);
+        String priceText = price == null ? "?" : (est ? "\u2248" : "") + Prices.fmt(price);
         int pw = Type.META.width(s.font(), priceText);
         Type.META.drawRight(g, s.font(), priceText, x + w, Type.META.yIn(y, ROW), price == null ? Theme.INK_3 : Theme.PRICE);
         String times = "×" + amount;
@@ -440,7 +489,7 @@ final class BoxMadePanel {
      * gold box with its price at that tier and, for the amount, the grey "X5" box with the total;
      * "No listings now" when the market has none at that tier.
      */
-    private void materialTip(GuiGraphics g, CraftData.Material mat, int tier, Long each, int mx, int my) {
+    private void materialTip(GuiGraphics g, CraftData.Material mat, int tier, Long each, boolean est, int mx, int my) {
         net.minecraft.network.chat.Style plain = net.minecraft.network.chat.Style.EMPTY
                 .withFont(net.minecraft.network.chat.FontDescription.DEFAULT);
         List<net.minecraft.network.chat.Component> lines = new java.util.ArrayList<>();
@@ -458,6 +507,9 @@ final class BoxMadePanel {
                     .setStyle(plain.withColor(ChatFormatting.GOLD)));
         }
         lines.add(price);
+        if (est) {
+            lines.add(net.minecraft.network.chat.Component.literal(L.t("wynnlabs.box.made.estimate")).setStyle(plain.withColor(ChatFormatting.GRAY)));
+        }
         if (each != null && mat.amount() > 1) {
             lines.add(net.minecraft.network.chat.Component.empty()
                     .append(io.github.anilken.wynnlabs.advice.TooltipListener.banner("X" + mat.amount(), 0xAAAAAA))
