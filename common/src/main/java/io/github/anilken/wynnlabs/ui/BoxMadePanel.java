@@ -764,7 +764,12 @@ final class BoxMadePanel {
             }
         }
         int others = uniq.size();
-        int total = rows.size() * PITCH + (others > 1 ? Theme.SP_3 + Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3 + others * PITCH : 0);
+        // many values matching fold into one line (the misses always show), so the other layouts
+        // stay in view; a click on the line unfolds them
+        long matching = rows.stream().filter(HowMade.Row::ok).count();
+        boolean fold = !rowsOpen && matching > 3 && rows.size() > 5;
+        int shownRows = fold ? (int) (rows.size() - matching) + 1 : rows.size();
+        int total = shownRows * PITCH + (others > 1 ? Theme.SP_3 + Type.LABEL.lineHeight + Theme.SP_1 + 1 + Theme.SP_3 + others * PITCH : 0);
         rightScroll = Math.max(0, Math.min(ScrollBar.max(listH, total), rightScroll));
         g.enableScissor(x - Theme.SP_1, top, x + w, top + listH);
         int cy = top - rightScroll;
@@ -777,7 +782,22 @@ final class BoxMadePanel {
         }
         rangeW = Math.min(rangeW, inner / 3);
         int valueX = x + 8 + Theme.SP_2 + Math.max(60, (inner - 8 - Theme.SP_2 - rangeW) * 3 / 5);
+        if (fold) {
+            int hy = cy;
+            Art.icon(g, "check", x, Type.BODY.onCaps(cy, 8), 8, Theme.GOOD);
+            String line = L.t("wynnlabs.box.made.rows_folded", matching, rows.size());
+            boolean hov = BoxChips.in(mx, my, x, cy, inner, PITCH) && my >= top && my < top + listH;
+            Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), line + " ›", inner - 8 - Theme.SP_2), x + 8 + Theme.SP_2, cy,
+                    hov ? Theme.LINK : Theme.INK_2);
+            if (hy + PITCH > top && hy < top + listH) {
+                s.hit(x, Math.max(hy, top), inner, Math.min(hy + PITCH, top + listH) - Math.max(hy, top), () -> rowsOpen = true);
+            }
+            cy += PITCH;
+        }
         for (HowMade.Row r : rows) {
+            if (fold && r.ok()) {
+                continue;
+            }
             int ink = r.ok() ? Theme.GOOD : Theme.BAD;
             Art.icon(g, r.ok() ? "check" : "x", x, Type.BODY.onCaps(cy, 8), 8, ink);
             int lx = x + 8 + Theme.SP_2;
@@ -855,6 +875,9 @@ final class BoxMadePanel {
         rightBar.place(x + w - ScrollBar.W, top, listH, listH, total, rightScroll);
         rightBar.draw(g, mx, my);
     }
+
+    /** Whether the matching values are unfolded (a click on their folded line). */
+    private boolean rowsOpen;
 
     /** A layout's set of ingredients, whatever their order: "Bright Petal*3|Unicorn Horn*2". */
     private static String setKey(HowMade.Found f) {

@@ -2743,6 +2743,7 @@
   "wynnlabs.box.made.wb_tip": "Bu dizilimi WynnBuilder crafter linki olarak kopyala",
   "wynnlabs.box.made.gathered": "Malzemeleri kendin toplarsan",
   "wynnlabs.box.made.same_set": "Aynı ingredient'lar %s farklı sıra ya da malzeme tier'ıyla tutuyor",
+  "wynnlabs.box.made.rows_folded": "%s/%s değer uyuyor",
   "wynnlabs.box.made.search_tip": "Search'te açmak için tıkla: nereden düşer, nereden alınır",
   "wynnlabs.box.made.copied": "Kopyalandı",
   "wynnlabs.box.made.no_link": "Link yok",
