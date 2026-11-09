@@ -730,7 +730,7 @@ public final class TooltipListener {
      * its banner font, a left cap, a cell per letter, a right cap, a step back over them, then the
      * letters on top in black. Letters A-Z only (Turkish ones are written plain).
      */
-    static net.minecraft.network.chat.MutableComponent banner(String word, int box) {
+    public static net.minecraft.network.chat.MutableComponent banner(String word, int box) {
         String plain = word.toUpperCase(java.util.Locale.ROOT).replace('Ç', 'C').replace('Ğ', 'G').replace('İ', 'I')
                 .replace('Ö', 'O').replace('Ş', 'S').replace('Ü', 'U');
         StringBuilder back = new StringBuilder().append('');

@@ -133,6 +133,14 @@ public final class RoadmapScreen extends Screen {
         return s;
     }
 
+    /** The menu on the Crafting tab (a recipe loaded into it first); Esc goes back to {@code parent}. */
+    static RoadmapScreen craft(Screen parent) {
+        RoadmapScreen s = new RoadmapScreen();
+        s.tab = TAB_CRAFT;
+        s.parent = parent;
+        return s;
+    }
+
     /** The menu opened straight on tab {@code t} (previews and tests: nothing else is drawn first). */
     static RoadmapScreen on(int t) {
         RoadmapScreen s = new RoadmapScreen(false);
@@ -667,13 +675,13 @@ public final class RoadmapScreen extends Screen {
                         lines.add(Component.empty());
                         lines.addAll(hit.tip());
                     }
-                    g.setTooltipForNextFrame(font, lines, hit.stack().getTooltipImage(), mx, my,
+                    g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, lines, hit.stack().getTooltipImage(), mx, my,
                             hit.stack().get(net.minecraft.core.component.DataComponents.TOOLTIP_STYLE));
                 } else if (marked != null) {
-                    g.setTooltipForNextFrame(font, marked, hit.stack().getTooltipImage(), mx, my,
+                    g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, marked, hit.stack().getTooltipImage(), mx, my,
                             hit.stack().get(net.minecraft.core.component.DataComponents.TOOLTIP_STYLE));
                 } else if (hit.stack() != null) {
-                    g.setTooltipForNextFrame(font, hit.stack(), mx, my);
+                    g.setTooltipForNextFrame(net.minecraft.client.Minecraft.getInstance().font, hit.stack(), mx, my);   // item tooltips in the game's font: its coin glyphs
                 } else if (hit.tip() != null && !hit.tip().isEmpty()) {
                     // long lines wrap, and the game words in it are explained under it
                     Glossary.draw(g, font, hit.tip(), mx, my, width, height);
