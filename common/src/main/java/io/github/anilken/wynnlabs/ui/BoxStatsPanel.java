@@ -661,6 +661,16 @@ final class BoxStatsPanel {
         double[] pos = SearchTab.position();
         io.github.anilken.wynnlabs.search.Area best = null;
         double bd = Double.MAX_VALUE;
+        if (way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.UPGRADE) {
+            // the shipped Item Upgraders (the item index has none)
+            for (io.github.anilken.wynnlabs.search.Area a : io.github.anilken.wynnlabs.crafting.Upgraders.all()) {
+                double d = io.github.anilken.wynnlabs.search.Compass.distance(a, pos);
+                if (best == null || d < bd) {
+                    best = a;
+                    bd = d;
+                }
+            }
+        }
         for (Entry e : ItemIndex.get().entries()) {
             boolean match = switch (way.kind()) {
                 case DUNGEON -> e.kind() == Kind.CONTENT && e.name().equalsIgnoreCase(way.at());
