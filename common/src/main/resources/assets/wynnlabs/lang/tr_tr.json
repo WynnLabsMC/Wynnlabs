@@ -3452,7 +3452,7 @@
   "wynnlabs.setting_desc.smallMapIcons": "Wynntils'in işaretlediği loot chest'ler ve cave'ler haritada ve minimap'te daha küçük çizilir, haritayı kapatmaz. Diğer ikonlar aynı boyutta kalır",
   "wynnlabs.settings.example.smallMapIcons": "Açık: Loot Chest 3 ve cave ikonları her zamankinin yarısından biraz büyük görünür",
   "wynnlabs.setting.nodeBoxes": "Toplama node kutuları",
-  "wynnlabs.setting_desc.nodeBoxes": "Elinde toplama aleti varken node'ları duvarların arkasından kutular işaretler: etrafında yüklü olanlar parlak, tarlanın 100 bloğa kadar kalanı soluk. Çift kutu olmasın diye Wynntils'in \"Highlight Gathering Nodes\" özelliğini kapat",
+  "wynnlabs.setting_desc.nodeBoxes": "Elinde toplama aleti varken node'ları duvarların arkasından kutular işaretler: etrafında yüklü olanlar parlak, tarlanın 100 bloğa kadar kalanı soluk. Bu açıkken Wynntils'in beyaz node kutuları kapanır, bunu kapatınca geri açılır",
   "wynnlabs.settings.example.nodeBoxes": "Gökkuşağı: bir Wheat tarlasındaki kutular renkten renge geçer",
   "wynnlabs.settings.opt.nodeBoxes.0": "Kapalı",
   "wynnlabs.settings.opt.nodeBoxes.1": "Altın",

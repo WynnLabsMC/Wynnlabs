@@ -3452,7 +3452,7 @@
   "wynnlabs.setting_desc.smallMapIcons": "Loot chests Wynntils marks and caves are drawn smaller on its map and minimap, so they don't cover the map. Other icons keep their size",
   "wynnlabs.settings.example.smallMapIcons": "On: the Loot Chest 3 and cave icons are a little over half their usual size",
   "wynnlabs.setting.nodeBoxes": "Gathering node boxes",
-  "wynnlabs.setting_desc.nodeBoxes": "While you hold a gathering tool, boxes mark its nodes through walls: bright on the ones loaded around you, faint on the rest of the field up to 100 blocks away. Turn off Wynntils' \"Highlight Gathering Nodes\" to avoid double boxes",
+  "wynnlabs.setting_desc.nodeBoxes": "While you hold a gathering tool, boxes mark its nodes through walls: bright on the ones loaded around you, faint on the rest of the field up to 100 blocks away. Wynntils' own white node boxes are turned off while this is on, and back on when you turn it off",
   "wynnlabs.settings.example.nodeBoxes": "Rainbow: the boxes around a Wheat field cycle through the colours",
   "wynnlabs.settings.opt.nodeBoxes.0": "Off",
   "wynnlabs.settings.opt.nodeBoxes.1": "Gold",

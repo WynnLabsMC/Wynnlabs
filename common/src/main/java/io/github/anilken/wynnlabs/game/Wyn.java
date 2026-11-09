@@ -421,6 +421,11 @@ public final class Wyn {
         return ProfessionReads.gatherNodes();
     }
 
+    /** Wynntils' gathering node boxes: on or not, and turned on or off when {@code set} is given; null when absent. */
+    public static Boolean wynntilsNodeHighlight(Boolean set) {
+        return ProfessionReads.nodeHighlight(set);
+    }
+
     /** The professions of the gathering tool in the main hand ("mining"), empty when none is held. */
     public static List<String> heldToolProfessions() {
         return ProfessionReads.heldToolProfessions();

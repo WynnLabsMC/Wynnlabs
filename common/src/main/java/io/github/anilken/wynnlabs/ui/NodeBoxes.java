@@ -43,6 +43,9 @@ public final class NodeBoxes {
 
     public static void onTick(Minecraft mc) {
         int mode = Settings.choice("nodeBoxes");
+        if (++ticks % 40 == 0) {
+            wynntilsBoxes(mode != 0);
+        }
         if (mode == 0 || mc.level == null || mc.player == null) {
             return;
         }
@@ -100,6 +103,32 @@ public final class NodeBoxes {
 
     public static void reset() {
         readFor = null;
+    }
+
+    private static int ticks;
+    /** Whether this session turned Wynntils' white node boxes off (they are put back when ours go off). */
+    private static boolean tookWynntils;
+
+    /**
+     * Ours on: Wynntils' own white boxes off, so the two do not sit on top of each other. Ours
+     * off: theirs back on, but only when it was us who turned them off.
+     */
+    private static void wynntilsBoxes(boolean ours) {
+        try {
+            Boolean theirs = Wyn.wynntilsNodeHighlight(null);
+            if (theirs == null) {
+                return;
+            }
+            if (ours && theirs) {
+                Wyn.wynntilsNodeHighlight(false);
+                tookWynntils = true;
+            } else if (!ours && tookWynntils && !theirs) {
+                Wyn.wynntilsNodeHighlight(true);
+                tookWynntils = false;
+            }
+        } catch (Throwable ignored) {
+            // Wynntils changed: leave its setting alone
+        }
     }
 
     private static void box(BlockPos at, int argb) {
