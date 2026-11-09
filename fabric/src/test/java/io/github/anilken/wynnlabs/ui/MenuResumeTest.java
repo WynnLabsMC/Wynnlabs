@@ -48,4 +48,11 @@ class MenuResumeTest {
         assertEquals(9, MenuResume.page(3));
         assertEquals(2, MenuResume.page(2));
     }
+
+    @Test
+    void theCraftingViewComesBack() {
+        MenuResume.State s = new MenuResume.State(4, null, null, null, 0, 0, null, null, CraftingTab.VIEW_TOOLS);
+        assertEquals(CraftingTab.VIEW_TOOLS, MenuResume.parse(MenuResume.json(s)).craftView());
+        assertEquals(0, MenuResume.parse("{\"tab\":4}").craftView(), "an older file: Recipe");
+    }
 }
