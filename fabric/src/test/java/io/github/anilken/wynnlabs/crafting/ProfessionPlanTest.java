@@ -132,6 +132,27 @@ class ProfessionPlanTest {
     }
 
     @Test
+    void aBigFieldALittleFurtherBeatsASmallPatch() {
+        List<Area> nodes = new java.util.ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            nodes.add(Area.point(10 + i * 5, 60, 0));                                  // four close by
+        }
+        for (int i = 0; i < 20; i++) {
+            nodes.add(Area.point(300 + i * 3, 60, 0));                                 // twenty 300 blocks off
+        }
+        List<ProfessionPlan.Resource> res = List.of(new ProfessionPlan.Resource("Wheat", "farming", 1, nodes, List.of("Wheat Grains")));
+        ProfessionPlan.Spot s = ProfessionPlan.spots(res, "farming", 1, new double[] {0, 0}, 5).get(0);
+        assertEquals(20, s.nodes(), "16 more nodes are worth far more than 290 blocks");
+        // but a huge field across the map does not beat a fair spot next door
+        List<Area> far = new java.util.ArrayList<>(nodes.subList(0, 4));
+        for (int i = 0; i < 20; i++) {
+            far.add(Area.point(5000 + i * 3, 60, 0));
+        }
+        res = List.of(new ProfessionPlan.Resource("Wheat", "farming", 1, far, List.of("Wheat Grains")));
+        assertEquals(4, ProfessionPlan.spots(res, "farming", 1, new double[] {0, 0}, 5).get(0).nodes());
+    }
+
+    @Test
     void lastGainIsKeptPerProfession() {
         ProfessionXp.clear();
         assertEquals(0, ProfessionXp.last("mining"));

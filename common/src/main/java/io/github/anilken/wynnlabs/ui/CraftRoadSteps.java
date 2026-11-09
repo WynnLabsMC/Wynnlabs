@@ -215,6 +215,9 @@ final class CraftRoadSteps {
         if (sp != null && !Double.isNaN(sp.distance())) {
             base += " · " + RoadmapScreen.dist((int) Math.round(sp.distance()));
         }
+        if (sp != null && sp.nodes() > 1) {
+            base += " · " + L.n("wynnlabs.plan.spot_nodes", sp.nodes());   // how big the spot is
+        }
         if (!s.gatherable()) {
             int have = tab.knownLevel(src.profession());
             base += " · " + L.t("wynnlabs.road.gather_need", Professions.name(src.profession().toUpperCase(Locale.ROOT)), src.level(), have);

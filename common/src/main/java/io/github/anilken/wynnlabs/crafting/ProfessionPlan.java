@@ -40,6 +40,8 @@ public final class ProfessionPlan {
 
     /** How far from a spot's node (blocks) other nodes still count as the same spot. */
     private static final int SPOT_RADIUS = 64;
+    /** How many blocks of walking one more node at a spot is worth: a big field a little farther beats a small patch. */
+    static final int NODE_WALK = 25;
     /** A resource's node list → how many of its nodes lie around each one (by identity: the lists are kept). */
     private static final java.util.Map<List<Area>, int[]> AROUND =
             java.util.Collections.synchronizedMap(new java.util.IdentityHashMap<>());
@@ -225,8 +227,10 @@ public final class ProfessionPlan {
                 most = Math.max(most, n);
             }
             int enough = Math.min(most, 4);
+            // the spot worth the walk: its distance less what its nodes are worth
             Area best = null;
             double bestD = Double.NaN;
+            double bestScore = Double.MAX_VALUE;
             int here = 0;
             for (int i = 0; i < around.length; i++) {
                 if (around[i] < enough) {
@@ -234,9 +238,11 @@ public final class ProfessionPlan {
                 }
                 Area a = r.nodes().get(i);
                 double d = Compass.distance(a, pos);
-                if (best == null || d < bestD) {
+                double score = (Double.isNaN(d) ? 0 : d) - (double) NODE_WALK * around[i];
+                if (best == null || score < bestScore) {
                     best = a;
                     bestD = d;
+                    bestScore = score;
                     here = around[i];
                 }
             }
