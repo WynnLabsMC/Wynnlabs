@@ -218,7 +218,7 @@ final class BoxStatsPanel {
             io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(n);
             Double v = p == null ? null : p.typical();
             if (v == null) {
-                io.github.anilken.wynnlabs.market.Prices.refreshSoon(n);
+                io.github.anilken.wynnlabs.market.Prices.refreshSoon(n);   // a tool's price (fragments are never asked)
             }
             return v;
         });
@@ -234,29 +234,37 @@ final class BoxStatsPanel {
                 case UPGRADE -> L.t("wynnlabs.box.ways_upgrade", tier - 1);
                 case DUNGEON -> L.t("wynnlabs.box.ways_dungeon", way.at());
             };
-            boolean best = first && way.total() != null && ways.size() > 1;
+            boolean best = first && way.total() != null && way.fragments() == 0 && ways.size() > 1;
             first = false;
-            String cost = way.total() == null ? L.t("wynnlabs.box.ways_no_price")
-                    : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(way.total());
+            // the emeralds it costs, then the fragments it needs (they drop from dungeon runs)
+            String money = way.total() == null ? L.t("wynnlabs.box.ways_no_price")
+                    : way.total() > 0 || way.fragments() == 0 ? "~" + io.github.anilken.wynnlabs.market.Prices.fmt(way.total()) : "";
+            String frags = way.fragments() > 0 ? L.n("wynnlabs.box.ways_fragments", way.fragments()) : "";
+            String cost = money.isEmpty() ? frags : frags.isEmpty() ? money : money + " + " + frags;
             int ink = best ? Theme.GOOD : Theme.INK;
             Type.BODY.drawRight(g, s.font(), cost, x + w, cy, way.total() == null ? Theme.INK_3 : ink);
             String t = best ? title + " · " + L.t("wynnlabs.box.ways_best") : title;
             Type.BODY.draw(g, s.font(), Type.BODY.fit(s.font(), t, w - Type.BODY.width(s.font(), cost) - Theme.SP_3), x, cy, ink);
             cy += Type.BODY.lineHeight;
+            // what it takes, one thing a line
             List<String> parts = new ArrayList<>();
             for (var part : way.parts()) {
                 if (way.kind() == io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MARKET) {
                     continue;
                 }
-                String each = part.owned() ? L.t("wynnlabs.box.ways_yours")
-                        : part.each() == null ? L.t("wynnlabs.box.ways_no_price") : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(part.each() * part.count());
-                parts.add(part.count() + "× " + part.name() + " (" + each + ")");
+                String each = part.fragment() ? "" : " (" + (part.owned() ? L.t("wynnlabs.box.ways_yours")
+                        : part.each() == null ? L.t("wynnlabs.box.ways_no_price")
+                        : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(part.each() * part.count())) + ")";
+                parts.add(part.count() + "× " + part.name() + each);
             }
             if (way.emeralds() > 0 && way.kind() != io.github.anilken.wynnlabs.crafting.ToolWays.Kind.MERCHANT) {
                 parts.add(io.github.anilken.wynnlabs.market.Prices.fmt(way.emeralds()));
             }
-            if (!parts.isEmpty()) {
-                Type.META.draw(g, s.font(), Type.META.fit(s.font(), String.join(" + ", parts), w), x, cy, Theme.INK_3);
+            for (String line : parts) {
+                if (cy + Type.META.lineHeight > bottom) {
+                    return;
+                }
+                Type.META.draw(g, s.font(), Type.META.fit(s.font(), line, w), x, cy, Theme.INK_3);
                 cy += Type.META.lineHeight;
             }
             cy += Theme.SP_3;
