@@ -142,6 +142,14 @@ public final class RoadmapScreen extends Screen {
     }
 
     /** The menu opened straight on tab {@code t} (previews and tests: nothing else is drawn first). */
+    /** The menu on the Endgame tab; Esc goes back to {@code parent}. */
+    public static RoadmapScreen endgame(Screen parent) {
+        RoadmapScreen s = new RoadmapScreen();
+        s.tab = TAB_ENDGAME;
+        s.parent = parent;
+        return s;
+    }
+
     static RoadmapScreen on(int t) {
         RoadmapScreen s = new RoadmapScreen(false);
         s.tab = t;

@@ -243,6 +243,13 @@ public final class EndgameTab {
         openPool(tab == TAB_RAIDS, region);
     }
 
+    /** Shows the pools on this raid's or camp's region, lit (from another window: the drawer is not built yet). */
+    public void showPool(boolean raid, String region) {
+        view = VIEW_POOLS;
+        poolTab = raid ? TAB_RAIDS : TAB_CAMPS;
+        pick(raid, region);
+    }
+
     /** Lights this region and starts its lists at the top. */
     void pick(boolean raid, String region) {
         if (raid) {

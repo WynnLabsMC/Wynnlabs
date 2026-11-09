@@ -101,6 +101,10 @@ final class BoxStatsPanel {
                 }
                 return;
             }
+            if (ward(name)) {
+                wardInfo(s, g, name, x, y, w, bottom);   // what wards are for, where it drops, the set's price
+                return;
+            }
             String text = about(name, s.singleIcon);
             if (text != null) {
                 // not in the item list (a ward, a rune…): what the item itself says
@@ -194,6 +198,161 @@ final class BoxStatsPanel {
             cy += Type.BODY.lineHeight + Theme.SP_1;
         }
         source(s, g, e, x, cy, w, bottom);
+    }
+
+    // ---- wards ----
+
+    /** The seven wards: raid ones first, then lootrun ones, each with its colour. */
+    private static final String[] WARDS = {"Yellow", "Red", "Blue", "Purple", "Green", "Orange", "Pink"};
+    private static final int[] WARD_INK = {0xFFC9A227, 0xFFB8322A, 0xFF2F6FBF, 0xFF6A4BB0, 0xFF4E8A2A, 0xFFC8661E, 0xFFC0507E};
+
+    /** Whether a name is one of the seven wards ("Blue Ward"). */
+    static boolean ward(String name) {
+        if (name == null || !name.endsWith(" Ward")) {
+            return false;
+        }
+        String colour = name.substring(0, name.length() - 5);
+        for (String w : WARDS) {
+            if (w.equals(colour)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A ward's page: what wards are for (ascending a Mythic), where this one drops in this week's
+     * pools (a row opens that pool in the Endgame tab), and the seven wards' market prices with
+     * their total.
+     */
+    private static void wardInfo(BoxScreen s, GuiGraphics g, String name, int x, int y, int w, int bottom) {
+        var font = s.font();
+        // where it drops this week, the full set, then what wards are for in the room left
+        int cy = head(s, g, L.t("wynnlabs.box.ward.drops_title"), null, x, y, w);
+        List<io.github.anilken.wynnlabs.model.PoolRegion> where = io.github.anilken.wynnlabs.endgame.WynnventoryPools.holding(name);
+        if (where.isEmpty()) {
+            Type.MUTED.draw(g, font, Type.MUTED.fit(font, L.t("wynnlabs.box.ward.drops_none"), w), x, cy, Theme.INK_3);
+            cy += Type.MUTED.lineHeight;
+        }
+        int rowH = Math.max(16, Type.BODY.lineHeight) + 2;
+        for (io.github.anilken.wynnlabs.model.PoolRegion r : where) {
+            if (cy + rowH > bottom) {
+                return;
+            }
+            boolean raid = "RAID".equalsIgnoreCase(r.type());
+            int mx = s.mouseX;
+            int my = s.mouseY;
+            boolean hover = mx >= x && mx < x + w && my >= cy && my < cy + rowH;
+            if (hover) {
+                Art.box(g, x - Theme.SP_1, cy, w + Theme.SP_1 * 2, rowH, 3, Theme.CARD_HOVER, 0);
+            }
+            Kit.box(g, x, cy + (rowH - 14) / 2, 14, 14, Theme.PLAQUE, 0);
+            Art.icon(g, raid ? "skull" : "route", x + 3, cy + (rowH - 14) / 2 + 3, 8, Theme.INK_2);
+            String go = L.t(raid ? "wynnlabs.box.ward.raid" : "wynnlabs.box.ward.lootrun") + " ›";
+            int gw = Type.META.width(font, go);
+            Type.META.drawRight(g, font, go, x + w, Type.META.yIn(cy, rowH), hover ? Theme.LINK : Theme.INK_3);
+            Type.BODY.draw(g, font, Type.BODY.fit(font, r.name(), w - 14 - Theme.SP_3 - gw - Theme.SP_3), x + 14 + Theme.SP_3,
+                    Type.BODY.yIn(cy, rowH), Theme.INK);
+            String region = r.name();
+            s.hit(x, cy, w, rowH, () -> {
+                EndgameTab.INSTANCE.showPool(raid, region);
+                net.minecraft.client.Minecraft.getInstance().setScreen(RoadmapScreen.endgame(s));
+            });
+            cy += rowH + Theme.SP_1;
+        }
+        cy += Theme.SP_5;
+        if (cy + Type.LABEL.lineHeight > bottom) {
+            return;
+        }
+        // the full set: each ward's picture with its price under it, four to a row
+        cy = head(s, g, L.t("wynnlabs.box.ward.set_title"), null, x, cy, w);
+        seeWards(s);
+        long total = 0;
+        boolean unknown = false;
+        int cols = 4;
+        int tw = (w - (cols - 1) * Theme.SP_2) / cols;
+        int th = 18 + Type.META.lineHeight + Theme.SP_1 + 4;
+        for (int i = 0; i < WARDS.length; i++) {
+            String ward = WARDS[i] + " Ward";
+            io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(ward);
+            Double v = p == null ? null : p.typical();
+            if (v == null) {
+                unknown = true;
+                io.github.anilken.wynnlabs.market.Prices.refreshSoon(ward);
+            } else {
+                total += Math.round(v);
+            }
+            int tx = x + (i % cols) * (tw + Theme.SP_2);
+            int ty = cy + (i / cols) * (th + Theme.SP_2);
+            if (ty + th > bottom) {
+                return;
+            }
+            boolean me = ward.equals(name);
+            Kit.box(g, tx, ty, tw, th, me ? Theme.CARD_HOVER : Theme.CARD, me ? Theme.INK_2 : Theme.LINE);
+            net.minecraft.world.item.ItemStack pic = WARD_ICONS.get(ward);
+            int ix = tx + (tw - 16) / 2;
+            io.github.anilken.wynnlabs.model.PoolItem pooled = pic == null ? io.github.anilken.wynnlabs.endgame.WynnventoryPools.item(ward) : null;
+            if (pic != null) {
+                g.renderItem(pic, ix, ty + 2);
+            } else if (pooled != null) {
+                // not seen yet: its picture as the Endgame pools draw it
+                io.github.anilken.wynnlabs.endgame.ItemIcons.draw(g, pooled, null, ix, ty + 2, 16, false);
+            } else {
+                // not seen yet this session: its colour instead of its picture
+                g.fill(ix + 3, ty + 5, ix + 13, ty + 15, WARD_INK[i]);
+            }
+            String price = v == null ? "?" : io.github.anilken.wynnlabs.market.Prices.slot(v);
+            Type.META.draw(g, font, Type.META.fit(font, price, tw - 4), tx + (tw - Math.min(tw - 4, Type.META.width(font, price))) / 2,
+                    ty + 18 + Theme.SP_1, v == null ? Theme.INK_3 : Theme.PRICE);
+            int mx = s.mouseX;
+            int my = s.mouseY;
+            if (mx >= tx && mx < tx + tw && my >= ty && my < ty + th) {
+                s.tip(List.of(Component.literal(ward + (v == null ? "" : " · " + io.github.anilken.wynnlabs.market.Prices.fmt(v)))));
+            }
+        }
+        cy += ((WARDS.length + cols - 1) / cols) * (th + Theme.SP_2) + Theme.SP_1;
+        if (cy + Type.LABEL.lineHeight <= bottom) {
+            String sum = total == 0 && unknown ? "?" : io.github.anilken.wynnlabs.market.Prices.fmt(total) + (unknown ? " +?" : "");
+            Type.LABEL.draw(g, font, L.t("wynnlabs.box.ward.set_total"), x, cy, Theme.INK);
+            Type.LABEL.drawRight(g, font, sum, x + w, cy, Theme.PRICE);
+            cy += Type.LABEL.lineHeight;
+        }
+        cy += Theme.SP_5;
+        if (cy + Type.LABEL.lineHeight + Type.META.lineHeight * 2 > bottom) {
+            return;
+        }
+        cy = head(s, g, L.t("wynnlabs.box.ward.use_title"), null, x, cy, w);
+        Type.META.drawWrapped(g, font, L.t("wynnlabs.box.ward.use"), x, cy, w, Math.max(1, (bottom - cy) / Type.META.lineHeight), Theme.INK_2);
+    }
+
+    /** Ward pictures seen this session, by name: the item list has no wards, so they come from the game's own stacks. */
+    private static final Map<String, net.minecraft.world.item.ItemStack> WARD_ICONS = new java.util.HashMap<>();
+
+    /** Keeps the pictures of the wards in view: the one this window is on, and any in the open menu or the bag. */
+    private static void seeWards(BoxScreen s) {
+        if (WARD_ICONS.size() == WARDS.length) {
+            return;
+        }
+        List<net.minecraft.world.item.ItemStack> stacks = new ArrayList<>();
+        if (s.singleIcon != null) {
+            stacks.add(s.singleIcon);
+        }
+        var player = net.minecraft.client.Minecraft.getInstance().player;
+        if (player != null) {
+            player.containerMenu.slots.forEach(sl -> stacks.add(sl.getItem()));
+            for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                stacks.add(player.getInventory().getItem(i));
+            }
+        }
+        for (net.minecraft.world.item.ItemStack st : stacks) {
+            if (st == null || st.isEmpty()) {
+                continue;
+            }
+            String n = io.github.anilken.wynnlabs.game.ItemJson.clean(st.getHoverName().getString()).replaceAll("[^\\p{L} ]", "").strip();
+            if (ward(n) && !WARD_ICONS.containsKey(n)) {
+                WARD_ICONS.put(n, st.copyWithCount(1));
+            }
+        }
     }
 
     private static String lowerFor;
