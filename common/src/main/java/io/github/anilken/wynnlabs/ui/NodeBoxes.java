@@ -146,8 +146,8 @@ public final class NodeBoxes {
     private static final List<BlockPos> LIVE = new java.util.concurrent.CopyOnWriteArrayList<>();
     private static final List<BlockPos> FAR_NOW = new java.util.concurrent.CopyOnWriteArrayList<>();
 
-    /** Draws the picked boxes while the world is drawn (when the game takes debug boxes), the rainbow moving each frame. */
-    public static void renderWorld(com.mojang.blaze3d.vertex.PoseStack pose, net.minecraft.client.renderer.MultiBufferSource buffers) {
+    /** Draws the picked boxes as the level render starts (while the game takes debug boxes), the rainbow moving each frame. */
+    public static void drawFrame() {
         int mode = Settings.choice("nodeBoxes");
         if (mode == 0 || LIVE.isEmpty() && FAR_NOW.isEmpty()) {
             return;
@@ -198,7 +198,7 @@ public final class NodeBoxes {
         readFor = index;
         FAR.clear();
         PROFESSION.clear();
-        for (Entry e : index.entries()) {
+        for (Entry e : index.all()) {
             if (e.kind() != Kind.RESOURCE || e.type() == null) {
                 continue;
             }

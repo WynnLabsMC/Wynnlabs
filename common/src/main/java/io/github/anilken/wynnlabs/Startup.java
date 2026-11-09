@@ -134,7 +134,6 @@ public final class Startup {
                     .disconnect(io.github.anilken.wynnlabs.ui.NodeText::reset),
             // boxes around gathering nodes (rainbow if picked), further than the game shows them
             Module.of("NodeBoxes").tick(io.github.anilken.wynnlabs.ui.NodeBoxes::onTick)
-                    .world(io.github.anilken.wynnlabs.ui.NodeBoxes::renderWorld, true)
                     .disconnect(io.github.anilken.wynnlabs.ui.NodeBoxes::reset),
             // the Endgame tab: raid and lootrun history, the reward pool seen, the aspect list
             Module.of("RaidLog").tick(RaidLog::onTick).disconnect(RaidLog::disconnected),

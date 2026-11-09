@@ -19,6 +19,7 @@
     "PowerupDisplayAccessor",
     "PowerupModelAccessor",
     "TextDisplayAccessor",
+    "NodeBoxesFrameMixin",
     "PowerupLayerAccessor",
     "PowerupSpriteAccessor",
     "CrowdEntityMixin",
