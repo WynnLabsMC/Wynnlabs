@@ -3497,6 +3497,7 @@
   "wynnlabs.tools.tip_stats": "Lv %s · Speed %s · Durability %s",
   "wynnlabs.tools.tip_cheapest": "Cheapest: %s · %s",
   "wynnlabs.tools.tip_click": "Click: how to get it · Right-click: Trade Market",
+  "wynnlabs.tools.held_locked": "Held · Lv %s",
   "wynnlabs.tools.yours_hand": "Yours (in your hand)",
   "wynnlabs.tools.yours_bag": "Yours (in your bag)",
   "wynnlabs.tools.yours_bank": "Yours (in your bank)",

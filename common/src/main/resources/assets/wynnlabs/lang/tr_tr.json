@@ -3497,6 +3497,7 @@
   "wynnlabs.tools.tip_stats": "Lv %s · Hız %s · Dayanıklılık %s",
   "wynnlabs.tools.tip_cheapest": "En ucuz: %s · %s",
   "wynnlabs.tools.tip_click": "Tıkla: nasıl alınır · Sağ tık: Trade Market",
+  "wynnlabs.tools.held_locked": "Sende · Lv %s",
   "wynnlabs.tools.yours_hand": "Seninki (elinde)",
   "wynnlabs.tools.yours_bag": "Seninki (çantanda)",
   "wynnlabs.tools.yours_bank": "Seninki (bankanda)",

@@ -226,12 +226,15 @@ final class CraftTools extends CraftPanel {
         String status = switch (r.state()) {
             case YOURS -> L.t("wynnlabs.box.ways_yours");
             case NEXT -> L.t("wynnlabs.tools.next_short");
+            // held but above this character's level (another character's, in the account bank)
+            case LOCKED -> r.where() != null ? L.t("wynnlabs.tools.held_locked", r.tool().level()) : "Lv " + r.tool().level();
             default -> "Lv " + r.tool().level();
         };
-        int ink = r.state() == State.YOURS || r.state() == State.NEXT ? Theme.GOOD : Theme.INK_3;
+        int ink = r.state() == State.YOURS || r.state() == State.NEXT ? Theme.GOOD
+                : r.state() == State.LOCKED && r.where() != null ? Theme.WARN : Theme.INK_3;
         String s = Type.META.fit(tab.font, status, w - 2);
         Type.META.draw(g, tab.font, s, x + (w - Type.META.width(tab.font, s)) / 2, cy, ink);
-        if ((r.state() == State.PAST || r.state() == State.LOCKED) && !sel) {
+        if ((r.state() == State.PAST || r.state() == State.LOCKED && r.where() == null) && !sel) {
             Kit.box(g, x, y, w, h, 0x8CD8C595, 0);                          // faded under the paper
         }
         int tier = r.tool().tier();

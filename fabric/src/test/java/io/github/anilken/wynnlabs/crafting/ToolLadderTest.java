@@ -45,6 +45,16 @@ class ToolLadderTest {
     }
 
     @Test
+    void aBankedToolAboveTheLevelIsNotYours() {
+        // T11 (Lv 100) in the account bank, another character's; this one is Lv 70 with a T7 in hand
+        List<Rung> ladder = ToolLadder.ladder(pickaxes(), 70, Map.of(11, Where.BANK, 7, Where.HAND));
+        assertEquals(7, ToolLadder.yours(ladder).tool().tier());
+        assertEquals(State.NEXT, state(ladder, 8));          // Lv 70: T8 is the best it allows
+        assertEquals(State.LOCKED, state(ladder, 11));
+        assertEquals(Where.BANK, ladder.get(10).where());
+    }
+
+    @Test
     void withNothingAllowedAboveTheNextIsTheFirstLockedOne() {
         List<Rung> ladder = ToolLadder.ladder(pickaxes(), 45, Map.of(5, Where.BAG));
         assertEquals(State.LOCKED, state(ladder, 6));

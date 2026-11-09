@@ -61,7 +61,9 @@ public final class ToolLadder {
         sorted.sort(Comparator.comparingInt(Tool::tier));
         int best = 0;
         for (Tool t : sorted) {
-            if (owned.containsKey(t.tier())) {
+            // only a tool this character's level can use is "yours"; one above it (an account
+            // bank's, another character's) stays locked, marked where it is
+            if (owned.containsKey(t.tier()) && (level <= 0 || t.level() <= level)) {
                 best = Math.max(best, t.tier());
             }
         }
