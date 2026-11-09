@@ -339,9 +339,18 @@ public final class ProfessionPlan {
      * Without a position the biggest come first and the distance is NaN.
      */
     public static List<Spot> spotsFor(Resource r, List<Field> fields, double[] pos, int limit) {
+        // a lone node or a small patch is no place to gather while a real field exists: those
+        // under 4 nodes go when the biggest has 4 or more
+        int biggest = 0;
+        for (Field f : fields) {
+            biggest = Math.max(biggest, f.nodes());
+        }
+        int least = Math.min(biggest, 4);
         List<Spot> all = new ArrayList<>();
         for (Field f : fields) {
-            all.add(new Spot(r, f.node(), Compass.distance(f.node(), pos), f.nodes()));
+            if (f.nodes() >= least) {
+                all.add(new Spot(r, f.node(), Compass.distance(f.node(), pos), f.nodes()));
+            }
         }
         if (pos == null) {
             all.sort(Comparator.comparingInt((Spot s) -> -s.nodes()));

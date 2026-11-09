@@ -72,20 +72,20 @@ class GatherSpotsTest {
     @Test
     void eachNextSpotIsFartherAndBigger() {
         List<Area> nodes = new ArrayList<>();
-        field(nodes, 100, 2);
-        field(nodes, 300, 1);            // farther and smaller than the first: left out
+        field(nodes, 100, 4);
+        field(nodes, 300, 1);            // a lone node while real fields exist: never listed
         field(nodes, 500, 6);
-        field(nodes, 900, 3);            // farther and smaller than the one at 500: left out
+        field(nodes, 900, 5);            // farther and smaller than the one at 500: only to fill in
         field(nodes, 1500, 10);
         ProfessionPlan.Resource r = salmon(nodes);
         double[] pos = {0, 0};
         List<ProfessionPlan.Spot> three = ProfessionPlan.spotsFor(r, pos, 3);
-        assertEquals(List.of(2, 6, 10), three.stream().map(ProfessionPlan.Spot::nodes).toList());
+        assertEquals(List.of(4, 6, 10), three.stream().map(ProfessionPlan.Spot::nodes).toList());
         List<ProfessionPlan.Spot> four = ProfessionPlan.spotsFor(r, pos, 4);
-        assertEquals(List.of(2, 1, 6, 10), four.stream().map(ProfessionPlan.Spot::nodes).toList(),
+        assertEquals(List.of(4, 6, 5, 10), four.stream().map(ProfessionPlan.Spot::nodes).toList(),
                 "too few: the nearest of the rest fills in, all by distance");
-        assertEquals(5, ProfessionPlan.spotsFor(r, pos, 10).size(), "never more than there are");
-        assertEquals(List.of(2, 6), ProfessionPlan.spotsFor(r, pos, 2).stream().map(ProfessionPlan.Spot::nodes).toList(),
+        assertEquals(4, ProfessionPlan.spotsFor(r, pos, 10).size(), "the lone node is left out");
+        assertEquals(List.of(4, 6), ProfessionPlan.spotsFor(r, pos, 2).stream().map(ProfessionPlan.Spot::nodes).toList(),
                 "the limit keeps the nearest of the list");
         assertTrue(three.get(0).distance() < three.get(1).distance() && three.get(1).distance() < three.get(2).distance());
     }
