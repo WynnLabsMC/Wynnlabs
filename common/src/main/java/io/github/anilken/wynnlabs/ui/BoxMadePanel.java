@@ -312,6 +312,19 @@ final class BoxMadePanel {
         cells.add(new String[] {L.t("wynnlabs.box.made.cell_ingredients"), cost(ing)});
         cells.add(new String[] {L.t("wynnlabs.box.made.cell_materials"), cost(mat)});
         cells.add(new String[] {L.t("wynnlabs.box.made.cell_total"), ing == null ? "?" : cost(ing.plus(mat))});
+        // on the Trade Market: what the listing asks, and whether buying or crafting is cheaper
+        Long listed = listed();
+        int verdictInk = Theme.PRICE;
+        if (listed != null) {
+            cells.add(new String[] {L.t("wynnlabs.box.made.cell_listed"), Prices.fmt(listed)});
+            if (ing != null && ing.unknown() == 0 && mat.unknown() == 0) {
+                long craft = ing.plus(mat).emeralds();
+                boolean buy = listed <= craft;
+                verdictInk = buy ? Theme.GOOD : Theme.WARN;
+                cells.add(new String[] {L.t(buy ? "wynnlabs.box.made.cell_buy" : "wynnlabs.box.made.cell_craft"),
+                        L.t("wynnlabs.box.made.saves", Prices.fmt(Math.abs(craft - listed)))});
+            }
+        }
         int cx = x + Theme.SP_4;
         int gap = s.compact ? Theme.SP_5 : Theme.SP_6;
         for (int i = 0; i < cells.size(); i++) {
@@ -321,13 +334,60 @@ final class BoxMadePanel {
                 break;
             }
             Type.META.draw(g, s.font(), c[0], cx, y + Theme.SP_3, Theme.INK_3);
-            Type.NUMBER.draw(g, s.font(), c[1], cx, y + Theme.SP_3 + Type.META.lineHeight, i == 0 ? Theme.INK : Theme.PRICE);
+            int ink = i == 0 ? Theme.INK : listed != null && i == 5 ? verdictInk : Theme.PRICE;
+            Type.NUMBER.draw(g, s.font(), c[1], cx, y + Theme.SP_3 + Type.META.lineHeight, ink);
             cx += cw + gap;
             if (i < cells.size() - 1) {
                 Kit.hair(g, cx - gap / 2, y + Theme.SP_3 + 1, 1, top - 2 * Theme.SP_3 - 2, 0x40A08A5A);
             }
         }
         return top;
+    }
+
+    private Long listedValue;
+    private boolean listedRead;
+
+    /** The price the item's Trade Market listing asks (read once from its lore), or null off the market. */
+    private Long listed() {
+        if (!listedRead) {
+            listedRead = true;
+            List<String> lines = new ArrayList<>();
+            var lore = s.singleIcon == null ? null : s.singleIcon.get(net.minecraft.core.component.DataComponents.LORE);
+            if (lore != null) {
+                for (var c : lore.lines()) {
+                    lines.add(io.github.anilken.wynnlabs.game.ItemJson.clean(c.getString()));
+                }
+            }
+            listedValue = listedPrice(lines);
+        }
+        return listedValue;
+    }
+
+    /**
+     * A listing's price from its tooltip lines: the number on the line after "Price"
+     * ("17,719 (4LE 20EB 55E)" → 17719), or null when there is no price block.
+     */
+    static Long listedPrice(List<String> lore) {
+        boolean next = false;
+        for (String raw : lore) {
+            String line = raw.strip().replaceFirst("^[^\\p{L}\\p{N}]+", "");
+            if (line.startsWith("Price") || line.startsWith("Fiyat")) {
+                next = true;
+                continue;
+            }
+            if (next) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("^([0-9][0-9,.]*)").matcher(line);
+                if (m.find()) {
+                    try {
+                        return Long.parseLong(m.group(1).replaceAll("[,.]", ""));
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                }
+                return null;
+            }
+        }
+        return null;
     }
 
     /** "1.2k", "1.2k +?" (some prices unknown), or "?" (none known; never blocks). */
