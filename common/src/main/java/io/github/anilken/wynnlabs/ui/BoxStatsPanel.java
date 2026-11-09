@@ -72,7 +72,7 @@ final class BoxStatsPanel {
                     lines.add(line);
                 }
             }
-            text = lines.isEmpty() ? null : String.join(" ", lines);
+            text = lines.isEmpty() ? null : String.join("\n", lines);   // one line each, as the item shows them
         }
         aboutFor = name;
         aboutText = text;
@@ -105,7 +105,25 @@ final class BoxStatsPanel {
             if (text != null) {
                 // not in the item list (a ward, a rune…): what the item itself says
                 int cy = head(s, g, L.t("wynnlabs.box.stats_about"), null, x, y, w);
-                Type.BODY.drawWrapped(g, s.font(), text, x, cy, w, Math.max(1, (bottom - cy) / Type.BODY.lineHeight), Theme.INK_2);
+                // line by line: a heading ("Effect on Weapons:") dark, a "- " line as a bullet, the rest grey
+                for (String line : text.split("\n")) {
+                    int left = (bottom - cy) / Type.BODY.lineHeight;
+                    if (left < 1) {
+                        break;
+                    }
+                    boolean bullet = line.startsWith("- ");
+                    boolean heading = !bullet && line.endsWith(":");
+                    if (heading && cy > y + Type.LABEL.lineHeight * 2) {
+                        cy += Theme.SP_2;
+                    }
+                    int ix = bullet ? x + Theme.SP_4 : x;
+                    if (bullet) {
+                        Type.BODY.draw(g, s.font(), "•", x, cy, Theme.INK_3);
+                        line = line.substring(2);
+                    }
+                    cy = Type.BODY.drawWrapped(g, s.font(), line, ix, cy, x + w - ix, left, heading || bullet ? Theme.INK : Theme.INK_2)
+                            + (heading || bullet ? 0 : Theme.SP_1);
+                }
                 return;
             }
             Type.MUTED.draw(g, s.font(), Type.MUTED.fit(s.font(), L.t("wynnlabs.box.stats_unknown"), w), x, y, Theme.INK_3);
