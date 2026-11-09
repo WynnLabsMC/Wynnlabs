@@ -47,6 +47,8 @@ public final class NodeBoxes {
             wynntilsBoxes(mode != 0);
         }
         if (mode == 0 || mc.level == null || mc.player == null) {
+            LIVE.clear();
+            FAR_NOW.clear();
             return;
         }
         List<String> held;
@@ -56,16 +58,18 @@ public final class NodeBoxes {
             return;
         }
         if (held.isEmpty()) {
+            LIVE.clear();
+            FAR_NOW.clear();
             return;
         }
         read();
-        long now = System.currentTimeMillis();
         double px = mc.player.getX();
         double py = mc.player.getY();
         double pz = mc.player.getZ();
         try {
             // the nodes the game shows: bright, where the node's block is under its label
             List<int[]> live = new ArrayList<>();
+            List<BlockPos> liveAt = new ArrayList<>();
             for (GatherNode n : Wyn.gatherNodes()) {
                 String prof = PROFESSION.get(n.resource().toUpperCase(Locale.ROOT));
                 if (prof == null || !held.contains(prof)) {
@@ -78,7 +82,7 @@ public final class NodeBoxes {
                 };
                 BlockPos at = new BlockPos(n.x(), n.y() - down, n.z());
                 live.add(new int[] {at.getX(), at.getZ()});
-                box(at, colour(mode, at, now, 0xFF));
+                liveAt.add(at);
             }
             // the map's nodes further off: faint, the nearest first
             List<Area> far = new ArrayList<>();
@@ -92,17 +96,24 @@ public final class NodeBoxes {
                 }
             }
             far.sort(java.util.Comparator.comparingDouble(a -> (a.x() - px) * (a.x() - px) + (a.z() - pz) * (a.z() - pz)));
+            List<BlockPos> farAt = new ArrayList<>();
             for (int i = 0; i < far.size() && i < MAX_FAR; i++) {
-                BlockPos at = new BlockPos(far.get(i).x(), far.get(i).y(), far.get(i).z());
-                box(at, colour(mode, at, now, 0x60));
+                farAt.add(new BlockPos(far.get(i).x(), far.get(i).y(), far.get(i).z()));
             }
-        } catch (Throwable ignored) {
-            // no tick collector, or no data yet: nothing drawn this tick
+            LIVE.clear();
+            LIVE.addAll(liveAt);
+            FAR_NOW.clear();
+            FAR_NOW.addAll(farAt);
+        } catch (Throwable t) {
+            LIVE.clear();
+            FAR_NOW.clear();
         }
     }
 
     public static void reset() {
         readFor = null;
+        LIVE.clear();
+        FAR_NOW.clear();
     }
 
     private static int ticks;
@@ -128,6 +139,29 @@ public final class NodeBoxes {
             }
         } catch (Throwable ignored) {
             // Wynntils changed: leave its setting alone
+        }
+    }
+
+    /** What the last tick picked: the bright boxes and the faint ones. Read on the render thread. */
+    private static final List<BlockPos> LIVE = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static final List<BlockPos> FAR_NOW = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    /** Draws the picked boxes while the world is drawn (when the game takes debug boxes), the rainbow moving each frame. */
+    public static void renderWorld(com.mojang.blaze3d.vertex.PoseStack pose, net.minecraft.client.renderer.MultiBufferSource buffers) {
+        int mode = Settings.choice("nodeBoxes");
+        if (mode == 0 || LIVE.isEmpty() && FAR_NOW.isEmpty()) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        try {
+            for (BlockPos at : LIVE) {
+                box(at, colour(mode, at, now, 0xFF));
+            }
+            for (BlockPos at : FAR_NOW) {
+                box(at, colour(mode, at, now, 0x60));
+            }
+        } catch (IllegalStateException e) {
+            // no collector at this point of the frame: nothing drawn
         }
     }
 
