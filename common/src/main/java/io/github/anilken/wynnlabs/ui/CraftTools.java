@@ -225,12 +225,13 @@ final class CraftTools extends CraftPanel {
         cy += Type.LABEL.lineHeight;
         String status = switch (r.state()) {
             case YOURS -> L.t("wynnlabs.box.ways_yours");
-            case NEXT -> L.t("wynnlabs.tools.next_short");
+            case NEXT -> nextStatus(ladder, r);
             // held but above this character's level (another character's, in the account bank)
             case LOCKED -> r.where() != null ? L.t("wynnlabs.tools.held_locked", r.tool().level()) : "Lv " + r.tool().level();
             default -> "Lv " + r.tool().level();
         };
-        int ink = r.state() == State.YOURS || r.state() == State.NEXT ? Theme.GOOD
+        int ink = r.state() == State.YOURS || r.state() == State.NEXT && status.equals(L.t("wynnlabs.tools.upgrade_now")) ? Theme.GOOD
+                : r.state() == State.NEXT ? Theme.INK_2
                 : r.state() == State.LOCKED && r.where() != null ? Theme.WARN : Theme.INK_3;
         String s = Type.META.fit(tab.font, status, w - 2);
         Type.META.draw(g, tab.font, s, x + (w - Type.META.width(tab.font, s)) / 2, cy, ink);
@@ -298,6 +299,31 @@ final class CraftTools extends CraftPanel {
             cy -= Theme.SP_2;
         }
         return cy;
+    }
+
+    /**
+     * The next tier's line: "Upgrade now" with the tier below and every fragment at hand, "2 frags
+     * left" with the tool but not the fragments, otherwise "Next".
+     */
+    private String nextStatus(List<Rung> ladder, Rung next) {
+        Rung below = null;
+        for (Rung r : ladder) {
+            if (r.tool().tier() == next.tool().tier() - 1) {
+                below = r;
+            }
+        }
+        if (below == null || below.where() == null) {
+            return L.t("wynnlabs.tools.next_short");
+        }
+        for (ToolWays.Way w : ToolWays.ways(next.tool().name(), next.tool().tier(), below.tool().name(), true, n -> null)) {
+            if (w.kind() == ToolWays.Kind.UPGRADE && w.parts().size() > 1) {
+                ToolWays.Part frag = w.parts().get(1);
+                int have = bag.getOrDefault(frag.name(), 0) + bank.getOrDefault(frag.name(), 0);
+                return have >= frag.count() ? L.t("wynnlabs.tools.upgrade_now")
+                        : L.n("wynnlabs.tools.frags_left", frag.count() - have);
+            }
+        }
+        return L.t("wynnlabs.tools.next_short");
     }
 
     /** The upgrade in three steps: the tier below, the fragments, an Item Upgrader (with a compass). */
