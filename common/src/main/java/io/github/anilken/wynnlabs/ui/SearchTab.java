@@ -9,12 +9,14 @@ import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.Klass;
+import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.RecentSearches;
 import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.SearchWorker;
+import io.github.anilken.wynnlabs.search.InfoItems;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -68,6 +70,12 @@ final class SearchTab extends MenuTab {
     final Set<Kind> kinds = EnumSet.noneOf(Kind.class);
     /** The stat the Stats category lists the items of (null: the list of stats). */
     String stat;
+    /** The item the list shows with its uses under it, in place of the search (null: the search). */
+    String usesOf;
+    /** That item's own stack when the uses key was pressed over it (its picture where the index has none), else null. */
+    ItemStack usesStack;
+    /** While the item is a crafted one: the search for how it was made, running or done; else null. */
+    BoxMadePanel made;
     /** 0: every level, 1: up to mine, 2: mine and the ten below. */
     int levelMode;
     boolean myClass;
@@ -99,10 +107,29 @@ final class SearchTab extends MenuTab {
     List<EditBox> init() {
         String typed = box == null ? (typedBefore == null ? "" : typedBefore) : box.getValue();
         typedBefore = null;
-        box = UiInput.box(font(), "wynnlabs.search.box_hint", null, v -> results.scroll = 0);
+        box = UiInput.box(font(), "wynnlabs.search.box_hint", null, this::typed);
         box.setMaxLength(60);
         box.setValue(typed);
         return List.of(box);
+    }
+
+    /** The box changed: the list starts at its top, and typing leaves an item's uses for the search. */
+    private void typed(String text) {
+        results.scroll = 0;
+        if (usesOf != null && !text.isEmpty()) {
+            leaveUses();
+            selName = null;
+        }
+    }
+
+    /** The list is the search again: the item, its picture and a crafted item's search go. */
+    private void leaveUses() {
+        usesOf = null;
+        usesStack = null;
+        if (made != null) {
+            made.closed();
+            made = null;
+        }
     }
 
     @Override
@@ -137,9 +164,57 @@ final class SearchTab extends MenuTab {
         selName = key;
         category = SearchCategory.ALL;
         stat = null;
+        leaveUses();
         if (menu.layout != null && menu.layout.compact()) {
             openDrawer(key);
         }
+    }
+
+    /**
+     * Shows {@code item} and what it is used for in place of the search (the uses key over a
+     * hovered item, an item card's "All uses", a craft's other material): an empty box, the
+     * item's own row first and chosen, so its card says how to get it. The item itself is a
+     * recent search; its uses never are.
+     */
+    void showUses(String item) {
+        showUses(item, null);
+    }
+
+    /** The same, with the item's own stack for its picture (an item the index does not list). */
+    void showUses(String item, ItemStack stack) {
+        Entry e = ItemIndex.get().byName(item);
+        leaveUses();
+        usesStack = stack;
+        wanted = null;
+        if (box != null) {
+            box.setValue("");
+        } else {
+            typedBefore = "";
+        }
+        usesOf = e != null ? e.name() : item;
+        selName = null;
+        category = SearchCategory.ALL;
+        stat = null;
+        results.scroll = 0;
+        if (e != null) {
+            RecentSearches.get().add(e.key());
+        }
+    }
+
+    /**
+     * Shows a crafted item in place of the search: its one row, and its card with how it was most
+     * likely made, searched for in the background as the box window does.
+     */
+    void showMade(io.github.anilken.wynnlabs.crafting.HowMade.Target target, ItemStack stack) {
+        showUses(MadeCard.name(target), stack);
+        made = new BoxMadePanel(null, target);
+    }
+
+    /** The uses chip's ✕: back to the search. */
+    void clearUses() {
+        leaveUses();
+        selName = null;
+        results.scroll = 0;
     }
 
     /** The tab is shown: the box takes the keys. */
@@ -161,6 +236,10 @@ final class SearchTab extends MenuTab {
         menus.open = SearchMenus.NONE;
         drawer.close();
         card.closed();
+        if (made != null) {
+            leaveUses();                            // a crafted item's search does not run on behind the menu
+            selName = null;
+        }
     }
 
     // ---- the filters ----
@@ -185,11 +264,13 @@ final class SearchTab extends MenuTab {
         if (c != SearchCategory.STAT) {
             stat = null;
         }
+        leaveUses();
         results.scroll = 0;
     }
 
     void pickStat(String key) {
         stat = key;
+        leaveUses();
         if (key != null) {
             category = SearchCategory.STAT;
         }
@@ -474,7 +555,9 @@ final class SearchTab extends MenuTab {
             }
             case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
                 if (card.key() != null) {
-                    RecentSearches.get().add(card.key());
+                    if (InfoItems.recent(card.key())) {
+                        RecentSearches.get().add(card.key());
+                    }
                     card.pinEasiest();
                 }
                 return true;

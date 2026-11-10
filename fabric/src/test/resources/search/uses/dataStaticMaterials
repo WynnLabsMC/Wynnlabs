@@ -1,0 +1,210 @@
+{
+ "Copper Gem": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3544
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.gemCopper"
+   }
+  },
+  "internalName": "Refined Copper Gem",
+  "requirements": {
+   "level": 1
+  },
+  "subType": "mining",
+  "type": "material"
+ },
+ "Copper Ingot": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3573
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.ingotCopper"
+   }
+  },
+  "internalName": "Refined Copper Ingot",
+  "requirements": {
+   "level": 1
+  },
+  "subType": "mining",
+  "type": "material"
+ },
+ "Oak Paper": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3622
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.paperOak"
+   }
+  },
+  "internalName": "Refined Oak Paper",
+  "requirements": {
+   "level": 1
+  },
+  "subType": "woodcutting",
+  "type": "material"
+ },
+ "Koi Oil": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3700
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.oilKoi"
+   }
+  },
+  "internalName": "Refined Koi Oil",
+  "requirements": {
+   "level": 60
+  },
+  "subType": "fishing",
+  "type": "material"
+ },
+ "Cobalt Gem": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3701
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.gemCobalt"
+   }
+  },
+  "internalName": "Refined Cobalt Gem",
+  "requirements": {
+   "level": 60
+  },
+  "subType": "mining",
+  "type": "material"
+ },
+ "Millet Grains": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3702
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.grainsMillet"
+   }
+  },
+  "internalName": "Refined Millet Grains",
+  "requirements": {
+   "level": 60
+  },
+  "subType": "farming",
+  "type": "material"
+ },
+ "Dark Paper": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3703
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.paperDark"
+   }
+  },
+  "internalName": "Refined Dark Paper",
+  "requirements": {
+   "level": 60
+  },
+  "subType": "woodcutting",
+  "type": "material"
+ },
+ "Dark Planks": {
+  "chances": {
+   "TIER_1": 80,
+   "TIER_2": 10,
+   "TIER_3": 1
+  },
+  "emblem": "square",
+  "icon": {
+   "format": "attribute",
+   "value": {
+    "customModelData": {
+     "rangeDispatch": [
+      3704
+     ]
+    },
+    "id": "minecraft:potion",
+    "name": "profession.planksDark"
+   }
+  },
+  "internalName": "Refined Dark Wood",
+  "requirements": {
+   "level": 60
+  },
+  "subType": "woodcutting",
+  "type": "material"
+ }
+}

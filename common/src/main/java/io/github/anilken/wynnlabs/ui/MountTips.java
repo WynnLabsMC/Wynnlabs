@@ -35,6 +35,16 @@ public final class MountTips {
         if (mat == null) {
             return List.of();
         }
+        List<Component> out = new ArrayList<>();
+        for (Line line : lines(mat, 2)) {
+            out.add(Component.literal(L.t("wynnlabs.mounts.tip_gain", line.row(), line.name(), line.gains()))
+                    .withStyle(ChatFormatting.GREEN));
+        }
+        return out;
+    }
+
+    /** What a material would give the mounts last seen in a feeder, after their queues: the best {@code max}. */
+    static List<Line> lines(Material mat, int max) {
         List<Fed> mounts = new ArrayList<>();
         for (MountBook.Seen s : MountBook.all()) {
             if (s.fed() == null) {
@@ -46,12 +56,7 @@ public final class MountTips {
                 mounts.add(new Fed(s.fed().row(), first, m.queue().applyTo(m.stats())));
             }
         }
-        List<Component> out = new ArrayList<>();
-        for (Line line : texts(mat, mounts, 2)) {
-            out.add(Component.literal(L.t("wynnlabs.mounts.tip_gain", line.row(), line.name(), line.gains()))
-                    .withStyle(ChatFormatting.GREEN));
-        }
-        return out;
+        return texts(mat, mounts, max);
     }
 
     /** One line: the row, the mount's short name, its gains ("+9 Speed, +3 Acceleration"). */

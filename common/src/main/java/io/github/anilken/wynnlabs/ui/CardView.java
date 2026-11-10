@@ -15,8 +15,8 @@ import java.util.List;
  * the compass pins and the wiki load, and asks the view for the rest: the head (picture, name,
  * kind, status), the rows ("How do I get it" / "Where") with their words, the action chips and the
  * sections under the rows. Nothing here needs an {@link Entry}: a view of something that is not
- * in the index (a recipe an item goes into) implements it the same way. {@link SearchViews#card}
- * makes the view of a key.
+ * in the index (a recipe an item goes into: {@link UseCard}) implements it the same way.
+ * {@link SearchViews#card} makes the view of a key.
  */
 interface CardView {
 
@@ -38,6 +38,16 @@ interface CardView {
     /** The drawer's title on a small window: its kind in a word or two. */
     String title();
 
+    /** Whether the head has the button that copies the name (a thing of the game the player may paste). */
+    default boolean copyable() {
+        return true;
+    }
+
+    /** What a compass pin set from this card is called. */
+    default String pinName() {
+        return name();
+    }
+
     /** Chosen: what is worked out once per choice (what the player holds of it, its related items). */
     void select();
 
@@ -53,8 +63,18 @@ interface CardView {
 
     // ---- the rows ----
 
-    /** The rows' title: "How do I get it", "Where". */
+    /** Draws what stands over the rows (a craft's materials); returns the y under it. */
+    default int lead(GuiGraphics g, int x, int y, int w, int mx, int my) {
+        return y;
+    }
+
+    /** The rows' title: "How do I get it", "Where"; null: the card has no rows now, nothing of them is drawn. */
     String rowsTitle();
+
+    /** Whether the rows' title says how many there are ("2 sources"). */
+    default boolean rowsCounted() {
+        return true;
+    }
 
     /**
      * Its rows from where the player stands ({@code pos}: x and z, null out of the world), easiest

@@ -9,6 +9,7 @@ import io.github.anilken.wynnlabs.game.Professions;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Vault;
+import io.github.anilken.wynnlabs.model.ItemView;
 import io.github.anilken.wynnlabs.model.SkillKind;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 import net.minecraft.world.item.ItemStack;
@@ -91,6 +92,44 @@ public final class Crafting {
 
     public static WhatCanICraft.Stock stock() {
         return StockView.of(stacks(), Professions.levels());
+    }
+
+    /**
+     * How many of each ingredient and material the player holds, every tier together: {in the
+     * bag, in the bank pages this character can open} by {@link #heldKey}.
+     */
+    public static Map<String, int[]> held() {
+        GameState g = GameState.current();
+        Map<String, int[]> out = new HashMap<>();
+        for (ItemStack s : g.inventory()) {
+            if (s != null && !s.isEmpty()) {
+                int n = s.getCount();
+                g.view(s).ifPresent(v -> hold(out, v, 0, n));
+            }
+        }
+        for (String key : Vault.pageKeys()) {
+            if (!key.startsWith("acct:") && !key.startsWith("char:" + Profile.id() + ":")) {
+                continue;
+            }
+            for (Vault.Stored st : Vault.page(key)) {
+                if ("ingredient".equals(st.kind()) || "material".equals(st.kind())) {
+                    g.view(Vault.stackOf(st)).ifPresent(v -> hold(out, v, 1, st.count()));
+                }
+            }
+        }
+        return out;
+    }
+
+    private static void hold(Map<String, int[]> out, ItemView v, int place, int count) {
+        if (v.name() != null && count > 0 && (v.kind() == ItemView.Kind.INGREDIENT || v.kind() == ItemView.Kind.MATERIAL)) {
+            out.computeIfAbsent(heldKey(v.name()), k -> new int[2])[place] += count;
+        }
+    }
+
+    /** A name as {@link #held} keys it: lower case, a recipe's "Dark Planks" as the item's "Dark Plank". */
+    public static String heldKey(String name) {
+        String n = name.trim().toLowerCase(Locale.ROOT);
+        return n.endsWith(" planks") ? n.substring(0, n.length() - 1) : n;
     }
 
     /** The player's points per skill (assigned, gear, tomes, set bonus), in requirement order. */

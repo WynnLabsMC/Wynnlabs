@@ -41,8 +41,10 @@ final class SearchCardRows extends MenuPaint {
         for (Source s : rows) {
             places += s.hasPlace() ? 1 : 0;
         }
-        String count = L.n("wynnlabs.search.ways", rows.size());
-        Type.META.draw(g, font(), count, x + Type.LABEL.width(font(), title) + Theme.SP_3, y + 1, Theme.INK_3);
+        if (card.view.rowsCounted()) {
+            String count = L.n("wynnlabs.search.ways", rows.size());
+            Type.META.draw(g, font(), count, x + Type.LABEL.width(font(), title) + Theme.SP_3, y + 1, Theme.INK_3);
+        }
         if (places > 1 && GameState.current().running()) {
             boolean on = card.marks.all();
             String all = L.t("wynnlabs.search.mark_all");

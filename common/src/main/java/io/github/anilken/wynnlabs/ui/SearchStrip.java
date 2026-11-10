@@ -15,7 +15,8 @@ import java.util.Locale;
  * The search tab's second row and its title chips. The category strip: one hairline pill split
  * into All, Items, Mobs, Places, Quests, Stats, Services, each with its icon and count, the
  * picked one gold; when the row is narrow the others drop their words, then their counts. After
- * it the chosen stat as a chip with ✕, then the recent searches (where there is room), and on the
+ * it the chosen stat as a chip with ✕ (or the item, "Koi Oil ✕", while the list shows it and
+ * its uses), then the recent searches (where there is room), and on the
  * right "Filter ▾" with how many filters are on. On the title row: "Marked N ▾" (the map marks the
  * player kept), "Tracked items N ▾" and "Tracked N ▾" (the tracked mobs), each only when it has any.
  */
@@ -49,8 +50,10 @@ final class SearchStrip extends MenuPaint {
         tab.click(fx, y, fw, Ui.CHIP_H, () -> tab.menus.toggle(SearchMenus.FILTER));
         int room = fx - Theme.SP_4 - x;
         // the segments' words: all, then the picked one only, then no counts but the picked one's
+        // (the uses chip's ✕ is the way back to the search: the segments give it its room first)
+        int chip = tab.usesOf == null ? 0 : Ui.iconChipWidth(font(), "x", tab.usesOf, false) + Theme.SP_4;
         int mode = 0;
-        while (mode < 2 && width(result, mode) > room) {
+        while (mode < 2 && width(result, mode) > room - chip) {
             mode++;
         }
         int cx = x;
@@ -86,6 +89,19 @@ final class SearchStrip extends MenuPaint {
             if (cx + sw <= fx - Theme.SP_4) {
                 Ui.iconChip(g, font(), "x", s, false, cx, y, sw, false, mx, my);
                 tab.click(cx, y, sw, Ui.CHIP_H, () -> tab.pickStat(null));
+                cx += sw + Theme.SP_4;
+            }
+        }
+        if (tab.usesOf != null) {
+            // the item the list is about (how to get it, what it is used for); its ✕ goes back to the search
+            // (cut short on a narrow row rather than left out: the ✕ is the way back)
+            int left = fx - Theme.SP_4 - cx;
+            int words = left - Ui.iconChipWidth(font(), "x", "", false);
+            String s = words < Ui.CHIP_MIN ? "" : Type.BODY.fit(font(), tab.usesOf, words);
+            int sw = Ui.iconChipWidth(font(), "x", s, false);
+            if (!s.isEmpty() && sw <= left) {
+                Ui.iconChip(g, font(), "x", s, false, cx, y, sw, false, mx, my);
+                tab.click(cx, y, sw, Ui.CHIP_H, tab::clearUses);
                 cx += sw + Theme.SP_4;
             }
         }

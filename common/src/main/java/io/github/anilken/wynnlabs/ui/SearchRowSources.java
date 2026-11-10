@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.search.EmptyPage;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.Hit;
+import io.github.anilken.wynnlabs.search.InfoItems;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemMatch;
 import io.github.anilken.wynnlabs.search.SearchCategory;
@@ -12,6 +13,7 @@ import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceRank;
 import io.github.anilken.wynnlabs.search.SourceText;
+import io.github.anilken.wynnlabs.search.UseList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +21,8 @@ import java.util.Locale;
 
 /**
  * Where the search list's rows come from, each a list of {@link SearchRow}: the Stats category's
- * list of stats, the empty page's groups (the recent searches, the road map's missing pieces,
- * "More ↓") and the query's hits. The list stacks what they return.
+ * list of stats, the uses of an item, the empty page's groups (the recent searches, the road
+ * map's missing pieces, "More ↓") and the query's hits. The list stacks what they return.
  */
 final class SearchRowSources {
 
@@ -35,6 +37,45 @@ final class SearchRowSources {
         out.add(head(L.t("wynnlabs.search.cat.stat"), String.valueOf(stats.size())));
         for (ItemMatch.StatCount s : stats) {
             out.add(new SearchRow.StatRow(s.key(), SearchResultsPanel.statName(s.key()), L.n("wynnlabs.search.stat_items", s.items())));
+        }
+        return out;
+    }
+
+    /**
+     * An item and what it is used for: the item's own row first (the row the search would show,
+     * or the row of an item the index does not list; its card says how to get it), then "Crafted
+     * into" with a row a craft, an ingredient's
+     * professions and "Other uses" (feeding a mount), each group under its title with its count.
+     * An item with no use is that one row.
+     */
+    static List<SearchRow> uses(SearchTab tab, ItemIndex index, String item) {
+        List<SearchRow> out = new ArrayList<>();
+        if (tab.made != null) {
+            out.add(MadeCard.row(tab));             // a crafted item: its card says how it was made
+            return out;
+        }
+        Entry e = index.byName(item);
+        if (e != null) {
+            out.add(entry(tab, e, null, false));
+        } else if (InfoItems.of(item) != null) {
+            // a gathering tool, a ward, a rune: the item, and the tool it upgrades into
+            out.add(InfoCard.row(item, tab.usesStack, null));
+            SearchRow next = InfoCard.nextRow(item);
+            if (next != null) {
+                out.add(head(L.t("wynnlabs.search.info_next"), "1"));
+                out.add(next);
+            }
+        }
+        for (UseList.Group group : UseList.groups(UseStock.lines(item))) {
+            String title = switch (group.kind()) {
+                case CRAFT -> "wynnlabs.search.uses_crafted";
+                case PROFESSION -> "wynnlabs.search.uses_ingredient";
+                case FEED -> "wynnlabs.search.uses_other";
+            };
+            out.add(head(L.t(title), String.valueOf(group.lines().size())));
+            for (UseList.Line l : group.lines()) {
+                out.add(UseCard.row(item, l));
+            }
         }
         return out;
     }
