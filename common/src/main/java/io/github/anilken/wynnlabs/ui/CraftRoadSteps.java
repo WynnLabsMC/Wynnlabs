@@ -46,6 +46,8 @@ final class CraftRoadSteps {
     // opened, and the spot the compass was last set to from each material's list
     private Set<String> openSpots;
     private Map<String, Area> picked;
+    /** The step opened by a click (its key), or null for the step the road is on. */
+    private String openStep;
 
     CraftRoadSteps(CraftingTab tab, CraftRoadPanel panel) {
         this.tab = tab;
@@ -64,6 +66,12 @@ final class CraftRoadSteps {
             return y + Type.MUTED.lineHeight;
         }
         int curBand = steps.get(cur).fromLevel();
+        int open = cur;
+        for (int k = 0; openStep != null && k < steps.size(); k++) {
+            if (steps.get(k).key().equals(openStep)) {
+                open = k;
+            }
+        }
         int cy = y;
         int i = 0;
         while (i < steps.size()) {
@@ -85,10 +93,10 @@ final class CraftRoadSteps {
                 cy = folded(g, x, cy, w, band, to, mats, n, mx, my) + Theme.SP_3;
                 continue;
             }
-            if (i == cur) {
+            if (i == open) {
                 cy += Theme.SP_3;                   // the card reaches SP_3 above its row: plain page before it
             }
-            cy = step(g, s, i + 1, i == cur, x, cy, w, level, mx, my) + (i == cur ? 2 * Theme.SP_3 + Theme.SP_2 : Theme.SP_3);
+            cy = step(g, s, i + 1, i == open, x, cy, w, level, mx, my) + (i == open ? 2 * Theme.SP_3 + Theme.SP_2 : Theme.SP_3);
             i++;
         }
         return cy;
@@ -182,6 +190,10 @@ final class CraftRoadSteps {
         }
         if (now) {
             current(g, s, tx, ly + Type.META.lineHeight + Theme.SP_3, x + w - tx, mx, my);
+        } else if (!done) {
+            // a click opens this step's card (its spots and compass) in place of the current one
+            String key = s.key();
+            tab.acts.add(new Act(x, y, r - x, rowH, () -> openStep = key, null, null));
         }
         if (!spotRows.isEmpty()) {
             spots(g, s, spotRows, tx, ly + Type.META.lineHeight + Theme.SP_3 + Ui.BUTTON_H + Theme.SP_3, x + w - tx, mx, my);
