@@ -322,21 +322,17 @@ final class BoxStatsPanel {
     // ---- wards ----
 
     /** The seven wards: raid ones first, then lootrun ones, each with its colour. */
-    private static final String[] WARDS = {"Yellow", "Red", "Blue", "Purple", "Green", "Orange", "Pink"};
+    private static final String[] WARDS = io.github.anilken.wynnlabs.search.InfoItems.WARDS.toArray(new String[0]);
     private static final int[] WARD_INK = {0xFFC9A227, 0xFFB8322A, 0xFF2F6FBF, 0xFF6A4BB0, 0xFF4E8A2A, 0xFFC8661E, 0xFFC0507E};
 
     /** Whether a name is one of the seven wards ("Blue Ward"). */
     static boolean ward(String name) {
-        if (name == null || !name.endsWith(" Ward")) {
-            return false;
-        }
-        String colour = name.substring(0, name.length() - 5);
-        for (String w : WARDS) {
-            if (w.equals(colour)) {
-                return true;
-            }
-        }
-        return false;
+        return io.github.anilken.wynnlabs.search.InfoItems.ward(name);
+    }
+
+    /** A ward's picture when it was seen this session, else null. */
+    static net.minecraft.world.item.ItemStack wardIcon(String name) {
+        return WARD_ICONS.get(name);
     }
 
     /**
@@ -657,7 +653,7 @@ final class BoxStatsPanel {
     }
 
     /** Where a way is done: its dungeon, the nearest Item Upgrader or Tool Merchant; null when the item list knows none. */
-    private static io.github.anilken.wynnlabs.search.Area wayPlace(io.github.anilken.wynnlabs.crafting.ToolWays.Way way) {
+    static io.github.anilken.wynnlabs.search.Area wayPlace(io.github.anilken.wynnlabs.crafting.ToolWays.Way way) {
         double[] pos = SearchTab.position();
         io.github.anilken.wynnlabs.search.Area best = null;
         double bd = Double.MAX_VALUE;

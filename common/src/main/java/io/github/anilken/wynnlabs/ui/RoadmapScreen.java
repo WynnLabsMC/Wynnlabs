@@ -126,10 +126,24 @@ public final class RoadmapScreen extends Screen {
 
     /** The menu on the search tab showing what {@code item} is used for; Esc goes back to {@code parent} when not null. */
     public static RoadmapScreen uses(String item, Screen parent) {
+        return uses(item, parent, null);
+    }
+
+    /** The same, with the item's own stack as its picture where the index has none (a tool, a ward, a rune). */
+    public static RoadmapScreen uses(String item, Screen parent, ItemStack stack) {
         RoadmapScreen s = new RoadmapScreen();
         s.tab = TAB_SEARCH;
         s.parent = parent;
-        s.search.showUses(item);
+        s.search.showUses(item, stack);
+        return s;
+    }
+
+    /** The menu on the search tab showing how a crafted item was made; Esc goes back to {@code parent} when not null. */
+    public static RoadmapScreen made(io.github.anilken.wynnlabs.crafting.HowMade.Target target, ItemStack stack, Screen parent) {
+        RoadmapScreen s = new RoadmapScreen();
+        s.tab = TAB_SEARCH;
+        s.parent = parent;
+        s.search.showMade(target, stack);
         return s;
     }
 

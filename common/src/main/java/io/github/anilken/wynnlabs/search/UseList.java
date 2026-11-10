@@ -77,14 +77,6 @@ public final class UseList {
         return out;
     }
 
-    /**
-     * Whether the uses key opens its view on what is under the mouse: any item the index knows
-     * (how to get it is worth the look even with no use), or a name the recipes or the mounts use.
-     */
-    public static boolean opens(boolean knownItem, Uses.Result uses) {
-        return knownItem || !uses.empty();
-    }
-
     /** The line with this list key, or null. */
     public static Line find(List<Line> lines, String key) {
         for (Line l : lines) {

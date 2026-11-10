@@ -5,6 +5,7 @@ import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.search.EmptyPage;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.Hit;
+import io.github.anilken.wynnlabs.search.InfoItems;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemMatch;
 import io.github.anilken.wynnlabs.search.SearchCategory;
@@ -41,16 +42,29 @@ final class SearchRowSources {
     }
 
     /**
-     * An item and what it is used for: the item's own row first (the row the search would show;
-     * its card says how to get it), then "Crafted into" with a row a craft, an ingredient's
+     * An item and what it is used for: the item's own row first (the row the search would show,
+     * or the row of an item the index does not list; its card says how to get it), then "Crafted
+     * into" with a row a craft, an ingredient's
      * professions and "Other uses" (feeding a mount), each group under its title with its count.
      * An item with no use is that one row.
      */
     static List<SearchRow> uses(SearchTab tab, ItemIndex index, String item) {
         List<SearchRow> out = new ArrayList<>();
+        if (tab.made != null) {
+            out.add(MadeCard.row(tab));             // a crafted item: its card says how it was made
+            return out;
+        }
         Entry e = index.byName(item);
         if (e != null) {
             out.add(entry(tab, e, null, false));
+        } else if (InfoItems.of(item) != null) {
+            // a gathering tool, a ward, a rune: the item, and the tool it upgrades into
+            out.add(InfoCard.row(item, tab.usesStack, null));
+            SearchRow next = InfoCard.nextRow(item);
+            if (next != null) {
+                out.add(head(L.t("wynnlabs.search.info_next"), "1"));
+                out.add(next);
+            }
         }
         for (UseList.Group group : UseList.groups(UseStock.lines(item))) {
             String title = switch (group.kind()) {

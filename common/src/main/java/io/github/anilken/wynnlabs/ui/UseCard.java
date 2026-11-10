@@ -331,19 +331,23 @@ final class UseCard extends MenuPaint implements CardView {
     /** The nearest station of the profession: the index's (its card lists them all), else the map's. */
     @Override
     public List<Source> rows(double[] pos) {
-        station = null;
-        String prof = line.profession();
-        if (prof == null) {
-            return List.of();
-        }
+        Station s = line.profession() == null ? null : station(line.profession(), pos);
+        station = s == null ? null : s.entry();
+        return s == null ? List.of() : List.of(s.source());
+    }
+
+    /** A profession's station as a card row, and its entry in the index (null: only the map knows it). */
+    record Station(Source source, Entry entry) {}
+
+    /** The nearest station of a profession ("jeweling") from {@code pos}, or null when none is known. */
+    static Station station(String prof, double[] pos) {
         String type = "profession:" + ("armouring".equals(prof) ? "armoring" : prof);    // the map's spelling
         for (Entry e : ItemIndex.get().all()) {
             if (e.kind() == Kind.SERVICE && type.equals(e.type())) {
                 List<Area> near = SourceRank.nearest(e.places(), pos, 1);
                 if (!near.isEmpty()) {
-                    station = e;
-                    return List.of(new Source(Source.Type.MERCHANT, e.name(), List.of(near.get(0)), 0, Things.badge(e), 0, null, 0, 0,
-                            null));
+                    return new Station(new Source(Source.Type.MERCHANT, e.name(), List.of(near.get(0)), 0, Things.badge(e), 0, null,
+                            0, 0, null), e);
                 }
             }
         }
@@ -358,13 +362,13 @@ final class UseCard extends MenuPaint implements CardView {
                 }
             }
             if (best != null) {
-                return List.of(new Source(Source.Type.OTHER, null, List.of(Area.point(best[0], best[1], best[2])), 0, "hammer", 0,
-                        null, 0, 0, null));
+                return new Station(new Source(Source.Type.OTHER, null, List.of(Area.point(best[0], best[1], best[2])), 0, "hammer",
+                        0, null, 0, 0, null), null);
             }
         } catch (RuntimeException ignored) {
             // no map to ask
         }
-        return List.of();
+        return null;
     }
 
     @Override

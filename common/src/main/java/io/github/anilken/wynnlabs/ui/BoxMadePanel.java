@@ -122,6 +122,32 @@ final class BoxMadePanel {
         });
     }
 
+    // ---- for the Search tab's card of a crafted item (made with no window: nothing here draws then) ----
+
+    /** The answer so far (null before the first layout), with the prices of what it shows read. */
+    HowMade.Answer answer() {
+        HowMade.Answer a = answer;
+        readPrices(a);
+        return a;
+    }
+
+    boolean done() {
+        return done;
+    }
+
+    /** The recipe of the item's type and level, or null when there is none. */
+    CraftData.Recipe recipe() {
+        return recipe;
+    }
+
+    HowMade.Cost ingredientsCost(HowMade.Found f) {
+        return HowMade.ingredientsCost(f.slots(), this::price);
+    }
+
+    HowMade.Cost materialsCost(HowMade.Found f) {
+        return HowMade.materialsCost(recipe, f.tier1(), f.tier2(), this::price);
+    }
+
     /** The window closed: a search still running stops. */
     void closed() {
         if (!done) {
@@ -396,7 +422,7 @@ final class BoxMadePanel {
     }
 
     /** "1.2k", "1.2k +?" (some prices unknown), or "?" (none known; never blocks). */
-    private static String cost(HowMade.Cost c) {
+    static String cost(HowMade.Cost c) {
         if (c == null) {
             return "?";
         }
@@ -625,7 +651,7 @@ final class BoxMadePanel {
     private String doneWhat;
     private long doneAt;
 
-    private RecipeCode.Recipe recipeOf(HowMade.Found f) {
+    RecipeCode.Recipe recipeOf(HowMade.Found f) {
         return new RecipeCode.Recipe(f.recipe().type(), f.recipe().minLevel(), f.tier1(), f.tier2(), Craft.Speed.NORMAL, f.names());
     }
 

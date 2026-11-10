@@ -97,7 +97,7 @@ public class BoxMadePreview implements FabricClientGameTest {
     }
 
     /** What a crafted item made from this layout shows: each identification at its range's middle. */
-    private static HowMade.Target target(String name, String type, String recipeId, int t1, int t2, Map<String, Ingredient> by,
+    static HowMade.Target target(String name, String type, String recipeId, int t1, int t2, Map<String, Ingredient> by,
                                          String... names) {
         CraftData.Recipe recipe = CraftData.byId(recipeId);
         Ingredient[] placed = new Ingredient[names.length];

@@ -187,6 +187,12 @@ final class SearchPreview {
                 prices.put("Koi Oil T1", new io.github.anilken.wynnlabs.market.Prices.Price(38, null, null, null, null, now, null, null));
                 prices.put("Cobalt Gem T1", new io.github.anilken.wynnlabs.market.Prices.Price(1_250, null, null, null, null, now, null,
                         null));
+                Object[][] more = {{"Cobalt Rod T8", 9_800}, {"Silver Rod T7", 4_200}, {"Blue Ward", 310_000}, {"Yellow Ward", 262_000},
+                    {"Red Ward", 240_000}, {"Nii Rune", 2_100}, {"Broken Decrepit Sewers Key", 600}, {"Corrupted Decrepit Sewers Key", 11_000}};
+                for (Object[] p : more) {
+                    prices.put((String) p[0], new io.github.anilken.wynnlabs.market.Prices.Price((Integer) p[1], null, null, null, null, now,
+                            null, null));
+                }
             } catch (ReflectiveOperationException e) {
                 throw new IllegalStateException(e);
             }
@@ -219,6 +225,7 @@ final class SearchPreview {
             use(ctx, "Bear Mask", true);
         }
         usesShot(ctx, out, "search-uses-gear", !compact);
+        known(ctx, out, compact);
         if (!compact) {
             // an item's own card: its "Uses" section and "All uses", at the card's end
             tab(ctx, t -> t.show("Lucky Rabbit's Foot"));
@@ -226,6 +233,61 @@ final class SearchPreview {
             usesShot(ctx, out, "search-uses-section", true);
         }
         ctx.runOnClient(mc -> UseStock.preview = null);
+    }
+
+    /**
+     * Items the index does not list: a gathering tool (the game's tools made up as the Crafting
+     * tab's preview does, a Silver Rod T7 in the bag), a ward, a raid rune, and a crafted scroll
+     * whose making is searched for as in the box window's preview.
+     */
+    private static void known(ClientGameTestContext ctx, Path out, boolean compact) {
+        ctx.runOnClient(mc -> {
+            String[] mats = {"Stone", "Copper", "Granite", "Gold", "Sandstone", "Iron", "Silver", "Cobalt", "Kanderstone", "Diamond",
+                "Molten", "Voidstone", "Dernic"};
+            Object[][] kinds = {{"mining", "Pickaxe", net.minecraft.world.item.Items.IRON_PICKAXE},
+                {"fishing", "Rod", net.minecraft.world.item.Items.FISHING_ROD}};
+            java.util.List<io.github.anilken.wynnlabs.model.GatherTool> all = new java.util.ArrayList<>();
+            for (Object[] k : kinds) {
+                for (int t = 1; t <= 13; t++) {
+                    all.add(new io.github.anilken.wynnlabs.model.GatherTool(mats[t - 1] + " " + k[1] + " T" + t, (String) k[0], t,
+                            t == 1 ? 1 : (t - 1) * 10, 1 + t, -1, 100 + 50 * t,
+                            new net.minecraft.world.item.ItemStack((net.minecraft.world.item.Item) k[2])));
+                }
+            }
+            CraftTools.previewTools = all;
+            CraftTools.previewHeld = java.util.List.of(new io.github.anilken.wynnlabs.model.GatherTool("Silver Rod T7", "fishing", 7, 60,
+                    8, 210, 450, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.FISHING_ROD)));
+        });
+        for (String[] item : new String[][] {{"Cobalt Rod T8", "tool"}, {"Blue Ward", "ward"}, {"Nii Rune", "rune"}}) {
+            tab(ctx, t -> t.showUses(item[0]));
+            if (compact) {
+                usesShot(ctx, out, "search-uses-" + item[1] + "-list", true);
+                use(ctx, io.github.anilken.wynnlabs.search.InfoItems.key(item[0]), true);
+            }
+            usesShot(ctx, out, "search-uses-" + item[1], !compact);
+        }
+        // a crafted scroll, as the box window's preview makes one
+        ctx.runOnClient(mc -> CraftingTab.previewIngredients = CraftPreview.ingredients());
+        java.util.Map<String, io.github.anilken.wynnlabs.crafting.Ingredient> by = new java.util.HashMap<>();
+        CraftPreview.ingredients().forEach(i -> by.put(i.name(), i));
+        io.github.anilken.wynnlabs.crafting.HowMade.Target scroll = BoxMadePreview.target("Scroll of Dusk", "scroll", "Scroll80-83", 2, 1, by,
+                "Essence Of Dusk", "Essence Of Dusk", "Haleva Plant", "Altered Ash");
+        tab(ctx, t -> t.showMade(scroll, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.PAPER)));
+        ctx.waitFor(mc -> {
+            SearchTab t = ((RoadmapScreen) mc.screen).search;
+            return t.made == null || t.made.done();
+        }, 20 * 20);
+        ctx.waitTicks(5);
+        if (compact) {
+            usesShot(ctx, out, "search-uses-crafted-list", true);
+            use(ctx, MadeCard.key(scroll), true);
+        }
+        usesShot(ctx, out, "search-uses-crafted", !compact);
+        tab(ctx, SearchTab::clearUses);
+        ctx.runOnClient(mc -> {
+            CraftTools.previewTools = null;
+            CraftTools.previewHeld = null;
+        });
     }
 
     /** Chooses a use's row: its card beside the list, or in the drawer on a small window. */

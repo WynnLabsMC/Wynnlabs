@@ -3,10 +3,14 @@ package io.github.anilken.wynnlabs.ui;
 import io.github.anilken.wynnlabs.core.Platform;
 import io.github.anilken.wynnlabs.game.Wyn;
 import io.github.anilken.wynnlabs.mixin.ContainerHoverAccessor;
+import io.github.anilken.wynnlabs.crafting.HowMade;
+import io.github.anilken.wynnlabs.game.WynntilsItems;
+import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.search.Entry;
+import io.github.anilken.wynnlabs.search.InfoItems;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemNames;
-import io.github.anilken.wynnlabs.search.UseList;
+import io.github.anilken.wynnlabs.search.UseTarget;
 import io.github.anilken.wynnlabs.search.Uses;
 
 import com.mojang.blaze3d.platform.InputConstants;
@@ -18,6 +22,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.ItemStack;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -26,10 +31,12 @@ import org.lwjgl.glfw.GLFW;
  * any container screen (bank, Trade Market, chests, the inventory) or Wynntils' guides it opens
  * the tab on that item, and closing the menu goes back to that screen. Never while typing.
  *
- * <p>The uses key (default U, rebindable) is its sibling: over any item the index knows it opens
- * the tab on that item with what it is used for under it (a material's crafts, an ingredient's
- * professions, mount feed), so how to get it and what to do with it are one look; over anything
- * else, and in the world, the press is not ours and goes on untouched.
+ * <p>The uses key (default U, rebindable) is its sibling, and never dead over an item: an item
+ * the index knows opens with what it is used for under it (a material's crafts, an ingredient's
+ * professions, mount feed), so how to get it and what to do with it are one look; a gathering
+ * tool, a ward or a rune opens on its own card; a crafted item on how it was made; anything else
+ * on the search for its name. With nothing under the mouse, and in the world, the press is not
+ * ours and goes on untouched.
  */
 public final class SearchKey {
 
@@ -81,8 +88,8 @@ public final class SearchKey {
 
     /**
      * A press while a screen is open: over an item, the search tab opens on it (the search key) or
-     * on it and what it is used for (the uses key, for any item the index knows); true when the
-     * press was used (the screen then never sees it).
+     * on it and what it is used for (the uses key); true when the press was used (the screen then
+     * never sees it).
      */
     public static boolean onScreenKey(Screen screen, KeyEvent event) {
         boolean search = matches(event);
@@ -98,20 +105,56 @@ public final class SearchKey {
         ItemIndex index = ItemIndex.get();
         Entry e = ItemNames.find(index, hover);
         String name = e != null ? e.name() : ItemNames.clean(hover);
+        if (name.isEmpty() && uses) {
+            name = hover.strip();
+        }
         if (name.isEmpty()) {
             return false;
         }
         if (uses) {
-            if (!UseList.opens(e != null && e.item(), e != null ? Uses.of(e) : Uses.of(name))) {
-                return false;                       // not an item we know: the key is the screen's
+            // never a dead key over an item: a crafted one opens on how it was made, an item we
+            // know on its card and uses, anything else on the search for its name
+            ItemStack stack = hoveredStack(screen);
+            HowMade.Target made = null;
+            if (stack != null) {
+                try {
+                    made = WynntilsItems.craftedTarget(stack);
+                    if (made == null && e == null && InfoItems.of(name) == null) {
+                        // the name as the market has it ("Cobalt Rod T8"), when the hover name hides it
+                        String market = WynntilsItems.view(stack).map(v -> Prices.key(v, v.name())).orElse(null);
+                        if (InfoItems.of(market) != null) {
+                            name = market;
+                        }
+                    }
+                } catch (Throwable ignored) {
+                    // the item could not be read: its name alone decides
+                }
             }
             swallowNextChar();
-            Minecraft.getInstance().setScreen(RoadmapScreen.uses(name, screen));
+            ItemStack icon = stack == null ? null : stack.copy();
+            RoadmapScreen open;
+            if (made != null) {
+                open = RoadmapScreen.made(made, icon, screen);
+            } else if (UseTarget.of(e != null && e.item(), e != null ? Uses.of(e) : Uses.of(name), name) == UseTarget.SEARCH) {
+                open = RoadmapScreen.search(name, screen);
+            } else {
+                open = RoadmapScreen.uses(name, screen, icon);
+            }
+            Minecraft.getInstance().setScreen(open);
             return true;
         }
         swallowNextChar();
         Minecraft.getInstance().setScreen(RoadmapScreen.search(name, screen));
         return true;
+    }
+
+    /** The stack under the mouse in a container screen, or null (a guide's item has none to read). */
+    private static ItemStack hoveredStack(Screen screen) {
+        if (screen instanceof AbstractContainerScreen<?> c) {
+            Slot slot = ((ContainerHoverAccessor) c).wynnlabs$hoveredSlot();
+            return slot == null || !slot.hasItem() ? null : slot.getItem();
+        }
+        return null;
     }
 
     /** The name of the item under the mouse, or null. */

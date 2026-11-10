@@ -1,6 +1,7 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.search.Entry;
+import io.github.anilken.wynnlabs.search.InfoItems;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemMatch;
 import io.github.anilken.wynnlabs.search.SearchCategory;
@@ -50,6 +51,12 @@ final class SearchViews {
         if (UseKey.isUse(key)) {
             return UseCard.of(card, key);           // a use of an item: nothing of the index
         }
+        if (key.startsWith(InfoItems.MADE)) {
+            return MadeCard.of(card, key);          // a crafted item: how it was made
+        }
+        if (InfoItems.name(key) != null) {
+            return InfoCard.of(card, key);          // a gathering tool, a ward, a rune
+        }
         Entry e = ItemIndex.get().byKey(key);
         if (e == null) {
             return null;
@@ -65,6 +72,9 @@ final class SearchViews {
         UseKey use = UseKey.parse(key);
         if (use != null) {
             return UseCard.name(use);
+        }
+        if (InfoItems.name(key) != null) {
+            return InfoItems.name(key);
         }
         Entry e = ItemIndex.get().byKey(key);
         return e != null ? e.name() : key.substring(key.indexOf(':') + 1);

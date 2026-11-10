@@ -127,13 +127,10 @@ class UseListTest {
     }
 
     @Test
-    void anItemWithNoUseHasNoGroupButStillOpens() {
+    void anItemWithNoUseHasNoGroup() {
         Uses.Result mask = Uses.of("Bear Mask");
         assertTrue(mask.empty());
         assertTrue(UseList.groups(UseList.of(mask, n -> 0, p -> 0)).isEmpty());
-        assertTrue(UseList.opens(true, mask));              // an item the index knows: how to get it
-        assertFalse(UseList.opens(false, mask));            // not an item, no use: the key is not ours
-        assertTrue(UseList.opens(false, Uses.of("Koi Oil")));
     }
 
     @Test

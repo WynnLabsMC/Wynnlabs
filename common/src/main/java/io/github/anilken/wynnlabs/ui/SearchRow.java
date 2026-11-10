@@ -6,8 +6,8 @@ import io.github.anilken.wynnlabs.search.RecentSearches;
 import net.minecraft.client.gui.GuiGraphics;
 
 /**
- * One row of the search list: a group's title, an entry, a stat, a use of an item, or the empty
- * page's "More ↓".
+ * One row of the search list: a group's title, an entry, a stat, a use of an item, an item the
+ * index does not list, or the empty page's "More ↓".
  * Each knows its key, whether it can be the list's choice, how tall it is and how to draw itself
  * (its click areas with it), so the list only stacks rows and finds the chosen one by key; a row
  * kind without an {@link Entry} needs nothing from the list.
@@ -177,6 +177,47 @@ sealed interface SearchRow {
             int ink = f.over(x, y, w) && !chosen ? Theme.LINK : Theme.INK;
             boolean compact = f.compact();
             text(g, f, x, y, w, 0, name, ink, meta, right, rightInk, () -> {
+                tab.selName = key;
+                if (compact) {
+                    tab.openDrawer(key);
+                }
+            });
+        }
+    }
+
+    /**
+     * An item the index does not list (a gathering tool, a ward, a rune, a crafted item): its own
+     * picture when there is one ({@code stack}), else its kind's badge, its name and a META line.
+     * The choice opens its card; never a recent search.
+     */
+    record InfoRow(String key, KindBadge badge, net.minecraft.world.item.ItemStack stack, String name, int nameInk, String meta,
+                   String right, int rightInk) implements SearchRow {
+        @Override
+        public boolean pickable() {
+            return true;
+        }
+
+        @Override
+        public int height() {
+            return SearchResultsPanel.ROW;
+        }
+
+        @Override
+        public void draw(GuiGraphics g, Frame f, int x, int y, int w, boolean chosen) {
+            SearchTab tab = f.list().tab;
+            int sy = lit(g, x, y, w, chosen);
+            boolean hover = f.over(x, y, w);
+            if (stack != null && !stack.isEmpty()) {
+                Kit.slot(g, x, sy, SLOT, 0);
+                g.renderItem(stack, x + (SLOT - 16) / 2, sy + (SLOT - 16) / 2);
+                if (hover && f.mx() < x + SLOT) {
+                    f.list().menu.hits.add(new MenuHit(x, sy, SLOT, SLOT, stack, null, null));
+                }
+            } else {
+                Kit.kindBadge(g, x, sy, SLOT, badge);
+            }
+            boolean compact = f.compact();
+            text(g, f, x, y, w, 0, name, hover && !chosen ? Theme.LINK : nameInk, meta, right, rightInk, () -> {
                 tab.selName = key;
                 if (compact) {
                     tab.openDrawer(key);

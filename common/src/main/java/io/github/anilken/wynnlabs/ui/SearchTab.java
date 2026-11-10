@@ -16,7 +16,7 @@ import io.github.anilken.wynnlabs.search.RecentSearches;
 import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.SearchWorker;
-import io.github.anilken.wynnlabs.search.UseKey;
+import io.github.anilken.wynnlabs.search.InfoItems;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -72,6 +72,10 @@ final class SearchTab extends MenuTab {
     String stat;
     /** The item the list shows with its uses under it, in place of the search (null: the search). */
     String usesOf;
+    /** That item's own stack when the uses key was pressed over it (its picture where the index has none), else null. */
+    ItemStack usesStack;
+    /** While the item is a crafted one: the search for how it was made, running or done; else null. */
+    BoxMadePanel made;
     /** 0: every level, 1: up to mine, 2: mine and the ten below. */
     int levelMode;
     boolean myClass;
@@ -113,8 +117,18 @@ final class SearchTab extends MenuTab {
     private void typed(String text) {
         results.scroll = 0;
         if (usesOf != null && !text.isEmpty()) {
-            usesOf = null;
+            leaveUses();
             selName = null;
+        }
+    }
+
+    /** The list is the search again: the item, its picture and a crafted item's search go. */
+    private void leaveUses() {
+        usesOf = null;
+        usesStack = null;
+        if (made != null) {
+            made.closed();
+            made = null;
         }
     }
 
@@ -150,7 +164,7 @@ final class SearchTab extends MenuTab {
         selName = key;
         category = SearchCategory.ALL;
         stat = null;
-        usesOf = null;
+        leaveUses();
         if (menu.layout != null && menu.layout.compact()) {
             openDrawer(key);
         }
@@ -163,7 +177,14 @@ final class SearchTab extends MenuTab {
      * recent search; its uses never are.
      */
     void showUses(String item) {
+        showUses(item, null);
+    }
+
+    /** The same, with the item's own stack for its picture (an item the index does not list). */
+    void showUses(String item, ItemStack stack) {
         Entry e = ItemIndex.get().byName(item);
+        leaveUses();
+        usesStack = stack;
         wanted = null;
         if (box != null) {
             box.setValue("");
@@ -180,9 +201,18 @@ final class SearchTab extends MenuTab {
         }
     }
 
+    /**
+     * Shows a crafted item in place of the search: its one row, and its card with how it was most
+     * likely made, searched for in the background as the box window does.
+     */
+    void showMade(io.github.anilken.wynnlabs.crafting.HowMade.Target target, ItemStack stack) {
+        showUses(MadeCard.name(target), stack);
+        made = new BoxMadePanel(null, target);
+    }
+
     /** The uses chip's ✕: back to the search. */
     void clearUses() {
-        usesOf = null;
+        leaveUses();
         selName = null;
         results.scroll = 0;
     }
@@ -206,6 +236,10 @@ final class SearchTab extends MenuTab {
         menus.open = SearchMenus.NONE;
         drawer.close();
         card.closed();
+        if (made != null) {
+            leaveUses();                            // a crafted item's search does not run on behind the menu
+            selName = null;
+        }
     }
 
     // ---- the filters ----
@@ -230,13 +264,13 @@ final class SearchTab extends MenuTab {
         if (c != SearchCategory.STAT) {
             stat = null;
         }
-        usesOf = null;
+        leaveUses();
         results.scroll = 0;
     }
 
     void pickStat(String key) {
         stat = key;
-        usesOf = null;
+        leaveUses();
         if (key != null) {
             category = SearchCategory.STAT;
         }
@@ -521,7 +555,7 @@ final class SearchTab extends MenuTab {
             }
             case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
                 if (card.key() != null) {
-                    if (!UseKey.isUse(card.key())) {
+                    if (InfoItems.recent(card.key())) {
                         RecentSearches.get().add(card.key());
                     }
                     card.pinEasiest();
