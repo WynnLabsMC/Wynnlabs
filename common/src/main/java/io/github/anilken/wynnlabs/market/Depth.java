@@ -23,6 +23,8 @@ public final class Depth {
     private static final double WALL = 2.0;
     /** ...and the cheap ones at most this share of everything listed. */
     private static final double FEW = 0.10;
+    /** Strays: the cheapest listings that together are at most this share of everything listed. */
+    private static final double STRAY = 0.02;
 
     private Depth() {}
 
@@ -63,22 +65,22 @@ public final class Depth {
     }
 
     /**
-     * The price to go by: the lowest, or when only a few sit there before a wall, the first price
-     * past them (one cheap stray listing does not set a stack's price). 0 for an empty ladder.
+     * The price to go by: the cheapest price that real stock sits at. The cheapest listings that
+     * together are at most a fiftieth of everything listed are strays and are passed over, so one
+     * or two cheap leftovers do not set a stack's price. 0 for an empty ladder.
      */
     public static int price(List<Step> ladder) {
-        if (ladder.isEmpty()) {
-            return 0;
-        }
-        int lowest = ladder.get(0).price();
-        if (fewCheap(ladder) == 0) {
-            return lowest;
-        }
+        long all = 0;
         for (Step s : ladder) {
-            if (s.price() > lowest * SAME) {
+            all += s.amount();
+        }
+        long upTo = 0;
+        for (Step s : ladder) {
+            upTo += s.amount();
+            if (upTo > all * STRAY) {
                 return s.price();
             }
         }
-        return lowest;
+        return 0;
     }
 }

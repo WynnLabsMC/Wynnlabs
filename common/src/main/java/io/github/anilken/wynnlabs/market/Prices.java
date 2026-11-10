@@ -426,6 +426,8 @@ public final class Prices {
     private static final java.util.concurrent.atomic.AtomicInteger LISTINGS_PENDING = new java.util.concurrent.atomic.AtomicInteger();
     private static final java.util.Set<String> QUEUED = ConcurrentHashMap.newKeySet();
     static final Map<String, Long> MISSES = new ConcurrentHashMap<>();
+    /** Names whose listings came in stacks: their price is read off the whole ladder, not one listing. */
+    private static final java.util.Set<String> STACKED = ConcurrentHashMap.newKeySet();
     /** Names whose last request got no answer (a rate limit, a server error): asked again after {@link #RETRY_MS}. */
     private static final Map<String, Long> FAILS = new ConcurrentHashMap<>();
     private static final long RETRY_MS = 2 * 60 * 1000L;
@@ -779,7 +781,8 @@ public final class Prices {
             }
         }
         if (stacked) {
-            // a stackable's price: a few cheap strays before a wall of dearer stacks are skipped
+            // a stackable's price: the few cheap strays under the real stock are skipped
+            STACKED.add(name);
             java.util.List<Depth.Step> ladder = new java.util.ArrayList<>();
             stacks.forEach((pr, a) -> ladder.add(new Depth.Step(pr, a)));
             int real = Depth.price(ladder);
@@ -1021,7 +1024,8 @@ public final class Prices {
      * A listing seen on the Trade Market screen at {@code price} each: the item is listed now.
      * Wynnventory only learns of a listing when someone with it looks, so its "no listings" can
      * trail the market by hours. A price that was history gets this listing as its lowest; a
-     * current one keeps the cheaper of the two.
+     * current one keeps the cheaper of the two, except a stackable's, whose price is the stock's
+     * and not one cheap listing's.
      */
     public static void seenListed(String name, boolean unidentified, int price) {
         if (!installed() || price <= 0) {
@@ -1034,7 +1038,7 @@ public final class Prices {
         Integer unidLow = history ? null : old.unidLowest();
         if (unidentified) {
             unidLow = unidLow == null ? price : Math.min(unidLow, price);
-        } else {
+        } else if (low == null || !(STACKED.contains(key) || hasTier(key))) {
             low = low == null ? price : Math.min(low, price);
         }
         long now = System.currentTimeMillis();

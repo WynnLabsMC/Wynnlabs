@@ -34,7 +34,8 @@ class DepthTest {
     void aStrayCheapListingDoesNotSetThePrice() {
         // Koi Oil: 1 at 1EB 3E, then 29 at 3EB 30E and thousands at 5EB 5E
         var steps = Depth.ladder(List.of(at(67, 1), at(222, 29), at(325, 960), at(325, 1024), at(330, 1058)));
-        assertEquals(222, Depth.price(steps));
+        assertEquals(325, Depth.price(steps), "30 of 3,072 are strays; the stock starts at 5EB 5E");
+        assertEquals(100, Depth.price(Depth.ladder(List.of(at(100, 1), at(300, 40)))), "1 of 41 is stock on a small market");
         assertEquals(50, Depth.price(Depth.ladder(List.of(at(50, 20), at(55, 30)))), "an even market keeps its lowest");
         assertEquals(0, Depth.price(List.of()));
     }
