@@ -121,7 +121,7 @@ final class SearchStrip extends MenuPaint {
 
     private String text(SearchCategory c, SearchQuery.Result r, int mode) {
         boolean on = c == tab.category;
-        String count = c == SearchCategory.STAT ? "" : " " + HomeHero.compact(c.count(r.counts()));
+        String count = c.counted() ? " " + HomeHero.compact(c.count(r.counts())) : "";
         return switch (mode) {
             case 0 -> label(c) + count;
             case 1 -> on ? label(c) + count : count.trim();

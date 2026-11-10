@@ -30,9 +30,9 @@ final class SearchRowSources {
     record Page(List<SearchRow> rows, boolean recent, boolean catalogue) {}
 
     /** The Stats category with no stat chosen: every stat and how many items roll it. */
-    static List<SearchRow> stats(List<ItemMatch.StatCount> stats, boolean clear) {
+    static List<SearchRow> stats(List<ItemMatch.StatCount> stats) {
         List<SearchRow> out = new ArrayList<>();
-        out.add(new SearchRow.Header(L.t("wynnlabs.search.cat.stat"), String.valueOf(stats.size()), clear));
+        out.add(head(L.t("wynnlabs.search.cat.stat"), String.valueOf(stats.size())));
         for (ItemMatch.StatCount s : stats) {
             out.add(new SearchRow.StatRow(s.key(), SearchResultsPanel.statName(s.key()), L.n("wynnlabs.search.stat_items", s.items())));
         }
