@@ -1,5 +1,6 @@
 package io.github.anilken.wynnlabs.search;
 
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
@@ -24,14 +25,15 @@ public enum SearchCategory {
 
     SearchCategory(String icon, Kind... kinds) {
         this.icon = icon;
-        this.kinds = kinds.length == 0 ? Set.of() : Set.copyOf(EnumSet.of(kinds[0], kinds));
+        // an EnumSet, so the filter menu lists them in Kind's order on every launch (Set.copyOf's order is salted per JVM)
+        this.kinds = kinds.length == 0 ? Set.of() : Collections.unmodifiableSet(EnumSet.of(kinds[0], kinds));
     }
 
     public String icon() {
         return icon;
     }
 
-    /** The kinds it lists; empty for ALL (every kind). */
+    /** The kinds it lists, in {@link Kind}'s order; empty for ALL (every kind). */
     public Set<Kind> kinds() {
         return kinds;
     }
