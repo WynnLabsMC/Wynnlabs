@@ -203,36 +203,37 @@ final class SearchCardSections extends MenuPaint {
 
     /** The quest it comes from, crafting for an ingredient, the set's pieces and items of the same place, as chips. */
     private int related(GuiGraphics g, Entry e, int x, int y, int w, int mx, int my) {
-        List<Object[]> chips = new ArrayList<>();          // {icon, label, action}
+        List<SearchCardPanel.Action> chips = new ArrayList<>();
         if (quest != null) {
             String q = quest;
-            chips.add(new Object[] {"script", L.t("wynnlabs.search.quest_link", q), (Runnable) () -> {
+            chips.add(new SearchCardPanel.Action("script", L.t("wynnlabs.search.quest_link", q), true, false, () -> {
                 menu.questsTab.questSelected = q;
                 menu.openTab(2);
-            }});
+            }));
         }
         if (e.kind() == Kind.INGREDIENT) {
-            chips.add(new Object[] {"hammer", L.t("wynnlabs.search.craft_link"), (Runnable) () -> menu.openTab(RoadmapScreen.TAB_CRAFT)});
+            chips.add(new SearchCardPanel.Action("hammer", L.t("wynnlabs.search.craft_link"), true, false,
+                    () -> menu.openTab(RoadmapScreen.TAB_CRAFT)));
         }
         for (String n : related) {
             // searched for, as the search key does: an item outside the current results would
             // otherwise give way to the first result again on the next frame
-            chips.add(new Object[] {"box", n, (Runnable) () -> tab.show(n)});
+            chips.add(new SearchCardPanel.Action("box", n, true, false, () -> tab.show(n)));
         }
         if (chips.isEmpty()) {
             return card.sources.line(g, L.t("wynnlabs.search.related_none"), x, y, w, Theme.INK_3);
         }
         int cx = x;
         int cy = y;
-        for (Object[] c : chips) {
-            String label = Type.BODY.fit(font(), (String) c[1], w - 2 * Theme.SP_4 - 10);
-            int cw = Math.min(w, Ui.iconChipWidth(font(), (String) c[0], label, false));
+        for (SearchCardPanel.Action c : chips) {
+            String label = Type.BODY.fit(font(), c.label(), w - 2 * Theme.SP_4 - 10);
+            int cw = Math.min(w, Ui.iconChipWidth(font(), c.icon(), label, false));
             if (cx + cw > x + w && cx > x) {
                 cx = x;
                 cy += Ui.CHIP_H + Theme.SP_2;
             }
-            Ui.iconChip(g, font(), (String) c[0], label, false, cx, cy, cw, false, card.over(mx, my) ? mx : -1, my);
-            card.click(cx, cy, cw, Ui.CHIP_H, (Runnable) c[2]);
+            Ui.iconChip(g, font(), c.icon(), label, false, cx, cy, cw, c.on(), card.over(mx, my) ? mx : -1, my);
+            card.click(cx, cy, cw, Ui.CHIP_H, c.run());
             cx += cw + Theme.SP_2;
         }
         return cy + Ui.CHIP_H;

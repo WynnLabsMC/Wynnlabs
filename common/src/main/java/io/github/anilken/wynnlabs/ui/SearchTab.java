@@ -140,8 +140,7 @@ final class SearchTab extends MenuTab {
         category = SearchCategory.ALL;
         stat = null;
         if (menu.layout != null && menu.layout.compact()) {
-            Entry e = ItemIndex.get().byKey(key);
-            openDrawer(e == null ? "" : e.item() ? SearchResultsPanel.kindText(e) : SearchThingCard.typeText(e));
+            openDrawer(found == null ? "" : found.item() ? SearchResultsPanel.kindText(found) : SearchThingCard.typeText(found));
         }
     }
 
