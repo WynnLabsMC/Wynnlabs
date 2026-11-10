@@ -398,12 +398,13 @@ final class BoxListingsPanel {
         } else {
             icon = "tag";
             title = L.t("wynnlabs.box.none_title");
-            steps.add(L.t("wynnlabs.box.none_step1"));
+            if (s.canRefresh()) {
+                action = Boolean.TRUE;      // the button says it; no "Try Refresh" above it
+            } else {
+                steps.add(L.t("wynnlabs.box.none_step1"));
+            }
             if (s.box != null) {
                 steps.add(L.t("wynnlabs.box.none_step2"));
-            }
-            if (s.canRefresh()) {
-                action = Boolean.TRUE;
             }
         }
         String note = r.pastPrice() != null && Listings.live() ? L.t("wynnlabs.box.last_price", "~" + Prices.fmt(r.pastPrice())) : null;

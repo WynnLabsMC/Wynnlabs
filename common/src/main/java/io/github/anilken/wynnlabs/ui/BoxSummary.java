@@ -80,9 +80,14 @@ final class BoxSummary {
         } else {
             BoxMarket.Row r = s.rows.isEmpty() ? null : s.rows.get(0);
             int count = r == null ? 0 : r.count();
-            String lowest = BoxScreen.money(r == null || r.lowest() == null ? null : (double) r.lowest());
             cells.add(new Cell(L.t("wynnlabs.box.cell_listings"), String.valueOf(count), Theme.INK));
-            cells.add(new Cell(L.t("wynnlabs.box.cell_lowest"), lowest, Theme.PRICE));
+            if (live && r != null && r.lowest() == null && r.pastPrice() != null) {
+                // nothing listed now: the last price seen instead of "?"
+                cells.add(new Cell(L.t("wynnlabs.box.cell_last"), "~" + Prices.fmt(r.pastPrice()), Theme.PRICE));
+            } else {
+                cells.add(new Cell(L.t("wynnlabs.box.cell_lowest"),
+                        BoxScreen.money(r == null || r.lowest() == null ? null : (double) r.lowest()), Theme.PRICE));
+            }
             if (!s.rolled()) {
                 cells.add(new Cell(L.t("wynnlabs.box.cell_stock"), r == null ? "?" : String.valueOf(BoxPlainRows.stock(r.listings())), Theme.INK));
             } else {
