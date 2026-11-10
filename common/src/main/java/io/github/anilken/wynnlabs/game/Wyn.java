@@ -334,6 +334,10 @@ public final class Wyn {
         return ContentReads.scanWorldEvents(done);
     }
 
+    public static boolean showBookFilter(String shown) {
+        return ContentReads.showBookFilter(shown);
+    }
+
     public static List<ContentLine> knownContent(String kind) {
         return ContentReads.knownContent(kind);
     }

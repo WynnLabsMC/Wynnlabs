@@ -30,6 +30,7 @@ public final class ContentBookPage {
         if (page == null) {
             return;                             // another screen, or none
         }
+        BookFilter.seen(activeFilter(page.filter()));
         ContentType type = filterOf(page.filter());
         List<Wyn.ContentLine> lines = lines(page.entries());
         diagnose(page, type, lines.size());
@@ -82,18 +83,25 @@ public final class ContentBookPage {
 
     /** The kind the book is filtered to (its name on the active line), or null when none or unknown. */
     static ContentType filterOf(Wyn.BookSlot filter) {
+        String name = activeFilter(filter);
+        if (name != null) {
+            for (ContentType t : ContentType.values()) {
+                if (t.shown.equals(name)) {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** The name on the filter button's active line ("Cave", "Recommended"), or null when there is none. */
+    static String activeFilter(Wyn.BookSlot filter) {
         if (filter == null) {
             return null;
         }
         for (String line : filter.lore()) {
             if (line.startsWith(ACTIVE_FILTER)) {
-                String name = plain(line.substring(ACTIVE_FILTER.length()));
-                for (ContentType t : ContentType.values()) {
-                    if (t.shown.equals(name)) {
-                        return t;
-                    }
-                }
-                return null;
+                return plain(line.substring(ACTIVE_FILTER.length()));
             }
         }
         return null;

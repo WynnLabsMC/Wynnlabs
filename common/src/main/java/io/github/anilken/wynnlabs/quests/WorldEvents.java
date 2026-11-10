@@ -111,6 +111,7 @@ public final class WorldEvents {
         }
         if (now - askedBookAt > BOOK_EVERY) {
             askedBookAt = now;
+            BookFilter.moved(now);                  // the read leaves the book on world events
             Wyn.scanWorldEvents(lines -> {
                 long at = System.currentTimeMillis();
                 if (lines.isEmpty()) {

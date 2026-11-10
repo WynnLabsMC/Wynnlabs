@@ -376,6 +376,7 @@ public final class WorldReads {
                 // no world name: the times stay as they are
             }
             io.github.anilken.wynnlabs.quests.WorldEvents.tick(open, world, now);
+            io.github.anilken.wynnlabs.quests.BookFilter.tick(net.minecraft.client.Minecraft.getInstance().screen != null, now);
             // a "… World Event starts in 3m 59s!" in chat gives Wynntils the exact start in this world;
             // Wynntils forgets it once the event starts, so the start is kept on our side, map open or not
             for (var e : io.github.anilken.wynnlabs.quests.WorldEvents.all()) {
