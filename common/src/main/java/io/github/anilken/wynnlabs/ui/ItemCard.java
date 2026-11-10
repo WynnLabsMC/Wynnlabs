@@ -342,7 +342,10 @@ final class ItemCard extends MenuPaint implements CardView {
         String all = L.t("wynnlabs.search.uses_all");
         int lw = Type.BODY.width(font(), all);
         int cy = card.sources.title(g, L.t("wynnlabs.search.sec_uses"), String.valueOf(lines.size()), x, y, w);
-        card.sources.link(g, all, x + w - lw, y, lw, mx, my, () -> tab.showUses(e.name()));
+        if (!e.name().equals(tab.usesOf)) {
+            // (the list beside the card is that view already while it shows this item's uses)
+            card.sources.link(g, all, x + w - lw, y, lw, mx, my, () -> tab.showUses(e.name()));
+        }
         StringBuilder row = new StringBuilder();
         for (UseList.Line l : lines) {
             String name = UseCard.title(l);

@@ -30,7 +30,7 @@ final class SearchViews {
      */
     static List<SearchRow> ownRows(SearchTab tab, ItemIndex index, boolean blank) {
         if (tab.usesOf != null) {
-            return SearchRowSources.uses(tab.usesOf);
+            return SearchRowSources.uses(tab, index, tab.usesOf);
         }
         if (!blank || tab.category != SearchCategory.STAT || tab.stat != null) {
             return null;

@@ -41,24 +41,27 @@ final class SearchRowSources {
     }
 
     /**
-     * The uses of an item: "Crafted into" with a row a craft, an ingredient's professions, then
-     * "Other uses" (feeding a mount), each group under its title with its count.
+     * An item and what it is used for: the item's own row first (the row the search would show;
+     * its card says how to get it), then "Crafted into" with a row a craft, an ingredient's
+     * professions and "Other uses" (feeding a mount), each group under its title with its count.
+     * An item with no use is that one row.
      */
-    static List<SearchRow> uses(String item) {
-        List<UseList.Line> lines = UseStock.lines(item);
+    static List<SearchRow> uses(SearchTab tab, ItemIndex index, String item) {
         List<SearchRow> out = new ArrayList<>();
-        UseList.Kind group = null;
-        for (UseList.Line l : lines) {
-            if (l.kind() != group) {
-                group = l.kind();
-                String title = switch (group) {
-                    case CRAFT -> "wynnlabs.search.uses_crafted";
-                    case PROFESSION -> "wynnlabs.search.uses_ingredient";
-                    case FEED -> "wynnlabs.search.uses_other";
-                };
-                out.add(head(L.t(title), String.valueOf(UseList.count(lines, group))));
+        Entry e = index.byName(item);
+        if (e != null) {
+            out.add(entry(tab, e, null, false));
+        }
+        for (UseList.Group group : UseList.groups(UseStock.lines(item))) {
+            String title = switch (group.kind()) {
+                case CRAFT -> "wynnlabs.search.uses_crafted";
+                case PROFESSION -> "wynnlabs.search.uses_ingredient";
+                case FEED -> "wynnlabs.search.uses_other";
+            };
+            out.add(head(L.t(title), String.valueOf(group.lines().size())));
+            for (UseList.Line l : group.lines()) {
+                out.add(UseCard.row(item, l));
             }
-            out.add(UseCard.row(item, l));
         }
         return out;
     }

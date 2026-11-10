@@ -70,7 +70,7 @@ final class SearchTab extends MenuTab {
     final Set<Kind> kinds = EnumSet.noneOf(Kind.class);
     /** The stat the Stats category lists the items of (null: the list of stats). */
     String stat;
-    /** The item whose uses the list shows in place of the search (null: the search). */
+    /** The item the list shows with its uses under it, in place of the search (null: the search). */
     String usesOf;
     /** 0: every level, 1: up to mine, 2: mine and the ten below. */
     int levelMode;
@@ -157,9 +157,10 @@ final class SearchTab extends MenuTab {
     }
 
     /**
-     * Shows what {@code item} is used for in place of the search (the uses key over a hovered
-     * item, an item card's "All uses", a craft's other material): an empty box, the first use
-     * chosen. The item itself is a recent search; its uses never are.
+     * Shows {@code item} and what it is used for in place of the search (the uses key over a
+     * hovered item, an item card's "All uses", a craft's other material): an empty box, the
+     * item's own row first and chosen, so its card says how to get it. The item itself is a
+     * recent search; its uses never are.
      */
     void showUses(String item) {
         Entry e = ItemIndex.get().byName(item);

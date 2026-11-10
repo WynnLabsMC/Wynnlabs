@@ -6,6 +6,7 @@ import io.github.anilken.wynnlabs.mixin.ContainerHoverAccessor;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemNames;
+import io.github.anilken.wynnlabs.search.UseList;
 import io.github.anilken.wynnlabs.search.Uses;
 
 import com.mojang.blaze3d.platform.InputConstants;
@@ -25,9 +26,10 @@ import org.lwjgl.glfw.GLFW;
  * any container screen (bank, Trade Market, chests, the inventory) or Wynntils' guides it opens
  * the tab on that item, and closing the menu goes back to that screen. Never while typing.
  *
- * <p>The uses key (default U, rebindable) is its sibling: over an item that is used for something
- * (a material's crafts, an ingredient's professions, mount feed) it opens the tab on that item's
- * uses; over anything else, and in the world, the press is not ours and goes on untouched.
+ * <p>The uses key (default U, rebindable) is its sibling: over any item the index knows it opens
+ * the tab on that item with what it is used for under it (a material's crafts, an ingredient's
+ * professions, mount feed), so how to get it and what to do with it are one look; over anything
+ * else, and in the world, the press is not ours and goes on untouched.
  */
 public final class SearchKey {
 
@@ -79,8 +81,8 @@ public final class SearchKey {
 
     /**
      * A press while a screen is open: over an item, the search tab opens on it (the search key) or
-     * on what it is used for (the uses key, only for an item with a use); true when the press was
-     * used (the screen then never sees it).
+     * on it and what it is used for (the uses key, for any item the index knows); true when the
+     * press was used (the screen then never sees it).
      */
     public static boolean onScreenKey(Screen screen, KeyEvent event) {
         boolean search = matches(event);
@@ -100,8 +102,8 @@ public final class SearchKey {
             return false;
         }
         if (uses) {
-            if ((e != null ? Uses.of(e) : Uses.of(name)).empty()) {
-                return false;                       // nothing it is used for: the key is the screen's
+            if (!UseList.opens(e != null && e.item(), e != null ? Uses.of(e) : Uses.of(name))) {
+                return false;                       // not an item we know: the key is the screen's
             }
             swallowNextChar();
             Minecraft.getInstance().setScreen(RoadmapScreen.uses(name, screen));

@@ -9,8 +9,9 @@ import java.util.function.ToIntFunction;
 import java.util.function.ToLongFunction;
 
 /**
- * The uses of an item as the lines of a list, in the order shown: the crafts it goes into, the
- * professions an ingredient is crafted with, then the other uses. Each line has its list key
+ * The uses of an item as the lines of a list, in the order shown under the item's own row: the
+ * crafts it goes into, the professions an ingredient is crafted with, then the other uses
+ * ({@link #groups}). Each line has its list key
  * ({@link UseKey}); a craft's also has the level bracket shown for the player and how many crafts
  * their stock allows. Plain data: the Search tab turns a line into words.
  */
@@ -50,6 +51,38 @@ public final class UseList {
             }
         }
         return out;
+    }
+
+    /** The lines of one kind under one title, in the list's order. */
+    public record Group(Kind kind, List<Line> lines) {}
+
+    /**
+     * The lines as the groups the list shows under the item's own row: the crafts, an
+     * ingredient's professions, the other uses, each only when it has a line. An item with no use
+     * has no group: its list is the item alone.
+     */
+    public static List<Group> groups(List<Line> lines) {
+        List<Group> out = new ArrayList<>();
+        for (Kind k : Kind.values()) {
+            List<Line> of = new ArrayList<>();
+            for (Line l : lines) {
+                if (l.kind() == k) {
+                    of.add(l);
+                }
+            }
+            if (!of.isEmpty()) {
+                out.add(new Group(k, List.copyOf(of)));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * Whether the uses key opens its view on what is under the mouse: any item the index knows
+     * (how to get it is worth the look even with no use), or a name the recipes or the mounts use.
+     */
+    public static boolean opens(boolean knownItem, Uses.Result uses) {
+        return knownItem || !uses.empty();
     }
 
     /** The line with this list key, or null. */

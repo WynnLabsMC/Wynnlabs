@@ -114,6 +114,29 @@ class UseListTest {
     }
 
     @Test
+    void theListGroupsItsLinesByKind() {
+        List<UseList.Group> groups = UseList.groups(koiOil(0));
+        assertEquals(List.of(UseList.Kind.CRAFT, UseList.Kind.FEED), groups.stream().map(UseList.Group::kind).toList());
+        assertEquals(6, groups.get(0).lines().size());
+        assertEquals("use:Koi Oil:potion", groups.get(0).lines().get(0).key());
+        assertEquals(List.of("use:Koi Oil:feed"), groups.get(1).lines().stream().map(UseList.Line::key).toList());
+        Uses.Result foot = Uses.of("Lucky Rabbit's Foot", CraftData.all(), List.of("armouring", "tailoring"), MountMaterials.all());
+        List<UseList.Group> ing = UseList.groups(UseList.of(foot, n -> 0, p -> 0));
+        assertEquals(List.of(UseList.Kind.PROFESSION), ing.stream().map(UseList.Group::kind).toList());
+        assertEquals(2, ing.get(0).lines().size());
+    }
+
+    @Test
+    void anItemWithNoUseHasNoGroupButStillOpens() {
+        Uses.Result mask = Uses.of("Bear Mask");
+        assertTrue(mask.empty());
+        assertTrue(UseList.groups(UseList.of(mask, n -> 0, p -> 0)).isEmpty());
+        assertTrue(UseList.opens(true, mask));              // an item the index knows: how to get it
+        assertFalse(UseList.opens(false, mask));            // not an item, no use: the key is not ours
+        assertTrue(UseList.opens(false, Uses.of("Koi Oil")));
+    }
+
+    @Test
     void aProfessionCraftsItsTypes() {
         assertEquals(List.of("ring", "bracelet", "necklace"), UseList.types("jeweling", CraftData.all()));
         assertEquals(List.of("potion"), UseList.types("Alchemism", CraftData.all()));

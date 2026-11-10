@@ -20,9 +20,9 @@ import java.util.stream.Stream;
  * Shots: the catalogue before anything is typed, an item ("lucky rab"), its card with every row on
  * the map and the "Marked" list open, a tracked mob and the "Tracked" list, the "Tracked items"
  * list, a place, the Stats category and a stat, nothing found with "did you mean", and the filter
- * menu; then what an item is used for (Koi Oil's crafts with the ring chosen, its mount feed, an
- * ingredient's professions), on an index with the materials and a station added and a stock
- * made up for it. On a small window ({@code -PpreviewSize=1380x960}) the card is the drawer.
+ * menu; then an item with what it is used for (Koi Oil's own row and card, its crafts with the
+ * ring chosen, its mount feed, an ingredient's professions, gear with no use), on an index with
+ * the materials and a station added and a stock made up for it. On a small window ({@code -PpreviewSize=1380x960}) the card is the drawer.
  */
 final class SearchPreview {
 
@@ -194,11 +194,14 @@ final class SearchPreview {
         boolean compact = ctx.computeOnClient(mc -> ((RoadmapScreen) mc.screen).layout.compact());
         tab(ctx, t -> t.showUses("Koi Oil"));
         if (compact) {
-            usesShot(ctx, out, "search-uses-list", true);   // a small window: the list, then the ring's card in the drawer
+            usesShot(ctx, out, "search-uses-list", true);   // a small window: the list, then a row's card in the drawer
+            use(ctx, "Koi Oil", true);
         }
+        // the item's own row first, chosen: its card says how to get it
         // (the drawer lies over the page, so only the shots without it are checked)
-        use(ctx, "use:Koi Oil:ring", compact);
         usesShot(ctx, out, "search-uses", !compact);
+        use(ctx, "use:Koi Oil:ring", compact);
+        usesShot(ctx, out, "search-uses-ring", !compact);
         use(ctx, "use:Koi Oil:relik", compact);
         usesShot(ctx, out, "search-uses-relik", !compact);
         use(ctx, "use:Koi Oil:feed", compact);
@@ -209,6 +212,13 @@ final class SearchPreview {
         }
         use(ctx, "use:Lucky Rabbit's Foot:prof-armouring", compact);
         usesShot(ctx, out, "search-uses-ingredient", !compact);
+        // gear nothing is crafted from: the item alone, with its card
+        tab(ctx, t -> t.showUses("Bear Mask"));
+        if (compact) {
+            usesShot(ctx, out, "search-uses-gear-list", true);
+            use(ctx, "Bear Mask", true);
+        }
+        usesShot(ctx, out, "search-uses-gear", !compact);
         if (!compact) {
             // an item's own card: its "Uses" section and "All uses", at the card's end
             tab(ctx, t -> t.show("Lucky Rabbit's Foot"));
