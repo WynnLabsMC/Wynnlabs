@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.Hit;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemMatch;
+import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.RecentSearches;
 import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
@@ -20,6 +21,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * The search tab's list. Before anything is typed it is the whole catalogue: the road map's
@@ -223,7 +225,7 @@ final class SearchResultsPanel extends MenuPaint {
             SearchNone.draw(this, tab, g, x, y, w, h, result, compact, mx, my);
             return null;
         }
-        if (rows != selRows || !java.util.Objects.equals(tab.selName, selFor)) {
+        if (rows != selRows || !Objects.equals(tab.selName, selFor)) {
             selAt = indexOf(tab.selName);           // once per new list or choice, not every frame
             selRows = rows;
             selFor = tab.selName;
@@ -350,7 +352,7 @@ final class SearchResultsPanel extends MenuPaint {
     /** "Ingredient · Woodworking", "Chestplate", "Material"; the data's words with a capital. */
     static String kindText(Entry e) {
         String kind = L.t("wynnlabs.search.kind." + e.kind().name().toLowerCase(Locale.ROOT));
-        if (e.kind() == io.github.anilken.wynnlabs.search.Kind.GEAR || e.kind() == io.github.anilken.wynnlabs.search.Kind.TOME) {
+        if (e.kind() == Kind.GEAR || e.kind() == Kind.TOME) {
             return e.type() == null ? kind : words(e.type());
         }
         if (e.stars() > 0) {

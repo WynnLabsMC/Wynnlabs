@@ -2,6 +2,7 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.GameState;
+import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.quests.Discoveries;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.search.Area;
@@ -11,7 +12,9 @@ import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceRank;
+import io.github.anilken.wynnlabs.search.SourceText;
 import io.github.anilken.wynnlabs.search.Things;
+import io.github.anilken.wynnlabs.search.TrackedMobs;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,6 +23,7 @@ import net.minecraft.network.chat.MutableComponent;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * The search card's parts for a thing of the world (mob, place, dungeon, service, resource,
@@ -32,7 +36,7 @@ import java.util.Locale;
 final class SearchThingCard extends MenuPaint {
 
     /** The place and content types with their own words ({@code wynnlabs.search.thing.<type>}). */
-    private static final java.util.Set<String> TYPES = java.util.Set.of("city", "town", "province", "dungeon",
+    private static final Set<String> TYPES = Set.of("city", "town", "province", "dungeon",
             "corrupted_dungeon", "raid", "cave", "boss_altar", "grind_spot", "lootrun_camp", "time_trial", "shrine");
 
     private final SearchCardPanel card;
@@ -92,7 +96,7 @@ final class SearchThingCard extends MenuPaint {
     }
 
     private static String sourceType(Entry e) {
-        return io.github.anilken.wynnlabs.search.SourceText.type(Things.type(e));
+        return SourceText.type(Things.type(e));
     }
 
     private static Area nearest(List<Area> places, double[] pos) {
@@ -242,12 +246,9 @@ final class SearchThingCard extends MenuPaint {
         int bw = Ui.CHIP_H + 2;
         int bx = r - bw;
         int by = y + Ui.iconIn(ICON, Ui.CHIP_H);
-        boolean on = io.github.anilken.wynnlabs.search.TrackedMobs.items().has(name);
+        boolean on = TrackedMobs.items().has(name);
         Ui.iconButton(g, on ? "check" : "target", bx, by, on, card.over(mx, my) ? mx : -1, my);
-        card.click(bx, by, bw, Ui.CHIP_H, () -> {
-            boolean now = io.github.anilken.wynnlabs.search.TrackedMobs.items().toggle(name);
-            menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", name));
-        });
+        card.click(bx, by, bw, Ui.CHIP_H, () -> card.toggleTrack(TrackedMobs.items(), name));
         card.tip(bx, by, bw, Ui.CHIP_H, mx, my, L.t(on ? "wynnlabs.search.tracking_tip" : "wynnlabs.search.track_item_tip"));
         return bw;
     }
@@ -257,9 +258,9 @@ final class SearchThingCard extends MenuPaint {
         if (item == null || !item.item() || !item.tradable()) {
             return null;
         }
-        io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(item.name());
+        Prices.Price p = Prices.of(item.name());
         Double v = p == null ? null : p.typical();
-        return v == null ? null : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(v);
+        return v == null ? null : "~" + Prices.fmt(v);
     }
 
     int draw(GuiGraphics g, Entry e, int x, int y, int w, int mx, int my) {

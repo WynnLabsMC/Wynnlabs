@@ -5,6 +5,9 @@ import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.quests.Waypoints;
 import io.github.anilken.wynnlabs.search.Area;
 import io.github.anilken.wynnlabs.search.Compass;
+import io.github.anilken.wynnlabs.search.EmptyPage;
+import io.github.anilken.wynnlabs.search.ItemIndex;
+import io.github.anilken.wynnlabs.search.KeptMarks;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.MapMark;
 import io.github.anilken.wynnlabs.search.RecentSearches;
@@ -13,6 +16,7 @@ import io.github.anilken.wynnlabs.search.TrackedMobs;
 
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Locale;
@@ -54,7 +58,7 @@ final class SearchMenus {
     Undo undo() {
         Undo u = undo;
         if (u == null || System.currentTimeMillis() > u.until()
-                || u.marks() != null && io.github.anilken.wynnlabs.search.KeptMarks.get().version() != u.version()
+                || u.marks() != null && KeptMarks.get().version() != u.version()
                 || u.mobs() != null && !TrackedMobs.get().names().isEmpty()
                 || u.items() != null && !TrackedMobs.items().names().isEmpty()) {
             undo = null;
@@ -191,8 +195,8 @@ final class SearchMenus {
             }
             case FILTER -> filterItems(out);
             case RECENT -> {
-                io.github.anilken.wynnlabs.search.ItemIndex index = io.github.anilken.wynnlabs.search.ItemIndex.get();
-                for (String key : io.github.anilken.wynnlabs.search.RecentSearches.get().newest(io.github.anilken.wynnlabs.search.EmptyPage.FIRST_ROWS)) {
+                ItemIndex index = ItemIndex.get();
+                for (String key : RecentSearches.get().newest(EmptyPage.FIRST_ROWS)) {
                     var e = index.byKey(key);
                     String label = e != null ? e.name() : key.substring(key.indexOf(':') + 1);
                     out.add(UiMenu.Item.of("r:" + key, "clock", label, null, false));
@@ -217,7 +221,7 @@ final class SearchMenus {
                 }
             }
             case ITEMS -> {
-                io.github.anilken.wynnlabs.search.ItemIndex index = io.github.anilken.wynnlabs.search.ItemIndex.get();
+                ItemIndex index = ItemIndex.get();
                 List<String> names = TrackedMobs.items().names();
                 for (int i = 0; i < names.size(); i++) {
                     // the item's own picture when the index knows it, else the bag
@@ -303,7 +307,7 @@ final class SearchMenus {
     private void marks(String v, boolean remove) {
         if (v.equals("clear")) {
             List<MapMark> was = tab.card.clearMarks();
-            undo = new Undo(was, null, null, System.currentTimeMillis() + UNDO_MS, io.github.anilken.wynnlabs.search.KeptMarks.get().version());
+            undo = new Undo(was, null, null, System.currentTimeMillis() + UNDO_MS, KeptMarks.get().version());
             tab.menu.flash(L.n("wynnlabs.search.marks_removed", was.size()));
             open = NONE;
             return;
@@ -359,8 +363,8 @@ final class SearchMenus {
 
     /** Up, down and Enter while a menu is open. */
     boolean key(int key) {
-        if (open == RECENT && key != org.lwjgl.glfw.GLFW.GLFW_KEY_UP && key != org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
-                && key != org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER && key != org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER) {
+        if (open == RECENT && key != GLFW.GLFW_KEY_UP && key != GLFW.GLFW_KEY_DOWN
+                && key != GLFW.GLFW_KEY_ENTER && key != GLFW.GLFW_KEY_KP_ENTER) {
             return false;                   // the box keeps its own keys (Backspace, the arrows across)
         }
         UiMenu.Item it = state.key(key);

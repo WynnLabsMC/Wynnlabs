@@ -128,10 +128,7 @@ final class SearchCardRows extends MenuPaint {
             String mob = s.name();
             boolean on = TrackedMobs.get().has(mob);
             Ui.iconButton(g, "target", r - bw, iy, on, card.over(mx, my) ? mx : -1, my);
-            card.click(r - bw, iy, bw, Ui.CHIP_H, () -> {
-                boolean now = TrackedMobs.get().toggle(mob);
-                menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", mob));
-            });
+            card.click(r - bw, iy, bw, Ui.CHIP_H, () -> card.toggleTrack(TrackedMobs.get(), mob));
             card.tip(r - bw, iy, bw, Ui.CHIP_H, mx, my, L.t(on ? "wynnlabs.search.tracking_tip" : "wynnlabs.search.track_tip"));
             r -= bw + Theme.SP_2;
         }
@@ -196,7 +193,7 @@ final class SearchCardRows extends MenuPaint {
         return y + Type.BODY.lineHeight + Theme.SP_1;
     }
 
-    /** A compass point of {@link io.github.anilken.wynnlabs.search.Compass#direction} in the player's language. */
+    /** A compass point of {@link Compass#direction} in the player's language. */
     static String dirName(String dir) {
         return switch (dir) {
             case "east" -> L.t("wynnlabs.grind.dir_east");
