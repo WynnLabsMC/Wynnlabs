@@ -37,6 +37,16 @@ class SearchRedesignTest {
     }
 
     @Test
+    void aCategoryListsItsKindsInTheSameOrderEveryTime() {
+        // the filter menu draws them in this order: Kind's own, not a hash set's
+        assertEquals(List.of(Kind.GEAR, Kind.INGREDIENT, Kind.MATERIAL, Kind.TOME, Kind.CHARM), List.copyOf(SearchCategory.ITEM.kinds()));
+        assertEquals(List.of(Kind.GEAR, Kind.INGREDIENT, Kind.MATERIAL, Kind.TOME, Kind.CHARM), List.copyOf(SearchCategory.STAT.kinds()));
+        assertEquals(List.of(Kind.PLACE, Kind.CONTENT, Kind.DISCOVERY), List.copyOf(SearchCategory.PLACE.kinds()));
+        assertEquals(List.of(Kind.SERVICE, Kind.RESOURCE, Kind.NPC), List.copyOf(SearchCategory.SERVICE.kinds()));
+        assertEquals(List.of(Kind.GEAR, Kind.TOME), List.copyOf(SearchCategory.ITEM.query(Set.of(Kind.TOME, Kind.GEAR))), "narrowed: the same order");
+    }
+
+    @Test
     void aStatListsOnlyItsItemsHighestRollFirst() {
         ItemIndex idx = SearchFixtures.index();
         SearchQuery q = new SearchQuery("", SearchQuery.Sort.EASIEST, Set.of(), 0, Integer.MAX_VALUE, false, false, false, "manaSteal");
