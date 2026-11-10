@@ -21,6 +21,8 @@ import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceText;
 import io.github.anilken.wynnlabs.search.Sources;
 import io.github.anilken.wynnlabs.search.TrackedMobs;
+import io.github.anilken.wynnlabs.search.UseList;
+import io.github.anilken.wynnlabs.search.Uses;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -56,6 +58,8 @@ final class ItemCard extends MenuPaint implements CardView {
     private int chestStars = 1;
     /** What wearing it adds to the build, when it is a piece the road map would buy; else null. */
     private Double gain;
+    /** What the item is used for (crafts, an ingredient's professions, mount feed), worked out when it is chosen. */
+    private Uses.Result uses;
 
     ItemCard(SearchCardPanel card, Entry e) {
         super(card.tab.menu);
@@ -82,6 +86,7 @@ final class ItemCard extends MenuPaint implements CardView {
     @Override
     public void select() {
         have = owned(e.name());
+        uses = Uses.of(e);
         chestStars = Sources.chestStars(e);
         Shopping.Pick pick = e.kind() == Kind.GEAR ? Shopping.find(e.name()) : null;
         gain = pick == null || pick.gain() <= 0 ? null : pick.gain();
@@ -300,6 +305,9 @@ final class ItemCard extends MenuPaint implements CardView {
         }
         cy = card.sources.title(g, L.t("wynnlabs.search.sec_stats"), null, x, cy + Theme.SP_5, w);
         cy = stats(g, e, x, cy, w);
+        if (uses != null && !uses.empty()) {
+            cy = uses(g, x, cy + Theme.SP_5, w, mx, my);
+        }
         cy = card.sources.title(g, L.t("wynnlabs.search.sec_related"), null, x, cy + Theme.SP_5, w);
         return related(g, e, x, cy, w, mx, my);
     }
@@ -323,6 +331,28 @@ final class ItemCard extends MenuPaint implements CardView {
             cy = card.sources.line(g, L.t("wynnlabs.search.stats_none"), x, cy, w, Theme.INK_3);
         }
         return cy;
+    }
+
+    /**
+     * "Uses" with how many there are and "All uses ›" at the title's end (the list of them, in
+     * place of the search), then their names in a line or two: "Ring · Bracelet · Mount feed".
+     */
+    private int uses(GuiGraphics g, int x, int y, int w, int mx, int my) {
+        List<UseList.Line> lines = UseList.of(uses, n -> 0, p -> 0);
+        String all = L.t("wynnlabs.search.uses_all");
+        int lw = Type.BODY.width(font(), all);
+        int cy = card.sources.title(g, L.t("wynnlabs.search.sec_uses"), String.valueOf(lines.size()), x, y, w);
+        card.sources.link(g, all, x + w - lw, y, lw, mx, my, () -> tab.showUses(e.name()));
+        StringBuilder row = new StringBuilder();
+        for (UseList.Line l : lines) {
+            String name = UseCard.title(l);
+            if (row.length() > 0 && Type.BODY.width(font(), row + " · " + name) > w) {
+                cy = card.sources.line(g, row.toString(), x, cy, w, Theme.INK_2);
+                row.setLength(0);
+            }
+            row.append(row.length() > 0 ? " · " : "").append(name);
+        }
+        return card.sources.line(g, row.toString(), x, cy, w, Theme.INK_2);
     }
 
     /** The quest it comes from, crafting for an ingredient, the set's pieces and items of the same place, as chips. */

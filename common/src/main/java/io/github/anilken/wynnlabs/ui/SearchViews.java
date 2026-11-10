@@ -4,6 +4,7 @@ import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemMatch;
 import io.github.anilken.wynnlabs.search.SearchCategory;
+import io.github.anilken.wynnlabs.search.UseKey;
 
 import java.util.List;
 
@@ -24,10 +25,13 @@ final class SearchViews {
 
     /**
      * The list a category shows of its own, in place of the empty page and the query's hits; null
-     * when it lists the hits like any other. Stats, with nothing typed and no stat chosen: every
-     * stat and how many items roll it.
+     * when it lists the hits like any other. The uses of an item while the tab shows them; Stats,
+     * with nothing typed and no stat chosen: every stat and how many items roll it.
      */
     static List<SearchRow> ownRows(SearchTab tab, ItemIndex index, boolean blank) {
+        if (tab.usesOf != null) {
+            return SearchRowSources.uses(tab.usesOf);
+        }
         if (!blank || tab.category != SearchCategory.STAT || tab.stat != null) {
             return null;
         }
@@ -43,6 +47,9 @@ final class SearchViews {
         if (key == null) {
             return null;
         }
+        if (UseKey.isUse(key)) {
+            return UseCard.of(card, key);           // a use of an item: nothing of the index
+        }
         Entry e = ItemIndex.get().byKey(key);
         if (e == null) {
             return null;
@@ -50,8 +57,15 @@ final class SearchViews {
         return e.item() ? new ItemCard(card, e) : new ThingCard(card, e);
     }
 
-    /** A key's name for the search box and a recent search's chip: its entry's, else what follows the key's first colon. */
+    /**
+     * A key's name for the search box and a recent search's chip: a use's ("Ring · Koi Oil"), its
+     * entry's, else what follows the key's first colon.
+     */
     static String name(String key) {
+        UseKey use = UseKey.parse(key);
+        if (use != null) {
+            return UseCard.name(use);
+        }
         Entry e = ItemIndex.get().byKey(key);
         return e != null ? e.name() : key.substring(key.indexOf(':') + 1);
     }

@@ -12,6 +12,7 @@ import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceRank;
 import io.github.anilken.wynnlabs.search.SourceText;
+import io.github.anilken.wynnlabs.search.UseList;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,8 +20,8 @@ import java.util.Locale;
 
 /**
  * Where the search list's rows come from, each a list of {@link SearchRow}: the Stats category's
- * list of stats, the empty page's groups (the recent searches, the road map's missing pieces,
- * "More ↓") and the query's hits. The list stacks what they return.
+ * list of stats, the uses of an item, the empty page's groups (the recent searches, the road
+ * map's missing pieces, "More ↓") and the query's hits. The list stacks what they return.
  */
 final class SearchRowSources {
 
@@ -35,6 +36,29 @@ final class SearchRowSources {
         out.add(head(L.t("wynnlabs.search.cat.stat"), String.valueOf(stats.size())));
         for (ItemMatch.StatCount s : stats) {
             out.add(new SearchRow.StatRow(s.key(), SearchResultsPanel.statName(s.key()), L.n("wynnlabs.search.stat_items", s.items())));
+        }
+        return out;
+    }
+
+    /**
+     * The uses of an item: "Crafted into" with a row a craft, an ingredient's professions, then
+     * "Other uses" (feeding a mount), each group under its title with its count.
+     */
+    static List<SearchRow> uses(String item) {
+        List<UseList.Line> lines = UseStock.lines(item);
+        List<SearchRow> out = new ArrayList<>();
+        UseList.Kind group = null;
+        for (UseList.Line l : lines) {
+            if (l.kind() != group) {
+                group = l.kind();
+                String title = switch (group) {
+                    case CRAFT -> "wynnlabs.search.uses_crafted";
+                    case PROFESSION -> "wynnlabs.search.uses_ingredient";
+                    case FEED -> "wynnlabs.search.uses_other";
+                };
+                out.add(head(L.t(title), String.valueOf(UseList.count(lines, group))));
+            }
+            out.add(UseCard.row(item, l));
         }
         return out;
     }

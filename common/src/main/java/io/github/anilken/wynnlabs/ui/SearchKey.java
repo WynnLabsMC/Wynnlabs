@@ -6,6 +6,7 @@ import io.github.anilken.wynnlabs.mixin.ContainerHoverAccessor;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.ItemNames;
+import io.github.anilken.wynnlabs.search.Uses;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.KeyMapping;
@@ -23,10 +24,15 @@ import org.lwjgl.glfw.GLFW;
  * rebindable in Controls). In the world it opens the J menu on the search tab; over an item in
  * any container screen (bank, Trade Market, chests, the inventory) or Wynntils' guides it opens
  * the tab on that item, and closing the menu goes back to that screen. Never while typing.
+ *
+ * <p>The uses key (default U, rebindable) is its sibling: over an item that is used for something
+ * (a material's crafts, an ingredient's professions, mount feed) it opens the tab on that item's
+ * uses; over anything else, and in the world, the press is not ours and goes on untouched.
  */
 public final class SearchKey {
 
     private static KeyMapping key;
+    private static KeyMapping usesKey;
 
     private SearchKey() {}
 
@@ -35,7 +41,12 @@ public final class SearchKey {
         KeyMapping k = platform.registerKey(new KeyMapping("key.wynnlabs.search", InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_GRAVE_ACCENT, category));
         key = k;
+        KeyMapping u = platform.registerKey(new KeyMapping("key.wynnlabs.uses", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_U, category));
+        usesKey = u;
         platform.onEndTick(client -> {
+            while (u.consumeClick()) {
+                // in the world the uses key does nothing: there is no item under the mouse
+            }
             while (k.consumeClick()) {
                 if (client.player != null && client.screen == null) {
                     swallowNextChar();                  // its ` or " must not land in the focused box
@@ -67,11 +78,14 @@ public final class SearchKey {
     private static long swallowUntil;
 
     /**
-     * A press while a screen is open: over an item, the search tab opens on it; true when the
-     * press was used (the screen then never sees it).
+     * A press while a screen is open: over an item, the search tab opens on it (the search key) or
+     * on what it is used for (the uses key, only for an item with a use); true when the press was
+     * used (the screen then never sees it).
      */
     public static boolean onScreenKey(Screen screen, KeyEvent event) {
-        if (screen == null || !matches(event) || screen instanceof RoadmapScreen || screen instanceof ChatScreen
+        boolean search = matches(event);
+        boolean uses = !search && usesKey != null && usesKey.matches(event);
+        if (screen == null || !search && !uses || screen instanceof RoadmapScreen || screen instanceof ChatScreen
                 || screen.getFocused() instanceof EditBox) {
             return false;
         }
@@ -84,6 +98,14 @@ public final class SearchKey {
         String name = e != null ? e.name() : ItemNames.clean(hover);
         if (name.isEmpty()) {
             return false;
+        }
+        if (uses) {
+            if ((e != null ? Uses.of(e) : Uses.of(name)).empty()) {
+                return false;                       // nothing it is used for: the key is the screen's
+            }
+            swallowNextChar();
+            Minecraft.getInstance().setScreen(RoadmapScreen.uses(name, screen));
+            return true;
         }
         swallowNextChar();
         Minecraft.getInstance().setScreen(RoadmapScreen.search(name, screen));

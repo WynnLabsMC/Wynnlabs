@@ -124,6 +124,15 @@ public final class RoadmapScreen extends Screen {
         return s;
     }
 
+    /** The menu on the search tab showing what {@code item} is used for; Esc goes back to {@code parent} when not null. */
+    public static RoadmapScreen uses(String item, Screen parent) {
+        RoadmapScreen s = new RoadmapScreen();
+        s.tab = TAB_SEARCH;
+        s.parent = parent;
+        s.search.showUses(item);
+        return s;
+    }
+
     /** The menu on the settings tab with setting {@code id} picked; Esc goes back to {@code parent}. */
     public static RoadmapScreen setting(String id, Screen parent) {
         RoadmapScreen s = new RoadmapScreen();

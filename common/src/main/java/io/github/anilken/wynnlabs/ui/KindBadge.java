@@ -87,6 +87,12 @@ record KindBadge(String fill, String glyph, String wyn) {
         return new KindBadge(b, b, wyn);
     }
 
+    /** A crafting profession ("jeweling"): its station's glyph and Wynntils' icon of it, on the market's gold. */
+    static KindBadge profession(String profession) {
+        String id = "profession:" + ("armouring".equals(profession) ? "armoring" : profession);     // the map's spelling
+        return new KindBadge("coin", SERVICE.getOrDefault(id, "hammer"), "service:" + id);
+    }
+
     /** Only an icon is known (Home's gear sources): its colour and glyph, Wynntils' icon where the icon names one. */
     static KindBadge of(String icon) {
         String wyn = switch (icon) {

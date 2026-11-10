@@ -20,7 +20,9 @@ import java.util.stream.Stream;
  * Shots: the catalogue before anything is typed, an item ("lucky rab"), its card with every row on
  * the map and the "Marked" list open, a tracked mob and the "Tracked" list, the "Tracked items"
  * list, a place, the Stats category and a stat, nothing found with "did you mean", and the filter
- * menu. On a small window ({@code -PpreviewSize=1380x960}) the card is the drawer.
+ * menu; then what an item is used for (Koi Oil's crafts with the ring chosen, its mount feed, an
+ * ingredient's professions), on an index with the materials and a station added and a stock
+ * made up for it. On a small window ({@code -PpreviewSize=1380x960}) the card is the drawer.
  */
 final class SearchPreview {
 
@@ -134,6 +136,135 @@ final class SearchPreview {
             t.pickCategory(SearchCategory.ALL);
         });
         mobDrops(ctx, out);
+        uses(ctx, out);
+    }
+
+    /**
+     * What an item is used for. The index is read again with the files of {@code search/uses}
+     * over the trimmed cache (Koi Oil, the materials it is crafted with and a Jeweling station;
+     * only from here on, so the shots before it keep their counts), the stock is made up (24 Koi
+     * Oil in the bag and the bank, 26 Cobalt Gem in the bank, 12 Dark Planks) and two prices are
+     * seeded by hand. Each shot's texts and click areas are checked for overlaps.
+     */
+    private static void uses(ClientGameTestContext ctx, Path out) {
+        if (System.getProperty("wynnlabs.previewWynntils") == null) {
+            try {
+                Path game = Files.createTempDirectory("wynnlabs-uses-preview");
+                Path cache = Files.createDirectories(game.resolve("wynntils/cache"));
+                for (String dir : new String[] {"search/cache", "search/uses"}) {
+                    try (Stream<Path> files = Files.list(Fixtures.root().getParent().resolve(dir))) {
+                        for (Path f : files.toList()) {
+                            Files.copy(f, cache.resolve(f.getFileName().toString()), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                        }
+                    }
+                }
+                ItemIndex index = ItemIndex.read(cache, java.util.List.of());
+                ctx.runOnClient(mc -> {
+                    try {
+                        set(ItemIndex.class, "current", index);
+                    } catch (ReflectiveOperationException e) {
+                        throw new IllegalStateException(e);
+                    }
+                });
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+        ctx.runOnClient(mc -> {
+            java.util.Map<String, int[]> stock = java.util.Map.of("Koi Oil", new int[] {16, 8}, "Cobalt Gem", new int[] {0, 26},
+                    "Dark Planks", new int[] {12, 0}, "Lucky Rabbit's Foot", new int[] {3, 0});
+            UseStock.preview = stock::get;
+            try {
+                Class<?> c = io.github.anilken.wynnlabs.market.Prices.class;
+                set(c, "installed", Boolean.TRUE);
+                set(c, "loaded", true);
+                set(c, "unavailable", true);            // onTick stays away: no reads, no requests
+                java.lang.reflect.Field f = c.getDeclaredField("PRICES");
+                f.setAccessible(true);
+                @SuppressWarnings("unchecked")
+                var prices = (java.util.Map<String, io.github.anilken.wynnlabs.market.Prices.Price>) f.get(null);
+                long now = System.currentTimeMillis();
+                prices.put("Koi Oil T1", new io.github.anilken.wynnlabs.market.Prices.Price(38, null, null, null, null, now, null, null));
+                prices.put("Cobalt Gem T1", new io.github.anilken.wynnlabs.market.Prices.Price(1_250, null, null, null, null, now, null,
+                        null));
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
+        });
+        boolean compact = ctx.computeOnClient(mc -> ((RoadmapScreen) mc.screen).layout.compact());
+        tab(ctx, t -> t.showUses("Koi Oil"));
+        if (compact) {
+            usesShot(ctx, out, "search-uses-list", true);   // a small window: the list, then the ring's card in the drawer
+        }
+        // (the drawer lies over the page, so only the shots without it are checked)
+        use(ctx, "use:Koi Oil:ring", compact);
+        usesShot(ctx, out, "search-uses", !compact);
+        use(ctx, "use:Koi Oil:relik", compact);
+        usesShot(ctx, out, "search-uses-relik", !compact);
+        use(ctx, "use:Koi Oil:feed", compact);
+        usesShot(ctx, out, "search-uses-mount", !compact);
+        tab(ctx, t -> t.showUses("Lucky Rabbit's Foot"));
+        if (compact) {
+            usesShot(ctx, out, "search-uses-ingredient-list", true);
+        }
+        use(ctx, "use:Lucky Rabbit's Foot:prof-armouring", compact);
+        usesShot(ctx, out, "search-uses-ingredient", !compact);
+        if (!compact) {
+            // an item's own card: its "Uses" section and "All uses", at the card's end
+            tab(ctx, t -> t.show("Lucky Rabbit's Foot"));
+            tab(ctx, t -> t.card.scroll = 10_000);
+            usesShot(ctx, out, "search-uses-section", true);
+        }
+        ctx.runOnClient(mc -> UseStock.preview = null);
+    }
+
+    /** Chooses a use's row: its card beside the list, or in the drawer on a small window. */
+    private static void use(ClientGameTestContext ctx, String key, boolean compact) {
+        tab(ctx, t -> {
+            t.selName = key;
+            if (compact) {
+                t.openDrawer(key);
+            }
+        });
+        ctx.waitTicks(compact ? 15 : 5);                // the drawer slides in
+    }
+
+    /** A shot, and that frame's layout: no text over another, no two click areas that cross without one holding the other. */
+    private static void usesShot(ClientGameTestContext ctx, Path out, String name, boolean check) {
+        if (!check) {
+            shot(ctx, out, name);
+            return;
+        }
+        ctx.runOnClient(mc -> LayoutCheck.start());
+        ctx.waitTicks(1);
+        java.util.List<LayoutCheck.Drawn> drawn = ctx.computeOnClient(mc -> LayoutCheck.stop());
+        java.util.List<String> found = new java.util.ArrayList<>(LayoutCheck.textOverlaps(drawn));
+        found.removeIf(s -> s.contains("\"_\""));         // the focused box's caret blinks over its hint
+        java.util.List<int[]> clicks = ctx.computeOnClient(mc -> {
+            java.util.List<int[]> rects = new java.util.ArrayList<>();
+            for (SearchTab.Click c : ((RoadmapScreen) mc.screen).search.clicks) {
+                rects.add(c.rect());
+            }
+            return rects;
+        });
+        for (int i = 0; i < clicks.size(); i++) {
+            for (int j = i + 1; j < clicks.size(); j++) {
+                int[] a = clicks.get(i);
+                int[] b = clicks.get(j);
+                boolean cross = a[0] < b[0] + b[2] && b[0] < a[0] + a[2] && a[1] < b[1] + b[3] && b[1] < a[1] + a[3];
+                if (cross && !holds(a, b) && !holds(b, a)) {
+                    found.add("click areas cross: " + java.util.Arrays.toString(a) + " and " + java.util.Arrays.toString(b));
+                }
+            }
+        }
+        System.out.println("[wynnlabs-layout] " + name + " at " + PreviewSize.WIDTH + "x" + PreviewSize.HEIGHT + ": "
+                + (found.isEmpty() ? "no overlaps (" + clicks.size() + " click areas)" : found));
+        shot(ctx, out, name);
+    }
+
+    /** Whether {@code a} holds all of {@code b} (a row and the button on it: the button, added later, takes its own click). */
+    private static boolean holds(int[] a, int[] b) {
+        return b[0] >= a[0] && b[1] >= a[1] && b[0] + b[2] <= a[0] + a[2] && b[1] + b[3] <= a[1] + a[3];
     }
 
     /**

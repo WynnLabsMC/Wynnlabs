@@ -6,7 +6,8 @@ import io.github.anilken.wynnlabs.search.RecentSearches;
 import net.minecraft.client.gui.GuiGraphics;
 
 /**
- * One row of the search list: a group's title, an entry, a stat, or the empty page's "More ↓".
+ * One row of the search list: a group's title, an entry, a stat, a use of an item, or the empty
+ * page's "More ↓".
  * Each knows its key, whether it can be the list's choice, how tall it is and how to draw itself
  * (its click areas with it), so the list only stacks rows and finds the chosen one by key; a row
  * kind without an {@link Entry} needs nothing from the list.
@@ -149,6 +150,38 @@ sealed interface SearchRow {
             Art.icon(g, "bolt", x + Ui.iconIn(SLOT, 8), sy + Ui.iconIn(SLOT, 8), 8, Theme.INK_2);
             int ink = f.over(x, y, w) && !chosen ? Theme.LINK : Theme.INK;
             text(g, f, x, y, w, 0, name, ink, meta, null, 0, () -> f.list().tab.pickStat(stat));
+        }
+    }
+
+    /**
+     * A use of an item (a craft it goes into, feeding a mount): its badge, its name, what it takes
+     * and, on the right, how many crafts the player's stock allows. The choice opens its card;
+     * never a recent search.
+     */
+    record UseRow(String key, KindBadge badge, String name, String meta, String right, int rightInk) implements SearchRow {
+        @Override
+        public boolean pickable() {
+            return true;
+        }
+
+        @Override
+        public int height() {
+            return SearchResultsPanel.ROW;
+        }
+
+        @Override
+        public void draw(GuiGraphics g, Frame f, int x, int y, int w, boolean chosen) {
+            SearchTab tab = f.list().tab;
+            int sy = lit(g, x, y, w, chosen);
+            Kit.kindBadge(g, x, sy, SLOT, badge);
+            int ink = f.over(x, y, w) && !chosen ? Theme.LINK : Theme.INK;
+            boolean compact = f.compact();
+            text(g, f, x, y, w, 0, name, ink, meta, right, rightInk, () -> {
+                tab.selName = key;
+                if (compact) {
+                    tab.openDrawer(key);
+                }
+            });
         }
     }
 

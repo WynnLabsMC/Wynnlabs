@@ -262,10 +262,13 @@ final class SearchCardPanel extends MenuPaint {
 
     private int content(GuiGraphics g, int x, int y, int w, boolean withActions, int mx, int my) {
         int cy = header(g, x, y, w, mx, my);
-        if (withActions) {
-            cy = actions(g, x, cy, w, mx, my) + Theme.SP_6;
+        if (withActions && (firstPlace() != null || view.actions().stream().anyMatch(Action::enabled))) {
+            cy = actions(g, x, cy, w, mx, my) + Theme.SP_6;         // a view with nothing to do leaves no empty row
         }
-        cy = sources.draw(g, x, cy, w, mx, my) + Theme.SP_5;
+        cy = view.lead(g, x, cy, w, mx, my);
+        if (view.rowsTitle() != null) {
+            cy = sources.draw(g, x, cy, w, mx, my) + Theme.SP_5;
+        }
         return view.sections(g, x, cy, w, mx, my);
     }
 
@@ -301,20 +304,22 @@ final class SearchCardPanel extends MenuPaint {
         // the name, a copy button (to paste into the Trade Market's search or chat), the seal (an item's build gain)
         String gainText = head.seal();
         int gainW = gainText == null ? 0 : Type.META.width(font(), gainText) + 2 * Theme.SP_2 + Theme.SP_3;
-        int copyW = Ui.CHIP_H + 2;
+        int copyW = view.copyable() ? Ui.CHIP_H + 2 : 0;
         String name = Type.HEADING.fit(font(), view.name(), tw - copyW - Theme.SP_3 - gainW);
         Type.HEADING.draw(g, font(), name, tx, y, view.ink());
         int cx = tx + Type.HEADING.width(font(), name) + Theme.SP_3;
         int cyb = Type.HEADING.onCaps(y, Ui.CHIP_H);
-        boolean justCopied = view.name().equals(copiedName) && System.currentTimeMillis() - copiedAt < 1200;
-        Ui.iconButton(g, justCopied ? "check" : "copy", cx, cyb, false, over(mx, my) ? mx : -1, my);
-        String copied = view.name();
-        click(cx, cyb, copyW, Ui.CHIP_H, () -> {
-            Minecraft.getInstance().keyboardHandler.setClipboard(copied);
-            copiedName = copied;
-            copiedAt = System.currentTimeMillis();
-        });
-        tip(cx, cyb, copyW, Ui.CHIP_H, mx, my, L.t("wynnlabs.search.copy_name"));
+        if (view.copyable()) {
+            boolean justCopied = view.name().equals(copiedName) && System.currentTimeMillis() - copiedAt < 1200;
+            Ui.iconButton(g, justCopied ? "check" : "copy", cx, cyb, false, over(mx, my) ? mx : -1, my);
+            String copied = view.name();
+            click(cx, cyb, copyW, Ui.CHIP_H, () -> {
+                Minecraft.getInstance().keyboardHandler.setClipboard(copied);
+                copiedName = copied;
+                copiedAt = System.currentTimeMillis();
+            });
+            tip(cx, cyb, copyW, Ui.CHIP_H, mx, my, L.t("wynnlabs.search.copy_name"));
+        }
         if (gainText != null) {
             Ui.seal(g, font(), gainText, cx + copyW + Theme.SP_3, Type.HEADING.onCaps(y, Ui.SEAL_H), Theme.SEAL_2);
         }
@@ -435,7 +440,7 @@ final class SearchCardPanel extends MenuPaint {
 
     /** The view's name as a compass pin carries it: its first 32 characters. */
     private String shortName() {
-        String name = view.name();
+        String name = view.pinName();
         return name.length() > 32 ? name.substring(0, 32) : name;
     }
 

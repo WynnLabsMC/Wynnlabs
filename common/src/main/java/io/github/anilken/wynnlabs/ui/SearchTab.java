@@ -9,12 +9,14 @@ import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.Klass;
+import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.RecentSearches;
 import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.SearchWorker;
+import io.github.anilken.wynnlabs.search.UseKey;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -68,6 +70,8 @@ final class SearchTab extends MenuTab {
     final Set<Kind> kinds = EnumSet.noneOf(Kind.class);
     /** The stat the Stats category lists the items of (null: the list of stats). */
     String stat;
+    /** The item whose uses the list shows in place of the search (null: the search). */
+    String usesOf;
     /** 0: every level, 1: up to mine, 2: mine and the ten below. */
     int levelMode;
     boolean myClass;
@@ -99,10 +103,19 @@ final class SearchTab extends MenuTab {
     List<EditBox> init() {
         String typed = box == null ? (typedBefore == null ? "" : typedBefore) : box.getValue();
         typedBefore = null;
-        box = UiInput.box(font(), "wynnlabs.search.box_hint", null, v -> results.scroll = 0);
+        box = UiInput.box(font(), "wynnlabs.search.box_hint", null, this::typed);
         box.setMaxLength(60);
         box.setValue(typed);
         return List.of(box);
+    }
+
+    /** The box changed: the list starts at its top, and typing leaves an item's uses for the search. */
+    private void typed(String text) {
+        results.scroll = 0;
+        if (usesOf != null && !text.isEmpty()) {
+            usesOf = null;
+            selName = null;
+        }
     }
 
     @Override
@@ -137,9 +150,40 @@ final class SearchTab extends MenuTab {
         selName = key;
         category = SearchCategory.ALL;
         stat = null;
+        usesOf = null;
         if (menu.layout != null && menu.layout.compact()) {
             openDrawer(key);
         }
+    }
+
+    /**
+     * Shows what {@code item} is used for in place of the search (the uses key over a hovered
+     * item, an item card's "All uses", a craft's other material): an empty box, the first use
+     * chosen. The item itself is a recent search; its uses never are.
+     */
+    void showUses(String item) {
+        Entry e = ItemIndex.get().byName(item);
+        wanted = null;
+        if (box != null) {
+            box.setValue("");
+        } else {
+            typedBefore = "";
+        }
+        usesOf = e != null ? e.name() : item;
+        selName = null;
+        category = SearchCategory.ALL;
+        stat = null;
+        results.scroll = 0;
+        if (e != null) {
+            RecentSearches.get().add(e.key());
+        }
+    }
+
+    /** The uses chip's ✕: back to the search. */
+    void clearUses() {
+        usesOf = null;
+        selName = null;
+        results.scroll = 0;
     }
 
     /** The tab is shown: the box takes the keys. */
@@ -185,11 +229,13 @@ final class SearchTab extends MenuTab {
         if (c != SearchCategory.STAT) {
             stat = null;
         }
+        usesOf = null;
         results.scroll = 0;
     }
 
     void pickStat(String key) {
         stat = key;
+        usesOf = null;
         if (key != null) {
             category = SearchCategory.STAT;
         }
@@ -474,7 +520,9 @@ final class SearchTab extends MenuTab {
             }
             case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> {
                 if (card.key() != null) {
-                    RecentSearches.get().add(card.key());
+                    if (!UseKey.isUse(card.key())) {
+                        RecentSearches.get().add(card.key());
+                    }
                     card.pinEasiest();
                 }
                 return true;

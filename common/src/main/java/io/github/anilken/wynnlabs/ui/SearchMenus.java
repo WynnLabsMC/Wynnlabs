@@ -95,8 +95,8 @@ final class SearchMenus {
     void recentUnderBox() {
         boolean empty = tab.box.getValue().isEmpty();
         // only where the list does not head with them already (another category, a filter, a stat),
-        // and never over the list of stats, which is there to be picked from
-        boolean statList = tab.category == SearchCategory.STAT && tab.stat == null;
+        // and never over the list of stats or of an item's uses, which are there to be picked from
+        boolean statList = tab.category == SearchCategory.STAT && tab.stat == null || tab.usesOf != null;
         boolean wanted = tab.box.isFocused() && empty && !statList && !RecentSearches.get().names().isEmpty()
                 && !tab.results.showsRecent();
         if (!tab.box.isFocused() || !empty) {

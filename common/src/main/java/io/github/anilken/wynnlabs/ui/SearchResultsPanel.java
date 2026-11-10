@@ -61,7 +61,7 @@ final class SearchResultsPanel extends MenuPaint {
         List<String> last = RecentSearches.get().newest(EmptyPage.FIRST_ROWS);
         boolean blank = tab.box.getValue().isBlank();
         Object key = List.of(System.identityHashCode(result), compact, missing, last, tab.category, String.valueOf(tab.stat),
-                SearchTab.expanded);
+                SearchTab.expanded, String.valueOf(tab.usesOf));
         if (key.equals(builtFor)) {
             return;
         }
