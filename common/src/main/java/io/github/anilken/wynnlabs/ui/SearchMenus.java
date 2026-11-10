@@ -8,6 +8,7 @@ import io.github.anilken.wynnlabs.search.Compass;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.MapMark;
 import io.github.anilken.wynnlabs.search.RecentSearches;
+import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
 import io.github.anilken.wynnlabs.search.TrackedMobs;
 
@@ -89,8 +90,11 @@ final class SearchMenus {
     /** The empty, focused box opens the recent searches under it when the list does not show them; typing or leaving the box closes them. */
     void recentUnderBox() {
         boolean empty = tab.box.getValue().isEmpty();
-        // only where the list does not head with them already (another category, a filter, a stat)
-        boolean wanted = tab.box.isFocused() && empty && !RecentSearches.get().names().isEmpty() && !tab.results.showsRecent();
+        // only where the list does not head with them already (another category, a filter, a stat),
+        // and never over the list of stats, which is there to be picked from
+        boolean statList = tab.category == SearchCategory.STAT && tab.stat == null;
+        boolean wanted = tab.box.isFocused() && empty && !statList && !RecentSearches.get().names().isEmpty()
+                && !tab.results.showsRecent();
         if (!tab.box.isFocused() || !empty) {
             tab.recentDismissed = false;
         }
