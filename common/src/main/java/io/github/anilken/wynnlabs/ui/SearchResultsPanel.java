@@ -75,8 +75,8 @@ final class SearchResultsPanel extends MenuPaint {
                 stats = ItemMatch.stats(index);
                 statsFor = index;
             }
-            // as it was: "recent" is still the last empty page's here, and this title takes its "Clear"
-            out = SearchRowSources.stats(stats, recent);
+            recent = false;                         // the stats list has no recent group, so no "Clear" either
+            out = SearchRowSources.stats(stats, false);
         } else {
             SearchRowSources.Page page = SearchRowSources.emptyPage(tab, index, blank, missing, last, !result.hits().isEmpty());
             recent = page.recent();
