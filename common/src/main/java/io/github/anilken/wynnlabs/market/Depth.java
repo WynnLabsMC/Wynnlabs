@@ -61,4 +61,24 @@ public final class Depth {
         }
         return next >= lowest * WALL && cheap <= all * FEW ? cheap : 0;
     }
+
+    /**
+     * The price to go by: the lowest, or when only a few sit there before a wall, the first price
+     * past them (one cheap stray listing does not set a stack's price). 0 for an empty ladder.
+     */
+    public static int price(List<Step> ladder) {
+        if (ladder.isEmpty()) {
+            return 0;
+        }
+        int lowest = ladder.get(0).price();
+        if (fewCheap(ladder) == 0) {
+            return lowest;
+        }
+        for (Step s : ladder) {
+            if (s.price() > lowest * SAME) {
+                return s.price();
+            }
+        }
+        return lowest;
+    }
 }
