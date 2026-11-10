@@ -2428,7 +2428,7 @@
   "wynnlabs.search.uses_have_bank": "Bankada %s var",
   "wynnlabs.search.uses_bracket_mine": "Lv %s tarifi, level'ına göre seçildi.",
   "wynnlabs.search.uses_bracket_low": "Lv %s tarifi. Üst level'larda değişir.",
-  "wynnlabs.search.uses_feed_gives": "Her biri verir",
+  "wynnlabs.search.uses_feed_gives": "Tanesi başına",
   "wynnlabs.search.uses_feed_caps": "Binek limitlerinden önce",
   "wynnlabs.search.uses_feed_mounts": "Bineklerin",
   "wynnlabs.search.uses_open_craft": "Crafting'de aç",
