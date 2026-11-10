@@ -81,6 +81,8 @@ final class SearchResultsPanel extends MenuPaint {
         }
         builtFor = key;
         List<Row> out = new ArrayList<>();
+        recentHead = -1;                            // the stats list has no recent group either
+        recentEnd = -1;
         if (blank && tab.category == SearchCategory.STAT && tab.stat == null) {
             if (stats == null || statsFor != index) {
                 stats = ItemMatch.stats(index);
@@ -96,8 +98,6 @@ final class SearchResultsPanel extends MenuPaint {
             boolean home = blank && tab.filtersOn() == 0 && tab.stat == null && tab.category == SearchCategory.ALL;
             boolean catalogue = blank && tab.filtersOn() == 0 && tab.stat == null
                     && (tab.category == SearchCategory.ALL || tab.category == SearchCategory.ITEM);
-            recentHead = -1;
-            recentEnd = -1;
             List<Row> mine = new ArrayList<>();
             List<Row> rs = new ArrayList<>();
             if (catalogue) {
