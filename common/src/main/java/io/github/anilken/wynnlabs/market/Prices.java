@@ -750,6 +750,8 @@ public final class Prices {
         Integer unidLow = null;
         int count = 0;
         java.util.List<Integer> prices = new java.util.ArrayList<>();
+        java.util.Map<Integer, Integer> stacks = new java.util.TreeMap<>();
+        boolean stacked = false;
         for (var el : list) {
             JsonObject l = el.getAsJsonObject();
             if (!base.equalsIgnoreCase(l.get("name").getAsString()) || l.has("shiny") && l.get("shiny").getAsBoolean()
@@ -771,7 +773,17 @@ public final class Prices {
             } else {
                 low = low == null ? price : Math.min(low, price);
                 prices.add(price);
+                int amount = l.has("amount") && !l.get("amount").isJsonNull() ? Math.max(1, l.get("amount").getAsInt()) : 1;
+                stacked |= amount > 1;
+                stacks.merge(price, amount, Integer::sum);
             }
+        }
+        if (stacked) {
+            // a stackable's price: a few cheap strays before a wall of dearer stacks are skipped
+            java.util.List<Depth.Step> ladder = new java.util.ArrayList<>();
+            stacks.forEach((pr, a) -> ladder.add(new Depth.Step(pr, a)));
+            int real = Depth.price(ladder);
+            low = real > 0 ? Integer.valueOf(real) : low;
         }
         long now = System.currentTimeMillis();
         Price old = PRICES.get(name);
