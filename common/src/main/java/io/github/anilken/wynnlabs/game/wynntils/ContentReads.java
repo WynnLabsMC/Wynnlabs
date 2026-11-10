@@ -195,6 +195,36 @@ public final class ContentReads {
     }
 
     /**
+     * Puts the content book's filter back on {@code shown} (the name on its filter button) after
+     * the world event read moved it: Wynntils' hidden read of that kind's first page, which sets
+     * the filter on its way. False when Wynntils does not know the name or the call fails. Only
+     * ever after {@link #scanWorldEvents}, once per read at most.
+     */
+    public static boolean showBookFilter(String shown) {
+        ActivityType type = ActivityType.from(shown);
+        if (type == null) {
+            return false;
+        }
+        return guard(Feature.QUESTS, () -> {
+            java.util.function.BiConsumer<List<com.wynntils.models.activities.type.ActivityInfo>,
+                    List<com.wynntils.core.text.StyledText>> none = (list, progress) -> {};
+            try {
+                // the first page only and no message; the public call reads every page of the kind
+                var field = Models.Activity.getClass().getDeclaredField("CONTAINER_QUERIES");
+                field.setAccessible(true);
+                Object queries = field.get(null);
+                var query = queries.getClass().getDeclaredMethod("queryContentBook", ActivityType.class,
+                        java.util.function.BiConsumer.class, boolean.class, boolean.class);
+                query.setAccessible(true);
+                query.invoke(queries, type, none, false, true);
+            } catch (ReflectiveOperationException e) {
+                Models.Activity.scanContentBook(type, none);
+            }
+            return true;
+        }, false);
+    }
+
+    /**
      * What Wynntils itself keeps of one kind for this character (caves and the three discovery
      * kinds; empty for the rest and until Wynntils read them).
      */
