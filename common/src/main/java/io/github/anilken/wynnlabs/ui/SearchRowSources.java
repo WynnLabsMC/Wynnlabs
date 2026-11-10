@@ -58,6 +58,8 @@ final class SearchRowSources {
                 }
             }
             for (String n : recent) {
+                // a recent search is listed only while its key is an entry's: one of another kind of row
+                // (no entry behind it) is left out here until it has a row to show
                 Entry e = index.byKey(n);
                 if (e != null) {
                     rs.add(entry(tab, e, null, true));
@@ -110,7 +112,7 @@ final class SearchRowSources {
     /** A row of an entry: its META line and its right column, worked out here once. */
     static SearchRow.EntryRow entry(SearchTab tab, Entry e, String note, boolean recent) {
         String meta = note != null ? note : e.item() ? SearchResultsPanel.kindText(e) + (e.level() > 0 ? " · Lv " + e.level() : "")
-                : SearchThingCard.sub(e);
+                : ThingCard.sub(e);
         String right;
         int ink;
         Integer v = SearchQuery.statValue(e, tab.stat);
@@ -118,7 +120,7 @@ final class SearchRowSources {
             right = (v > 0 ? "+" : "") + v;
             ink = v < 0 ? Theme.BAD : Theme.GOOD;
         } else if (!e.item()) {
-            right = SearchThingCard.hint(e, SearchTab.position());
+            right = ThingCard.hint(e, SearchTab.position());
             ink = Theme.INK_2;
         } else if (tab.ownedNames.contains(e.name().toLowerCase(Locale.ROOT))) {
             right = L.t("wynnlabs.search.owned");

@@ -106,7 +106,7 @@ sealed interface SearchRow {
                     f.list().menu.hits.add(new MenuHit(x, sy, SLOT, SLOT, tab.icons.of(e), null, null));
                 }
             } else {
-                SearchThingCard.picture(g, e, x, sy, SLOT);
+                ThingCard.picture(g, e, x, sy, SLOT);
             }
             int ink = hover && !chosen ? Theme.LINK : SearchResultsPanel.colour(e);
             text(g, f, x, y, w, trail, e.name(), ink, meta, right, rightInk, () -> pick(tab, f.compact()));
@@ -120,7 +120,7 @@ sealed interface SearchRow {
             tab.selName = key();
             RecentSearches.get().add(key());
             if (compact) {
-                tab.openDrawer(e.item() ? SearchResultsPanel.kindText(e) : SearchThingCard.typeText(e));
+                tab.openDrawer(key());
             }
         }
     }

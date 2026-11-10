@@ -9,6 +9,7 @@ import io.github.anilken.wynnlabs.search.Area;
 import io.github.anilken.wynnlabs.search.Compass;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
+import io.github.anilken.wynnlabs.search.ItemWiki;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceRank;
@@ -26,14 +27,16 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * The search card's parts for a thing of the world (mob, place, dungeon, service, resource,
- * quest, NPC, discovery) where an item has its own: the words under its name, the status line
- * (a quest done or not, a discovery found or not, where a mob lives), the label of its place
- * rows, and the sections under them: what a mob drops or a dungeon gives (each opens that item's
- * card), a resource's materials, an NPC's quests, and the way to the quest's or discovery's own
- * tab. Read-only: the one thing it changes is which tab or card is open.
+ * The search card of a thing of the world (mob, place, dungeon, service, resource, quest, NPC,
+ * discovery; a {@link CardView}): its kind's badge, the words under its name, the status line
+ * (a quest done or not, a discovery found or not, where a mob lives), "Where" with the label of
+ * its place rows, Track for a mob, "Open on map", "Compass to all" and the wiki, and the sections
+ * under the rows: what a mob drops or a dungeon gives (each opens that item's card), a resource's
+ * materials, an NPC's quests, and the way to the quest's or discovery's own tab. One per choice;
+ * the words of a thing are static, for the list's rows too. Read-only: the one thing it changes
+ * is which tab or card is open.
  */
-final class SearchThingCard extends MenuPaint {
+final class ThingCard extends MenuPaint implements CardView {
 
     /** The place and content types with their own words ({@code wynnlabs.search.thing.<type>}). */
     private static final Set<String> TYPES = Set.of("city", "town", "province", "dungeon",
@@ -41,11 +44,77 @@ final class SearchThingCard extends MenuPaint {
 
     private final SearchCardPanel card;
     private final SearchTab tab;
+    private final Entry e;
 
-    SearchThingCard(SearchCardPanel card, SearchTab tab) {
-        super(tab.menu);
+    ThingCard(SearchCardPanel card, Entry e) {
+        super(card.tab.menu);
         this.card = card;
-        this.tab = tab;
+        this.tab = card.tab;
+        this.e = e;
+    }
+
+    // ---- the card ----
+
+    @Override
+    public String key() {
+        return e.key();
+    }
+
+    @Override
+    public String name() {
+        return e.name();
+    }
+
+    @Override
+    public String title() {
+        return typeText(e);
+    }
+
+    @Override
+    public void select() {
+        // nothing to work out: its rows are its places
+    }
+
+    @Override
+    public void picture(GuiGraphics g, int x, int y, int size, boolean hover) {
+        picture(g, e, x, y, size);
+    }
+
+    @Override
+    public int ink() {
+        return SearchResultsPanel.colour(e);
+    }
+
+    @Override
+    public Head head() {
+        return new Head(CardView.kindLine(e, typeText(e)), status(e), null);
+    }
+
+    @Override
+    public String rowsTitle() {
+        return L.t("wynnlabs.search.where");
+    }
+
+    @Override
+    public List<Source> rows(double[] pos) {
+        return Things.rows(e, pos);
+    }
+
+    @Override
+    public String rowText(Source s, ItemWiki.Info wiki) {
+        return rowText(e, s);
+    }
+
+    @Override
+    public String markText(Source s, ItemWiki.Info wiki) {
+        return markText(e, s);
+    }
+
+    /** Track for a mob (by its floating name), "Open on map", "Compass to all" for a thing of many places, the wiki. */
+    @Override
+    public List<SearchCardPanel.Action> actions() {
+        return List.of(card.trackChip(e.kind() == Kind.MOB ? TrackedMobs.get() : null, e.name()), card.mapChip(),
+                card.pinAllChip(e.places()), card.wikiChip(wiki(e) ? ItemWiki.url(e.name()) : null));
     }
 
     // ---- words ----
@@ -263,7 +332,8 @@ final class SearchThingCard extends MenuPaint {
         return v == null ? null : "~" + Prices.fmt(v);
     }
 
-    int draw(GuiGraphics g, Entry e, int x, int y, int w, int mx, int my) {
+    @Override
+    public int sections(GuiGraphics g, int x, int y, int w, int mx, int my) {
         int cy = y;
         ItemIndex index = ItemIndex.get();
         List<Entry.Origin> items = e.links(Entry.ITEM);
