@@ -22,6 +22,8 @@ import java.util.Set;
 public final class RoadChoices {
 
     public LevelRoad.Pref pref = LevelRoad.Pref.MIXED;
+    /** Counts as under double profession XP, whether or not a bomb is on this world. */
+    public boolean doubleXp;
     public final Map<String, LevelRoad.Route> routes = new HashMap<>();
     /** Ticked step keys, per profession ("WEAPONSMITHING" → {"23:craft"}). */
     public final Map<String, Set<String>> ticked = new HashMap<>();
@@ -79,6 +81,7 @@ public final class RoadChoices {
                 // a value of another version: the default
             }
         }
+        c.doubleXp = o.has("doubleXp") && o.get("doubleXp").getAsBoolean();
         if (o.has("routes")) {
             for (Map.Entry<String, JsonElement> e : o.getAsJsonObject("routes").entrySet()) {
                 try {
@@ -110,6 +113,7 @@ public final class RoadChoices {
     String json() {
         JsonObject o = new JsonObject();
         o.addProperty("pref", pref.name());
+        o.addProperty("doubleXp", doubleXp);
         JsonObject r = new JsonObject();
         routes.forEach((k, v) -> r.addProperty(k, v.name()));
         o.add("routes", r);

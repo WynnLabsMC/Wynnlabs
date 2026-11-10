@@ -253,7 +253,7 @@ final class CraftRoadData {
         RoadChoices ch = RoadChoices.get();
         int[] xp = xp(profession);
         ProfBomb bomb = xpBombHere();
-        double mult = bomb == null ? 1 : 2;
+        double mult = bomb == null && !ch.doubleXp ? 1 : 2;     // a bomb here, or the player's own "Double XP"
         String key = profession + "|" + type + "|" + level + "|" + target + "|" + xp[0] + "|" + xp[1] + "|" + ch.pref + "|" + ch.routes
                 + "|" + ch.ticked(profession) + "|" + System.identityHashCode(tab.stock) + "|" + Prices.version + "|" + mult + "|"
                 + System.identityHashCode(ItemIndex.get());

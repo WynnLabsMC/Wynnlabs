@@ -368,6 +368,17 @@ final class CraftRoadPanel extends CraftPanel {
             }, null, List.of(L.c("wynnlabs.road.pref_tip." + p.name().toLowerCase(Locale.ROOT)))));
             cx += cw + Theme.SP_1;
         }
+        // "Double XP": the counts as under a Prof XP bomb; lit by itself while one is on this world
+        boolean bomb = data.xpBombHere() != null;
+        String dx = L.t("wynnlabs.road.double_xp");
+        int dw = Ui.chipWidth(tab.font, dx);
+        cx += Theme.SP_3;
+        Ui.chip(g, tab.font, dx, cx, y, dw, bomb || ch.doubleXp, false, false, mx, my);
+        tab.acts.add(new Act(cx, y, dw, Ui.CHIP_H, () -> {
+            ch.doubleXp = !ch.doubleXp;
+            ch.save();
+        }, null, List.of(L.c(bomb ? "wynnlabs.road.double_xp_bomb_tip" : "wynnlabs.road.double_xp_tip"))));
+        cx += dw;
         String sum = summary(road);
         int sx = cx + Theme.SP_5;
         if (sx + Type.META.width(tab.font, sum) > x + w) {
