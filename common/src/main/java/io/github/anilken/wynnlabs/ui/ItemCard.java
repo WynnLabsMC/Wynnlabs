@@ -4,17 +4,26 @@ import io.github.anilken.wynnlabs.build.Build;
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.GameState;
 import io.github.anilken.wynnlabs.game.ItemJson;
+import io.github.anilken.wynnlabs.market.Prices;
+import io.github.anilken.wynnlabs.market.Shopping;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.Klass;
 import io.github.anilken.wynnlabs.model.SkillKind;
+import io.github.anilken.wynnlabs.model.Slot;
+import io.github.anilken.wynnlabs.model.Tier;
 import io.github.anilken.wynnlabs.quests.QuestBook;
+import io.github.anilken.wynnlabs.search.BoxMarket;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
+import io.github.anilken.wynnlabs.search.ItemWiki;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.Source;
+import io.github.anilken.wynnlabs.search.SourceText;
 import io.github.anilken.wynnlabs.search.Sources;
+import io.github.anilken.wynnlabs.search.TrackedMobs;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -27,26 +36,55 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * The card's sections under "How do I get it", always open: "Yours" (bag and bank pages with counts),
- * "Stats" (gear's roll ranges, an ingredient's modifiers and professions) and "Related" (the
- * set's other pieces, items from the same place, the quest that gives it, crafting for an
- * ingredient). Also the requirement line of the card's head. Worked out once per choice.
+ * The search card of an item ({@link CardView}): its icon in an HD slot, its kind and level, what
+ * it asks of the player (✔/✘) and the build gain; "How do I get it" from where the player stands
+ * with what they hold; Track, "Open on map", the Trade Market and the wiki; and the sections under
+ * the rows, always open: "Yours" (bag and bank pages with counts), "Stats" (gear's roll ranges, an
+ * ingredient's modifiers and professions) and "Related" (the set's other pieces, items from the
+ * same place, the quest that gives it, crafting for an ingredient). One per choice.
  */
-final class SearchCardSections extends MenuPaint {
+final class ItemCard extends MenuPaint implements CardView {
 
     private final SearchCardPanel card;
     private final SearchTab tab;
+    private final Entry e;
     /** Names of related items (set pieces first), and the quest the item comes from (or null). */
     private List<String> related = List.of();
     private String quest;
+    private Sources.Owned have = Sources.Owned.NONE;
+    /** The least stars the loot chest row's chests have (1 to 4): the item's own by default, cycled by its chip. */
+    private int chestStars = 1;
+    /** What wearing it adds to the build, when it is a piece the road map would buy; else null. */
+    private Double gain;
 
-    SearchCardSections(SearchCardPanel card, SearchTab tab) {
-        super(tab.menu);
+    ItemCard(SearchCardPanel card, Entry e) {
+        super(card.tab.menu);
         this.card = card;
-        this.tab = tab;
+        this.tab = card.tab;
+        this.e = e;
     }
 
-    void select(Entry e) {
+    @Override
+    public String key() {
+        return e.key();
+    }
+
+    @Override
+    public String name() {
+        return e.name();
+    }
+
+    @Override
+    public String title() {
+        return SearchResultsPanel.kindText(e);
+    }
+
+    @Override
+    public void select() {
+        have = owned(e.name());
+        chestStars = Sources.chestStars(e);
+        Shopping.Pick pick = e.kind() == Kind.GEAR ? Shopping.find(e.name()) : null;
+        gain = pick == null || pick.gain() <= 0 ? null : pick.gain();
         ItemIndex index = ItemIndex.get();
         List<String> out = new ArrayList<>();
         for (String n : index.setPieces(e)) {
@@ -108,8 +146,95 @@ final class SearchCardSections extends MenuPaint {
         return new Sources.Owned(bag, bank);
     }
 
+    // ---- the head ----
+
+    @Override
+    public void picture(GuiGraphics g, int x, int y, int size, boolean hover) {
+        Kit.slot(g, x, y, size, 0);
+        ItemStack stack = tab.icons.of(e);
+        g.renderItem(stack, x + (size - 16) / 2, y + (size - 16) / 2);
+        if (hover) {
+            menu.hits.add(new MenuHit(x, y, size, size, stack, null, null));
+        }
+    }
+
+    @Override
+    public int ink() {
+        return SearchResultsPanel.colour(e);
+    }
+
+    @Override
+    public Head head() {
+        return new Head(CardView.kindLine(e, SearchResultsPanel.kindText(e)), needs(),
+                gain == null ? null : L.t("wynnlabs.search.gain", dec(gain, 1)));
+    }
+
+    // ---- the rows ----
+
+    @Override
+    public String rowsTitle() {
+        return L.t("wynnlabs.search.how");
+    }
+
+    /** From where the player stands, with what they hold and the chest stars asked for. */
+    @Override
+    public List<Source> rows(double[] pos) {
+        Prices.Price price = e.tradable() ? Prices.of(e.name()) : null;
+        return Sources.of(e, ItemIndex.get().places(), have, price, pos, chestStars);
+    }
+
+    /** The source's text: the wiki's words once it arrived. */
+    @Override
+    public String rowText(Source s, ItemWiki.Info wiki) {
+        return SourceText.row(s, wiki);
+    }
+
+    @Override
+    public Entry link(Source s) {
+        return ThingCard.linked(s);
+    }
+
+    /** The loot chest row's chip: the least stars a chest needs, ★1+ … ★4; a click goes to the next (1 → 2 → 3 → 4 → 1). */
+    @Override
+    public RowChip rowChip(Source s) {
+        if (s.type() != Source.Type.LOOT_CHEST) {
+            return null;
+        }
+        return new RowChip(chestStars >= 4 ? "★4" : "★" + chestStars + "+", L.t("wynnlabs.search.stars_tip"), () -> {
+            chestStars = chestStars % 4 + 1;
+            card.rowsChanged();
+        });
+    }
+
+    @Override
+    public String wikiPage() {
+        return e.name();
+    }
+
+    // ---- the actions ----
+
+    /** Track (its drops on the ground), "Open on map", the Trade Market's listings for a tradable item, the wiki. */
+    @Override
+    public List<SearchCardPanel.Action> actions() {
+        return List.of(card.trackChip(TrackedMobs.items(), e.name()), card.mapChip(),
+                new SearchCardPanel.Action("shopping-cart", L.t("wynnlabs.search.market"), e.tradable(), false, this::market),
+                card.wikiChip(ItemWiki.url(e.name())));
+    }
+
+    /** The Trade Market window the T key opens over a container, for this item: its listings and rolls. */
+    private void market() {
+        Tier rarity;
+        try {
+            rarity = Tier.valueOf(e.tier().toUpperCase(Locale.ROOT));
+        } catch (RuntimeException ex) {
+            rarity = Tier.NORMAL;
+        }
+        var item = new BoxMarket.Item(e.name(), Slot.UNKNOWN, rarity, e.level(), e.klass(), 0, true);
+        Minecraft.getInstance().setScreen(new BoxScreen(new BoxScreen.Single(item, null, false), tab.icons.of(e), menu));
+    }
+
     /** "Lv 73 ✔ · Str 40 ✘ · Shaman ✔ · quest ✔": what the item asks against what the player has. */
-    Component needs(Entry e) {
+    private Component needs() {
         MutableComponent out = Component.empty();
         GameState gs = GameState.current();
         List<Object[]> parts = new ArrayList<>();               // {text, Boolean met}
@@ -160,9 +285,8 @@ final class SearchCardSections extends MenuPaint {
     // ---- drawing ----
 
     /** "Yours", "Stats" and "Related", always open (the card scrolls); returns the y under them. */
-    int draw(GuiGraphics g, int x, int y, int w, int mx, int my) {
-        Entry e = card.entry;
-        Sources.Owned have = card.have;
+    @Override
+    public int sections(GuiGraphics g, int x, int y, int w, int mx, int my) {
         int count = have.bag() + have.bank().values().stream().mapToInt(Integer::intValue).sum();
         int cy = card.sources.title(g, L.t("wynnlabs.search.sec_owned"), count > 0 ? String.valueOf(count) : null, x, y, w);
         if (count == 0) {
@@ -203,36 +327,37 @@ final class SearchCardSections extends MenuPaint {
 
     /** The quest it comes from, crafting for an ingredient, the set's pieces and items of the same place, as chips. */
     private int related(GuiGraphics g, Entry e, int x, int y, int w, int mx, int my) {
-        List<Object[]> chips = new ArrayList<>();          // {icon, label, action}
+        List<SearchCardPanel.Action> chips = new ArrayList<>();
         if (quest != null) {
             String q = quest;
-            chips.add(new Object[] {"script", L.t("wynnlabs.search.quest_link", q), (Runnable) () -> {
+            chips.add(new SearchCardPanel.Action("script", L.t("wynnlabs.search.quest_link", q), true, false, () -> {
                 menu.questsTab.questSelected = q;
                 menu.openTab(2);
-            }});
+            }));
         }
         if (e.kind() == Kind.INGREDIENT) {
-            chips.add(new Object[] {"hammer", L.t("wynnlabs.search.craft_link"), (Runnable) () -> menu.openTab(RoadmapScreen.TAB_CRAFT)});
+            chips.add(new SearchCardPanel.Action("hammer", L.t("wynnlabs.search.craft_link"), true, false,
+                    () -> menu.openTab(RoadmapScreen.TAB_CRAFT)));
         }
         for (String n : related) {
             // searched for, as the search key does: an item outside the current results would
             // otherwise give way to the first result again on the next frame
-            chips.add(new Object[] {"box", n, (Runnable) () -> tab.show(n)});
+            chips.add(new SearchCardPanel.Action("box", n, true, false, () -> tab.show(n)));
         }
         if (chips.isEmpty()) {
             return card.sources.line(g, L.t("wynnlabs.search.related_none"), x, y, w, Theme.INK_3);
         }
         int cx = x;
         int cy = y;
-        for (Object[] c : chips) {
-            String label = Type.BODY.fit(font(), (String) c[1], w - 2 * Theme.SP_4 - 10);
-            int cw = Math.min(w, Ui.iconChipWidth(font(), (String) c[0], label, false));
+        for (SearchCardPanel.Action c : chips) {
+            String label = Type.BODY.fit(font(), c.label(), w - 2 * Theme.SP_4 - 10);
+            int cw = Math.min(w, Ui.iconChipWidth(font(), c.icon(), label, false));
             if (cx + cw > x + w && cx > x) {
                 cx = x;
                 cy += Ui.CHIP_H + Theme.SP_2;
             }
-            Ui.iconChip(g, font(), (String) c[0], label, false, cx, cy, cw, false, card.over(mx, my) ? mx : -1, my);
-            card.click(cx, cy, cw, Ui.CHIP_H, (Runnable) c[2]);
+            Ui.iconChip(g, font(), c.icon(), label, false, cx, cy, cw, c.on(), card.over(mx, my) ? mx : -1, my);
+            card.click(cx, cy, cw, Ui.CHIP_H, c.run());
             cx += cw + Theme.SP_2;
         }
         return cy + Ui.CHIP_H;

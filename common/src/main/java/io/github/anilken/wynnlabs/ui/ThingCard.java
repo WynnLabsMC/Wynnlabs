@@ -2,16 +2,20 @@ package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
 import io.github.anilken.wynnlabs.game.GameState;
+import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.quests.Discoveries;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.search.Area;
 import io.github.anilken.wynnlabs.search.Compass;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
+import io.github.anilken.wynnlabs.search.ItemWiki;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.Source;
 import io.github.anilken.wynnlabs.search.SourceRank;
+import io.github.anilken.wynnlabs.search.SourceText;
 import io.github.anilken.wynnlabs.search.Things;
+import io.github.anilken.wynnlabs.search.TrackedMobs;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -20,28 +24,97 @@ import net.minecraft.network.chat.MutableComponent;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
- * The search card's parts for a thing of the world (mob, place, dungeon, service, resource,
- * quest, NPC, discovery) where an item has its own: the words under its name, the status line
- * (a quest done or not, a discovery found or not, where a mob lives), the label of its place
- * rows, and the sections under them: what a mob drops or a dungeon gives (each opens that item's
- * card), a resource's materials, an NPC's quests, and the way to the quest's or discovery's own
- * tab. Read-only: the one thing it changes is which tab or card is open.
+ * The search card of a thing of the world (mob, place, dungeon, service, resource, quest, NPC,
+ * discovery; a {@link CardView}): its kind's badge, the words under its name, the status line
+ * (a quest done or not, a discovery found or not, where a mob lives), "Where" with the label of
+ * its place rows, Track for a mob, "Open on map", "Compass to all" and the wiki, and the sections
+ * under the rows: what a mob drops or a dungeon gives (each opens that item's card), a resource's
+ * materials, an NPC's quests, and the way to the quest's or discovery's own tab. One per choice;
+ * the words of a thing are static, for the list's rows too. Read-only: the one thing it changes
+ * is which tab or card is open.
  */
-final class SearchThingCard extends MenuPaint {
+final class ThingCard extends MenuPaint implements CardView {
 
     /** The place and content types with their own words ({@code wynnlabs.search.thing.<type>}). */
-    private static final java.util.Set<String> TYPES = java.util.Set.of("city", "town", "province", "dungeon",
+    private static final Set<String> TYPES = Set.of("city", "town", "province", "dungeon",
             "corrupted_dungeon", "raid", "cave", "boss_altar", "grind_spot", "lootrun_camp", "time_trial", "shrine");
 
     private final SearchCardPanel card;
     private final SearchTab tab;
+    private final Entry e;
 
-    SearchThingCard(SearchCardPanel card, SearchTab tab) {
-        super(tab.menu);
+    ThingCard(SearchCardPanel card, Entry e) {
+        super(card.tab.menu);
         this.card = card;
-        this.tab = tab;
+        this.tab = card.tab;
+        this.e = e;
+    }
+
+    // ---- the card ----
+
+    @Override
+    public String key() {
+        return e.key();
+    }
+
+    @Override
+    public String name() {
+        return e.name();
+    }
+
+    @Override
+    public String title() {
+        return typeText(e);
+    }
+
+    @Override
+    public void select() {
+        // nothing to work out: its rows are its places
+    }
+
+    @Override
+    public void picture(GuiGraphics g, int x, int y, int size, boolean hover) {
+        picture(g, e, x, y, size);
+    }
+
+    @Override
+    public int ink() {
+        return SearchResultsPanel.colour(e);
+    }
+
+    @Override
+    public Head head() {
+        return new Head(CardView.kindLine(e, typeText(e)), status(e), null);
+    }
+
+    @Override
+    public String rowsTitle() {
+        return L.t("wynnlabs.search.where");
+    }
+
+    @Override
+    public List<Source> rows(double[] pos) {
+        return Things.rows(e, pos);
+    }
+
+    @Override
+    public String rowText(Source s, ItemWiki.Info wiki) {
+        return rowText(e, s);
+    }
+
+    @Override
+    public String markText(Source s, ItemWiki.Info wiki) {
+        return markText(e, s);
+    }
+
+    /** Track for a mob (by its floating name), "Open on map", "Compass to all" for a thing of many places, the wiki. */
+    @Override
+    public List<SearchCardPanel.Action> actions() {
+        return List.of(card.trackChip(e.kind() == Kind.MOB ? TrackedMobs.get() : null, e.name()), card.mapChip(),
+                card.pinAllChip(e.places()), card.wikiChip(wiki(e) ? ItemWiki.url(e.name()) : null));
     }
 
     // ---- words ----
@@ -92,7 +165,7 @@ final class SearchThingCard extends MenuPaint {
     }
 
     private static String sourceType(Entry e) {
-        return io.github.anilken.wynnlabs.search.SourceText.type(Things.type(e));
+        return SourceText.type(Things.type(e));
     }
 
     private static Area nearest(List<Area> places, double[] pos) {
@@ -242,12 +315,9 @@ final class SearchThingCard extends MenuPaint {
         int bw = Ui.CHIP_H + 2;
         int bx = r - bw;
         int by = y + Ui.iconIn(ICON, Ui.CHIP_H);
-        boolean on = io.github.anilken.wynnlabs.search.TrackedMobs.items().has(name);
+        boolean on = TrackedMobs.items().has(name);
         Ui.iconButton(g, on ? "check" : "target", bx, by, on, card.over(mx, my) ? mx : -1, my);
-        card.click(bx, by, bw, Ui.CHIP_H, () -> {
-            boolean now = io.github.anilken.wynnlabs.search.TrackedMobs.items().toggle(name);
-            menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", name));
-        });
+        card.click(bx, by, bw, Ui.CHIP_H, () -> card.toggleTrack(TrackedMobs.items(), name));
         card.tip(bx, by, bw, Ui.CHIP_H, mx, my, L.t(on ? "wynnlabs.search.tracking_tip" : "wynnlabs.search.track_item_tip"));
         return bw;
     }
@@ -257,12 +327,13 @@ final class SearchThingCard extends MenuPaint {
         if (item == null || !item.item() || !item.tradable()) {
             return null;
         }
-        io.github.anilken.wynnlabs.market.Prices.Price p = io.github.anilken.wynnlabs.market.Prices.of(item.name());
+        Prices.Price p = Prices.of(item.name());
         Double v = p == null ? null : p.typical();
-        return v == null ? null : "~" + io.github.anilken.wynnlabs.market.Prices.fmt(v);
+        return v == null ? null : "~" + Prices.fmt(v);
     }
 
-    int draw(GuiGraphics g, Entry e, int x, int y, int w, int mx, int my) {
+    @Override
+    public int sections(GuiGraphics g, int x, int y, int w, int mx, int my) {
         int cy = y;
         ItemIndex index = ItemIndex.get();
         List<Entry.Origin> items = e.links(Entry.ITEM);

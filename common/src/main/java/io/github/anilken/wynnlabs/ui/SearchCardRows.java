@@ -35,8 +35,7 @@ final class SearchCardRows extends MenuPaint {
 
     int draw(GuiGraphics g, int x, int y, int w, int mx, int my) {
         List<Source> rows = card.rows;
-        Entry entry = card.entry;
-        String title = L.t(entry.item() ? "wynnlabs.search.how" : "wynnlabs.search.where");
+        String title = card.view.rowsTitle();
         Type.LABEL.draw(g, font(), title, x, y, Theme.INK);
         int places = 0;
         for (Source s : rows) {
@@ -104,13 +103,13 @@ final class SearchCardRows extends MenuPaint {
                 card.tip(r - pw, py, pw, Ui.SMALL_H, mx, my, L.t(route ? "wynnlabs.search.route_on_tip" : "wynnlabs.search.route_tip"));
             }
             r -= pw + Theme.SP_2;
-            if (s.type() == Source.Type.LOOT_CHEST) {
-                // the least stars a chest needs: ★1+ … ★4, a click goes to the next
-                String stars = card.chestStars >= 4 ? "★4" : "★" + card.chestStars + "+";
-                int sw = Ui.chipWidth(font(), stars);
-                Ui.small(g, font(), stars, r - sw, py, sw, card.over(mx, my) ? mx : -1, my);
-                card.click(r - sw, py, sw, Ui.SMALL_H, card::cycleChestStars);
-                card.tip(r - sw, py, sw, Ui.SMALL_H, mx, my, L.t("wynnlabs.search.stars_tip"));
+            CardView.RowChip chip = card.view.rowChip(s);
+            if (chip != null) {
+                // the row's own button (the least stars a loot chest needs)
+                int sw = Ui.chipWidth(font(), chip.label());
+                Ui.small(g, font(), chip.label(), r - sw, py, sw, card.over(mx, my) ? mx : -1, my);
+                card.click(r - sw, py, sw, Ui.SMALL_H, chip.run());
+                card.tip(r - sw, py, sw, Ui.SMALL_H, mx, my, chip.tip());
                 r -= sw + Theme.SP_2;
             }
             int bw = Ui.CHIP_H + 2;
@@ -128,10 +127,7 @@ final class SearchCardRows extends MenuPaint {
             String mob = s.name();
             boolean on = TrackedMobs.get().has(mob);
             Ui.iconButton(g, "target", r - bw, iy, on, card.over(mx, my) ? mx : -1, my);
-            card.click(r - bw, iy, bw, Ui.CHIP_H, () -> {
-                boolean now = TrackedMobs.get().toggle(mob);
-                menu.flash(L.t(now ? "wynnlabs.search.track_on" : "wynnlabs.search.track_off", mob));
-            });
+            card.click(r - bw, iy, bw, Ui.CHIP_H, () -> card.toggleTrack(TrackedMobs.get(), mob));
             card.tip(r - bw, iy, bw, Ui.CHIP_H, mx, my, L.t(on ? "wynnlabs.search.tracking_tip" : "wynnlabs.search.track_tip"));
             r -= bw + Theme.SP_2;
         }
@@ -196,7 +192,7 @@ final class SearchCardRows extends MenuPaint {
         return y + Type.BODY.lineHeight + Theme.SP_1;
     }
 
-    /** A compass point of {@link io.github.anilken.wynnlabs.search.Compass#direction} in the player's language. */
+    /** A compass point of {@link Compass#direction} in the player's language. */
     static String dirName(String dir) {
         return switch (dir) {
             case "east" -> L.t("wynnlabs.grind.dir_east");

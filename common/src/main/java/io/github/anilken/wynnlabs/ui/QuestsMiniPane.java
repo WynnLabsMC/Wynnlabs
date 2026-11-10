@@ -286,7 +286,7 @@ final class QuestsMiniPane extends MenuPaint {
         for (String n : new String[] {name, name.endsWith("es") ? name.substring(0, name.length() - 2) : null,
                 name.endsWith("s") ? name.substring(0, name.length() - 1) : null}) {
             if (n != null) {
-                Sources.Owned o = SearchCardSections.owned(n);
+                Sources.Owned o = ItemCard.owned(n);
                 if (o.any()) {
                     return o;
                 }
