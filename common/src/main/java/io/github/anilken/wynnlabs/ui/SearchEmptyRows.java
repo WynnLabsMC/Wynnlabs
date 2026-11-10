@@ -16,8 +16,7 @@ final class SearchEmptyRows {
     private SearchEmptyRows() {}
 
     /** "More ↓" (or "Less ↑"), centred in its row: the rest of the empty page, or back to its top. */
-    static void more(SearchResultsPanel p, GuiGraphics g, SearchResultsPanel.Row r, int x, int y, int w, int top, int h, int mx, int my) {
-        boolean more = SearchResultsPanel.MORE.equals(r.stat());
+    static void more(SearchResultsPanel p, GuiGraphics g, boolean more, int x, int y, int w, int top, int h, int mx, int my) {
         String t = L.t(more ? "wynnlabs.search.more" : "wynnlabs.search.less");
         String icon = more ? "chevron-down" : "chevron-up";
         int bw = Ui.iconChipWidth(p.font(), icon, t, false);
@@ -58,8 +57,8 @@ final class SearchEmptyRows {
         return !rowHover || by < top || by + Ui.CHIP_H > top + h ? -1 : by;
     }
 
-    /** On a hovered recent row: a small ✕ at its end that forgets it. */
-    static void forget(SearchResultsPanel p, GuiGraphics g, SearchResultsPanel.Row r, int x, int y, int w, int top, int h, int mx, int my) {
+    /** On a hovered recent row: a small ✕ at its end that forgets it (by its key). */
+    static void forget(SearchResultsPanel p, GuiGraphics g, String key, int x, int y, int w, int top, int h, int mx, int my) {
         int bw = Ui.CHIP_H + 2;
         int by = forgetBy(x, y, w, top, h, mx, my);
         if (by < 0) {
@@ -68,7 +67,6 @@ final class SearchEmptyRows {
         if (Ui.iconButton(g, "x", x + w - bw, by, false, mx, my)) {
             p.menu.hits.add(new MenuHit(x + w - bw, by, bw, Ui.CHIP_H, null, List.of(L.c("wynnlabs.search.recent_forget")), null));
         }
-        String key = r.e().key();
         p.tab.click(x + w - bw, by, bw, Ui.CHIP_H, () -> RecentSearches.get().remove(key));
     }
 }
