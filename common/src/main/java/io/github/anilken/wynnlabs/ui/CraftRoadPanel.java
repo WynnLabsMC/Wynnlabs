@@ -72,8 +72,10 @@ final class CraftRoadPanel extends CraftPanel {
     /** Draws the page from y (already scrolled) across w; returns its height. */
     int draw(GuiGraphics g, int x, int y, int w, int top, int bottom, int mx, int my) {
         if (profession == null) {
+            // the one this character was last on; before any pick, the calculator's
+            String kept = RoadChoices.get().profession;
             String p = tab.profession();
-            profession = p != null && !Professions.gathering(p) ? p : "WEAPONSMITHING";
+            profession = kept != null ? kept : p != null && !Professions.gathering(p) ? p : "WEAPONSMITHING";
         }
         boolean wide = w >= CraftingTab.TWO_COLUMNS_MIN;
         int rx = x;
@@ -150,6 +152,11 @@ final class CraftRoadPanel extends CraftPanel {
 
     void pickProf(String p) {
         profession = p;
+        RoadChoices ch = RoadChoices.get();
+        if (!p.equals(ch.profession)) {
+            ch.profession = p;                      // the page opens on it after a restart too
+            ch.save();
+        }
         note = null;
         tab.scroll = 0;
     }

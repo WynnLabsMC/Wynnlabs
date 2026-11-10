@@ -27,6 +27,8 @@ public final class RoadChoices {
     public final Map<String, Set<String>> ticked = new HashMap<>();
     public final Map<String, Integer> targets = new HashMap<>();
     public final Map<String, String> types = new HashMap<>();
+    /** The profession the page was last on ("ALCHEMISM"), null before the first pick. */
+    public String profession;
 
     private static RoadChoices last;
     private static String lastFor;
@@ -99,6 +101,9 @@ public final class RoadChoices {
         if (o.has("types")) {
             o.getAsJsonObject("types").entrySet().forEach(e -> c.types.put(e.getKey(), e.getValue().getAsString()));
         }
+        if (o.has("profession")) {
+            c.profession = o.get("profession").getAsString();
+        }
         return c;
     }
 
@@ -121,6 +126,9 @@ public final class RoadChoices {
         JsonObject ty = new JsonObject();
         types.forEach(ty::addProperty);
         o.add("types", ty);
+        if (profession != null) {
+            o.addProperty("profession", profession);
+        }
         return o.toString();
     }
 }
