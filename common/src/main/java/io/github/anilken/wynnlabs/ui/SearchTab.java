@@ -9,7 +9,6 @@ import io.github.anilken.wynnlabs.game.ItemJson;
 import io.github.anilken.wynnlabs.market.Prices;
 import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.model.Klass;
-import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.RecentSearches;
@@ -124,13 +123,12 @@ final class SearchTab extends MenuTab {
     }
 
     /**
-     * Opens on this entry, by its key (an item's name, a thing's "kind:name"): its name in the box
-     * and its card shown (the search key over a hovered item, a card's link to a mob or an item).
+     * Opens on this key (an item's name, a thing's "kind:name"): its name in the box and its card
+     * shown (the search key over a hovered item, a card's link to a mob or an item).
      */
     void show(String key) {
         wanted = key;
-        Entry found = ItemIndex.get().byKey(key);
-        String query = found != null ? found.name() : key.substring(key.indexOf(':') + 1);
+        String query = SearchViews.name(key);
         if (box != null) {
             box.setValue(query);
         } else {
@@ -140,7 +138,7 @@ final class SearchTab extends MenuTab {
         category = SearchCategory.ALL;
         stat = null;
         if (menu.layout != null && menu.layout.compact()) {
-            openDrawer(found == null ? "" : found.item() ? SearchResultsPanel.kindText(found) : SearchThingCard.typeText(found));
+            openDrawer(key);
         }
     }
 
@@ -241,17 +239,18 @@ final class SearchTab extends MenuTab {
             return;
         }
         String pick = results.draw(g, x, cy, listW, bodyH, result, compact, mx, my);
-        choose(pick, index);
+        choose(pick);
         if (!compact) {
             card.draw(g, x + listW + Theme.SP_7, cy, cardW, bodyH, mx, my);
-        } else if (card.entry == null && drawer.showing()) {
+        } else if (card.view == null && drawer.showing()) {
             drawer.close();
         }
     }
 
-    /** Opens the drawer on the chosen card (a small window), under the entry's name. */
-    void openDrawer(String title) {
-        drawer.show(title, card::flow);
+    /** Opens the drawer on the chosen card (a small window), under the title of {@code key}'s card (none for a key nothing has). */
+    void openDrawer(String key) {
+        CardView v = SearchViews.card(card, key);
+        drawer.show(v == null ? "" : v.title(), card::flow);
     }
 
     // ---- the popups: a menu, or the card's drawer ----
@@ -376,10 +375,14 @@ final class SearchTab extends MenuTab {
         return out;
     }
 
-    /** The row the results panel shows as chosen; a new one opens its card, none clears it. */
-    private void choose(String pick, ItemIndex index) {
-        if (wanted != null && index.byKey(wanted) != null) {
-            pick = index.byKey(wanted).key();
+    /**
+     * The row the results panel shows as chosen; a new one opens its card, none clears it. Every
+     * key becomes a card through {@link SearchViews#card}; one nothing has leaves the card as it is.
+     */
+    private void choose(String pick) {
+        CardView asked = wanted == null ? null : SearchViews.card(card, wanted);
+        if (asked != null) {
+            pick = asked.key();
             wanted = null;
             RecentSearches.get().add(pick);
         }
@@ -388,9 +391,9 @@ final class SearchTab extends MenuTab {
                 card.clear();                       // nothing listed: no card left from before
             }
         } else if (!pick.equals(card.key())) {
-            Entry e = index.byKey(pick);
-            if (e != null) {
-                card.select(e);
+            CardView v = asked != null ? asked : SearchViews.card(card, pick);
+            if (v != null) {
+                card.select(v);
             }
         }
         selName = pick;

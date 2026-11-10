@@ -1,7 +1,6 @@
 package io.github.anilken.wynnlabs.ui;
 
 import io.github.anilken.wynnlabs.core.L;
-import io.github.anilken.wynnlabs.search.ItemIndex;
 import io.github.anilken.wynnlabs.search.RecentSearches;
 import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
@@ -107,10 +106,8 @@ final class SearchStrip extends MenuPaint {
         }
         Type.META.draw(g, font(), head, x, Type.META.yIn(y, Ui.CHIP_H), Theme.INK_3);
         int cx = x + hw;
-        ItemIndex index = ItemIndex.get();
         for (String key : names) {
-            var e = index.byKey(key);
-            String label = e != null ? e.name() : key.substring(key.indexOf(':') + 1);
+            String label = SearchViews.name(key);
             int cw = Ui.iconChipWidth(font(), "clock", label, false);
             if (cx + cw > x + room) {
                 break;
@@ -124,7 +121,7 @@ final class SearchStrip extends MenuPaint {
 
     private String text(SearchCategory c, SearchQuery.Result r, int mode) {
         boolean on = c == tab.category;
-        String count = c == SearchCategory.STAT ? "" : " " + HomeHero.compact(c.count(r.counts()));
+        String count = c.counted() ? " " + HomeHero.compact(c.count(r.counts())) : "";
         return switch (mode) {
             case 0 -> label(c) + count;
             case 1 -> on ? label(c) + count : count.trim();

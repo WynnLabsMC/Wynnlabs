@@ -5,10 +5,8 @@ import io.github.anilken.wynnlabs.model.Tier;
 import io.github.anilken.wynnlabs.search.EmptyPage;
 import io.github.anilken.wynnlabs.search.Entry;
 import io.github.anilken.wynnlabs.search.ItemIndex;
-import io.github.anilken.wynnlabs.search.ItemMatch;
 import io.github.anilken.wynnlabs.search.Kind;
 import io.github.anilken.wynnlabs.search.RecentSearches;
-import io.github.anilken.wynnlabs.search.SearchCategory;
 import io.github.anilken.wynnlabs.search.SearchQuery;
 
 import net.minecraft.client.gui.GuiGraphics;
@@ -23,7 +21,8 @@ import java.util.Objects;
  * sort's order; typing, the category strip and the filters narrow it. A row: the item's own icon
  * in an HD slot (a thing's badge), its name in its rarity's colour, a META line (kind, level, why
  * it matched), and on the right the easiest way to get it, how far a thing is, "Yours", or the
- * chosen stat's roll. The Stats category with no stat chosen lists the stats. Nothing found: the
+ * chosen stat's roll. A category with a list of its own shows that instead ({@link SearchViews#ownRows}:
+ * the Stats category with no stat chosen lists the stats). Nothing found: the
  * closest name ("did you mean") and a way out of the filters. Rows are built once per answer.
  */
 final class SearchResultsPanel extends MenuPaint {
@@ -43,11 +42,9 @@ final class SearchResultsPanel extends MenuPaint {
     private Object builtFor;
     private boolean reveal;
     private final ScrollBar bar = new ScrollBar();
-    private List<ItemMatch.StatCount> stats;
     private List<SearchRow> selRows;
     private String selFor;
     private int selAt = -1;
-    private ItemIndex statsFor;
     /** Whether the empty page headed with the recent searches when it was last built. */
     private boolean recent;
 
@@ -69,14 +66,9 @@ final class SearchResultsPanel extends MenuPaint {
             return;
         }
         builtFor = key;
-        List<SearchRow> out;
-        if (blank && tab.category == SearchCategory.STAT && tab.stat == null) {
-            if (stats == null || statsFor != index) {
-                stats = ItemMatch.stats(index);
-                statsFor = index;
-            }
-            // as it was: "recent" is still the last empty page's here, and this title takes its "Clear"
-            out = SearchRowSources.stats(stats, recent);
+        List<SearchRow> out = SearchViews.ownRows(tab, index, blank);
+        if (out != null) {
+            recent = false;                         // a category's own list has no recent group, so no "Clear" either
         } else {
             SearchRowSources.Page page = SearchRowSources.emptyPage(tab, index, blank, missing, last, !result.hits().isEmpty());
             recent = page.recent();

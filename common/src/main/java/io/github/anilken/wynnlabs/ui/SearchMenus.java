@@ -195,11 +195,8 @@ final class SearchMenus {
             }
             case FILTER -> filterItems(out);
             case RECENT -> {
-                ItemIndex index = ItemIndex.get();
                 for (String key : RecentSearches.get().newest(EmptyPage.FIRST_ROWS)) {
-                    var e = index.byKey(key);
-                    String label = e != null ? e.name() : key.substring(key.indexOf(':') + 1);
-                    out.add(UiMenu.Item.of("r:" + key, "clock", label, null, false));
+                    out.add(UiMenu.Item.of("r:" + key, "clock", SearchViews.name(key), null, false));
                 }
             }
             case MARKS -> {

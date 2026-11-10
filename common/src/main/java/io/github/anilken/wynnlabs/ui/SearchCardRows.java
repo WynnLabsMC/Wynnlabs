@@ -35,8 +35,7 @@ final class SearchCardRows extends MenuPaint {
 
     int draw(GuiGraphics g, int x, int y, int w, int mx, int my) {
         List<Source> rows = card.rows;
-        Entry entry = card.entry;
-        String title = L.t(entry.item() ? "wynnlabs.search.how" : "wynnlabs.search.where");
+        String title = card.view.rowsTitle();
         Type.LABEL.draw(g, font(), title, x, y, Theme.INK);
         int places = 0;
         for (Source s : rows) {
@@ -104,13 +103,13 @@ final class SearchCardRows extends MenuPaint {
                 card.tip(r - pw, py, pw, Ui.SMALL_H, mx, my, L.t(route ? "wynnlabs.search.route_on_tip" : "wynnlabs.search.route_tip"));
             }
             r -= pw + Theme.SP_2;
-            if (s.type() == Source.Type.LOOT_CHEST) {
-                // the least stars a chest needs: ★1+ … ★4, a click goes to the next
-                String stars = card.chestStars >= 4 ? "★4" : "★" + card.chestStars + "+";
-                int sw = Ui.chipWidth(font(), stars);
-                Ui.small(g, font(), stars, r - sw, py, sw, card.over(mx, my) ? mx : -1, my);
-                card.click(r - sw, py, sw, Ui.SMALL_H, card::cycleChestStars);
-                card.tip(r - sw, py, sw, Ui.SMALL_H, mx, my, L.t("wynnlabs.search.stars_tip"));
+            CardView.RowChip chip = card.view.rowChip(s);
+            if (chip != null) {
+                // the row's own button (the least stars a loot chest needs)
+                int sw = Ui.chipWidth(font(), chip.label());
+                Ui.small(g, font(), chip.label(), r - sw, py, sw, card.over(mx, my) ? mx : -1, my);
+                card.click(r - sw, py, sw, Ui.SMALL_H, chip.run());
+                card.tip(r - sw, py, sw, Ui.SMALL_H, mx, my, chip.tip());
                 r -= sw + Theme.SP_2;
             }
             int bw = Ui.CHIP_H + 2;

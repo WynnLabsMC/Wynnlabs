@@ -36,7 +36,7 @@ final class SearchNone {
             cy += Type.META.lineHeight + Theme.SP_3;
             var e = result.suggestion().entry();
             String meta = result.filtered() ? L.t("wynnlabs.search.hidden_by_filters", SearchResultsPanel.kindText(e))
-                    : e.item() ? SearchResultsPanel.kindText(e) + (e.level() > 0 ? " · Lv " + e.level() : "") : SearchThingCard.sub(e);
+                    : e.item() ? SearchResultsPanel.kindText(e) + (e.level() > 0 ? " · Lv " + e.level() : "") : ThingCard.sub(e);
             var row = new SearchRow.EntryRow(e, meta, L.t("wynnlabs.search.open"), Theme.LINK, false);
             // the suggestion: as a lit row; a click shows it (the filters that hid it go)
             row.draw(g, new SearchRow.Frame(list, compact, y, h, mx, my), rx, cy, rw, true);
