@@ -384,7 +384,8 @@ final class SearchCardPanel extends MenuPaint {
      */
     Action trackChip(TrackedMobs list, String name) {
         boolean tracked = list != null && list.has(name);
-        return new Action(tracked ? "check" : "target", L.t(tracked ? "wynnlabs.search.tracking" : "wynnlabs.search.track"), list != null,
+        return new Action(tracked ? "check" : "target", L.t(tracked ? "wynnlabs.search.tracking" : "wynnlabs.search.track"),
+                list != null && TrackedMobs.watched(),
                 tracked, () -> toggleTrack(list, name));
     }
 

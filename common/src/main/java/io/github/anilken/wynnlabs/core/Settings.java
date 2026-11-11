@@ -27,8 +27,8 @@ public final class Settings {
 
     static {
         for (String k : new String[] {"itemAdvice", "adviceOnly", "altAdvice", "wornHint", "powderHint", "tooltipPrice", "boxPrices",
-            "boxCompactTooltip", "gearCompactTooltip", "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundBeam", "groundGlowShop", "chestBeams", "trackedDrops", "mobTrack",
-            "mobTrackSound", "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
+            "boxCompactTooltip", "gearCompactTooltip", "glowUpgrade", "glowShop", "chatUpgrade", "chatSkills", "chatLevelUp", "groundGlowShop", "chestBeams",
+            "autoTree", "glowQuest", "priceApi", "dangerWarn", "sellSummary", "bankHint", "sourceHint",
             "survivalWarn", "healerAdvice", "deathCoach", "coachToasts", "dpsHud", "ridePanel", "powerupLabels", "rideRefresh", "sellGlow", "feederOverlay",
             "feederHighlight", "miniQuests", "questGuides", "caveMapDone", "localApi", "apiWrite", "debug", "webFont", "menuResume",
             "crowdMode", "guideLine", "marketFit", "guildMap", "guildApi", "cannotWear", "worldEvents", "smallMapIcons", "nodePrices"}) {
@@ -143,7 +143,8 @@ public final class Settings {
     static final java.util.Set<String> REMOVED = java.util.Set.of("chestGlow", "chestGlowUnknown", "chestLabel",
             "chestMinStars", "chestFar", "chestFarTier", "chestFarDistance", "partyGlow", "namelessGlow",
             "groundGlow", "groundGlowNormal", "groundGlowOther", "verdictBadges", "hotbarBadges", "glowTree", "menuAdvice",
-            "updateCheck", "autoUpdate", "treeBonuses", "menuScale");
+            "updateCheck", "autoUpdate", "treeBonuses", "menuScale", "groundBeam", "trackedDrops", "mobTrack",
+            "mobTrackSound");
 
     /**
      * Number settings a screen keeps for itself, not shown on the settings tab: the sort and view
@@ -276,7 +277,7 @@ public final class Settings {
      */
     static final java.util.Set<String> OFF_BY_DEFAULT = java.util.Set.of("altAdvice", "priceApi",
             "localApi", "apiWrite", "debug", "dpsHud", "ridePanel", "rideRefresh",
-            "chatUpgrade", "coachToasts", "mobTrackSound", "groundBeam", "powderHint", "chestBeams", "gearCompactTooltip",
+            "chatUpgrade", "coachToasts", "powderHint", "chestBeams", "gearCompactTooltip",
             "crowdMode", "marketFit", "glowUpgrade", "glowShop", "sellGlow", "glowQuest", "cannotWear", "miniQuests");
 
     public static boolean on(String key) {

@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tracked mobs: matching floating names, when a marker shows, when an arrival is told. */
+/** Tracked mobs: matching floating names, and the list itself. */
 class MobTrackTest {
 
     @Test
@@ -37,29 +37,6 @@ class MobTrackTest {
         assertFalse(MobName.matches("Barbarian [Lv. 52]", keys));
         assertFalse(MobName.matches("Reggie", Set.of()));
         assertFalse(MobName.matches("[Lv. 40]", keys));
-    }
-
-    @Test
-    void markerOnlyInPlainSight() {
-        assertTrue(MobSight.shown(true, 40, true, false));
-        assertTrue(MobSight.shown(true, 40, false, true), "its middle in sight is enough");
-        assertFalse(MobSight.shown(true, 40, false, false), "behind blocks: nothing drawn");
-        assertFalse(MobSight.shown(false, 40, true, true), "the setting is off");
-        assertFalse(MobSight.shown(true, MobSight.MAX_DRAW + 1, true, true), "too far");
-        assertFalse(MobSight.shown(true, -1, true, true));
-    }
-
-    @Test
-    void arrivalsAreToldOnceAndNotTooOften() {
-        long now = 1_000_000;
-        assertTrue(MobSight.appeared(now, 0), "never seen");
-        assertFalse(MobSight.appeared(now, now - 250), "seen at the last scan");
-        assertTrue(MobSight.appeared(now, now - MobSight.GONE_MS - 1), "gone a while, back again");
-
-        assertTrue(MobSight.announce(now, 0, 0));
-        assertFalse(MobSight.announce(now, now - 1000, 0), "another notice just showed");
-        assertFalse(MobSight.announce(now, now - MobSight.ANY_GAP_MS, now - 5000), "the same mob was just told");
-        assertTrue(MobSight.announce(now, now - MobSight.ANY_GAP_MS, now - MobSight.SAME_GAP_MS));
     }
 
     @Test

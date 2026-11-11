@@ -32,6 +32,8 @@ public final class TrackedMobs {
     private static final Gson GSON = new Gson();
     private static TrackedMobs shared;
     private static TrackedMobs sharedItems;
+    /** Whether anything looks for the tracked names; without it no Track button or list shows. */
+    private static volatile boolean watched;
 
     private final Path file;
     private final UnaryOperator<String> key;
@@ -62,6 +64,16 @@ public final class TrackedMobs {
             System.out.println("[WynnLabs] " + file.getFileName() + " unreadable: " + e);
         }
         rekey();
+    }
+
+    /** Whether the Track buttons and lists show: only while something looks for the tracked names. */
+    public static boolean watched() {
+        return watched;
+    }
+
+    /** Something looks for the tracked names from now on. */
+    public static void watch() {
+        watched = true;
     }
 
     /** This character's list, read again when another character is played. */

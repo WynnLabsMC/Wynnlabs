@@ -167,8 +167,9 @@ final class SearchStrip extends MenuPaint {
     int title(GuiGraphics g, int right, int y, int room, int mx, int my) {
         int r = right;
         int cy = y - 3;
-        int mobs = TrackedMobs.get().names().size();
-        int items = TrackedMobs.items().names().size();
+        boolean watched = TrackedMobs.watched();
+        int mobs = watched ? TrackedMobs.get().names().size() : 0;
+        int items = watched ? TrackedMobs.items().names().size() : 0;
         trackedAt = null;
         itemsAt = null;
         marksAt = null;

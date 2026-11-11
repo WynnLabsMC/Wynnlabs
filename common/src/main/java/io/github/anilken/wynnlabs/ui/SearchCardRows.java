@@ -210,7 +210,7 @@ final class SearchCardRows extends MenuPaint {
 
     /** Whether a row names a mob the tracker can look for. */
     private static boolean trackable(Source s) {
-        return (s.type() == Source.Type.MOB || s.type() == Source.Type.MINIBOSS)
+        return TrackedMobs.watched() && (s.type() == Source.Type.MOB || s.type() == Source.Type.MINIBOSS)
                 && s.name() != null && !MobName.key(s.name()).isEmpty();
     }
 }

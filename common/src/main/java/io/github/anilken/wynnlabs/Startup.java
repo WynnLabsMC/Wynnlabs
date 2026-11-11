@@ -38,9 +38,7 @@ import io.github.anilken.wynnlabs.market.Vault;
 import io.github.anilken.wynnlabs.quests.DiscoveryBook;
 import io.github.anilken.wynnlabs.quests.QuestBook;
 import io.github.anilken.wynnlabs.ui.DpsHud;
-import io.github.anilken.wynnlabs.ui.GroundMarkers;
 import io.github.anilken.wynnlabs.ui.HotbarBadges;
-import io.github.anilken.wynnlabs.ui.MobTracker;
 import io.github.anilken.wynnlabs.ui.RoadmapScreen;
 
 import java.util.List;
@@ -55,7 +53,7 @@ public final class Startup {
 
     /**
      * The features' hooks, in order. A feature takes two rows when its tick runs early but its
-     * layers draw after others' (MobTracker, DropTracker, ChestBeams, GuideLine).
+     * layers draw after others' (ChestBeams, GuideLine).
      */
     private static final List<Module> MODULES = List.of(
             // what the player carries, as one number caches compare against (before anything reads it)
@@ -76,9 +74,6 @@ public final class Startup {
                 }
             }),
             Module.of("TreePlanner").tick(TreePlanner::onTick),
-            Module.of("GroundMarkers").tick(GroundMarkers::onTick),
-            Module.of("MobTracker").tick(MobTracker::onTick),
-            Module.of("DropTracker").tick(io.github.anilken.wynnlabs.ui.DropTracker::onTick),
             Module.of("ChestBeams").tick(io.github.anilken.wynnlabs.ui.ChestBeams::onTick),
             Module.of("GuideLine").tick(io.github.anilken.wynnlabs.ui.GuideLine::onTick),
             Module.of("KeptMarks").tick(io.github.anilken.wynnlabs.ui.KeptMarksSync::onTick),
@@ -117,16 +112,10 @@ public final class Startup {
             Module.of("RidePanel").hud("ride", io.github.anilken.wynnlabs.ui.RidePanel::render, true),
             // the verdict badges on the hotbar's items (setting hotbarBadges), after the hotbar is drawn
             Module.of("HotbarBadges").hud("hotbar_badges", HotbarBadges::render, true),
-            // tracked mobs: the notice on the HUD, the markers in the world (only in plain sight)
-            Module.of("MobTracker").hud("mob_track", MobTracker::renderHud, true)
-                    .world(MobTracker::renderWorld, true).disconnect(MobTracker::reset),
             // the beams above known loot chests (setting chestBeams)
             Module.of("ChestBeams").world(io.github.anilken.wynnlabs.ui.ChestBeams::renderWorld, true),
             // the line to the compass target (setting guideLine)
             Module.of("GuideLine").world(io.github.anilken.wynnlabs.ui.GuideLine::renderWorld, true),
-            // the beams and names over tracked items on the ground (setting trackedDrops)
-            Module.of("DropTracker").world(io.github.anilken.wynnlabs.ui.DropTracker::renderWorld, true)
-                    .disconnect(io.github.anilken.wynnlabs.ui.DropTracker::reset),
             // the labels over mount powerups while riding
             Module.of("PowerupLabels").world(io.github.anilken.wynnlabs.ui.PowerupLabels::renderWorld, true),
             // a gathering node's label: what each click gives, with its picture and price per tier
