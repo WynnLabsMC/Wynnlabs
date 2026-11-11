@@ -128,13 +128,8 @@ final class SettingsRows {
                 p.head("wynnlabs.settings.sec_drops");
                 p.row("choice", "dropGlow");
                 p.child("switch", "groundGlowShop", "dropGlow");
-                p.child("switch", "groundBeam", "dropGlow");
-                p.row("switch", "trackedDrops");
                 p.row("switch", "chestBeams");
                 p.child("step", "chestBeamTier", "chestBeams");
-                p.head("wynnlabs.settings.sec_tracked");
-                p.row("switch", "mobTrack");
-                p.child("switch", "mobTrackSound", "mobTrack");
                 p.head("wynnlabs.settings.sec_warnings");
                 p.row("multi", "warnings");
                 // the low HP warning's and the death coach's words for healers and tanks

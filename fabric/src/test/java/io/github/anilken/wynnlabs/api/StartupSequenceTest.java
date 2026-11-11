@@ -55,7 +55,6 @@ class StartupSequenceTest {
             hud wynnlabs:dps hud.DpsHud
             hud wynnlabs:ride hud.RidePanel
             hud wynnlabs:hotbar_badges hud.HotbarBadges
-            hud wynnlabs:mob_track hud.MobTracker
             key key.wynnlabs.roadmap
             key key.wynnlabs.search
             key key.wynnlabs.box_guide
@@ -73,9 +72,6 @@ class StartupSequenceTest {
             tick tick.Build
             tick tick.Roadmap
             tick tick.TreePlanner
-            tick tick.GroundMarkers
-            tick tick.MobTracker
-            tick tick.DropTracker
             tick tick.ChestBeams
             tick tick.GuideLine
             tick tick.KeptMarks
@@ -106,10 +102,8 @@ class StartupSequenceTest {
             tick -
             tick -
             tooltip -
-            world world.MobTracker
             world world.ChestBeams
             world world.GuideLine
-            world world.DropTracker
             world world.PowerupLabels
             """;
 

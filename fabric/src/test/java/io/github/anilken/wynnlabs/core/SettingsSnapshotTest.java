@@ -28,16 +28,16 @@ class SettingsSnapshotTest {
     @Test
     void readsFollowChanges() {
         JsonObject a = new JsonObject();
-        a.addProperty("mobTrack", false);
+        a.addProperty("dangerWarn", false);
         a.addProperty("langOverride", 2);
         Settings.use(a);
-        assertFalse(Settings.on("mobTrack"));
+        assertFalse(Settings.on("dangerWarn"));
         assertEquals(2, Settings.number("langOverride", 0));
 
         JsonObject b = new JsonObject();
-        b.addProperty("mobTrack", true);
+        b.addProperty("dangerWarn", true);
         Settings.use(b);
-        assertTrue(Settings.on("mobTrack"));
+        assertTrue(Settings.on("dangerWarn"));
         assertEquals(0, Settings.number("langOverride", 0), "an unset number falls back");
     }
 
@@ -46,7 +46,7 @@ class SettingsSnapshotTest {
         Settings.use(new JsonObject());
         assertFalse(Settings.on("debug"), "debug starts off");
         assertFalse(Settings.on("rideRefresh"), "asking the server for the mount starts off");
-        assertTrue(Settings.on("mobTrack"), "other switches start on");
+        assertTrue(Settings.on("dangerWarn"), "other switches start on");
         assertEquals(1, Settings.choice("dropGlow"), "drops glow from Unique up");
         assertEquals(1, Settings.choice("slotBadges"));
         assertEquals(2, Settings.choice("treeHelp"));
@@ -77,10 +77,10 @@ class SettingsSnapshotTest {
         old.addProperty("chestFarDistance", 400);
         old.addProperty("menuScale", 3);
         old.addProperty("treeBonuses", false);
-        old.addProperty("mobTrack", false);
+        old.addProperty("dangerWarn", false);
         old.addProperty("langOverride", 2);
         Settings.use(old);
-        assertFalse(Settings.on("mobTrack"), "kept switches still load");
+        assertFalse(Settings.on("dangerWarn"), "kept switches still load");
         assertEquals(2, Settings.number("langOverride", 0), "kept numbers still load");
         assertEquals(-1, Settings.number("chestMinStars", -1), "removed numbers are dropped");
         assertEquals(-1, Settings.number("menuScale", -1), "the manual menu scale is gone: Auto");
@@ -162,13 +162,13 @@ class SettingsSnapshotTest {
         Thread writer = new Thread(() -> {
             for (int i = 0; i < 2000; i++) {
                 JsonObject o = new JsonObject();
-                o.addProperty("mobTrack", i % 2 == 0);
+                o.addProperty("dangerWarn", i % 2 == 0);
                 Settings.use(o);
             }
         });
         writer.start();
         for (int i = 0; i < 20000; i++) {
-            Settings.on("mobTrack");                // must never throw while the maps change
+            Settings.on("dangerWarn");                // must never throw while the maps change
             Settings.choice("dropGlow");
         }
         writer.join();

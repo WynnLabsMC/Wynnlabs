@@ -312,6 +312,9 @@ final class ThingCard extends MenuPaint implements CardView {
      * as the card's Track chip (its beam and name on the ground); returns its width.
      */
     private int track(GuiGraphics g, String name, int r, int y, int mx, int my) {
+        if (!TrackedMobs.watched()) {
+            return -Theme.SP_2;                     // no toggle, and none of the gap after it
+        }
         int bw = Ui.CHIP_H + 2;
         int bx = r - bw;
         int by = y + Ui.iconIn(ICON, Ui.CHIP_H);

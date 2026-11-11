@@ -24,7 +24,7 @@ class SettingsPresetsTest {
         dir = Files.createTempDirectory("wynnlabs-presets");
         Settings.dirOverride = dir;
         JsonObject o = new JsonObject();
-        o.addProperty("mobTrack", true);
+        o.addProperty("dangerWarn", true);
         o.addProperty("langOverride", 1);
         Settings.use(o);
     }
@@ -38,16 +38,16 @@ class SettingsPresetsTest {
     @Test
     void aPresetKeepsItsOwnSwitchesAndTheSharedOnesComeBack() {
         assertTrue(Settings.savePreset("Tank"));
-        Settings.set("mobTrack", false);
+        Settings.set("dangerWarn", false);
         assertEquals("Tank", Settings.activePreset());
-        assertFalse(Settings.on("mobTrack"));
+        assertFalse(Settings.on("dangerWarn"));
 
         Settings.usePreset(null);
         assertNull(Settings.activePreset());
-        assertTrue(Settings.on("mobTrack"), "the shared settings were not touched by the preset's change");
+        assertTrue(Settings.on("dangerWarn"), "the shared settings were not touched by the preset's change");
 
         Settings.usePreset("Tank");
-        assertFalse(Settings.on("mobTrack"));
+        assertFalse(Settings.on("dangerWarn"));
     }
 
     @Test
@@ -71,10 +71,10 @@ class SettingsPresetsTest {
     @Test
     void deletingTheOneInUseBringsTheSharedBack() {
         Settings.savePreset("Tank");
-        Settings.set("mobTrack", false);
+        Settings.set("dangerWarn", false);
         Settings.deletePreset("Tank");
         assertNull(Settings.activePreset());
-        assertTrue(Settings.on("mobTrack"));
+        assertTrue(Settings.on("dangerWarn"));
         assertTrue(Settings.presetNames().isEmpty());
     }
 
@@ -82,19 +82,19 @@ class SettingsPresetsTest {
     void aMissingPresetFallsBackToTheShared() {
         Settings.usePreset("Gone");
         assertNull(Settings.activePreset());
-        assertTrue(Settings.on("mobTrack"));
+        assertTrue(Settings.on("dangerWarn"));
     }
 
     @Test
     void renamingKeepsTheSettingsAndRefusesATakenName() {
         Settings.savePreset("Tank");
-        Settings.set("mobTrack", false);
+        Settings.set("dangerWarn", false);
         Settings.savePreset("Healer");
         assertNull(Settings.renamePreset("Tank", "healer"), "another preset has that name");
         assertEquals("Mage", Settings.renamePreset("Healer", "Mage"));
         assertEquals("Mage", Settings.activePreset(), "the one in use follows the rename");
         assertEquals(List.of("Mage", "Tank"), Settings.presetNames());
         Settings.usePreset("Tank");
-        assertFalse(Settings.on("mobTrack"));
+        assertFalse(Settings.on("dangerWarn"));
     }
 }
