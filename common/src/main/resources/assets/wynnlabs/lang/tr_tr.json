@@ -2349,7 +2349,7 @@
   "wynnlabs.shots.stopped": "Ekran görüntüleri durdu; menü ve dil eski haline döndü. Kaydedilen: %s",
   "wynnlabs.shots.failed": "Ekran görüntüleri bir hatayla durdu (%s). Menü ve dil eski haline döndü.",
   "key.wynnlabs.search": "Item ara (ya da fareyle üstündekini)",
-  "key.wynnlabs.uses": "Fareyle üstündeki item: nereden alınır, nerede kullanılır",
+  "key.wynnlabs.uses": "Item kaynakları ve kullanımları",
   "wynnlabs.screen.tab_search": "Ara",
   "wynnlabs.setting.sourceHint": "Tooltip'te: nereden alınır",
   "wynnlabs.setting_desc.sourceHint": "Item'ı almanın en kolay yolunu tek satırda yazar: merchant, Trade Market fiyatı ya da mob level'ı",
