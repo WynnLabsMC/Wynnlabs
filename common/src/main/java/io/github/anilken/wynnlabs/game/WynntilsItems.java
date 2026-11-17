@@ -360,6 +360,9 @@ public final class WynntilsItems {
     private static <T> T part(Supplier<T> s) {
         try {
             return s.get();
+        } catch (LinkageError e) {
+            Wyn.markDown(Wyn.Feature.ITEMS, e.toString());   // a Wynntils without that call: told once
+            return null;
         } catch (RuntimeException e) {
             return null;
         }
@@ -397,7 +400,7 @@ public final class WynntilsItems {
             kind = ItemView.Kind.GEAR;
             data = data(g.getItemInfo());
             GearInfo info = g.getItemInfo();
-            rolled = g.getItemInstance().map(gi -> rolled(info, gi)).orElse(null);
+            rolled = part(() -> g.getItemInstance().map(gi -> rolled(g, info, gi)).orElse(null));
         } else if (item instanceof GearBoxItem b) {
             kind = ItemView.Kind.BOX;
             box = part(() -> new ItemView.Box(Slot.of(b.getGearType().name()), Tier.of(b.getGearTier().name()),
@@ -460,7 +463,7 @@ public final class WynntilsItems {
                 potion, key, sp, crystal, ability);
     }
 
-    private static ItemView.Rolled rolled(GearInfo info, GearInstance gi) {
+    private static ItemView.Rolled rolled(GearItem g, GearInfo info, GearInstance gi) {
         List<Roll> rolls = new ArrayList<>();
         for (StatActualValue v : gi.identifications()) {
             StatPossibleValues possible = info.getPossibleValues(v.statType());
@@ -468,27 +471,43 @@ public final class WynntilsItems {
             rolls.add(roll(v, r));
         }
         return new ItemView.Rolled(List.copyOf(rolls), powders(gi.powders()), gi.rerolls(),
-                gi.overallQuality().orElse(null), gi.shinyStat().isPresent(), marks(gi));
+                gi.overallQuality().orElse(null), shiny(g, gi), marks(g, gi));
     }
 
-    // GearInstance.gearInstanceRequirements(): 4.2.10 on, a GearInstanceRequirements record with
-    // each checkmark (and UNKNOWN when they could not be read). Until 4.2.9 there is only
+    // The shiny tracker: GearItem.getShinyStat() in every version we support (4.2.18 keeps it
+    // only there); GearInstance.shinyStat() as well until 4.2.17.
+    private static boolean shiny(GearItem g, GearInstance gi) {
+        Optional<Method> m = Wyn.method(GearItem.class, "getShinyStat");
+        Object v = m.isPresent() ? Wyn.call(m.get(), g)
+                : Wyn.method(GearInstance.class, "shinyStat").map(s -> Wyn.call(s, gi)).orElse(null);
+        return v instanceof Optional<?> o && o.isPresent();
+    }
+
+    // The checkmarks: GearItem.getGearInstanceRequirements() (4.2.18 keeps them only there, null
+    // until read), else GearInstance.gearInstanceRequirements() (4.2.10 to 4.2.17), a record with
+    // each checkmark (UNKNOWN when they could not be read). Until 4.2.9 there is only
     // meetsRequirements(), the same "can wear it" answer without the single checkmarks; the
     // marks then say nothing about single skills or the quest, as when they are unknown.
     private static final String GEAR_REQUIREMENTS = "gearInstanceRequirements";
+    private static final String ITEM_REQUIREMENTS = "getGearInstanceRequirements";
     private static final String MEETS_REQUIREMENTS = "meetsRequirements";
     private static final String REQUIREMENTS_UNKNOWN = "UNKNOWN";
     private static volatile Object unknownRequirements;
 
     @SuppressWarnings("unchecked")
-    private static ItemView.Marks marks(GearInstance gi) {
+    private static ItemView.Marks marks(GearItem g, GearInstance gi) {
+        Object req;
+        Optional<Method> onItem = Wyn.method(GearItem.class, ITEM_REQUIREMENTS);
         Optional<Method> m = Wyn.method(GearInstance.class, GEAR_REQUIREMENTS);
-        if (m.isEmpty()) {
+        if (m.isPresent()) {
+            req = Wyn.call(m.get(), gi);
+        } else if (onItem.isPresent()) {
+            req = Wyn.call(onItem.get(), g);
+        } else {
             Method meets = Wyn.method(GearInstance.class, MEETS_REQUIREMENTS)
                     .orElseThrow(() -> Wyn.missing("GearInstance." + GEAR_REQUIREMENTS));
             return new ItemView.Marks(true, (Boolean) Wyn.call(meets, gi), Map.of(), true);
         }
-        Object req = Wyn.call(m.get(), gi);
         if (req == null) {
             return null;
         }
@@ -579,8 +598,23 @@ public final class WynntilsItems {
         return new Roll(t.getApiName(), t.getDisplayName(), t.getUnit().name(), v.value(), range);
     }
 
-    private static List<String> powders(List<Powder> l) {
-        return l.stream().map(Enum::name).toList();
+    /**
+     * The powders' names, one per powder: a list of Powder until 4.2.17; from 4.2.18 a list of
+     * (Powder, count) pairs, each pair standing for that many of one powder.
+     */
+    private static List<String> powders(List<?> l) {
+        List<String> out = new ArrayList<>();
+        for (Object o : l) {
+            if (o instanceof Powder p) {
+                out.add(p.name());
+            } else if (o instanceof Pair<?, ?> pair && pair.a() instanceof Powder p) {
+                int n = pair.b() instanceof Integer i ? Math.max(1, i) : 1;
+                for (int k = 0; k < n; k++) {
+                    out.add(p.name());
+                }
+            }
+        }
+        return List.copyOf(out);
     }
 
     private static ItemView.Crafted crafted(CraftedGearItem c) {

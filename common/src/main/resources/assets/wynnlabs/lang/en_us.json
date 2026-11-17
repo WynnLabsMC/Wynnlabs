@@ -1185,6 +1185,7 @@
   "wynnlabs.wyn.down": "%s don't work with this Wynntils (%s); Wynn Labs needs an update. Everything else still works.",
   "wynnlabs.wyn.items_off": "Wynn Labs: item advice is off with Wynntils %s",
   "wynnlabs.wyn.home_off": "The upgrade plan doesn't work with Wynntils %s; Wynn Labs needs an update.",
+  "wynnlabs.wyn.part_down": "Part of Wynn Labs doesn't work with this Wynntils (%s) and is off; Wynn Labs needs an update. Everything else still works.",
   "wynnlabs.wyn.quests_off": "Quest suggestions don't work with Wynntils %s; Wynn Labs needs an update.",
   "wynnlabs.wyn.about": "Wynntils %s",
   "wynnlabs.wyn.all_ok": "Every Wynntils feature we use works",

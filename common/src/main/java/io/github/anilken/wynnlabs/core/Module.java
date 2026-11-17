@@ -96,7 +96,19 @@ public final class Module {
                 platform.onEndTick(Perf.tick("tick." + m.name, m.tick));
             }
             if (m.chat != null) {
-                platform.onGameMessage(m.chat);
+                String section = "chat." + m.name;
+                BiConsumer<Component, Boolean> chat = m.chat;
+                platform.onGameMessage((text, overlay) -> {
+                    try {
+                        chat.accept(text, overlay);
+                    } catch (RuntimeException | LinkageError e) {
+                        // a chat line must never close the game; told like a broken tick
+                        if (e instanceof LinkageError) {
+                            Wyn.partDown();
+                        }
+                        Perf.failedOnce(section, e);
+                    }
+                });
             }
             if (m.hud != null) {
                 platform.addHud(Identifier.fromNamespaceAndPath("wynnlabs", m.hud.id()), hudLayer(m.name, m.hud));

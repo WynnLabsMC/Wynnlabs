@@ -64,13 +64,36 @@ public final class Perf {
         }
     }
 
-    /** A tick listener timed as the section {@code name}. */
+    /** Tick sections that already threw once (logged once, never again). */
+    private static final java.util.Set<String> FAILED = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    /** Logs {@code e} the first time section {@code name} fails. */
+    public static void failedOnce(String name, Throwable e) {
+        if (FAILED.add(name)) {
+            System.out.println("[WynnLabs] " + name + " failed: " + e);
+            e.printStackTrace(System.out);
+        }
+    }
+
+    /**
+     * A tick listener timed as the section {@code name}. What it throws stays in it: a mod or
+     * Wynntils update that breaks one feature must never close the game. The first failure of
+     * each section is logged.
+     */
     public static java.util.function.Consumer<net.minecraft.client.Minecraft> tick(
             String name, java.util.function.Consumer<net.minecraft.client.Minecraft> body) {
         return client -> {
             long t = start();
             try {
                 body.accept(client);
+            } catch (RuntimeException | LinkageError e) {
+                if (FAILED.add(name)) {
+                    System.out.println("[WynnLabs] " + name + " failed: " + e);
+                    e.printStackTrace(System.out);
+                }
+                if (e instanceof LinkageError) {
+                    io.github.anilken.wynnlabs.game.Wyn.partDown();   // another Wynntils: the player is told once
+                }
             } finally {
                 end(name, t);
             }
