@@ -139,8 +139,26 @@ public final class EndgameReads {
         return guard(Feature.LOOTRUNS, () -> {
             String unknown = MissionType.UNKNOWN.getName();
             List<String> out = new ArrayList<>();
+            // Wynntils 4.2.18 moved the missions to Models.Mission; older ones keep them on Models.Lootrun
+            Object owner;
+            java.lang.reflect.Method status;
+            try {
+                try {
+                    owner = Models.class.getField("Mission").get(null);
+                } catch (NoSuchFieldException e) {
+                    owner = Models.Lootrun;
+                }
+                status = owner.getClass().getMethod("getMissionStatus", int.class, boolean.class);
+            } catch (ReflectiveOperationException e) {
+                throw new IllegalStateException(e);
+            }
             for (int i = 0; i < LOOTRUN_MISSIONS; i++) {
-                String m = plain(Models.Lootrun.getMissionStatus(i, false));
+                String m;
+                try {
+                    m = plain((String) status.invoke(owner, i, false));
+                } catch (ReflectiveOperationException e) {
+                    throw new IllegalStateException(e);
+                }
                 if (!m.isEmpty() && !m.equalsIgnoreCase(unknown)) {
                     out.add(m);
                 }

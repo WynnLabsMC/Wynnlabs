@@ -123,6 +123,16 @@ public final class Wyn {
 
     private static final java.util.Set<Feature> ANNOUNCED = java.util.EnumSet.noneOf(Feature.class);
     private static int tick;
+    private static volatile boolean partDown;
+    private static boolean partAnnounced;
+
+    /**
+     * A part of the mod stopped because this Wynntils lacks something it calls (outside the
+     * per-feature guard): the game keeps running and the player is told once per session.
+     */
+    public static void partDown() {
+        partDown = true;
+    }
 
     /** Every few seconds: one chat line per session for features that went down. */
     public static void onTick(net.minecraft.client.Minecraft mc) {
@@ -137,6 +147,10 @@ public final class Wyn {
         }
         if (!names.isEmpty()) {
             io.github.anilken.wynnlabs.core.Chat.say(L.c("wynnlabs.wyn.down", String.join(", ", names), version())
+                    .withStyle(net.minecraft.ChatFormatting.YELLOW));
+        } else if (partDown && !partAnnounced) {
+            partAnnounced = true;
+            io.github.anilken.wynnlabs.core.Chat.say(L.c("wynnlabs.wyn.part_down", version())
                     .withStyle(net.minecraft.ChatFormatting.YELLOW));
         }
     }

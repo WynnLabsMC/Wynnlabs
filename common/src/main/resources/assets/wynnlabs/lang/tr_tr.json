@@ -1185,6 +1185,7 @@
   "wynnlabs.wyn.down": "%s bu Wynntils sürümüyle (%s) çalışmıyor; Wynn Labs güncellemesi lazım. Gerisi çalışıyor.",
   "wynnlabs.wyn.items_off": "Wynn Labs: item önerileri Wynntils %s ile kapalı",
   "wynnlabs.wyn.home_off": "Upgrade planı Wynntils %s ile çalışmıyor; Wynn Labs güncellemesi lazım.",
+  "wynnlabs.wyn.part_down": "Wynn Labs'ın bir kısmı bu Wynntils sürümüyle (%s) çalışmıyor ve kapandı; Wynn Labs güncellemesi lazım. Gerisi çalışıyor.",
   "wynnlabs.wyn.quests_off": "Quest önerileri Wynntils %s ile çalışmıyor; Wynn Labs güncellemesi lazım.",
   "wynnlabs.wyn.about": "Wynntils %s",
   "wynnlabs.wyn.all_ok": "Kullandığımız tüm Wynntils özellikleri çalışıyor",
