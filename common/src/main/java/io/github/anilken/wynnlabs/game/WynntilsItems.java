@@ -517,13 +517,18 @@ public final class WynntilsItems {
                 Collections.unmodifiableMap(met), (Boolean) Wyn.call(req, "questReqMet"));
     }
 
+    /**
+     * GearInstanceRequirements.UNKNOWN, the "not read yet" value of 4.2.10 to 4.2.17. 4.2.18 has
+     * none (an unread item gives null instead, which {@link #marks} handles): then a value no
+     * real requirements object equals, so every one counts as read.
+     */
     private static Object unknownRequirements(Class<?> type) {
         Object u = unknownRequirements;
         if (u == null) {
             try {
                 u = type.getField(REQUIREMENTS_UNKNOWN).get(null);
             } catch (ReflectiveOperationException e) {
-                throw new NoSuchFieldError(type.getSimpleName() + "." + REQUIREMENTS_UNKNOWN + ": " + e);
+                u = new Object();
             }
             unknownRequirements = u;
         }
