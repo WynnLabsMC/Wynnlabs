@@ -1,0 +1,100 @@
+name: Wynntils watch
+
+# Once a day: when Wynntils has a new release for 1.21.11 (on Modrinth), the mod is compiled and
+# its quick tests run against that jar, and an issue says whether it still builds, with a link to
+# Wynntils' changes since the version in gradle.properties. One issue per Wynntils version: a
+# version that already has one (open or closed) is skipped. Start it by hand to check now.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: wynntils-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The newest Wynntils
+        id: latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          json=$(curl -fsSL 'https://api.modrinth.com/v2/project/wynntils/version?loaders=%5B%22fabric%22%5D&game_versions=%5B%221.21.11%22%5D')
+          tag=$(jq -r '[.[] | select(.version_type == "release")][0].version_number' <<<"$json")
+          url=$(jq -r --arg v "$tag" '.[] | select(.version_number == $v) | .files[] | select(.primary) | .url' <<<"$json")
+          ours=v$(grep '^wynntils_version=' gradle.properties | cut -d= -f2)
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "ours=$ours" >> "$GITHUB_OUTPUT"
+          title="Wynntils $tag"
+          seen=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --search "\"$title\" in:title" --json title \
+            --jq "[.[] | select(.title | startswith(\"$title:\"))] | length")
+          if [ "$tag" = "$ours" ] || [ "$seen" != "0" ]; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing new: $tag (ours $ours, issues $seen)"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-java@v6
+        if: steps.latest.outputs.new == 'true'
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+        if: steps.latest.outputs.new == 'true'
+        with:
+          gradle-version: 9.2.0
+
+      - name: Build against it
+        id: build
+        if: steps.latest.outputs.new == 'true'
+        continue-on-error: true
+        run: |
+          mkdir -p libs
+          jar="$PWD/libs/wynntils-new.jar"
+          curl -fsSL -o "$jar" "${{ steps.latest.outputs.url }}"
+          set -o pipefail
+          gradle :fabric:test -PquickTests -PnoEmbeddedKey -Penabled_platforms=fabric "-PwynntilsJar=$jar" 2>&1 | tee build.log
+
+      - name: Open an issue
+        if: steps.latest.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.latest.outputs.tag }}
+          OURS: ${{ steps.latest.outputs.ours }}
+          OUTCOME: ${{ steps.build.outcome }}
+        run: |
+          gh label create wynntils --repo "$GITHUB_REPOSITORY" --color 5319e7 --description "A new Wynntils release" --force
+          compare="https://github.com/Wynntils/Wynntils/compare/$OURS...$TAG"
+          run="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          if [ "$OUTCOME" = "success" ]; then
+            title="Wynntils $TAG: builds"
+            body="Wynn Labs compiles and its quick tests pass against Wynntils $TAG.
+
+          Calls made by name (reflection) are not checked by the compiler: look through [the changes since $OURS]($compare) for renamed or moved gear, lootrun, quest and container members, and try the jar in game.
+
+          [Run]($run)"
+          else
+            title="Wynntils $TAG: does not build"
+            errors=$(grep -E 'error:|FAILED' build.log | head -40)
+            body="Wynn Labs does not compile, or its quick tests fail, against Wynntils $TAG. Players on $TAG may lose features (the mod turns them off and says so in chat).
+
+          \`\`\`
+          $errors
+          \`\`\`
+
+          [Changes since $OURS]($compare) · [Run]($run)"
+          fi
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --label wynntils --body "$(sed 's/^          //' <<<"$body")"
