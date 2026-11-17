@@ -2349,7 +2349,7 @@
   "wynnlabs.shots.stopped": "Screenshots stopped; menu and language restored. Saved: %s",
   "wynnlabs.shots.failed": "Screenshots stopped on an error (%s). Menu and language restored.",
   "key.wynnlabs.search": "Search items (or the one you're hovering)",
-  "key.wynnlabs.uses": "How to get the hovered item and what it's used for",
+  "key.wynnlabs.uses": "Item sources & uses",
   "wynnlabs.screen.tab_search": "Search",
   "wynnlabs.setting.sourceHint": "Where to get it, in tooltips",
   "wynnlabs.setting_desc.sourceHint": "One line on the easiest way to get it: a merchant, its Trade Market price or the mob level",
