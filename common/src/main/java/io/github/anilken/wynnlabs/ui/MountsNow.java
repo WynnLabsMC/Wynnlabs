@@ -183,7 +183,7 @@ final class MountsNow {
         }
         long left = m.queue().secondsLeft();
         for (Material q : m.queue().pending()) {
-            out.add(new Step(null, q.name(), q.name(), L.t("wynnlabs.mounts.lv", q.level()), L.t("wynnlabs.mounts.queued", MountsText.dur(left)), Theme.INK_2,
+            out.add(new Step(null, q.name(), q.name(), q.kibble() != null ? null : L.t("wynnlabs.mounts.lv", q.level()), L.t("wynnlabs.mounts.queued", MountsText.dur(left)), Theme.INK_2,
                     0, L.t("wynnlabs.mounts.say_queued", q.name()), m.stats().gainsFrom(q)));
         }
         if (fp != null) {

@@ -187,7 +187,7 @@ final class MountsModel {
         }
         List<Material> q = new ArrayList<>();
         for (String name : fed.pending()) {
-            Material mat = io.github.anilken.wynnlabs.mounts.MountMaterials.byName(name);
+            Material mat = Material.queued(name);
             if (mat != null) {
                 q.add(mat);
             }
