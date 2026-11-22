@@ -234,6 +234,8 @@ final class MountsTab extends MenuTab {
                 .sub(L.t("wynnlabs.mounts.opt_bank_sub")));
         out.add(UiMenu.Item.of("o:tm", o.buyTm ? "check" : null, L.t("wynnlabs.mounts.opt_tm"), null, false)
                 .sub(L.t("wynnlabs.mounts.opt_tm_sub")));
+        out.add(UiMenu.Item.of("o:golden", o.goldenBlend ? "check" : null, MountsModel.GOLDEN_BLEND, null, false)
+                .sub(L.t("wynnlabs.mounts.opt_golden_sub")));
         out.divide();
         boolean overlay = io.github.anilken.wynnlabs.core.Settings.on("feederOverlay");
         boolean highlight = io.github.anilken.wynnlabs.core.Settings.on("feederHighlight");
@@ -258,6 +260,7 @@ final class MountsTab extends MenuTab {
             case "o:silver" -> o.silverbull = !o.silverbull;
             case "o:bank" -> o.useBank = !o.useBank;
             case "o:tm" -> o.buyTm = !o.buyTm;
+            case "o:golden" -> o.goldenBlend = !o.goldenBlend;
             case "o:overlay" -> io.github.anilken.wynnlabs.core.Settings.toggle("feederOverlay");
             case "o:highlight" -> io.github.anilken.wynnlabs.core.Settings.toggle("feederHighlight");
             default -> {
