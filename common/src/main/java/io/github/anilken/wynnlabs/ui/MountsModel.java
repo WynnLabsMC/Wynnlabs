@@ -60,6 +60,8 @@ final class MountsModel {
         boolean silverbull;
         boolean useBank = true;
         boolean buyTm = true;
+        /** The road map feeds the Golden Blends you own to the final mount. */
+        boolean goldenBlend = true;
         String type = "WYVERN";
         /** The road map's target potential, one of {@link RoadMap#TARGETS}. */
         int target = 700;
@@ -70,6 +72,11 @@ final class MountsModel {
 
         RoadMap.Options road(MountType t) {
             return new RoadMap.Options(t, trainMin * 60, trainCap <= 0 ? Integer.MAX_VALUE : trainCap, queueSwap);
+        }
+
+        /** The road map's options with the Golden Blends to feed the final mount. */
+        RoadMap.Options road(MountType t, int goldenBlends) {
+            return road(t).withGoldenBlends(goldenBlend ? goldenBlends : 0);
         }
     }
 
@@ -245,8 +252,9 @@ final class MountsModel {
         }
         Options o = options();
         MountType t = type();
-        String key = "road|" + target + "|" + t + "|" + o.trainMin + "|" + o.trainCap + "|" + o.queueSwap;
-        return ask(key, () -> RoadMap.planAsync(target, o.road(t)));
+        int blends = o.goldenBlend ? goldenBlends() : 0;
+        String key = "road|" + target + "|" + t + "|" + o.trainMin + "|" + o.trainCap + "|" + o.queueSwap + "|" + blends;
+        return ask(key, () -> RoadMap.planAsync(target, o.road(t, blends)));
     }
 
     // ---- the exact feed plan: only when the player asks ----
@@ -424,6 +432,18 @@ final class MountsModel {
     // ---- what a material costs and where it is ----
 
     /** How many of this material the bank holds (0 when not, or the bank was never read). */
+    /** Golden Blends seen in the bank and bags (kibble keeps its English name). */
+    static int goldenBlends() {
+        try {
+            Vault.Group g = Vault.find(GOLDEN_BLEND);
+            return g == null ? 0 : g.total();
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    static final String GOLDEN_BLEND = "Golden Blend";
+
     static int inBank(Material m) {
         try {
             Vault.Group g = Vault.find(m.name());

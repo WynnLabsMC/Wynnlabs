@@ -56,6 +56,9 @@ final class MountsRoad {
             }
             cy += (compact ? totalsLine(g, x, cy, w, plan) : totals(g, x, cy, w, plan, mx, my)) + Theme.SP_5;
             cy += generations(g, x, cy, w, plan, compact, mx, my) + Theme.SP_5;
+            if (plan.goldenBlends() > 0) {
+                cy += goldenBlends(g, x, cy, w, plan) + Theme.SP_5;
+            }
         }
         now.draw(g, x, cy, w, y + h - cy, plan, mx, my);
     }
@@ -228,6 +231,24 @@ final class MountsRoad {
         Kit.hair(g, in, cy, room, 1, Theme.LINE);
         cy += 1 + Theme.SP_3;
         Type.META.draw(g, font(), Type.META.fit(font(), foot, room), in, cy, goal ? Theme.WARN : Theme.INK_2);
+    }
+
+    /**
+     * The road's last step when Golden Blends are owned: fed to the final mount after the last breeding
+     * ("Golden Blend ×3 → the final Wyvern", "+48 potential · 18 h"), and how many are owned.
+     */
+    private int goldenBlends(GuiGraphics g, int x, int y, int w, RoadMap.Plan plan) {
+        String gain = L.t("wynnlabs.mounts.golden_gain", plan.goldenBlendPotential(), MountsText.dur(plan.goldenBlendSec()));
+        int gw = Type.META.width(font(), gain);
+        Art.icon(g, "star", x, Type.LABEL.onCaps(y, 8), 8, Theme.GOLD_EDGE);
+        int tx = x + 8 + Theme.SP_2;
+        Type.LABEL.draw(g, font(), Type.LABEL.fit(font(), L.t("wynnlabs.mounts.golden_step", plan.goldenBlends(), plan.type().display()),
+                w - (tx - x) - gw - Theme.SP_3), tx, y, Theme.INK);
+        Type.META.drawRight(g, font(), gain, x + w, y, Theme.WARN);
+        int cy = y + Type.LABEL.lineHeight;
+        Type.META.draw(g, font(), Type.META.fit(font(), L.t("wynnlabs.mounts.golden_owned", MountsModel.goldenBlends()), w - (tx - x)),
+                tx, cy, Theme.INK_2);
+        return cy + Type.META.lineHeight - y;
     }
 
     /** The generation your best mount belongs to (0 with none). */

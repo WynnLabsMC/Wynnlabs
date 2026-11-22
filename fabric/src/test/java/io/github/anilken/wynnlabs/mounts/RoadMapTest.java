@@ -40,6 +40,22 @@ class RoadMapTest {
     }
 
     @Test
+    void goldenBlendsFedToTheFinalMountShortenTheRoad() {
+        RoadMap.Plan without = RoadMap.plan(850, WYVERN);
+        assertEquals(0, without.goldenBlends());
+        RoadMap.Plan with = RoadMap.plan(850, WYVERN.withGoldenBlends(20));
+        assertTrue(with.reached());
+        assertTrue(with.mountsToBuy() < without.mountsToBuy());
+        // only as many as the target still needs, each +16 potential and 6 h on the final mount
+        assertTrue(with.goldenBlends() > 0 && with.goldenBlends() < 20);
+        assertTrue(with.finalPotential().mid() >= 850);
+        assertEquals(16 * with.goldenBlends(), with.goldenBlendPotential());
+        assertEquals(6 * 3600L * with.goldenBlends(), with.goldenBlendSec());
+        RoadMap.Plan one = RoadMap.plan(850, WYVERN.withGoldenBlends(1));
+        assertTrue(one.goldenBlends() <= 1);
+    }
+
+    @Test
     void target500() {
         assertEquals(4, check(500).mountsToBuy());
     }

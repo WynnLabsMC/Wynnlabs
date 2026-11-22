@@ -34,9 +34,10 @@ public final class RoadMap {
      * @param trainSecPerLevel riding time per trained level (unverified; default 60, shown in the UI)
      * @param trainCap         no stat is trained above this level
      * @param allowQueueSwaps  feed planner queue swaps
+     * @param goldenBlends     Golden Blends the player owns, fed to the final mount (0: none)
      */
     public record Options(MountType type, int trainSecPerLevel, int trainCap, boolean allowQueueSwaps,
-                          Objective objective, int feederRows) {
+                          Objective objective, int feederRows, int goldenBlends) {
         /** Rows of the enclosure's Mount Feeder: one mount each, fed side by side. */
         public static final int FEEDER_ROWS = 5;
 
@@ -45,6 +46,12 @@ public final class RoadMap {
                 objective = Objective.MOUNTS;
             }
             feederRows = feederRows <= 0 ? FEEDER_ROWS : feederRows;
+            goldenBlends = Math.max(0, goldenBlends);
+        }
+
+        public Options(MountType type, int trainSecPerLevel, int trainCap, boolean allowQueueSwaps,
+                       Objective objective, int feederRows) {
+            this(type, trainSecPerLevel, trainCap, allowQueueSwaps, objective, feederRows, 0);
         }
 
         public Options(MountType type, int trainSecPerLevel, int trainCap, boolean allowQueueSwaps) {
@@ -61,11 +68,17 @@ public final class RoadMap {
         }
 
         public Options withObjective(Objective o) {
-            return new Options(type, trainSecPerLevel, trainCap, allowQueueSwaps, o, feederRows);
+            return new Options(type, trainSecPerLevel, trainCap, allowQueueSwaps, o, feederRows, goldenBlends);
         }
 
         public Options withFeederRows(int rows) {
-            return new Options(type, trainSecPerLevel, trainCap, allowQueueSwaps, objective, Math.max(1, rows));
+            return new Options(type, trainSecPerLevel, trainCap, allowQueueSwaps, objective, Math.max(1, rows),
+                    goldenBlends);
+        }
+
+        /** The same with {@code n} Golden Blends to feed the final mount. */
+        public Options withGoldenBlends(int n) {
+            return new Options(type, trainSecPerLevel, trainCap, allowQueueSwaps, objective, feederRows, n);
         }
 
         public FeedOptions feedOptions() {
@@ -114,11 +127,29 @@ public final class RoadMap {
      * @param targetPotential the potential asked for
      * @param reached        the middle of {@code finalPotential} reaches the target within
      *                       {@link #MAX_GENERATIONS}; when false this is the best road found, not a fake one
+     * @param goldenBlends   Golden Blends fed to the final mount after the last breeding (only as many as the
+     *                       target still needs; their potential and eating time are in the numbers above)
      */
     public record Plan(Standard standard, MountType type, List<Generation> generations, Range target,
                        Range finalPotential, int mountsToBuy, int totalFeeds, long workTimeSec, long wallClockSec,
-                       Map<Material, Integer> materials, boolean proven, int targetPotential, boolean reached) {
+                       Map<Material, Integer> materials, boolean proven, int targetPotential, boolean reached,
+                       int goldenBlends) {
+
+        /** Potential the Golden Blends add to the final mount. */
+        public int goldenBlendPotential() {
+            return goldenBlends * GOLDEN_BLEND_POTENTIAL;
+        }
+
+        /** Eating time of the Golden Blends, one after another in the final mount's queue. */
+        public long goldenBlendSec() {
+            return goldenBlends * GOLDEN_BLEND_SEC;
+        }
     }
+
+    /** Golden Blend (2.2.6 kibble): every trait's maximum +2, so the potential +16. */
+    public static final int GOLDEN_BLEND_POTENTIAL = 2 * MountStat.COUNT;
+    /** Golden Blend's eating time. */
+    public static final long GOLDEN_BLEND_SEC = 6 * 3600L;
 
     /** Targets the UI offers. */
     public static final int[] TARGETS = {500, 700, 850, 1000, 1200};
@@ -254,11 +285,19 @@ public final class RoadMap {
             hi = side(eh, false);
         }
         int midPotential = mid.potential();
+        // Golden Blends go to the final mount: each raises every maximum by 2, so the potential by 16; only as
+        // many as the target still needs, each eaten in turn after the last breeding
+        int blends = Math.min(options.goldenBlends(),
+                (Math.max(0, targetPotential - midPotential) + GOLDEN_BLEND_POTENTIAL - 1) / GOLDEN_BLEND_POTENTIAL);
+        int extra = blends * GOLDEN_BLEND_POTENTIAL;
+        child = new Range(child.low() + extra, child.high() + extra);
+        work += blends * GOLDEN_BLEND_SEC;
+        wall += blends * GOLDEN_BLEND_SEC;
         Standard std = targetPotential == targetOf(Standard.LOW) ? Standard.LOW
                 : targetPotential == targetOf(Standard.HIGH) ? Standard.HIGH : null;
         return new Plan(std, options.type(), List.copyOf(out), Range.of(targetPotential), child, 1 << gens, feeds,
                 work, wall, Collections.unmodifiableMap(new LinkedHashMap<>(all)), proven, targetPotential,
-                midPotential >= targetPotential);
+                midPotential + extra >= targetPotential, blends);
     }
 
     /**
