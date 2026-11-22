@@ -198,6 +198,8 @@ abstract class EndgamePanel {
         return switch (name == null ? "" : name.toLowerCase(Locale.ROOT)) {
             case "blue" -> 0xFF3A6FD0;
             case "purple" -> 0xFF8A4AC8;
+            case "violet" -> 0xFFB060F0;
+            case "pink" -> 0xFFF080C0;
             case "yellow" -> 0xFFE0C030;
             case "rainbow" -> 0xFFE070B0;
             case "red" -> 0xFFC83A30;
