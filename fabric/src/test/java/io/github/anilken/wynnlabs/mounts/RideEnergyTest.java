@@ -21,6 +21,14 @@ class RideEnergyTest {
     }
 
     @Test
+    void aFrameOutOf47FromWynntils4219IsEstimatedToo() {
+        // 2.2.6 gave a frame to the toughness bar: Wynntils 4.2.19 reports [frame, 47]
+        assertEquals(new Shown(191, 204, true), RideEnergy.shown(196, 204, new int[] {44, 47}, 46));
+        assertEquals(new Shown(204, 204, true), RideEnergy.shown(196, 204, new int[] {47, 47}, 46));
+        assertEquals(new Shown(196, 204, false), RideEnergy.shown(196, 204, new int[] {46, 47}, 46));
+    }
+
+    @Test
     void theItemsNumberHoldsUntilTheFrameMovesAfterARead() {
         assertEquals(new Shown(196, 204, false), RideEnergy.shown(196, 204, new int[] {46, 48}, 46));
     }
