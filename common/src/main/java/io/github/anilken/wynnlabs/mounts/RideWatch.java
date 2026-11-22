@@ -241,7 +241,7 @@ public final class RideWatch {
     private static void adopt(MountRead m) {
         current = m;
         int[] live = WynntilsItems.currentMountEnergy();
-        frameAtRead = live != null && live.length > 1 && live[1] == RideEnergy.FRAMES ? live[0] : -1;
+        frameAtRead = live != null && live.length > 1 && (live[1] == RideEnergy.FRAMES || live[1] == RideEnergy.FRAMES_2_2_6) ? live[0] : -1;
         FLASH.update(m, System.currentTimeMillis());
     }
 
