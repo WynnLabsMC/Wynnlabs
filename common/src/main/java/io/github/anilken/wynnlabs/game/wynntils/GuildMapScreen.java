@@ -40,6 +40,11 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
     private boolean heldInPanel;
     private float heldX;
     private float heldZ;
+    /** The territory a panel row was clicked for: it flashes on the map until {@link #flashUntil}. */
+    private String flashName;
+    private long flashUntil;
+    /** How long a clicked territory flashes. */
+    private static final long FLASH_MS = 3000;
 
     public GuildMapScreen() {
         super();
@@ -215,6 +220,18 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
                 continue;
             }
             GuildMapLook.Territory t = looks.get(i);
+            if (now < flashUntil && p.getName().equals(flashName)) {
+                // the territory a panel row was clicked for: a gold fill and frame that blink
+                int ax = (int) Math.min(x0, x1);
+                int az = (int) Math.min(z0, z1);
+                int w = (int) Math.abs(x1 - x0);
+                int h = (int) Math.abs(z1 - z0);
+                double wave = 0.5 + 0.5 * Math.sin((now - (flashUntil - FLASH_MS)) / 110.0 - Math.PI / 2);
+                g.fill(ax, az, ax + w, az + h, (int) (40 + 110 * wave) << 24 | 0xFFD24A);
+                int edge = (int) (120 + 135 * wave) << 24 | 0xFFD24A;
+                g.renderOutline(ax, az, w, h, edge);
+                g.renderOutline(ax + 1, az + 1, w - 2, h - 2, edge);
+            }
             if (panel.guild != null && panel.guild.equals(t.guild())) {
                 int ax = (int) Math.min(x0, x1);
                 int az = (int) Math.min(z0, z1);
@@ -289,6 +306,12 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             setZoomLevel(level);
         }
         updateMapCenter(p.getLocation().getX(), p.getLocation().getZ());
+        // the press began on the panel, which holds the map where it was until the button is let go:
+        // hold it here instead, or it would spring back to the old spot at the new zoom
+        heldX = mapCenterX;
+        heldZ = mapCenterZ;
+        flashName = p.getName();
+        flashUntil = System.currentTimeMillis() + FLASH_MS;
     }
 
     /** While the search box has the keyboard, letters go to it and never reach the map's shortcuts. */
