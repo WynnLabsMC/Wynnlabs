@@ -1,5 +1,5 @@
 {
-  "_comment": "Mount powerups on the ground, by fingerprint: the lowercase hex SHA-256 of the type display's main sprite (its original image's pixels as ARGB ints, big-endian, row by row). stat: a mount stat (Speed ... Training) or a boost; colour: the label's colour. The first ten are verified against the textures in the Wynncraft resource pack; Speed, Acceleration, Altitude, Energy and Training also by pickup in game. For debugging only (they change between pack versions, never key on them): the type model ids in the pack checked were Acceleration 5797, Altitude 5805, Energy 5810, Energy Boost 5818, Handling 5822, Boost 5828, Speed 5833, Speed Boost 5839, Toughness 5843, Training 5848. The 2.2.6 boosts (pack of 2026-11-22, seen and picked up in game): Magnet I 6594 (yellow) and II 6601 (blue; the tier by colour, as the multipliers' yellow is I), Multiplier I 6615 and II 6628 (their own label shows x2 and x3; they gave 3x and 5x, as the changelog says), Stampede 6663.",
+  "_comment": "Mount powerups on the ground, by fingerprint: the lowercase hex SHA-256 of the type display's main sprite (its original image's pixels as ARGB ints, big-endian, row by row). stat: a mount stat (Speed ... Training) or a boost; colour: the label's colour. The first ten are verified against the textures in the Wynncraft resource pack; Speed, Acceleration, Altitude, Energy and Training also by pickup in game. For debugging only (they change between pack versions, never key on them): the type model ids in the pack checked were Acceleration 5797, Altitude 5805, Energy 5810, Energy Boost 5818, Handling 5822, Boost 5828, Speed 5833, Speed Boost 5839, Toughness 5843, Training 5848. The 2.2.6 boosts (pack of 2026-11-22): verified ones seen and picked up in game, the rest named from their 3D model (horseshoe magnets, drumsticks for appetite, the multiplier's own number). Magnet I/II/III 6594/6601/6608, Multiplier ×2/×3/×5/×10 6615/6628/6636/6642 (named by the number on the model; in game ×2 gave 3x and ×3 gave 5x), Stampede 6663, Increased Appetite I/II/III 6544/6553/6562.",
   "powerups": [
     {"print": "e1bff8cfbd3fd657968bc89b944cbb7714067b68f2d3b6d544af6e2f98cefe69", "stat": "Speed", "colour": "#FDDA61", "verified": true},
     {"print": "4eb77051600f1ec496226a09d8a9772c04aa2fda08001583565f469aa89977a3", "stat": "Acceleration", "colour": "#8EEFFE", "verified": true},
@@ -13,8 +13,14 @@
     {"print": "5c911db01ac62ea367665951acec5af352a4145b5172d907c23bc8394428761d", "stat": "Speed Boost", "colour": "#6A7BD9", "verified": true},
     {"print": "1f9845472dffeb83ac7236e633add90b796a31cd68fc28b1c3fe297a71bd3ae8", "stat": "Magnet II", "colour": "#29A4D3", "verified": true},
     {"print": "c1da29d2411bde464ba01feef477db04cca69a08468f80b87f876a82772e8189", "stat": "Magnet I", "colour": "#F8B23A", "verified": true},
-    {"print": "6b7365df18be918ce505a057d22f3aef84b147c4807212e7a7ded0b47d54f540", "stat": "Multiplier II", "colour": "#FA8BFF", "verified": true},
-    {"print": "a9a8d1dec0f6786d80575464828fd08bd7d67e12730445bdbc33c379c2d074ff", "stat": "Multiplier I", "colour": "#F8B23A", "verified": true},
-    {"print": "d9267a20d86a7c436af592c51040511d40b450db58a76bd63b8bdc0af8cfe0ba", "stat": "Stampede", "colour": "#F21D2E", "verified": true}
+    {"print": "6b7365df18be918ce505a057d22f3aef84b147c4807212e7a7ded0b47d54f540", "stat": "Multiplier ×3", "colour": "#FA8BFF", "verified": true},
+    {"print": "a9a8d1dec0f6786d80575464828fd08bd7d67e12730445bdbc33c379c2d074ff", "stat": "Multiplier ×2", "colour": "#F8B23A", "verified": true},
+    {"print": "d9267a20d86a7c436af592c51040511d40b450db58a76bd63b8bdc0af8cfe0ba", "stat": "Stampede", "colour": "#F21D2E", "verified": true},
+    {"print": "46b5a34713d3e953961888a4622a55b7e43c050656ffeda13e9c66937ac689e9", "stat": "Multiplier ×5", "colour": "#29A4D3", "verified": false},
+    {"print": "e9b1e4232c65ce2d7cb820b4b76d70f8f8faf4ece20c774d5a3d36386525ae21", "stat": "Multiplier ×10", "colour": "#F21D2E", "verified": false},
+    {"print": "36dd4d48f3cd66b07145d2321bb02d3a8e9f56b717370772619e64589c34bba9", "stat": "Magnet III", "colour": "#F21D2E", "verified": false},
+    {"print": "305be982c711a88e8ba4789f685e0365ec56b1a0001029a45bb4d2aa0308f9f3", "stat": "Increased Appetite I", "colour": "#F8B23A", "verified": false},
+    {"print": "34d704ef189f3effe002117b357fd8d3a54ac367edf4ffef60e801f0a86d397e", "stat": "Increased Appetite II", "colour": "#29A4D3", "verified": false},
+    {"print": "91c1b10a20fe6047028ecedde6f15b9e6581cac9fc074499e2146a489bc983a9", "stat": "Increased Appetite III", "colour": "#F21D2E", "verified": false}
   ]
 }
