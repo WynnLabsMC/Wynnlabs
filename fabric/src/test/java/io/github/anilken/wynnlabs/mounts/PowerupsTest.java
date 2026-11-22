@@ -27,7 +27,7 @@ class PowerupsTest {
 
     @Test
     void theTableKnowsAllTenPowerupsAndTheirStats() {
-        assertEquals(21, PowerupTable.all().size());
+        assertEquals(24, PowerupTable.all().size());
         PowerupTable.Kind speed = PowerupTable.of("E1BFF8CFBD3FD657968BC89B944CBB7714067B68F2D3B6D544AF6E2F98CEFE69");
         assertNotNull(speed);
         assertEquals(MountStat.SPEED, speed.stat());
