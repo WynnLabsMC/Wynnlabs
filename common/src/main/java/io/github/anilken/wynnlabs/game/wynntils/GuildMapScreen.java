@@ -306,6 +306,10 @@ public final class GuildMapScreen extends AbstractMapScreen implements io.github
             setZoomLevel(level);
         }
         updateMapCenter(p.getLocation().getX(), p.getLocation().getZ());
+        // the press began on the panel, which holds the map where it was until the button is let go:
+        // hold it here instead, or it would spring back to the old spot at the new zoom
+        heldX = mapCenterX;
+        heldZ = mapCenterZ;
         flashName = p.getName();
         flashUntil = System.currentTimeMillis() + FLASH_MS;
     }
