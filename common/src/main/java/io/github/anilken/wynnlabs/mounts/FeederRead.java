@@ -143,7 +143,7 @@ public final class FeederRead {
      */
     public static Material material(String name, List<String> lore) {
         String n = clean(name == null ? "" : name);
-        Material byName = MountMaterials.byName(n);
+        Material byName = Material.queued(n);
         if (byName != null || n.isEmpty()) {
             return byName;
         }
@@ -356,13 +356,14 @@ public final class FeederRead {
 
     /**
      * Each queued item's own timer: the feed timer by the limits before it (the first one's by the
-     * stats now, then each after the ones before it).
+     * stats now, then each after the ones before it); kibble takes its own fixed eating time.
      */
     public static long[] timers(MountStats stats, List<Material> queue) {
         long[] out = new long[queue.size()];
         MountStats s = stats;
         for (int i = 0; i < queue.size(); i++) {
-            out[i] = s.feedTimerSec();
+            Material q = queue.get(i);
+            out[i] = q.kibble() != null ? q.kibble().eatSec() : s.feedTimerSec();
             s = s.fed(queue.get(i));
         }
         return out;

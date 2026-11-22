@@ -118,8 +118,11 @@ public record MountStats(List<StatLine> stats) {
         return g;
     }
 
-    /** These stats after feeding one material (limits capped at max; levels unchanged). */
+    /** These stats after feeding one material (limits capped at max; levels unchanged), or eating one kibble. */
     public MountStats fed(Material m) {
+        if (m.kibble() != null) {
+            return m.kibble().apply(this, m.level());
+        }
         int[] lv = new int[8], li = new int[8], mx = new int[8];
         for (int i = 0; i < 8; i++) {
             lv[i] = level(i);
