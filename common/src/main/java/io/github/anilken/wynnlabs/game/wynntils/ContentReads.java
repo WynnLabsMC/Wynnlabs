@@ -282,7 +282,8 @@ public final class ContentReads {
                 for (var line : com.wynntils.utils.mc.LoreUtils.getLore(stack)) {
                     lore.add(line.getString());
                 }
-                String name = plain(stack.getHoverName().getString());
+                // since 2.2.6 a menu item's name carries spacing glyphs (private use characters) around it
+                String name = plain(stack.getHoverName().getString()).replaceAll("\\p{Co}", "").trim();
                 if (page.contains(i)) {
                     String read = Models.Item.asWynnItem(stack, com.wynntils.models.items.items.gui.ActivityItem.class)
                             .map(a -> a.getActivityInfo() == null ? null : a.getActivityInfo().name()).orElse(null);
