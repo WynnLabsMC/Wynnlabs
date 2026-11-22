@@ -50,6 +50,14 @@ public class RideRefreshMixin {
 
     @Inject(method = "handleContainerContent", at = @At("HEAD"), cancellable = true)
     private void wynnlabs$rideContent(ClientboundContainerSetContentPacket packet, CallbackInfo ci) {
+        if (Minecraft.getInstance().isSameThread()) {
+            try {
+                // the world event read's first look at the content book: the player's own filter
+                io.github.anilken.wynnlabs.quests.BookFilter.fromMenu(packet.items());
+            } catch (Throwable ignored) {
+                // reading a menu must never break it
+            }
+        }
         if (Minecraft.getInstance().isSameThread() && RideWatch.onContent(packet.containerId(), packet.items())) {
             ci.cancel();
         }
