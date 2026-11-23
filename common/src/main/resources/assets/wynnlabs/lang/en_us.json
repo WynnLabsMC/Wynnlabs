@@ -3091,6 +3091,7 @@
   "wynnlabs.mounts.where.inventory": "In your inventory, %s",
   "wynnlabs.mounts.where.bank": "In the bank, %s",
   "wynnlabs.mounts.where.enclosure": "In the enclosure, %s",
+  "wynnlabs.mounts.where_feeder": "In the %1$s, %2$s",
   "wynnlabs.mounts.potential": "Potential",
   "wynnlabs.mounts.potential_sub": "Sum of the maxes",
   "wynnlabs.mounts.energy": "Energy",

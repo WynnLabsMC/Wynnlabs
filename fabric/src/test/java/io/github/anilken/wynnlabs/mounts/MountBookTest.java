@@ -161,4 +161,97 @@ class MountBookTest {
         assertEquals(1200, FeederRead.potential(List.of("1.2k Potential")));
         assertEquals(-1, FeederRead.potential(List.of("Energy 200/200")));
     }
+
+    private static MountRead kind(String type) {
+        return new MountRead(type, type, 240, 200, 200, List.of(new MountRead.Stat("SPEED", "Speed", 1, 10, 30)), false, "", "");
+    }
+
+    @Test
+    void aUniversalFeederOnAHousingIslandIsAPlaceOfItsOwn() {
+        // the island sits far from every enclosure; every feeder's menu is the same, so what is in it decides
+        double x = 65487, z = 65575;
+        String generic = "Feed, breed, and manage mounts";
+        MountRead bantisus = kind("WYVERN");
+        MountRead other = new MountRead("WYVERN", "Wyvern", 500, 200, 200, List.of(new MountRead.Stat("SPEED", "Speed", 1, 10, 40)),
+                false, "", "");
+        Map<String, List<MountBook.Seen>> book = Map.of("feeder:Bantisu Air Temple",
+                List.of(at(bantisus, MountBook.Where.ENCLOSURE, "feeder:Bantisu Air Temple")));
+        // a housing Wyvern feeder shows Bantisu's own wyverns
+        assertEquals("feeder:Bantisu Air Temple", MountBook.feederPlace(generic,
+                List.of(at(bantisus, MountBook.Where.ENCLOSURE, null)), x, z, book));
+        // wyverns Bantisu does not hold: the Universal Feeder's own slots, whatever its name says
+        assertEquals("feeder:Universal Feeder", MountBook.feederPlace(null, List.of(at(other, MountBook.Where.ENCLOSURE, null)), x, z, book));
+        // mixed kinds: only a Universal Feeder holds them
+        assertEquals("feeder:Universal Feeder", MountBook.feederPlace(generic, List.of(at(other, MountBook.Where.ENCLOSURE, null),
+                at(kind("HORSE"), MountBook.Where.ENCLOSURE, null)), x, z, book));
+        // its floating name, when read, names the guild's one apart
+        assertEquals("feeder:Guild Universal Feeder", MountBook.feederPlace("Guild Universal Feeder",
+                List.of(at(other, MountBook.Where.ENCLOSURE, null)), x, z, book));
+        assertEquals("feeder:Guild Universal Feeder", MountBook.feederPlace("Guild Universal Feeder", List.of(), x, z, book));
+        // a kind whose enclosure was never read: that enclosure's
+        assertEquals("feeder:Ternaves", MountBook.feederPlace(null, List.of(at(kind("HORSE"), MountBook.Where.ENCLOSURE, null)), x, z, book));
+        // an empty housing feeder: whose it is cannot be told, so no enclosure is wiped
+        assertNull(MountBook.feederPlace(generic, List.of(), x, z, book));
+        // in an enclosure, an empty feeder is that enclosure's
+        assertEquals("feeder:Aldwell", MountBook.feederPlace(null, List.of(), -1210, -735, book));
+    }
+
+    @Test
+    void aMountMovedFromAnEnclosureToTheUniversalFeederIsCountedOnce() {
+        String ternaves = MountBook.feederKey("Ternaves"), universal = MountBook.feederKey("Guild Universal Feeder");
+        MountRead horse = kind("HORSE");
+        MountRead twin = kind("HORSE");
+        var book = MountBook.put(Map.of(), ternaves, List.of(at(horse, MountBook.Where.ENCLOSURE, ternaves),
+                at(twin, MountBook.Where.ENCLOSURE, ternaves)));
+        // one of the two moved; the enclosure was not opened since
+        book = MountBook.putFeeder(book, universal, List.of(at(horse, MountBook.Where.ENCLOSURE, universal)));
+        assertEquals(2, MountBook.union(book).size(), "one in each place, the twin stays in Ternaves");
+        assertEquals(1, book.get(ternaves).size());
+        // the Universal Feeder opened again: its horse was there already, so the twin in Ternaves stays
+        book = MountBook.putFeeder(book, universal, List.of(at(horse, MountBook.Where.ENCLOSURE, universal)));
+        assertEquals(1, book.get(ternaves).size());
+        book = MountBook.putFeeder(book, ternaves, List.of(at(twin, MountBook.Where.ENCLOSURE, ternaves)));
+        assertEquals(1, book.get(universal).size(), "and Ternaves read again keeps the Universal Feeder's twin");
+    }
+
+    @Test
+    void aReadUniversalNameWinsOverAStaleEnclosureSnapshot() {
+        double x = 65487, z = 65575;
+        MountRead wyvern = kind("WYVERN");
+        Map<String, List<MountBook.Seen>> book = Map.of("feeder:Bantisu Air Temple",
+                List.of(at(wyvern, MountBook.Where.ENCLOSURE, "feeder:Bantisu Air Temple")));
+        assertEquals("feeder:Guild Universal Feeder", MountBook.feederPlace("Guild Universal Feeder",
+                List.of(at(wyvern, MountBook.Where.ENCLOSURE, null)), x, z, book));
+        // the name read loosely is still the same place; the personal one is "Universal Feeder"
+        assertEquals("feeder:Guild Universal Feeder", MountBook.feederPlace("Yozgat's Guild Universal Feeder", List.of(), x, z, book));
+        assertEquals("feeder:Universal Feeder", MountBook.feederPlace("Universal Feeder", List.of(), x, z, book));
+        assertEquals("Guild Universal Feeder", MountBook.universalName("feeder:Guild Universal Feeder"));
+        assertNull(MountBook.universalName("feeder:Ternaves"));
+    }
+
+    @Test
+    void aMountOfUnknownKindDoesNotDropItsEnclosure() {
+        MountRead odd = new MountRead("", "?", 240, 200, 200, List.of(new MountRead.Stat("SPEED", "Speed", 1, 10, 30)), false, "", "");
+        var out = MountBook.withoutStrays(Map.of("feeder:Ternaves", List.of(at(kind("HORSE"), MountBook.Where.ENCLOSURE, "feeder:Ternaves"),
+                at(odd, MountBook.Where.ENCLOSURE, "feeder:Ternaves"))));
+        assertTrue(out.containsKey("feeder:Ternaves"));
+    }
+
+    @Test
+    void anEnclosureFilledWithAnotherKindByAHousingFeederIsDropped() {
+        Map<String, List<MountBook.Seen>> in = Map.of(
+                "feeder:Ternaves", List.of(at(kind("WYVERN"), MountBook.Where.ENCLOSURE, "feeder:Ternaves")),
+                "feeder:Bantisu Air Temple", List.of(at(kind("WYVERN"), MountBook.Where.ENCLOSURE, "feeder:Bantisu Air Temple")),
+                "feeder:Guild Universal Feeder", List.of(at(kind("HORSE"), MountBook.Where.ENCLOSURE, "feeder:Guild Universal Feeder")));
+        Map<String, List<MountBook.Seen>> out = MountBook.withoutStrays(in);
+        assertFalse(out.containsKey("feeder:Ternaves"));
+        assertTrue(out.containsKey("feeder:Bantisu Air Temple"));
+        assertTrue(out.containsKey("feeder:Guild Universal Feeder"));
+    }
+
+    @Test
+    void theFeedersNameIsTheLineUnderClickToOpen() {
+        assertEquals("Guild Universal Feeder", FeederLabel.nameLine("\u00a7fClick to Open Feeder\n\u00a77Guild Universal Feeder"));
+        assertEquals("Feed, breed, and manage mounts", FeederLabel.nameLine("Click to Open Feeder\nFeed, breed, and manage mounts"));
+    }
 }

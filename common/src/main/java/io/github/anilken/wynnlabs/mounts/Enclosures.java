@@ -5,8 +5,8 @@ import java.util.List;
 /** The Mount Enclosures (each with its own Mount Feeder): where they are, and the one nearest a spot. */
 public final class Enclosures {
 
-    /** An enclosure: its place name, a short name for chips, and where it is. */
-    public record Place(String name, String chip, int x, int y, int z) {
+    /** An enclosure: its place name, a short name for chips, where it is, and the mounts it keeps. */
+    public record Place(String name, String chip, int x, int y, int z, MountType type) {
 
         public int[] at() {
             return new int[] {x, y, z};
@@ -14,11 +14,21 @@ public final class Enclosures {
     }
 
     public static final List<Place> ALL = List.of(
-            new Place("Ternaves", "Ternaves", 859, 71, -1663),
-            new Place("Bantisu Air Temple", "Bantisu", 497, 107, -4743),
-            new Place("Aldwell", "Aldwell", -1219, 60, -729));
+            new Place("Ternaves", "Ternaves", 859, 71, -1663, MountType.HORSE),
+            new Place("Bantisu Air Temple", "Bantisu", 497, 107, -4743, MountType.WYVERN),
+            new Place("Aldwell", "Aldwell", -1219, 60, -729, MountType.ADASAUR));
 
     private Enclosures() {}
+
+    /** The enclosure that keeps this kind of mount. */
+    public static Place of(MountType type) {
+        for (Place p : ALL) {
+            if (p.type() == type) {
+                return p;
+            }
+        }
+        return null;
+    }
 
     /** The enclosure nearest x, z (the feeder open now is that one's). */
     public static Place nearest(double x, double z) {
