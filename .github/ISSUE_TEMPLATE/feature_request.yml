@@ -1,5 +1,5 @@
 name: Feature request
-description: An idea for Wynn Labs
+description: An idea for Wynnlabs
 labels: [enhancement]
 body:
   - type: textarea
@@ -22,7 +22,7 @@ body:
       label: Area
       options:
         - Item tooltips and advice
-        - Wynn Labs menu (layout, Home, Today)
+        - Wynnlabs menu (layout, Home, Today)
         - Mounts and Mount Feeder
         - Quests, discoveries and the guide line
         - Ability tree and builds (Damage, Community)

@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Wynn Labs does not work as it should
+description: Something in Wynnlabs does not work as it should
 labels: [bug]
 body:
   - type: textarea
@@ -14,7 +14,7 @@ body:
     attributes:
       label: How to make it happen
       placeholder: |
-        1. Open the Wynn Labs menu (Y)
+        1. Open the Wynnlabs menu (Y)
         2. Go to the Mounts tab
         3. ...
     validations:
@@ -25,7 +25,7 @@ body:
       label: Area
       options:
         - Item tooltips and advice
-        - Wynn Labs menu (layout, Home, Today)
+        - Wynnlabs menu (layout, Home, Today)
         - Mounts and Mount Feeder
         - Quests, discoveries and the guide line
         - Ability tree and builds (Damage, Community)
@@ -43,7 +43,7 @@ body:
   - type: input
     id: wynnlabs
     attributes:
-      label: Wynn Labs version
+      label: Wynnlabs version
       description: The jar's name in your mods folder, or Mod Menu.
       placeholder: "0.2.38"
     validations:

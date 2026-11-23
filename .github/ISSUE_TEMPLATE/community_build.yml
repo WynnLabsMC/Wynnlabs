@@ -71,5 +71,5 @@ body:
     attributes:
       label: Permission
       options:
-        - label: This is my own build, or I have the author's permission to share it, and it may be listed in Wynn Labs.
+        - label: This is my own build, or I have the author's permission to share it, and it may be listed in Wynnlabs.
           required: true
