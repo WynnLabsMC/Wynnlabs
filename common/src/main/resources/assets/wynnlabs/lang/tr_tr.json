@@ -3091,6 +3091,7 @@
   "wynnlabs.mounts.where.inventory": "Envanterde okundu, %s",
   "wynnlabs.mounts.where.bank": "Bankada okundu, %s",
   "wynnlabs.mounts.where.enclosure": "Kafeste okundu, %s",
+  "wynnlabs.mounts.where_feeder": "%1$s içinde okundu, %2$s",
   "wynnlabs.mounts.potential": "Potansiyel",
   "wynnlabs.mounts.potential_sub": "En fazlaların toplamı",
   "wynnlabs.mounts.energy": "Enerji",

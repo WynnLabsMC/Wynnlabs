@@ -277,8 +277,9 @@ final class MountsCard {
         Type.HEADING.draw(g, font(), Type.HEADING.fit(font(), m.name(), right - nx), nx, cy, Theme.INK);
         cy += Type.HEADING.lineHeight;
         if (!compact) {
-            String where = m.type().display() + " · " + L.t("wynnlabs.mounts.where." + o.where().name().toLowerCase(java.util.Locale.ROOT),
-                    MenuPaint.ago(o.at()));
+            String where = m.type().display() + " · " + (o.feeder() != null
+                    ? L.t("wynnlabs.mounts.where_feeder", o.feeder(), MenuPaint.ago(o.at()))
+                    : L.t("wynnlabs.mounts.where." + o.where().name().toLowerCase(java.util.Locale.ROOT), MenuPaint.ago(o.at())));
             Type.META.draw(g, font(), Type.META.fit(font(), where, x + cw - nx), nx, cy + Theme.SP_1, Theme.INK_2);
             cy += Theme.SP_1 + Type.META.lineHeight;
         }

@@ -41,11 +41,18 @@ import java.util.concurrent.CompletableFuture;
  */
 final class MountsModel {
 
-    /** A mount read in game, in the planner's terms, with where and when it was seen. */
-    record Owned(io.github.anilken.wynnlabs.mounts.Mount mount, MountRead read, MountBook.Where where, long at, int row) {
+    /**
+     * A mount read in game, in the planner's terms, with where and when it was seen ({@code feeder}:
+     * the Universal Feeder it is in, null in an enclosure or anywhere else).
+     */
+    record Owned(io.github.anilken.wynnlabs.mounts.Mount mount, MountRead read, MountBook.Where where, long at, int row, String feeder) {
+
+        Owned(io.github.anilken.wynnlabs.mounts.Mount mount, MountRead read, MountBook.Where where, long at, int row) {
+            this(mount, read, where, at, row, null);
+        }
 
         Owned(io.github.anilken.wynnlabs.mounts.Mount mount, MountRead read, MountBook.Where where, long at) {
-            this(mount, read, where, at, 0);
+            this(mount, read, where, at, 0, null);
         }
     }
 
@@ -145,7 +152,8 @@ final class MountsModel {
             for (MountBook.Seen s : MountBook.all()) {
                 io.github.anilken.wynnlabs.mounts.Mount m = withQueue(convert(s.mount()), s.fed());
                 if (m != null) {
-                    out.add(new Owned(m, s.mount(), s.where(), s.at(), s.fed() == null ? 0 : s.fed().row()));
+                    out.add(new Owned(m, s.mount(), s.where(), s.at(), s.fed() == null ? 0 : s.fed().row(),
+                            MountBook.universalName(s.page())));
                 }
             }
             out.sort((a, b) -> Integer.compare(b.mount().potential(), a.mount().potential()));

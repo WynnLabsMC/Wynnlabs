@@ -117,6 +117,100 @@ public final class MountBook {
         return "feeder:" + enclosure;
     }
 
+    /** How far from an enclosure its own feeder can be; the housing islands are far beyond. */
+    static final double ENCLOSURE_RANGE = 500;
+
+    /** The Universal Feeders' places: the personal one (also when its floating name was not read) and the guild's. */
+    static final String UNIVERSAL = "Universal Feeder";
+    static final String GUILD_UNIVERSAL = "Guild Universal Feeder";
+
+    /** Whether a place key is a Universal Feeder's (a place of its own, not an enclosure's). */
+    public static boolean universal(String place) {
+        return place != null && (place.equals(feederKey(UNIVERSAL)) || place.equals(feederKey(GUILD_UNIVERSAL)));
+    }
+
+    /** The feeder's name for a Universal Feeder's place key ("Guild Universal Feeder"), null for any other place. */
+    public static String universalName(String place) {
+        return universal(place) ? place.substring("feeder:".length()) : null;
+    }
+
+    /**
+     * Whose mounts an open feeder shows. The menu is the same for every feeder, so it goes by what
+     * is in it: in an enclosure, that enclosure's. On a housing island a Horse, Wyvern or Adasaur
+     * feeder shows that kind's enclosure (the same mounts), while a Universal Feeder has slots of
+     * its own: mixed kinds, or mounts the enclosure does not hold, are the Universal Feeder's. Its
+     * floating name ({@code label}, may be null), when read, settles it (guild or personal); the
+     * content decides when it is not. Null when nothing tells (an empty housing feeder): nothing is
+     * saved then, so no enclosure's snapshot is wiped.
+     */
+    static String feederPlace(String label, List<Seen> here, double x, double z, Map<String, List<Seen>> places) {
+        Enclosures.Place near = Enclosures.nearest(x, z);
+        if (Math.hypot(near.x() - x, near.z() - z) <= ENCLOSURE_RANGE) {
+            return feederKey(near.name());
+        }
+        String low = label == null ? "" : label.toLowerCase(Locale.ROOT);
+        if (low.contains("universal")) {
+            return feederKey(low.contains("guild") ? GUILD_UNIVERSAL : UNIVERSAL);
+        }
+        String universal = feederKey(UNIVERSAL);
+        MountType one = null;
+        for (Seen s : here) {
+            MountType t = MountType.parse(s.mount().type());
+            if (t != null && one != null && t != one) {
+                return universal;                       // only a Universal Feeder holds mixed kinds
+            }
+            one = t != null ? t : one;
+        }
+        if (one == null) {
+            return null;
+        }
+        String enclosure = feederKey(Enclosures.of(one).name());
+        List<Seen> there = places.getOrDefault(enclosure, List.of());
+        for (Seen s : here) {
+            for (Seen o : there) {
+                if (o.mount().key().equals(s.mount().key())) {
+                    return enclosure;                   // the enclosure's own mounts, shown here
+                }
+            }
+        }
+        // none of the enclosure's mounts: the Universal Feeder's own, unless the enclosure was never read
+        return !there.isEmpty() ? universal : enclosure;
+    }
+
+    /** These reads with their place's key. */
+    private static List<Seen> onPlace(List<Seen> here, String key) {
+        List<Seen> out = new ArrayList<>(here.size());
+        for (Seen s : here) {
+            out.add(new Seen(s.mount(), s.where(), s.at(), s.fed(), key));
+        }
+        return out;
+    }
+
+    /**
+     * A file from before the housing feeders: an enclosure's snapshot that a housing feeder filled
+     * with another kind of mount is dropped (the real one comes back on the next visit).
+     */
+    static Map<String, List<Seen>> withoutStrays(Map<String, List<Seen>> in) {
+        Map<String, List<Seen>> out = new LinkedHashMap<>();
+        for (Map.Entry<String, List<Seen>> e : in.entrySet()) {
+            MountType kept = null;
+            for (Enclosures.Place p : Enclosures.ALL) {
+                if (e.getKey().equals(feederKey(p.name()))) {
+                    kept = p.type();
+                }
+            }
+            MountType k = kept;
+            // a mount whose kind does not read is no proof of a stray
+            if (k == null || e.getValue().stream().allMatch(s -> {
+                MountType t = MountType.parse(s.mount().type());
+                return t == null || t == k;
+            })) {
+                out.put(e.getKey(), e.getValue());
+            }
+        }
+        return out;
+    }
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int EVERY = 10;              // ticks between two reads: twice a second
     private static final int PLAYER_SLOTS = 36;       // a menu ends with the player's inventory and hotbar
@@ -132,6 +226,9 @@ public final class MountBook {
     private static final int NEXT_PAGE = 52;
 
     private static boolean loaded;
+    /** The feeder menu open now (its id + 1; 0 for none) and the place it was told to be; no initialisers (hot swap). */
+    private static int openFeeder;
+    private static String openPlace;
     private static Map<String, List<Seen>> places = new LinkedHashMap<>();
     private static List<Seen> preview;
     private static int tick;
@@ -157,6 +254,7 @@ public final class MountBook {
         Map<String, List<Seen>> next = put(places, inventoryKey(Profile.id()), bag);
         var menu = mc.player.containerMenu;
         List<Live> rows = List.of();
+        boolean feederOpen = false;
         if (menu != null && menu != mc.player.inventoryMenu && mc.screen != null) {
             MenuKind c = Wyn.container();
             String title = mc.screen.getTitle().getString();
@@ -188,12 +286,26 @@ public final class MountBook {
                     next = put(next, key, here);
                 }
             } else if (where == Where.ENCLOSURE) {
+                feederOpen = true;
                 var p = mc.player;
-                String key = feederKey(Enclosures.nearest(p.getX(), p.getZ()).name());
                 List<Seen> here = new ArrayList<>();
-                rows = readFeeder(menu, own, now, key, here);
-                next = put(next, key, here);
+                rows = readFeeder(menu, own, now, null, here);
+                // once told, the open menu keeps its place: its last mount taken out leaves it empty, not unknown
+                String key = openFeeder == menu.containerId + 1 ? openPlace : null;
+                if (key == null) {
+                    key = feederPlace(FeederLabel.read(mc), here, p.getX(), p.getZ(), places);
+                    if (key != null) {
+                        openFeeder = menu.containerId + 1;
+                        openPlace = key;
+                    }
+                }
+                if (key != null) {
+                    next = putFeeder(next, key, onPlace(here, key));
+                }
             }
+        }
+        if (!feederOpen) {
+            openFeeder = 0;
         }
         live = rows;
         if (!same(next, places)) {
@@ -237,6 +349,43 @@ public final class MountBook {
             out.remove(place);
         } else {
             out.put(place, List.copyOf(now));
+        }
+        return out;
+    }
+
+    /**
+     * A feeder read in full: its snapshot replaced, and its mounts taken out of every other feeder's
+     * (a mount is in one feeder at a time; one moved from an enclosure to a Universal Feeder leaves
+     * the enclosure's older snapshot). Only the ones new here, one out for each, so twins kept in two
+     * feeders stay. Pure.
+     */
+    static Map<String, List<Seen>> putFeeder(Map<String, List<Seen>> before, String place, List<Seen> now) {
+        Map<String, List<Seen>> out = put(before, place, now);
+        // only the ones that came in since this feeder's last read moved here; the rest were here already
+        List<String> had = new ArrayList<>();
+        before.getOrDefault(place, List.of()).forEach(s -> had.add(s.mount().key()));
+        List<String> came = new ArrayList<>();
+        for (Seen s : now) {
+            if (!had.remove(s.mount().key())) {
+                came.add(s.mount().key());
+            }
+        }
+        for (Map.Entry<String, List<Seen>> e : before.entrySet()) {
+            if (came.isEmpty() || e.getKey().equals(place) || !e.getKey().startsWith("feeder:")) {
+                continue;
+            }
+            List<Seen> left = new ArrayList<>(e.getValue());
+            for (String k : came) {
+                for (int i = 0; i < left.size(); i++) {
+                    if (left.get(i).mount().key().equals(k)) {
+                        left.remove(i);
+                        break;
+                    }
+                }
+            }
+            if (left.size() != e.getValue().size()) {
+                out = put(out, e.getKey(), left);
+            }
         }
         return out;
     }
@@ -512,7 +661,7 @@ public final class MountBook {
         try {
             Path f = file();
             if (Files.exists(f)) {
-                places = parse(Files.readString(f));
+                places = withoutStrays(parse(Files.readString(f)));
             } else {
                 // once: the per-character files from before, brought together (left in place, not read again)
                 List<Map<String, List<Seen>>> old = new ArrayList<>();
