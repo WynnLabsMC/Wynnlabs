@@ -1,5 +1,5 @@
 name: Feature request
-description: An idea for Wynn Labs
+description: An idea for Wynnlabs
 labels: [enhancement]
 body:
   - type: textarea
@@ -16,6 +16,24 @@ body:
       description: What the mod should show or do. A sketch is welcome for UI ideas.
     validations:
       required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Item tooltips and advice
+        - Wynnlabs menu (layout, Home, Today)
+        - Mounts and Mount Feeder
+        - Quests, discoveries and the guide line
+        - Ability tree and builds (Damage, Community)
+        - Endgame (raids, lootruns, aspects, pools)
+        - Crafting
+        - Gathering (node boxes, professions)
+        - Bank, prices and Search
+        - Maps (world events, guild map, content book)
+        - Coach, deaths and HUD
+        - Local API and AI assistant
+        - Something new
   - type: checkboxes
     id: readonly
     attributes:
